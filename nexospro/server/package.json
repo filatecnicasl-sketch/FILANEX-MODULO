@@ -1,0 +1,29 @@
+{
+  "name": "nexospro-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "API de NEXOSPRO - facturación VeriFactu + OCR de compras",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "postinstall": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@google/genai": "^2.15.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.0.0",
+    "mongoose": "^8.9.5",
+    "multer": "^2.2.0",
+    "pdfkit": "^0.19.1",
+    "playwright": "^1.62.1",
+    "qrcode": "^1.5.4",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "autocannon": "^8.0.0"
+  }
+}

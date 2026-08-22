@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Variante B — Claro corporativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --accent:#1d4ed8; }
+  * { margin:0; box-sizing:border-box; font-family:Inter,system-ui,sans-serif; }
+  body { background:#eef2f7; color:#334155; min-height:100vh; display:flex; }
+  aside { width:240px; background:#fff; border-right:1px solid #e2e8f0; display:flex; flex-direction:column; padding:22px 12px; }
+  .marca { display:flex; gap:12px; align-items:center; padding:0 10px 20px; border-bottom:1px solid #e2e8f0; }
+  .marca .logo { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:#fff; font-weight:800;
+    background:linear-gradient(135deg,#1d4ed8,#3b82f6); box-shadow:0 8px 18px -6px rgba(29,78,216,.45); }
+  .marca b { font-size:17px; letter-spacing:-.02em; color:#0f172a; }
+  .marca b i { font-style:normal; color:var(--accent); }
+  .marca small { display:block; font-size:9px; letter-spacing:.2em; color:#94a3b8; margin-top:4px; }
+  .grupo { margin-top:20px; }
+  .grupo p { font-size:10px; font-weight:700; letter-spacing:.18em; color:#94a3b8; padding:0 12px 8px; }
+  .item { display:flex; align-items:center; gap:11px; padding:8px 12px; border-radius:10px; font-size:13px; color:#64748b; margin-bottom:2px; }
+  .item .ico { width:28px; height:28px; border-radius:8px; background:#f1f5f9; display:grid; place-items:center; color:#94a3b8; font-size:13px; }
+  .item.activo { color:var(--accent); font-weight:600; background:#eff6ff; }
+  .item.activo .ico { background:#dbeafe; color:var(--accent); }
+  .pie { margin-top:auto; padding:14px; border-radius:14px; border:1px solid #e2e8f0; background:#f8fafc; font-size:12px; }
+  .pie b { color:#0f172a; } .pie small { color:#94a3b8; display:block; margin-top:2px; }
+  .pie .ok { color:#059669; margin-top:9px; display:flex; gap:6px; align-items:center; font-weight:600; }
+  main { flex:1; padding:36px 40px; max-width:1100px; }
+  h1 { color:#0f172a; font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .sub { color:#64748b; font-size:13px; margin:6px 0 26px; padding-bottom:22px; border-bottom:1px solid #e2e8f0; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .kpi { background:#fff; border-radius:16px; padding:18px; border:1px solid #e2e8f0;
+    box-shadow:0 1px 2px rgba(15,23,42,.04), 0 12px 28px -18px rgba(15,23,42,.18); }
+  .kpi label { font-size:10px; font-weight:700; letter-spacing:.14em; color:#94a3b8; text-transform:uppercase; }
+  .kpi .ico { float:right; width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font-size:14px; }
+  .kpi .valor { font-size:28px; font-weight:800; letter-spacing:-.02em; color:#0f172a; margin-top:14px; font-variant-numeric:tabular-nums; }
+  .kpi .nota { font-size:11px; color:#94a3b8; margin-top:5px; }
+  .kpi .barra { height:4px; border-radius:99px; margin-top:14px; background:#f1f5f9; overflow:hidden; }
+  .kpi .barra i { display:block; height:100%; border-radius:99px; }
+  .c-blue .ico { color:var(--accent); background:#eff6ff; }
+  .c-blue .barra i { width:62%; background:linear-gradient(90deg,#3b82f6,#1d4ed8); }
+  .c-amber .ico { color:#b45309; background:#fffbeb; } .c-amber .valor { color:#b45309; }
+  .c-amber .barra i { width:84%; background:linear-gradient(90deg,#fbbf24,#d97706); }
+  .c-green .ico { color:#059669; background:#ecfdf5; }
+  .c-green .barra i { width:100%; background:linear-gradient(90deg,#34d399,#059669); }
+  .c-slate .ico { color:#64748b; background:#f1f5f9; }
+  .c-slate .barra i { width:20%; background:#cbd5e1; }
+  .flujo { margin-top:22px; background:#fff; border-radius:16px; padding:20px 22px; border:1px solid #e2e8f0;
+    box-shadow:0 1px 2px rgba(15,23,42,.04); }
+  .flujo p { font-size:10px; font-weight:700; letter-spacing:.14em; color:#94a3b8; margin-bottom:10px; }
+  .flujo b { color:#0f172a; } .flujo span.arrow { color:var(--accent); margin:0 8px; }
+  .flujo small { color:#94a3b8; margin-left:12px; }
+  .tag { float:right; font-size:10px; padding:4px 10px; border-radius:999px; background:#eff6ff; color:var(--accent); border:1px solid #bfdbfe; font-weight:700; letter-spacing:.08em; }
+</style>
+</head>
+<body>
+<aside>
+  <div class="marca"><span class="logo">N</span><div><b><i>NEX</i>OSPRO</b><small>FACTURACIÓN VERIFACTU</small></div></div>
+  <div class="grupo"><p>GESTIÓN</p>
+    <div class="item activo"><span class="ico">▦</span>Panel</div>
+    <div class="item"><span class="ico">▤</span>Ventas</div>
+    <div class="item"><span class="ico">▥</span>Presupuestos</div>
+    <div class="item"><span class="ico">▧</span>Albaranes</div>
+    <div class="item"><span class="ico">▨</span>Tesorería</div>
+    <div class="item"><span class="ico">↻</span>Recurrencias</div>
+  </div>
+  <div class="grupo"><p>CATÁLOGO</p>
+    <div class="item"><span class="ico">◔</span>Clientes</div>
+    <div class="item"><span class="ico">◕</span>Proveedores</div>
+    <div class="item"><span class="ico">◈</span>Artículos</div>
+  </div>
+  <div class="grupo"><p>SISTEMA</p>
+    <div class="item"><span class="ico">⌗</span>Compras OCR</div>
+    <div class="item"><span class="ico">⚙</span>Configuración</div>
+  </div>
+  <div class="pie"><b>FILA TÉCNICA S.L.</b><small>B75418350 · San Fernando</small>
+    <span class="ok">● VeriFactu activo</span></div>
+</aside>
+<main>
+  <span class="tag">VARIANTE B · CLARO CORPORATIVO</span>
+  <h1>Panel</h1>
+  <p class="sub">Resumen de actividad: facturación, cobros, revisión OCR y envíos a la AEAT.</p>
+  <div class="kpis">
+    <div class="kpi c-blue"><span class="ico">▤</span><label>Facturado este mes</label><p class="valor">1.324,95 €</p><p class="nota">Facturas emitidas</p><div class="barra"><i></i></div></div>
+    <div class="kpi c-amber"><span class="ico">▨</span><label>Pendiente de cobro</label><p class="valor">1.114,95 €</p><p class="nota">En facturas emitidas</p><div class="barra"><i></i></div></div>
+    <div class="kpi c-green"><span class="ico">⌗</span><label>Compras por revisar</label><p class="valor">0</p><p class="nota">Extraídas con OCR</p><div class="barra"><i></i></div></div>
+    <div class="kpi c-slate"><span class="ico">▥</span><label>Envíos AEAT</label><p class="valor">2</p><p class="nota">A la espera del certificado</p><div class="barra"><i></i></div></div>
+  </div>
+  <div class="flujo">
+    <p>FLUJO DE TRABAJO</p>
+    <b>Presupuesto</b><span class="arrow">→</span><b>Albarán</b><span class="arrow">→</span><b>Factura VeriFactu</b><span class="arrow">→</span><b>Cobro / Remesa SEPA</b>
+    <small>— las compras entran solas por el OCR de Gemini</small>
+  </div>
+</main>
+</body>
+</html>

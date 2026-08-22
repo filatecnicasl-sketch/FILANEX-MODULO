@@ -1,0 +1,31 @@
+# Local Netlify folder
+.netlify
+
+# Dependencias
+**/node_modules/
+
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Builds
+**/dist/
+**/build/
+
+# Subidas y logs locales
+**/uploads/
+**/logs/
+*.log
+
+# Backups
+backups/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+

@@ -1,0 +1,45 @@
+{
+  "name": "FILANEX — Facturación VeriFactu",
+  "short_name": "FILANEX",
+  "description": "Facturación, taller y servicio técnico con VeriFactu. Funciona también sin conexión.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icono-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icono-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Ventas", "url": "/ventas" },
+    { "name": "Taller", "url": "/taller" },
+    { "name": "Servicio Técnico", "url": "/servicio" }
+  ]
+}

@@ -1,0 +1,44 @@
+INSTALACION DE FILANEX EN UN CLIENTE
+====================================
+
+Requisitos previos (instalar antes, con internet):
+  1. Node.js LTS        -> https://nodejs.org
+  2. MongoDB Community  -> https://www.mongodb.com/try/download/community
+     (marcar "Install MongoDB as a Service" durante la instalacion)
+
+Pasos:
+  1. Copia la carpeta del programa completa (con "server", "client" e
+     "instalador") al equipo del cliente, por ejemplo con un USB.
+  2. Clic derecho en  instalador\instalar.bat  ->  "Ejecutar como administrador".
+  3. Espera a que termine (la primera vez tarda unos minutos).
+  4. Abre el navegador en  http://localhost:4700
+  5. Crea la cuenta de administrador y sigue el asistente de configuracion.
+
+Que hace el instalador:
+  - Copia la aplicacion a  C:\Filanex\app
+  - La registra como servicio de Windows "Filanex" (arranca sola al
+    encender el equipo, aunque nadie inicie sesion, y se reinicia si falla)
+  - Programa una copia de seguridad diaria de la base de datos a las 21:30
+    en  C:\Filanex\backups  (conserva 14 dias)
+
+Acceso desde otros equipos / moviles del local:
+  - Misma red o WiFi:  http://IP-DEL-EQUIPO:4700
+  - Para saber la IP:  ipconfig  (IPv4)
+  - Si no carga desde otro equipo, permite el puerto 4700 en el Firewall
+    de Windows (el asistente de red suele preguntarlo la primera vez).
+
+Sin internet:
+  - La aplicacion sigue funcionando al 100% dentro del local.
+  - Las facturas se emiten con su numero y QR; el envio a la AEAT queda
+    pendiente y se reenvia automaticamente cada 15 minutos hasta que
+    vuelva la conexion.
+
+Actualizar a una version nueva:
+  1. Lleva la carpeta nueva al equipo.
+  2. Ejecuta de nuevo instalar.bat como administrador:
+     copia la version nueva, recompila y reinicia el servicio.
+     (Los datos y el .env existentes NO se tocan.)
+
+Desinstalar:
+  C:\Filanex\nssm\nssm.exe remove Filanex confirm
+  y borrar C:\Filanex (haz antes una copia de seguridad si hace falta).

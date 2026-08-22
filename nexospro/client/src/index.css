@@ -1,0 +1,322 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Escala general en monitores grandes: todo el programa crece de forma
+   proporcional porque Tailwind trabaja en rem (equivale a subir el zoom
+   un paso). El móvil y la tablet (<1024px) quedan exactamente igual. */
+@media (min-width: 1024px) {
+  html { font-size: 106.25%; } /* base 17px */
+}
+@media (min-width: 1600px) {
+  html { font-size: 112.5%; } /* base 18px */
+}
+
+body {
+  @apply text-slate-200 antialiased;
+  background-color: #05080f;
+  background-image:
+    radial-gradient(1100px 520px at 80% -10%, rgba(34, 211, 238, 0.09), transparent 60%),
+    radial-gradient(800px 600px at -15% 115%, rgba(14, 116, 144, 0.1), transparent 55%),
+    linear-gradient(rgba(148, 163, 184, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.028) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
+  background-attachment: fixed;
+}
+
+::selection {
+  @apply bg-accent/30 text-white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full border-2 border-solid border-transparent bg-clip-padding;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/20;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border border-white/[0.07];
+    /* Los botones de CabeceraPagina van flotados a la derecha; sin este clear
+       la tarjeta se encoge para esquivarlos y la tabla no llega al borde. */
+    clear: both;
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.075), rgba(148, 163, 184, 0.02));
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+      0 24px 48px -24px rgba(0, 0, 0, 0.65);
+  }
+
+  .modal-panel {
+    @apply rounded-2xl border border-white/10;
+    background: #0b1424;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+      0 32px 64px -16px rgba(0, 0, 0, 0.8);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 text-[#04202a] font-semibold text-sm px-4 py-2 rounded-lg transition-all duration-150 hover:-translate-y-px disabled:opacity-50 disabled:pointer-events-none;
+    background: linear-gradient(180deg, #7de9f7, #22d3ee);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 10px 24px -10px rgba(34, 211, 238, 0.55);
+  }
+  .btn-primary:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      0 14px 32px -10px rgba(34, 211, 238, 0.7);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 border border-accent/30 text-accent font-semibold text-sm px-4 py-2 rounded-lg transition-all duration-150 hover:bg-accent/10 hover:border-accent/50 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .input {
+    @apply w-full border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-600 transition-colors focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/20;
+    background: rgba(2, 6, 16, 0.65);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45);
+  }
+
+  .tabla {
+    @apply w-full text-sm;
+  }
+
+  .tabla th {
+    @apply px-3.5 py-3 text-left text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-slate-500 border-b border-white/[0.07];
+  }
+
+  .tabla td {
+    @apply px-3.5 py-3;
+  }
+
+  .tabla tbody tr {
+    @apply transition-colors hover:bg-white/[0.035];
+  }
+}
+
+/* Separación de etiquetas en formularios (modales) */
+.modal-panel label {
+  margin-bottom: 6px;
+}
+
+/* ---- Editor de formatos: impresión a tamaño real ---- */
+.print-sheet {
+  display: none;
+}
+
+/* ============ TEMA CLARO "AZUL HIELO" (zona de contenido) ============
+   El menú lateral y la barra superior siguen oscuros; estas reglas solo
+   se aplican dentro del contenedor .tema-claro (sin @layer, para ganar
+   siempre a las utilidades de Tailwind). */
+
+.tema-claro {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* Números, códigos e importes: mono estilo FILANEX */
+.tema-claro .num,
+.num {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: -0.02em;
+}
+
+/* --- Texto --- */
+.tema-claro .text-white { color: #0f172a; }
+.tema-claro .text-slate-200 { color: #1e293b; }
+.tema-claro .text-slate-300 { color: #334155; }
+.tema-claro .text-slate-400 { color: #475569; }
+.tema-claro .text-slate-500 { color: #64748b; }
+.tema-claro .text-slate-600 { color: #94a3b8; }
+.tema-claro .hover\:text-white:hover { color: #0f172a; }
+.tema-claro .text-accent,
+.tema-claro .hover\:text-accent:hover,
+.tema-claro .group:hover .group-hover\:text-accent { color: #0369a1; }
+.tema-claro .text-cyan-300 { color: #0369a1; }
+.tema-claro .text-amber-300 { color: #b45309; }
+.tema-claro .text-emerald-300 { color: #15803d; }
+.tema-claro .text-rose-300,
+.tema-claro .text-rose-400,
+.tema-claro .hover\:text-rose-400:hover { color: #be123c; }
+.tema-claro .text-red-300 { color: #b91c1c; }
+
+/* --- Fondos translúcidos oscuros → tintes claros --- */
+.tema-claro .bg-white\/\[0\.03\] { background-color: rgba(15, 23, 42, 0.025); }
+.tema-claro .bg-white\/\[0\.04\] { background-color: rgba(15, 23, 42, 0.035); }
+.tema-claro .bg-white\/5 { background-color: rgba(15, 23, 42, 0.045); }
+.tema-claro .bg-white\/\[0\.06\] { background-color: rgba(15, 23, 42, 0.055); }
+.tema-claro .bg-white\/10 { background-color: rgba(15, 23, 42, 0.07); }
+.tema-claro .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(3, 105, 161, 0.05); }
+.tema-claro .hover\:bg-white\/\[0\.05\]:hover,
+.tema-claro .hover\:bg-white\/10:hover { background-color: rgba(3, 105, 161, 0.07); }
+
+/* --- Acento: cyan brillante → azul legible sobre claro --- */
+.tema-claro .bg-accent { background-color: #0369a1; }
+.tema-claro .bg-accent\/10 { background-color: rgba(3, 105, 161, 0.08); }
+.tema-claro .bg-accent\/15 { background-color: rgba(3, 105, 161, 0.12); }
+.tema-claro .hover\:bg-accent\/10:hover { background-color: rgba(3, 105, 161, 0.08); }
+.tema-claro .hover\:bg-accent\/20:hover { background-color: rgba(3, 105, 161, 0.16); }
+.tema-claro .border-accent\/20 { border-color: rgba(3, 105, 161, 0.2); }
+.tema-claro .border-accent\/25 { border-color: rgba(3, 105, 161, 0.25); }
+.tema-claro .border-accent\/30 { border-color: rgba(3, 105, 161, 0.3); }
+.tema-claro .hover\:border-accent\/40:hover { border-color: rgba(3, 105, 161, 0.4); }
+.tema-claro .hover\:border-accent\/50:hover { border-color: rgba(3, 105, 161, 0.5); }
+
+/* Gradientes del acento (avatar, barras de gráfica, subrayado de cabecera) */
+.tema-claro .from-accent\/25 {
+  --tw-gradient-from: rgba(3, 105, 161, 0.18) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(3, 105, 161, 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.tema-claro .to-accent\/5 { --tw-gradient-to: rgba(3, 105, 161, 0.05) var(--tw-gradient-to-position); }
+.tema-claro .from-accent\/50 {
+  --tw-gradient-from: rgba(3, 105, 161, 0.45) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(3, 105, 161, 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.tema-claro .from-accent {
+  --tw-gradient-from: #0369a1 var(--tw-gradient-from-position);
+  --tw-gradient-to: rgba(3, 105, 161, 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.tema-claro .to-accent { --tw-gradient-to: #0369a1 var(--tw-gradient-to-position); }
+.tema-claro .shadow-glow { box-shadow: none; }
+
+/* --- Bordes --- */
+.tema-claro .border-white\/5 { border-color: #e2e9f2; }
+.tema-claro .border-white\/10 { border-color: #dde6f0; }
+.tema-claro .border-white\/\[0\.06\] { border-color: #e2e9f2; }
+.tema-claro .border-white\/\[0\.07\] { border-color: #d6e2ef; }
+.tema-claro .hover\:border-white\/\[0\.12\]:hover,
+.tema-claro .hover\:border-white\/25:hover { border-color: #b9cadd; }
+.tema-claro .divide-white\/\[0\.06\] > :not([hidden]) ~ :not([hidden]) { border-color: #e8eef5; }
+
+/* --- Badges de estado --- */
+.tema-claro .bg-amber-400\/10,
+.tema-claro .bg-amber-400\/15 { background-color: #fef3c7; }
+.tema-claro .border-amber-400\/25 { border-color: #fde68a; }
+.tema-claro .bg-emerald-400\/10 { background-color: #dcfce7; }
+.tema-claro .border-emerald-400\/25 { border-color: #bbf7d0; }
+.tema-claro .bg-rose-400\/10,
+.tema-claro .bg-rose-400\/15 { background-color: #ffe4e6; }
+.tema-claro .border-rose-400\/25 { border-color: #fecdd3; }
+.tema-claro .hover\:bg-rose-400\/10:hover { background-color: #ffe4e6; }
+.tema-claro .bg-red-400\/10 { background-color: #fee2e2; }
+.tema-claro .border-red-400\/25 { border-color: #fecaca; }
+.tema-claro .bg-slate-400\/10 { background-color: rgba(100, 116, 139, 0.1); }
+
+/* --- Componentes base --- */
+/* Opción activa de los selectores segmentados (Agenda/Semana/Mes,
+   Tablero/Lista…): azul corporativo con texto blanco. Hace falta regla
+   propia porque el remap de arriba convierte .text-white en oscuro. */
+.tema-claro .seg-activo {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+.tema-claro .panel {
+  background: #ffffff;
+  border-color: #e5eaf2;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+.tema-claro .modal-panel {
+  background: #ffffff;
+  border-color: #d6e2ef;
+  box-shadow: 0 32px 64px -16px rgba(15, 23, 42, 0.35);
+}
+.tema-claro .input {
+  background: #ffffff;
+  border-color: #c3d2e3;
+  color: #0f172a;
+  box-shadow: none;
+}
+.tema-claro .input::placeholder { color: #94a3b8; }
+.tema-claro .input:focus {
+  border-color: rgba(3, 105, 161, 0.55);
+  box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.14);
+}
+.tema-claro .btn-primary {
+  background: #0369a1;
+  color: #ffffff;
+  box-shadow: 0 10px 22px -12px rgba(3, 105, 161, 0.55);
+}
+.tema-claro .btn-primary:hover {
+  background: #075985;
+  box-shadow: 0 14px 28px -12px rgba(3, 105, 161, 0.6);
+}
+.tema-claro .btn-ghost {
+  border-color: rgba(3, 105, 161, 0.4);
+  color: #0369a1;
+}
+.tema-claro .btn-ghost:hover {
+  background: rgba(3, 105, 161, 0.07);
+  border-color: rgba(3, 105, 161, 0.6);
+}
+.tema-claro .tabla th { color: #64748b; border-color: #e8edf4; font-size: 0.6875rem; }
+.tema-claro .tabla tbody tr:hover { background: rgba(3, 105, 161, 0.035); }
+
+/* Filas estilo referencia. En rem para que escalen con la base en
+   monitores grandes (13px en móvil, ~14,6px en pantalla grande).
+   Ancho completo: la tabla aprovecha toda la pantalla en monitores. */
+.tabla { font-size: 0.8125rem; width: 100%; }
+.tabla th { padding: 0.6rem 0.5rem; }
+.tabla td { padding: 0.55rem 0.5rem; }
+/* La base marca th con text-left; esta regla (sin capa) hace que el
+   text-right de las páginas alinee de verdad la cabecera Acciones. */
+.tabla th.text-right { text-align: right; }
+
+/* Las cabeceras de página son blancas (componente CabeceraPagina). */
+
+/* Iconos del menú lateral más grandes (los SVG traen tamaño fijo de 18px).
+   En rem para que escalen con la base en monitores grandes. */
+.menu-ico svg {
+  width: 1.3125rem;
+  height: 1.3125rem;
+}
+
+/* Móvil/tablet: las tablas mantienen un ancho mínimo y se desplazan
+   horizontalmente dentro de su contenedor en vez de aplastarse. */
+@media (max-width: 1023px) {
+  .tabla {
+    min-width: 620px;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-sheet {
+    display: block !important;
+  }
+  html,
+  body,
+  #root {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    background-image: none !important;
+  }
+  /* Listados legibles en papel: texto oscuro y sin controles
+     (sin tocar .print-sheet: es la factura del editor de formatos) */
+  main *:not(.print-sheet):not(.print-sheet *) {
+    color: #0f172a !important;
+    background-color: transparent !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  .tabla button,
+  .tabla select,
+  .tabla a {
+    display: none !important;
+  }
+}

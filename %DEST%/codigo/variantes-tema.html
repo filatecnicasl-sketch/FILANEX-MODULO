@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Variantes de tema · NEXOSPRO</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background:#111;
+  }
+
+  /* ---------- Selector de variante ---------- */
+  .switcher {
+    position:fixed; top:0; left:0; right:0; z-index:50;
+    display:flex; align-items:center; gap:10px;
+    background:#000; color:#e2e8f0; padding:10px 18px;
+    border-bottom:1px solid #1e293b; font-size:13px;
+  }
+  .switcher b { color:#7de9f7; margin-right:6px; }
+  .switcher a {
+    padding:6px 14px; border-radius:8px; text-decoration:none;
+    color:#cbd5e1; background:#1e293b; font-weight:600; font-size:12.5px;
+  }
+  .switcher a.activa { background:#22d3ee; color:#04202a; }
+  .switcher span.nombre { margin-left:auto; color:#7de9f7; font-weight:700; }
+
+  /* ---------- Marco de la app ---------- */
+  .app { display:flex; height:100vh; padding-top:45px; }
+
+  /* Menú lateral: SIEMPRE negro (no cambia) */
+  aside {
+    width:220px; flex-shrink:0; background:#04070d; color:#cbd5e1;
+    border-right:1px solid rgba(255,255,255,.06);
+    display:flex; flex-direction:column; font-size:13px;
+  }
+  aside .logo { padding:18px 18px 14px; border-bottom:1px solid rgba(255,255,255,.06); }
+  aside .logo b { font-size:17px; letter-spacing:-.3px; color:#7de9f7; }
+  aside .logo small { display:block; font-size:9px; letter-spacing:2px; color:#64748b; margin-top:3px; text-transform:uppercase; }
+  aside nav { padding:12px 10px; }
+  aside .it { display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:10px; color:#cbd5e1; }
+  aside .it .ic { width:24px; height:24px; border-radius:7px; background:rgba(255,255,255,.05); display:flex; align-items:center; justify-content:center; font-size:11px; }
+  aside .grupo { margin-top:2px; }
+  aside .grupo .sub { margin:4px 0 6px 13px; padding-left:10px; border-left:1px solid rgba(255,255,255,.08); }
+  aside .sub .it { color:#94a3b8; font-size:12.5px; }
+  aside .it.activo { color:#22d3ee; font-weight:700; background:rgba(34,211,238,.1); }
+  aside .pie { margin-top:auto; padding:12px; border-top:1px solid rgba(255,255,255,.06); font-size:11px; color:#64748b; }
+  aside .pie b { color:#fff; font-size:12px; }
+  aside .pie .ok { color:#22d3ee; margin-top:5px; font-weight:600; }
+
+  .principal { flex:1; display:flex; flex-direction:column; min-width:0; }
+
+  /* Barra superior: SIEMPRE negra (no cambia) */
+  .topbar {
+    background:#04070d; color:#e2e8f0; padding:11px 26px;
+    display:flex; align-items:center; gap:12px; font-size:13px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .topbar .miga { color:#94a3b8; }
+  .topbar .miga b { color:#fff; }
+  .topbar .dcha { margin-left:auto; display:flex; align-items:center; gap:14px; font-size:12px; color:#94a3b8; }
+  .topbar .punto { color:#22d3ee; font-weight:700; }
+
+  /* ---------- Zona de contenido: LO QUE CAMBIA ---------- */
+  .contenido { flex:1; overflow:auto; padding:26px 30px; background:var(--bg); color:var(--texto); }
+  .contenido h1 { font-size:22px; letter-spacing:-.4px; }
+  .contenido .sub { color:var(--muted); font-size:13px; margin-top:2px; }
+  .fila-acciones { display:flex; gap:10px; margin:16px 0 18px; align-items:center; }
+  .btn-p { background:var(--acento); color:#fff; border:none; padding:8px 16px; border-radius:9px; font-weight:700; font-size:13px; }
+  .btn-g { background:transparent; color:var(--acento); border:1.5px solid var(--acento); padding:7px 15px; border-radius:9px; font-weight:700; font-size:13px; }
+  .buscar { margin-left:auto; background:var(--input); border:1px solid var(--borde); color:var(--texto); padding:8px 13px; border-radius:9px; font-size:13px; width:220px; }
+  .buscar::placeholder { color:var(--muted); }
+
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .kpi { border-radius:14px; padding:15px 17px; border:1px solid var(--borde); }
+  .kpi small { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; opacity:.65; }
+  .kpi .num { font-size:23px; font-weight:800; margin-top:5px; letter-spacing:-.5px; }
+  .k1 { background:var(--kpi1); } .k2 { background:var(--kpi2); }
+  .k3 { background:var(--kpi3); } .k4 { background:var(--kpi4); }
+
+  .chips { display:flex; gap:10px; margin:16px 0; flex-wrap:wrap; }
+  .chip { background:var(--card); border:1px solid var(--borde); border-radius:999px; padding:6px 14px; font-size:12.5px; color:var(--muted); }
+  .chip b { color:var(--texto); }
+
+  .rejilla { display:grid; grid-template-columns:1fr 1.25fr; gap:14px; }
+  .panel { background:var(--card); border:1px solid var(--borde); border-radius:14px; padding:17px 19px; }
+  .panel h3 { font-size:13.5px; margin-bottom:12px; }
+  .panel h3 span { color:var(--muted); font-weight:400; font-size:12px; }
+
+  .barras { display:flex; align-items:flex-end; gap:9px; height:130px; padding-top:8px; }
+  .barras .b { flex:1; border-radius:6px 6px 0 0; background:var(--acento); opacity:.85; position:relative; }
+  .barras .b:hover { opacity:1; }
+  .barras-eti { display:flex; gap:9px; margin-top:7px; }
+  .barras-eti span { flex:1; text-align:center; font-size:10.5px; color:var(--muted); }
+
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th { text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); padding:6px 8px; border-bottom:1px solid var(--borde); }
+  td { padding:8px; border-bottom:1px solid var(--borde); }
+  tr:last-child td { border-bottom:none; }
+  .badge { font-size:10.5px; font-weight:700; padding:2.5px 9px; border-radius:999px; }
+  .b-ok { background:#dcfce7; color:#15803d; }
+  .b-pen { background:#fef3c7; color:#b45309; }
+  .b-anu { background:#fee2e2; color:#b91c1c; }
+  .num-d { text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* ================= VARIANTES ================= */
+  /* 1 · Neutro claro (estilo RO App: tarjetas pastel) */
+  body.v1 { --bg:#f2f4f7; --card:#ffffff; --borde:#e3e8ef; --texto:#1e293b; --muted:#64748b;
+            --acento:#0e7490; --input:#ffffff;
+            --kpi1:#dbeafe; --kpi2:#dcfce7; --kpi3:#fef3c7; --kpi4:#ffe4e6; }
+  /* 2 · Arena cálida */
+  body.v2 { --bg:#f6f1e7; --card:#fffdf8; --borde:#e8dfcb; --texto:#292524; --muted:#78716c;
+            --acento:#0f766e; --input:#fffdf8;
+            --kpi1:#fdeeda; --kpi2:#e3f0e0; --kpi3:#fbeecb; --kpi4:#f7e3d3; }
+  /* 3 · Azul hielo */
+  body.v3 { --bg:#e8eff7; --card:#ffffff; --borde:#d6e2ef; --texto:#0f172a; --muted:#4c6582;
+            --acento:#0369a1; --input:#ffffff;
+            --kpi1:#d3e7f7; --kpi2:#dcefe3; --kpi3:#fdf0d3; --kpi4:#e6e0f4; }
+  /* 4 · Verde salvia */
+  body.v4 { --bg:#ecf1ea; --card:#ffffff; --borde:#d9e3d5; --texto:#1f2a1f; --muted:#5b6b57;
+            --acento:#166534; --input:#ffffff;
+            --kpi1:#dcecdc; --kpi2:#e9f3d8; --kpi3:#fdf3d0; --kpi4:#dfeae8; }
+</style>
+</head>
+<body>
+  <div class="switcher">
+    <b>Variantes de tema claro</b>
+    <a href="?v=1" id="s1">1</a>
+    <a href="?v=2" id="s2">2</a>
+    <a href="?v=3" id="s3">3</a>
+    <a href="?v=4" id="s4">4</a>
+    <span class="nombre" id="nombre"></span>
+  </div>
+
+  <div class="app">
+    <aside>
+      <div class="logo"><b>NEXOSPRO</b><small>Facturación VeriFactu</small></div>
+      <nav>
+        <div class="it"><span class="ic">€</span>Tesorería</div>
+        <div class="it"><span class="ic">▦</span>Artículos</div>
+        <div class="grupo">
+          <div class="it"><span class="ic">▼</span>Compras</div>
+          <div class="sub">
+            <div class="it">Proveedores</div>
+            <div class="it">Pedidos</div>
+            <div class="it">Presupuestos</div>
+            <div class="it">Albaranes</div>
+            <div class="it">Facturas</div>
+          </div>
+        </div>
+        <div class="grupo">
+          <div class="it"><span class="ic">▶</span>Ventas</div>
+        </div>
+        <div class="grupo">
+          <div class="it"><span class="ic">▶</span>Taller</div>
+        </div>
+        <div class="grupo">
+          <div class="it"><span class="ic">▶</span>Sistema</div>
+        </div>
+      </nav>
+      <div class="pie"><b>FILA TÉCNICA S.L.</b><br>B75418350 · San Fernando<div class="ok">● VeriFactu activo</div></div>
+    </aside>
+
+    <div class="principal">
+      <div class="topbar">
+        <span class="miga">Panel / <b>Panel general</b></span>
+        <div class="dcha"><span>FILA TÉCNICA S.L.</span><span class="punto">● VeriFactu</span></div>
+      </div>
+
+      <div class="contenido">
+        <h1>Panel general</h1>
+        <p class="sub">Resumen de facturación, cobros y gastos de FILA TÉCNICA S.L.</p>
+
+        <div class="fila-acciones">
+          <button class="btn-p">+ Nueva factura</button>
+          <button class="btn-g">Importar PDF con IA</button>
+          <input class="buscar" placeholder="Buscar factura, cliente…" />
+        </div>
+
+        <div class="kpis">
+          <div class="kpi k1"><small>Facturado</small><div class="num">1.674,64 €</div></div>
+          <div class="kpi k2"><small>Pendiente de cobro</small><div class="num">823,10 €</div></div>
+          <div class="kpi k3"><small>Gastos</small><div class="num">796,72 €</div></div>
+          <div class="kpi k4"><small>Pendiente de pago</small><div class="num">210,00 €</div></div>
+        </div>
+
+        <div class="chips">
+          <span class="chip">Clientes <b>3</b></span>
+          <span class="chip">Artículos <b>12</b></span>
+          <span class="chip">Proveedores <b>5</b></span>
+          <span class="chip">Facturas emitidas <b>8</b></span>
+          <span class="chip">Pendientes OCR <b>2</b></span>
+        </div>
+
+        <div class="rejilla">
+          <div class="panel">
+            <h3>Facturación mensual <span>· últimos 6 meses</span></h3>
+            <div class="barras">
+              <div class="b" style="height:35%"></div>
+              <div class="b" style="height:55%"></div>
+              <div class="b" style="height:42%"></div>
+              <div class="b" style="height:70%"></div>
+              <div class="b" style="height:58%"></div>
+              <div class="b" style="height:88%"></div>
+            </div>
+            <div class="barras-eti"><span>Mar</span><span>Abr</span><span>May</span><span>Jun</span><span>Jul</span><span>Ago</span></div>
+          </div>
+
+          <div class="panel">
+            <h3>Últimas facturas <span>· ventas</span></h3>
+            <table>
+              <thead><tr><th>Número</th><th>Cliente</th><th>Fecha</th><th>Estado</th><th class="num-d">Total</th></tr></thead>
+              <tbody>
+                <tr><td>FV-2025-0008</td><td>Talleres Pérez</td><td>08/08/2025</td><td><span class="badge b-ok">Emitida</span></td><td class="num-d">452,10 €</td></tr>
+                <tr><td>FV-2025-0007</td><td>Autocares Cádiz</td><td>05/08/2025</td><td><span class="badge b-pen">Pendiente</span></td><td class="num-d">1.210,00 €</td></tr>
+                <tr><td>FV-2025-0006</td><td>Marina Sur</td><td>01/08/2025</td><td><span class="badge b-ok">Cobrada</span></td><td class="num-d">318,54 €</td></tr>
+                <tr><td>FV-2025-0005</td><td>Recambios Leo</td><td>28/07/2025</td><td><span class="badge b-anu">Anulada</span></td><td class="num-d">94,00 €</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const nombres = { 1:"Opción 1 · Neutro claro (estilo RO App)", 2:"Opción 2 · Arena cálida", 3:"Opción 3 · Azul hielo", 4:"Opción 4 · Verde salvia" };
+  const v = new URLSearchParams(location.search).get("v") || "1";
+  document.body.classList.add("v" + v);
+  document.getElementById("nombre").textContent = nombres[v] || nombres[1];
+  document.getElementById("s" + v)?.classList.add("activa");
+</script>
+</body>
+</html>

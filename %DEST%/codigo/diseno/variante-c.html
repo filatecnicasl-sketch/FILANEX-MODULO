@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Variante C — Carbon denso</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --accent:#22d3ee; --hair:rgba(255,255,255,.08); }
+  * { margin:0; box-sizing:border-box; font-family:Inter,system-ui,sans-serif; }
+  body { background:#09090b; color:#a1a1aa; min-height:100vh; display:flex; }
+  aside { width:230px; border-right:1px solid var(--hair); display:flex; flex-direction:column; padding:18px 10px; background:#0c0c0f; }
+  .marca { display:flex; gap:11px; align-items:center; padding:0 8px 16px; border-bottom:1px solid var(--hair); }
+  .marca .logo { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; color:#09090b; font-weight:800; background:var(--accent); }
+  .marca b { font-size:15px; letter-spacing:.02em; color:#fafafa; }
+  .marca b i { font-style:normal; color:var(--accent); }
+  .marca small { display:block; font-size:9px; letter-spacing:.22em; color:#52525b; margin-top:3px; }
+  .grupo { margin-top:16px; }
+  .grupo p { font-size:9.5px; font-weight:700; letter-spacing:.2em; color:#52525b; padding:0 10px 6px; }
+  .item { display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:7px; font-size:12.5px; color:#8b8b94; margin-bottom:1px; }
+  .item .ico { width:22px; text-align:center; color:#52525b; font-size:12px; }
+  .item.activo { color:#fafafa; background:rgba(255,255,255,.07); font-weight:600; }
+  .item.activo .ico { color:var(--accent); }
+  .item.activo::before { content:""; width:3px; height:14px; border-radius:99px; background:var(--accent); margin-left:-10px; margin-right:0; }
+  .pie { margin-top:auto; padding:12px; border-radius:10px; border:1px solid var(--hair); font-size:11.5px; background:#101013; }
+  .pie b { color:#fafafa; } .pie small { color:#52525b; display:block; margin-top:2px; }
+  .pie .ok { color:var(--accent); margin-top:8px; font-weight:600; font-size:11px; }
+  main { flex:1; padding:30px 34px; max-width:1060px; }
+  h1 { color:#fafafa; font-size:20px; font-weight:700; letter-spacing:-.01em; }
+  .sub { color:#71717a; font-size:12.5px; margin:4px 0 22px; padding-bottom:16px; border-bottom:1px solid var(--hair); }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .kpi { border:1px solid var(--hair); border-radius:12px; padding:14px 15px; background:#101013; }
+  .kpi label { font-size:9.5px; font-weight:700; letter-spacing:.16em; color:#52525b; text-transform:uppercase; }
+  .kpi .valor { font-size:23px; font-weight:700; color:#fafafa; margin-top:10px; font-variant-numeric:tabular-nums; letter-spacing:-.01em; }
+  .kpi .nota { font-size:11px; color:#52525b; margin-top:4px; }
+  .kpi .delta { float:right; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:99px; }
+  .up { color:#34d399; background:rgba(52,211,153,.1); }
+  .warn { color:#fbbf24; background:rgba(251,191,36,.1); }
+  .info { color:var(--accent); background:rgba(34,211,238,.1); }
+  .tabla { margin-top:20px; border:1px solid var(--hair); border-radius:12px; overflow:hidden; background:#101013; }
+  .tabla .cab { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--hair); }
+  .tabla .cab b { color:#fafafa; font-size:13px; }
+  .tabla .cab span { font-size:11px; color:var(--accent); font-weight:600; }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th { text-align:left; font-size:9.5px; letter-spacing:.16em; color:#52525b; font-weight:700; padding:9px 16px; border-bottom:1px solid var(--hair); }
+  td { padding:10px 16px; border-bottom:1px solid rgba(255,255,255,.04); color:#a1a1aa; }
+  td.num { color:#fafafa; font-variant-numeric:tabular-nums; text-align:right; }
+  td.id { color:#fafafa; font-weight:600; }
+  .estado { font-size:10.5px; font-weight:600; padding:2px 9px; border-radius:99px; }
+  .e-cyan { color:var(--accent); background:rgba(34,211,238,.09); }
+  .e-amber { color:#fbbf24; background:rgba(251,191,36,.09); }
+  .e-red { color:#f87171; background:rgba(248,113,113,.09); }
+  .e-slate { color:#a1a1aa; background:rgba(255,255,255,.06); }
+  .tag { float:right; font-size:10px; padding:4px 10px; border-radius:999px; background:rgba(34,211,238,.08); color:var(--accent); border:1px solid rgba(34,211,238,.25); font-weight:700; letter-spacing:.08em; }
+</style>
+</head>
+<body>
+<aside>
+  <div class="marca"><span class="logo">N</span><div><b><i>NEX</i>OSPRO</b><small>FACTURACIÓN VERIFACTU</small></div></div>
+  <div class="grupo"><p>GESTIÓN</p>
+    <div class="item activo"><span class="ico">▦</span>Panel</div>
+    <div class="item"><span class="ico">▤</span>Ventas</div>
+    <div class="item"><span class="ico">▥</span>Presupuestos</div>
+    <div class="item"><span class="ico">▧</span>Albaranes</div>
+    <div class="item"><span class="ico">▨</span>Tesorería</div>
+    <div class="item"><span class="ico">↻</span>Recurrencias</div>
+  </div>
+  <div class="grupo"><p>CATÁLOGO</p>
+    <div class="item"><span class="ico">◔</span>Clientes</div>
+    <div class="item"><span class="ico">◕</span>Proveedores</div>
+    <div class="item"><span class="ico">◈</span>Artículos</div>
+  </div>
+  <div class="grupo"><p>SISTEMA</p>
+    <div class="item"><span class="ico">⌗</span>Compras OCR</div>
+    <div class="item"><span class="ico">⚙</span>Configuración</div>
+  </div>
+  <div class="pie"><b>FILA TÉCNICA S.L.</b><small>B75418350 · San Fernando</small>
+    <div class="ok">● VeriFactu activo</div></div>
+</aside>
+<main>
+  <span class="tag">VARIANTE C · CARBON DENSO</span>
+  <h1>Panel</h1>
+  <p class="sub">Resumen de actividad: facturación, cobros, revisión OCR y envíos a la AEAT.</p>
+  <div class="kpis">
+    <div class="kpi"><span class="delta up">+12,4 %</span><label>Facturado este mes</label><p class="valor">1.324,95 €</p><p class="nota">vs. julio</p></div>
+    <div class="kpi"><span class="delta warn">2 vencen</span><label>Pendiente de cobro</label><p class="valor">1.114,95 €</p><p class="nota">en facturas emitidas</p></div>
+    <div class="kpi"><span class="delta info">OCR</span><label>Compras por revisar</label><p class="valor">0</p><p class="nota">todo validado</p></div>
+    <div class="kpi"><span class="delta warn">AEAT</span><label>Envíos pendientes</label><p class="valor">2</p><p class="nota">a la espera del certificado</p></div>
+  </div>
+  <div class="tabla">
+    <div class="cab"><b>Últimas facturas</b><span>Ver todas →</span></div>
+    <table>
+      <thead><tr><th>Nº</th><th>CLIENTE</th><th>FECHA</th><th style="text-align:right">TOTAL</th><th>ESTADO</th><th>COBRO</th></tr></thead>
+      <tbody>
+        <tr><td class="id">A-3</td><td>CLIENTE E2E OPERATIVA SL</td><td>6/8/2026</td><td class="num">1.210,00 €</td><td><span class="estado e-cyan">emitida</span></td><td><span class="estado e-cyan">parcial</span></td></tr>
+        <tr><td class="id">A-2</td><td>CLIENTE DE PRUEBA SL</td><td>5/8/2026</td><td class="num">114,95 €</td><td><span class="estado e-cyan">emitida</span></td><td><span class="estado e-amber">pendiente</span></td></tr>
+        <tr><td class="id">A-1</td><td>CLIENTE DE PRUEBA SL</td><td>5/8/2026</td><td class="num">1.512,50 €</td><td><span class="estado e-red">anulada</span></td><td><span class="estado e-slate">—</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

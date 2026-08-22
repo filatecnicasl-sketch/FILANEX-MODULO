@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Variante D — Índigo eléctrico</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --accent:#818cf8; --accent2:#c084fc; }
+  * { margin:0; box-sizing:border-box; font-family:Inter,system-ui,sans-serif; }
+  body { color:#cbd5e1; min-height:100vh; display:flex;
+    background:
+      radial-gradient(1000px 500px at 85% -10%, rgba(129,140,248,.16), transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, rgba(192,132,252,.1), transparent 55%),
+      #0a0a14; }
+  aside { width:240px; background:rgba(10,10,20,.85); border-right:1px solid rgba(255,255,255,.06); display:flex; flex-direction:column; padding:22px 12px; }
+  .marca { display:flex; gap:12px; align-items:center; padding:0 10px 20px; border-bottom:1px solid rgba(255,255,255,.06); }
+  .marca .logo { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; color:#fff; font-weight:800;
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 10px 26px -8px rgba(129,140,248,.6); }
+  .marca b { font-size:17px; letter-spacing:-.02em; background:linear-gradient(90deg,#c7d2fe,#e9d5ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .marca small { display:block; font-size:9px; letter-spacing:.2em; color:#565b7a; margin-top:4px; }
+  .grupo { margin-top:20px; }
+  .grupo p { font-size:10px; font-weight:700; letter-spacing:.18em; color:#565b7a; padding:0 12px 8px; }
+  .item { display:flex; align-items:center; gap:11px; padding:8px 12px; border-radius:12px; font-size:13px; color:#8f94b3; margin-bottom:2px; }
+  .item .ico { width:28px; height:28px; border-radius:8px; background:rgba(255,255,255,.04); display:grid; place-items:center; color:#6b7194; font-size:13px; }
+  .item.activo { color:#fff; font-weight:600; background:linear-gradient(90deg,rgba(129,140,248,.22),rgba(192,132,252,.08)); box-shadow:inset 0 0 0 1px rgba(129,140,248,.35); }
+  .item.activo .ico { background:rgba(129,140,248,.25); color:#c7d2fe; }
+  .pie { margin-top:auto; padding:14px; border-radius:16px; border:1px solid rgba(255,255,255,.07);
+    background:linear-gradient(180deg,rgba(129,140,248,.1),rgba(255,255,255,.02)); font-size:12px; }
+  .pie b { color:#fff; } .pie small { color:#6b7194; display:block; margin-top:2px; }
+  .pie .ok { color:#a5b4fc; margin-top:9px; display:flex; gap:6px; align-items:center; font-weight:500; }
+  main { flex:1; padding:36px 40px; max-width:1100px; }
+  h1 { color:#fff; font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .sub { color:#8f94b3; font-size:13px; margin:6px 0 26px; padding-bottom:22px; border-bottom:1px solid rgba(255,255,255,.07); position:relative; }
+  .sub::after { content:""; position:absolute; left:0; bottom:-1px; width:110px; height:1px; background:linear-gradient(90deg,var(--accent),var(--accent2),transparent); }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .kpi { position:relative; overflow:hidden; border-radius:18px; padding:18px; border:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg,rgba(129,140,248,.1),rgba(255,255,255,.02));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 24px 48px -24px rgba(0,0,0,.7); }
+  .kpi label { font-size:10px; font-weight:700; letter-spacing:.14em; color:#6b7194; text-transform:uppercase; }
+  .kpi .ico { float:right; width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font-size:14px; color:#c7d2fe; background:rgba(129,140,248,.16); border:1px solid rgba(129,140,248,.3); }
+  .kpi .valor { font-size:28px; font-weight:800; letter-spacing:-.02em; color:#fff; margin-top:14px; font-variant-numeric:tabular-nums; }
+  .kpi .nota { font-size:11px; color:#6b7194; margin-top:5px; }
+  .kpi.v2 .ico { color:#fcd34d; background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.3); }
+  .kpi.v2 .valor { color:#fcd34d; }
+  .flujo { margin-top:22px; border-radius:18px; padding:20px 22px; border:1px solid rgba(255,255,255,.08); position:relative; overflow:hidden;
+    background:linear-gradient(90deg,rgba(129,140,248,.12),rgba(192,132,252,.06)); }
+  .flujo p { font-size:10px; font-weight:700; letter-spacing:.14em; color:#6b7194; margin-bottom:10px; }
+  .flujo b { color:#fff; } .flujo span.arrow { color:var(--accent); margin:0 8px; }
+  .flujo small { color:#6b7194; margin-left:12px; }
+  .tag { float:right; font-size:10px; padding:4px 10px; border-radius:999px; background:rgba(129,140,248,.14); color:#c7d2fe; border:1px solid rgba(129,140,248,.35); font-weight:700; letter-spacing:.08em; }
+</style>
+</head>
+<body>
+<aside>
+  <div class="marca"><span class="logo">N</span><div><b>NEXOSPRO</b><small>FACTURACIÓN VERIFACTU</small></div></div>
+  <div class="grupo"><p>GESTIÓN</p>
+    <div class="item activo"><span class="ico">▦</span>Panel</div>
+    <div class="item"><span class="ico">▤</span>Ventas</div>
+    <div class="item"><span class="ico">▥</span>Presupuestos</div>
+    <div class="item"><span class="ico">▧</span>Albaranes</div>
+    <div class="item"><span class="ico">▨</span>Tesorería</div>
+    <div class="item"><span class="ico">↻</span>Recurrencias</div>
+  </div>
+  <div class="grupo"><p>CATÁLOGO</p>
+    <div class="item"><span class="ico">◔</span>Clientes</div>
+    <div class="item"><span class="ico">◕</span>Proveedores</div>
+    <div class="item"><span class="ico">◈</span>Artículos</div>
+  </div>
+  <div class="grupo"><p>SISTEMA</p>
+    <div class="item"><span class="ico">⌗</span>Compras OCR</div>
+    <div class="item"><span class="ico">⚙</span>Configuración</div>
+  </div>
+  <div class="pie"><b>FILA TÉCNICA S.L.</b><small>B75418350 · San Fernando</small>
+    <span class="ok">● VeriFactu activo</span></div>
+</aside>
+<main>
+  <span class="tag">VARIANTE D · ÍNDIGO ELÉCTRICO</span>
+  <h1>Panel</h1>
+  <p class="sub">Resumen de actividad: facturación, cobros, revisión OCR y envíos a la AEAT.</p>
+  <div class="kpis">
+    <div class="kpi"><span class="ico">▤</span><label>Facturado este mes</label><p class="valor">1.324,95 €</p><p class="nota">Facturas emitidas</p></div>
+    <div class="kpi v2"><span class="ico">▨</span><label>Pendiente de cobro</label><p class="valor">1.114,95 €</p><p class="nota">En facturas emitidas</p></div>
+    <div class="kpi"><span class="ico">⌗</span><label>Compras por revisar</label><p class="valor" style="color:#a5b4fc">0</p><p class="nota">Extraídas con OCR</p></div>
+    <div class="kpi"><span class="ico">▥</span><label>Envíos AEAT</label><p class="valor">2</p><p class="nota">A la espera del certificado</p></div>
+  </div>
+  <div class="flujo">
+    <p>FLUJO DE TRABAJO</p>
+    <b>Presupuesto</b><span class="arrow">→</span><b>Albarán</b><span class="arrow">→</span><b>Factura VeriFactu</b><span class="arrow">→</span><b>Cobro / Remesa SEPA</b>
+    <small>— las compras entran solas por el OCR de Gemini</small>
+  </div>
+</main>
+</body>
+</html>
