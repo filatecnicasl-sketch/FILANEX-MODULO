@@ -3,7 +3,7 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import FormDocumentoCompra from "../components/FormDocumentoCompra.jsx";
 import ModalVerificacionOCR from "../components/ModalVerificacionOCR.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
-import { IconImprimir } from "../components/icons.jsx";
+import { IconImprimir, IconBorrar } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
 
 const TONO = { pendiente_revision: "amber", validada: "green", rechazada: "red" };
@@ -351,8 +351,12 @@ export default function ComprasFacturasPage() {
                         </button>
                       )}
                       {f.estado !== "validada" && (
-                        <button onClick={() => borrar(f)} className="text-xs text-rose-400 hover:underline">
-                          Borrar
+                        <button
+                          onClick={() => borrar(f)}
+                          title="Borrar factura"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle"
+                        >
+                          <IconBorrar />
                         </button>
                       )}
                     </td>

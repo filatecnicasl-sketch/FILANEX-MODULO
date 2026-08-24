@@ -60,6 +60,14 @@ const gruposBase = [
     titulo: "Sistema",
     Icono: IconConfig,
     items: [
+      { to: "/compras/ocr", etiqueta: "Revisión OCR", Icono: IconOcr, tono: "emerald" },
+      ...(esAdmin() ? [{ to: "/admin/tenants", etiqueta: "Plataforma", Icono: IconUsuarios, tono: "rose" }] : []),
+    ],
+  },
+  {
+    titulo: "Ajustes",
+    Icono: IconConfig,
+    items: [
       { to: "/configuracion", etiqueta: "Configuración", Icono: IconConfig, tono: "slate" },
       { to: "/modulos", etiqueta: "Módulos", Icono: IconModulos, tono: "cyan" },
       { to: "/series", etiqueta: "Series", Icono: IconSeries, tono: "indigo" },
@@ -67,8 +75,6 @@ const gruposBase = [
       { to: "/certificado", etiqueta: "Certificado", Icono: IconCertificado, tono: "teal" },
       { to: "/formatos", etiqueta: "Formatos", Icono: IconFormatos, tono: "sky" },
       { to: "/usuarios", etiqueta: "Usuarios", Icono: IconUsuarios, tono: "violet" },
-      { to: "/compras/ocr", etiqueta: "Revisión OCR", Icono: IconOcr, tono: "emerald" },
-      ...(esAdmin() ? [{ to: "/admin/tenants", etiqueta: "Plataforma", Icono: IconUsuarios, tono: "rose" }] : []),
     ],
   },
   {
@@ -232,7 +238,7 @@ export default function Layout() {
     ...Object.entries(gruposModulos)
       .filter(([clave]) => modulos.includes(clave))
       .map(([, g]) => g),
-    ...gruposBase.slice(5).filter((g) => g.titulo !== "Sistema" || esUsuarioAdmin),
+    ...gruposBase.slice(5).filter((g) => esUsuarioAdmin || (g.titulo !== "Sistema" && g.titulo !== "Ajustes")),
   ];
 
   // Al cambiar de página, se abre el grupo que la contiene.
