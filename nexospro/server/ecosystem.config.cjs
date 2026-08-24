@@ -1,5 +1,5 @@
-# Configuración de PM2 para producción (DigitalOcean).
-# Uso: pm2 start ecosystem.config.cjs && pm2 save
+// Configuración de PM2 para producción.
+// Uso: pm2 start ecosystem.config.cjs && pm2 save
 module.exports = {
   apps: [
     {
