@@ -34,6 +34,9 @@ const tenantSchema = new Schema(
     limiteFacturasMes: { type: Number, default: 100 },
     limiteAlmacenamientoMB: { type: Number, default: 1024 },
 
+    // Módulos contratados por el cliente (se sincronizan con Empresa)
+    modulos: { type: [String], default: [] },
+
     // Notas internas para el administrador de la plataforma
     notas: { type: String },
   },

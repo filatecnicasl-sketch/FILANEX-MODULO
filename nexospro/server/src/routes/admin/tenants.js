@@ -2,9 +2,12 @@ import { Router } from "express";
 import mongoose from "mongoose";
 import Tenant, { ESTADOS, PLANES } from "../../models/plataforma/Tenant.js";
 import Cuenta from "../../models/plataforma/Cuenta.js";
+import Empresa from "../../models/Empresa.js";
 import { requiereAuth, requiereRol } from "../../middleware/auth.js";
 import { crearTenant, resumenTenants } from "../../services/tenant.js";
 import { prefijoBd } from "../../config/db.js";
+import { MODULOS, MODULOS_ACTIVABLES } from "../../config/modulos.js";
+import { conexionTenant, conContexto } from "../../models/tenant.js";
 
 const router = Router();
 
@@ -14,6 +17,29 @@ function diasRestantes(fecha) {
   if (!fecha) return null;
   const diff = new Date(fecha).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0);
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function normalizarModulos(lista) {
+  if (!Array.isArray(lista)) return [];
+  return lista.filter((m) => MODULOS_ACTIVABLES.includes(m));
+}
+
+async function sincronizarModulosEmpresa(tenant, modulos) {
+  try {
+    await conContexto(
+      { conn: conexionTenant(tenant.dbName), slug: tenant.slug, dbName: tenant.dbName },
+      async () => {
+        let empresa = await Empresa.findOne();
+        if (!empresa) {
+          empresa = new Empresa({ nombre: tenant.nombre });
+        }
+        empresa.modulos = modulos;
+        await empresa.save();
+      }
+    );
+  } catch (e) {
+    console.error(`Error sincronizando módulos en ${tenant.dbName}:`, e.message);
+  }
 }
 
 async function contarFacturasMes(dbName) {
@@ -78,6 +104,12 @@ router.get("/planes", async (req, res) => {
   res.json({ estados: ESTADOS, planes: PLANES });
 });
 
+router.get("/modulos-catalogo", async (req, res) => {
+  res.json(
+    Object.entries(MODULOS).map(([clave, m]) => ({ clave, ...m }))
+  );
+});
+
 router.get("/alertas", async (req, res, next) => {
   try {
     const hoy = new Date();
@@ -107,12 +139,14 @@ router.post("/", async (req, res, next) => {
       nif, direccion, codigoPostal, ciudad, provincia, telefono, emailContacto,
       estado, plan, importeMensual, fechaRenovacion, fechaCaducidad,
       limiteUsuarios, limiteFacturasMes, limiteAlmacenamientoMB, notas,
+      modulos,
     } = req.body;
 
     if (!slug || !nombre || !email || !password) {
       return res.status(400).json({ error: "slug, nombre, email y password son obligatorios" });
     }
 
+    const modulosLimpios = normalizarModulos(modulos);
     const tenant = await crearTenant({ slug, nombre, email, password, adminNombre });
 
     if (nif !== undefined) tenant.nif = String(nif).toUpperCase().trim();
@@ -131,8 +165,10 @@ router.post("/", async (req, res, next) => {
     if (limiteFacturasMes !== undefined) tenant.limiteFacturasMes = Math.max(1, Number(limiteFacturasMes) || 1);
     if (limiteAlmacenamientoMB !== undefined) tenant.limiteAlmacenamientoMB = Math.max(1, Number(limiteAlmacenamientoMB) || 1);
     if (notas !== undefined) tenant.notas = String(notas);
+    tenant.modulos = modulosLimpios;
 
     await tenant.save();
+    await sincronizarModulosEmpresa(tenant, modulosLimpios);
     res.status(201).json(tenant.toObject());
   } catch (err) {
     next(err);
@@ -148,6 +184,7 @@ router.patch("/:id", async (req, res, next) => {
       nombre, nif, direccion, codigoPostal, ciudad, provincia, telefono, emailContacto,
       estado, plan, importeMensual, fechaRenovacion, fechaCaducidad,
       limiteUsuarios, limiteFacturasMes, limiteAlmacenamientoMB, notas,
+      modulos,
     } = req.body;
 
     if (nombre !== undefined) tenant.nombre = String(nombre).trim();
@@ -168,7 +205,16 @@ router.patch("/:id", async (req, res, next) => {
     if (limiteAlmacenamientoMB !== undefined) tenant.limiteAlmacenamientoMB = Math.max(1, Number(limiteAlmacenamientoMB) || 1);
     if (notas !== undefined) tenant.notas = String(notas);
 
+    let modulosLimpios;
+    if (modulos !== undefined) {
+      modulosLimpios = normalizarModulos(modulos);
+      tenant.modulos = modulosLimpios;
+    }
+
     await tenant.save();
+    if (modulosLimpios !== undefined) {
+      await sincronizarModulosEmpresa(tenant, modulosLimpios);
+    }
     res.json(tenant.toObject());
   } catch (err) {
     next(err);

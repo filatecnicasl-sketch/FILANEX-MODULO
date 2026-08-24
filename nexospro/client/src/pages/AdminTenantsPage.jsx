@@ -24,6 +24,7 @@ const VACIO = {
   limiteUsuarios: 1,
   limiteFacturasMes: 100,
   limiteAlmacenamientoMB: 1024,
+  modulos: [],
   notas: "",
 };
 
@@ -50,8 +51,24 @@ function ModalTenant({ inicial, editando, onCerrar, onGuardado, alerta }) {
   const [form, setForm] = useState(inicial);
   const [error, setError] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [catalogoModulos, setCatalogoModulos] = useState([]);
+
+  useEffect(() => {
+    fetch("/api/admin/tenants/modulos-catalogo")
+      .then((r) => r.json())
+      .then((data) => setCatalogoModulos(Array.isArray(data) ? data : []))
+      .catch(() => setCatalogoModulos([]));
+  }, []);
 
   const cambiar = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
+
+  const alternarModulo = (clave) =>
+    cambiar(
+      "modulos",
+      form.modulos?.includes(clave)
+        ? form.modulos.filter((m) => m !== clave)
+        : [...(form.modulos ?? []), clave]
+    );
 
   const cambiarPlan = (plan) => {
     const preset = PLANES_PRESETS[plan] || {};
@@ -208,6 +225,33 @@ function ModalTenant({ inicial, editando, onCerrar, onGuardado, alerta }) {
           </div>
 
           <div className="space-y-1">
+            <label className="text-sm text-slate-400">Módulos contratados</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {catalogoModulos.filter((m) => m.disponible).map((m) => (
+                <label
+                  key={m.clave}
+                  className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer transition-colors ${
+                    form.modulos?.includes(m.clave)
+                      ? "border-accent/60 bg-accent/10"
+                      : "border-slate-700 hover:border-slate-600"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.modulos?.includes(m.clave) ?? false}
+                    onChange={() => alternarModulo(m.clave)}
+                    className="mt-1 accent-cyan-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-white">{m.nombre}</span>
+                    <span className="block text-xs text-slate-400">{m.descripcion}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1">
             <label className="text-sm text-slate-400">Notas internas</label>
             <textarea value={form.notas} onChange={(e) => cambiar("notas", e.target.value)} rows={3} className="input" />
           </div>
@@ -340,6 +384,7 @@ export default function AdminTenantsPage() {
         limiteUsuarios: t.limiteUsuarios ?? 1,
         limiteFacturasMes: t.limiteFacturasMes ?? 100,
         limiteAlmacenamientoMB: t.limiteAlmacenamientoMB ?? 1024,
+        modulos: Array.isArray(t.modulos) ? [...t.modulos] : [],
         notas: t.notas || "",
       },
     });

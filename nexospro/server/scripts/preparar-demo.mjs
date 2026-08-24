@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import "dotenv/config";
 import { conexionTenant, conContexto } from "../src/models/tenant.js";
 import { uriBase, nombreBdPlataforma, prefijoBd } from "../src/config/db.js";
+import { MODULOS_ACTIVABLES } from "../src/config/modulos.js";
 import Tenant from "../src/models/plataforma/Tenant.js";
 import Cuenta from "../src/models/plataforma/Cuenta.js";
 import { crearTenant } from "../src/services/tenant.js";
@@ -90,6 +91,7 @@ async function crearDemoUnico({ slug, dbName, nombre, email, adminNombre, rol })
   tenant.limiteUsuarios = 999;
   tenant.limiteFacturasMes = 99999;
   tenant.limiteAlmacenamientoMB = 51200;
+  tenant.modulos = [...MODULOS_ACTIVABLES];
   await tenant.save();
   console.log(`Tenant ${slug} creado:`, tenant.dbName, "- rol:", rol);
   return tenant;
@@ -127,11 +129,12 @@ async function seedDemo(tenant) {
   await conContexto(ctx(tenant), async () => {
     // Empresa maestra
     const empresa = await Empresa.create({
-      nombre: "Empresa Demo S.L.",
+      nombre: tenant.nombre,
       nif: "B12345678",
       direccion: { calle: "Calle Demo 123", cp: "28001", ciudad: "Madrid", provincia: "Madrid" },
       telefono: "910000000",
       email: "info@empresademo.es",
+      modulos: tenant.modulos ?? [],
     });
 
     // Clientes
