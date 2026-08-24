@@ -3,11 +3,16 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import AvisoConexion from './components/AvisoConexion.jsx'
-import { instalarFetchConSesion } from './lib/sesion.js'
+import { instalarFetchConSesion, sincronizarSesion, escucharCambiosSesion } from './lib/sesion.js'
 import { arrancarCola } from './lib/colaOffline.js'
 
 // Todas las llamadas /api llevan el token de sesión (y un 401 devuelve al login).
 instalarFetchConSesion()
+
+// Al abrir la app en una nueva pestaña heredamos la sesión activa, pero cada
+// pestaña mantiene su propio token en sessionStorage para no mezclar usuarios.
+sincronizarSesion()
+escucharCambiosSesion()
 
 // Lo que se guardó sin conexión se sube en cuanto vuelve la red.
 arrancarCola()
