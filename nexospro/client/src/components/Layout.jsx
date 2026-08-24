@@ -12,7 +12,7 @@ import {
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
-import { cerrarSesion, esAdmin, payloadToken } from "../lib/sesion.js";
+import { cerrarSesion, esAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
 
 // Nodo de la barra superior donde CabeceraPagina inserta (portal) el
 // título de la página. Los botones de acción van en el propio contenido.
@@ -226,12 +226,13 @@ export default function Layout() {
   }, []);
 
   const modulos = empresa?.modulos ?? [];
+  const esUsuarioAdmin = rolUsuario() === "admin";
   const grupos = [
     ...gruposBase.slice(0, 5),
     ...Object.entries(gruposModulos)
       .filter(([clave]) => modulos.includes(clave))
       .map(([, g]) => g),
-    ...gruposBase.slice(5),
+    ...gruposBase.slice(5).filter((g) => g.titulo !== "Sistema" || esUsuarioAdmin),
   ];
 
   // Al cambiar de página, se abre el grupo que la contiene.

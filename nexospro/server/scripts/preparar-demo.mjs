@@ -32,9 +32,14 @@ import Recurrencia from "../src/models/Recurrencia.js";
 import Remesa from "../src/models/Remesa.js";
 import Empresa from "../src/models/Empresa.js";
 
-const SLUG_DEMO = "demo";
-const DB_DEMO = `${prefijoBd()}${SLUG_DEMO}`;
-const EMAIL_DEMO = "demo@filanex.local";
+const SLUG_DEMO_ADMIN = "demo";
+const DB_DEMO_ADMIN = `${prefijoBd()}${SLUG_DEMO_ADMIN}`;
+const EMAIL_DEMO_ADMIN = "demo@filanex.local";
+
+const SLUG_DEMO_LIMITADO = "demo-limitado";
+const DB_DEMO_LIMITADO = `${prefijoBd()}${SLUG_DEMO_LIMITADO}`;
+const EMAIL_DEMO_LIMITADO = "demolimitado@filanex.local";
+
 const PASS_DEMO = "Demo1234!";
 
 async function conectar() {
@@ -60,24 +65,25 @@ async function borrarLocal() {
   }
 }
 
-async function crearDemo() {
-  const existe = await Tenant.findOne({ slug: SLUG_DEMO });
+async function crearDemoUnico({ slug, dbName, nombre, email, adminNombre, rol }) {
+  const existe = await Tenant.findOne({ slug });
   if (existe) {
     await Cuenta.deleteMany({ tenant: existe._id });
     await Tenant.deleteOne({ _id: existe._id });
     try {
-      await mongoose.connection.useDb(DB_DEMO).dropDatabase();
-      console.log("Base de datos demo anterior eliminada.");
+      await mongoose.connection.useDb(dbName).dropDatabase();
+      console.log(`Base de datos ${dbName} anterior eliminada.`);
     } catch (e) {
-      console.log("No se pudo eliminar demo anterior:", e.message);
+      console.log(`No se pudo eliminar ${dbName}:`, e.message);
     }
   }
   const tenant = await crearTenant({
-    slug: SLUG_DEMO,
-    nombre: "Empresa Demo S.L.",
-    email: EMAIL_DEMO,
+    slug,
+    nombre,
+    email,
     password: PASS_DEMO,
-    adminNombre: "Administrador Demo",
+    adminNombre,
+    rol,
   });
   tenant.estado = "demo";
   tenant.plan = "empresarial";
@@ -85,8 +91,28 @@ async function crearDemo() {
   tenant.limiteFacturasMes = 99999;
   tenant.limiteAlmacenamientoMB = 51200;
   await tenant.save();
-  console.log("Tenant demo creado:", tenant.slug, "→", tenant.dbName);
+  console.log(`Tenant ${slug} creado:`, tenant.dbName, "- rol:", rol);
   return tenant;
+}
+
+async function crearDemos() {
+  const admin = await crearDemoUnico({
+    slug: SLUG_DEMO_ADMIN,
+    dbName: DB_DEMO_ADMIN,
+    nombre: "Empresa Demo S.L.",
+    email: EMAIL_DEMO_ADMIN,
+    adminNombre: "Administrador Demo",
+    rol: "admin",
+  });
+  const limitado = await crearDemoUnico({
+    slug: SLUG_DEMO_LIMITADO,
+    dbName: DB_DEMO_LIMITADO,
+    nombre: "Demo Limitada S.L.",
+    email: EMAIL_DEMO_LIMITADO,
+    adminNombre: "Usuario Demo Limitado",
+    rol: "usuario",
+  });
+  return { admin, limitado };
 }
 
 function ctx(tenant) {
@@ -445,13 +471,14 @@ async function seedDemo(tenant) {
 async function main() {
   await conectar();
   await borrarLocal();
-  const tenant = await crearDemo();
-  await seedDemo(tenant);
+  const { admin, limitado } = await crearDemos();
+  await seedDemo(admin);
+  await seedDemo(limitado);
   console.log("\n=================================");
-  console.log("Demo lista:");
-  console.log("  Usuario:", EMAIL_DEMO);
-  console.log("  Contraseña:", PASS_DEMO);
-  console.log("  Base de datos:", DB_DEMO);
+  console.log("Demos listas:");
+  console.log("  Admin:     ", EMAIL_DEMO_ADMIN, "/", PASS_DEMO);
+  console.log("  Limitado:  ", EMAIL_DEMO_LIMITADO, "/", PASS_DEMO);
+  console.log("  Bases:     ", DB_DEMO_ADMIN, "+", DB_DEMO_LIMITADO);
   console.log("=================================");
   await mongoose.disconnect();
 }

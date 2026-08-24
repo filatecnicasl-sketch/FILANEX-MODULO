@@ -9,7 +9,7 @@ export function validarSlug(slug) {
   return SLUG_RE.test(slug);
 }
 
-export async function crearTenant({ slug, nombre, email, password, adminNombre }) {
+export async function crearTenant({ slug, nombre, email, password, adminNombre, rol = "admin" }) {
   if (!validarSlug(slug)) {
     throw new Error("El slug solo puede tener minúsculas, números y guiones");
   }
@@ -39,7 +39,7 @@ export async function crearTenant({ slug, nombre, email, password, adminNombre }
     nombre: String(adminNombre || nombre).trim(),
     email: correo,
     passwordHash: hashContrasena(String(password)),
-    rol: "admin",
+    rol,
     tenant: tenant._id,
   });
 
