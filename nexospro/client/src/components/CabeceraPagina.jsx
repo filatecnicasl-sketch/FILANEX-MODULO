@@ -33,7 +33,7 @@ export default function CabeceraPagina({ titulo, descripcion, contador, children
         slotTitulo
       )}
       {children && (
-        <div className="no-print float-right flex items-center gap-2 flex-wrap justify-end ml-3 mb-3">
+        <div className="no-print mb-3 flex flex-wrap items-center justify-end gap-2 sm:float-right sm:ml-3">
           {children}
         </div>
       )}
