@@ -12,7 +12,7 @@ import {
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
-import { cerrarSesion, esAdmin } from "../lib/sesion.js";
+import { cerrarSesion, esAdmin, payloadToken } from "../lib/sesion.js";
 
 // Nodo de la barra superior donde CabeceraPagina inserta (portal) el
 // título de la página. Los botones de acción van en el propio contenido.
@@ -209,10 +209,20 @@ export default function Layout() {
   }, [pathname]);
 
   useEffect(() => {
+    const tokenPayload = payloadToken();
+    if (tokenPayload) {
+      setUsuario({
+        nombre: tokenPayload.nombre || "Usuario",
+        email: tokenPayload.email || "",
+        rol: tokenPayload.rol || "usuario",
+      });
+    }
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
-      .then(setUsuario)
-      .catch(() => setUsuario(null));
+      .then((data) => {
+        if (data) setUsuario(data);
+      })
+      .catch(() => {});
   }, []);
 
   const modulos = empresa?.modulos ?? [];
