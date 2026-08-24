@@ -475,7 +475,7 @@ export default function Layout() {
             </div>
 
             {/* Iconos de la sección activa (pegados al título; si no caben, scroll) */}
-            <nav className="flex-1 min-w-0 overflow-x-auto">
+            <nav className="order-last basis-full -mx-1 px-1 overflow-x-auto lg:order-none lg:basis-auto lg:flex-1 lg:min-w-0">
               <div className="flex items-center gap-0.5 w-max">
                 {fichas.map((f) => (
                   <FichaNav key={f.to} {...f} />
