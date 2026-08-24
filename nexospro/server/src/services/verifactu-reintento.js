@@ -66,7 +66,7 @@ export function iniciarReintentoVerifactu() {
   const pasada = async () => {
     let tenants = [];
     try {
-      tenants = await Tenant.find({ activa: true }).lean();
+      tenants = await Tenant.find({ estado: { $nin: ["inactivo", "suspendido"] } }).lean();
     } catch (e) {
       console.warn("[verifactu] No se pudieron listar las empresas:", e.message);
       return;

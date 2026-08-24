@@ -50,7 +50,7 @@ function publico(cuenta, tenant) {
 router.get("/estado", async (req, res, next) => {
   try {
     const usuarios = await Cuenta.countDocuments();
-    const activos = await Tenant.find({ activa: true }).select("nombre").lean();
+    const activos = await Tenant.find({ estado: { $ne: "inactivo" } }).select("nombre").lean();
     res.json({ usuarios, empresa: activos.length === 1 ? activos[0].nombre : null });
   } catch (err) {
     next(err);
@@ -66,7 +66,8 @@ router.post("/login", limitadorAuth, async (req, res, next) => {
     if (
       !cuenta ||
       !cuenta.activa ||
-      !tenant?.activa ||
+      tenant?.estado === "inactivo" ||
+      tenant?.estado === "suspendido" ||
       !verificarContrasena(String(req.body.password ?? ""), cuenta.passwordHash)
     ) {
       return res.status(401).json({ error: "Email o contraseña incorrectos" });

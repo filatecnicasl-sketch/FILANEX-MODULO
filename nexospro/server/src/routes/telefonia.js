@@ -167,8 +167,8 @@ webhookTelefonia.post("/evento", async (req, res, next) => {
       return res.status(400).json({ error: "Falta el número de teléfono" });
     }
     const filtro = req.query.tenant
-      ? { slug: String(req.query.tenant), activa: true }
-      : { activa: true };
+      ? { slug: String(req.query.tenant), estado: { $nin: ["inactivo", "suspendido"] } }
+      : { estado: { $nin: ["inactivo", "suspendido"] } };
     const tenants = await Tenant.find(filtro).lean();
     if (tenants.length !== 1) {
       return res
