@@ -12,7 +12,7 @@ import {
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
-import { cerrarSesion, esAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
+import { cerrarSesion, esAdmin, esSuperAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
 
 // Nodo de la barra superior donde CabeceraPagina inserta (portal) el
 // título de la página. Los botones de acción van en el propio contenido.
@@ -61,7 +61,7 @@ const gruposBase = [
     Icono: IconConfig,
     items: [
       { to: "/compras/ocr", etiqueta: "Revisión OCR", Icono: IconOcr, tono: "emerald" },
-      ...(esAdmin() ? [{ to: "/admin/tenants", etiqueta: "Plataforma", Icono: IconUsuarios, tono: "rose" }] : []),
+      { to: "/admin/tenants", etiqueta: "Plataforma", Icono: IconUsuarios, tono: "rose" },
     ],
   },
   {
@@ -233,13 +233,16 @@ export default function Layout() {
 
   const modulos = empresa?.modulos ?? [];
   const esUsuarioAdmin = rolUsuario() === "admin";
+  const esUsuarioSuperAdmin = esSuperAdmin();
   const grupos = [
     ...gruposBase.slice(0, 5),
     ...Object.entries(gruposModulos)
       .filter(([clave]) => modulos.includes(clave))
       .map(([, g]) => g),
-    ...gruposBase.slice(5).filter((g) => esUsuarioAdmin || (g.titulo !== "Sistema" && g.titulo !== "Ajustes")),
-  ];
+    ...(esUsuarioSuperAdmin ? [gruposBase.find((g) => g.titulo === "Sistema")] : []),
+    ...(esUsuarioAdmin ? [gruposBase.find((g) => g.titulo === "Ajustes")] : []),
+    gruposBase.find((g) => g.titulo === "Ayuda"),
+  ].filter(Boolean);
 
   // Al cambiar de página, se abre el grupo que la contiene.
   useEffect(() => {

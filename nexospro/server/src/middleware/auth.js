@@ -23,3 +23,10 @@ export function requiereRol(...roles) {
     next();
   };
 }
+
+export function requiereSuperAdmin(req, res, next) {
+  if (!req.usuario || !req.usuario.superadmin) {
+    return res.status(403).json({ error: "Se requiere superadministrador de plataforma" });
+  }
+  next();
+}

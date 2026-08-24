@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import Tenant, { ESTADOS, PLANES } from "../../models/plataforma/Tenant.js";
 import Cuenta from "../../models/plataforma/Cuenta.js";
 import Empresa from "../../models/Empresa.js";
-import { requiereAuth, requiereRol } from "../../middleware/auth.js";
+import { requiereAuth, requiereSuperAdmin } from "../../middleware/auth.js";
 import { crearTenant, resumenTenants } from "../../services/tenant.js";
 import { prefijoBd } from "../../config/db.js";
 import { MODULOS, MODULOS_ACTIVABLES } from "../../config/modulos.js";
@@ -11,7 +11,7 @@ import { conexionTenant, conContexto } from "../../models/tenant.js";
 
 const router = Router();
 
-router.use(requiereAuth, requiereRol("admin"));
+router.use(requiereAuth, requiereSuperAdmin);
 
 function diasRestantes(fecha) {
   if (!fecha) return null;

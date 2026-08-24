@@ -27,6 +27,7 @@ function tokenDe(cuenta, tenant) {
     nombre: cuenta.nombre,
     email: cuenta.email,
     rol: cuenta.rol,
+    superadmin: !!cuenta.superadmin,
     t: tenant.slug,
     tid: String(tenant._id),
     db: tenant.dbName,
@@ -39,6 +40,7 @@ function publico(cuenta, tenant) {
     nombre: cuenta.nombre,
     email: cuenta.email,
     rol: cuenta.rol,
+    superadmin: !!cuenta.superadmin,
     empresa: tenant?.nombre ?? null,
   };
 }
@@ -104,6 +106,7 @@ router.post("/bootstrap", limitadorAuth, async (req, res, next) => {
       email: correo,
       passwordHash: hashContrasena(String(password)),
       rol: "admin",
+      superadmin: true,
       tenant: tenant._id,
     });
     res.status(201).json({ token: tokenDe(cuenta, tenant), usuario: publico(cuenta, tenant) });
@@ -119,6 +122,7 @@ router.get("/me", requiereAuth, (req, res) => {
     nombre: req.usuario.nombre,
     email: req.usuario.email,
     rol: req.usuario.rol,
+    superadmin: !!req.usuario.superadmin,
     empresa: req.usuario.t,
   });
 });

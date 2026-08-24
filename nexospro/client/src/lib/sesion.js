@@ -42,6 +42,10 @@ export function esAdmin() {
   return rolUsuario() === "admin";
 }
 
+export function esSuperAdmin() {
+  return !!payloadToken()?.superadmin;
+}
+
 export function guardarToken(token) {
   getStorage()?.setItem(CLAVE_TOKEN, token);
 }
