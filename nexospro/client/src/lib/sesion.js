@@ -1,6 +1,6 @@
-// Sesión: token JWT en sessionStorage por pestaña, con sincronización a través
-// de localStorage para permitir abrir nuevas pestañas de la misma sesión y
-// detectar cuando otra pestaña cambia de usuario.
+// Sesión: token JWT en sessionStorage por pestaña. Cada pestaña del navegador
+// es independiente, por lo que se puede tener admin en una y demo en otra sin
+// que se mezclen llamadas, facturas ni ningún dato.
 //
 // Wrapper global de fetch que añade Authorization a /api y gestiona la cola
 // offline.
@@ -8,7 +8,6 @@ import { reglaOffline } from "./rutasOffline.js";
 import { encolar } from "./colaOffline.js";
 
 const CLAVE_TOKEN = "filanex-token";
-const CLAVE_SYNC = "filanex-session-sync";
 
 function getStorage() {
   try {
@@ -18,19 +17,8 @@ function getStorage() {
   }
 }
 
-function getLocal() {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 export function obtenerToken() {
-  const sesion = getStorage();
-  if (sesion?.getItem(CLAVE_TOKEN)) return sesion.getItem(CLAVE_TOKEN);
-  const local = getLocal();
-  return local?.getItem(CLAVE_TOKEN) ?? null;
+  return getStorage()?.getItem(CLAVE_TOKEN) ?? null;
 }
 
 // Decodifica el payload del JWT sin verificar firma (el backend ya la verifica).
@@ -55,46 +43,12 @@ export function esAdmin() {
 }
 
 export function guardarToken(token) {
-  const sesion = getStorage();
-  const local = getLocal();
-  sesion?.setItem(CLAVE_TOKEN, token);
-  local?.setItem(CLAVE_TOKEN, token);
-  local?.setItem(CLAVE_SYNC, Date.now().toString());
+  getStorage()?.setItem(CLAVE_TOKEN, token);
 }
 
 export function cerrarSesion() {
-  const sesion = getStorage();
-  const local = getLocal();
-  sesion?.removeItem(CLAVE_TOKEN);
-  local?.removeItem(CLAVE_TOKEN);
-  local?.setItem(CLAVE_SYNC, Date.now().toString());
+  getStorage()?.removeItem(CLAVE_TOKEN);
   location.reload();
-}
-
-// Al arrancar la app: si esta pestaña no tiene token pero localStorage sí,
-// copiamos la sesión activa (abrir enlace en nueva pestaña, duplicar pestaña...).
-export function sincronizarSesion() {
-  const sesion = getStorage();
-  const local = getLocal();
-  if (!sesion || !local) return;
-  if (!sesion.getItem(CLAVE_TOKEN) && local.getItem(CLAVE_TOKEN)) {
-    sesion.setItem(CLAVE_TOKEN, local.getItem(CLAVE_TOKEN));
-  }
-}
-
-// Detecta si otra pestaña cambia el usuario y recarga para evitar mezclar sesiones.
-export function escucharCambiosSesion(callback) {
-  const handler = (e) => {
-    if (e.key !== CLAVE_SYNC) return;
-    const tokenActual = obtenerToken();
-    const tokenNuevo = e.newValue ? (getStorage()?.getItem(CLAVE_TOKEN) || getLocal()?.getItem(CLAVE_TOKEN)) : null;
-    if (tokenActual !== tokenNuevo) {
-      if (callback) callback();
-      else location.reload();
-    }
-  };
-  window.addEventListener("storage", handler);
-  return () => window.removeEventListener("storage", handler);
 }
 
 // Saca el cuerpo de la petición en algo que se pueda guardar en IndexedDB.
@@ -151,11 +105,7 @@ export function instalarFetchConSesion() {
       const resp = await nativo(recurso, opciones);
       // Sesión caducada o inválida: fuera el token y a la pantalla de login.
       if (resp.status === 401 && url.startsWith("/api") && !url.startsWith("/api/auth/")) {
-        const sesion = getStorage();
-        const local = getLocal();
-        sesion?.removeItem(CLAVE_TOKEN);
-        local?.removeItem(CLAVE_TOKEN);
-        local?.setItem(CLAVE_SYNC, Date.now().toString());
+        getStorage()?.removeItem(CLAVE_TOKEN);
         location.reload();
       }
       return resp;
