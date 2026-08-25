@@ -67,6 +67,44 @@ router.post("/", async (req, res, next) => {
   }
 });
 
+// Alta rápida desde la agenda/citas: solo hace falta el nombre. El NIF se
+// deja marcado como pendiente («SIN NIF <código>») para completar la ficha
+// más tarde desde Clientes, y así el día a día no se corta por un dato fiscal.
+router.post("/rapido", async (req, res, next) => {
+  try {
+    const nombre = (req.body?.nombre ?? "").trim();
+    if (!nombre) return res.status(400).json({ error: "El nombre es obligatorio" });
+    const telefono = (req.body?.telefono ?? "").trim() || undefined;
+    const email = (req.body?.email ?? "").trim() || undefined;
+    const nif = (req.body?.nif ?? "").trim() || undefined;
+
+    // Si ya existe una ficha con ese NIF se devuelve en vez de duplicar.
+    if (nif) {
+      const existente = await buscarPorNif(Cliente, nif, null);
+      if (existente) return res.status(200).json(existente);
+    } else {
+      // Sin NIF: se evita repetir el mismo nombre (mismo teléfono o sin él).
+      const repetido = await Cliente.findOne({
+        nombre: { $regex: `^${nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+        ...(telefono ? { telefono } : {}),
+      });
+      if (repetido) return res.status(200).json(repetido);
+    }
+
+    const codigo = await siguienteCodigoFicha(Cliente);
+    const cliente = await Cliente.create({
+      codigo,
+      nombre,
+      telefono,
+      email,
+      nif: nif ?? `SIN NIF ${codigo}`,
+    });
+    res.status(201).json(cliente);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.put("/:id", async (req, res, next) => {
   try {
     const datos = limpiar(req.body);

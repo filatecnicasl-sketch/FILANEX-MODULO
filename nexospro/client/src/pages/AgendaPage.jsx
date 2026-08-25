@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import Calendario, { aFechaInput } from "../components/Calendario.jsx";
 import SelectorContacto from "../components/SelectorContacto.jsx";
+import BotonVoz from "../components/BotonVoz.jsx";
+import AltaRapidaCliente from "../components/AltaRapidaCliente.jsx";
 
 const campo = "input w-full";
 
@@ -76,8 +78,24 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div className="modal-panel w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-bold text-white mb-4">
+        <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {evento ? `Evento ${aFechaInput(evento.fecha)} ${evento.hora}` : "Nuevo evento"}
+          {!evento && (
+            <BotonVoz
+              onResultado={(campos) =>
+                setForm((f) => ({
+                  ...f,
+                  fecha: campos.fecha ?? f.fecha,
+                  hora: campos.hora ?? f.hora,
+                  duracion: campos.duracion ?? f.duracion,
+                  clienteNombre: campos.clienteNombre ?? f.clienteNombre,
+                  telefono: campos.telefono ?? f.telefono,
+                  motivo: campos.motivo ?? f.motivo,
+                  notas: campos.notas ?? f.notas,
+                }))
+              }
+            />
+          )}
         </h2>
         <form onSubmit={guardar} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -123,6 +141,21 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
                 onChange={elegirCliente}
                 onCreado={onClienteCreado}
               />
+              <div className="mt-1">
+                <AltaRapidaCliente
+                  nombreInicial={form.clienteNombre}
+                  telefonoInicial={form.telefono}
+                  onCreado={(c) => {
+                    onClienteCreado?.(c);
+                    setForm((f) => ({
+                      ...f,
+                      clienteId: c._id,
+                      clienteNombre: c.nombre,
+                      telefono: c.telefono ?? f.telefono,
+                    }));
+                  }}
+                />
+              </div>
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Estado</label>

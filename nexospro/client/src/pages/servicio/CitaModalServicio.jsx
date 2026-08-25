@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { ESTADOS_CITA, aFechaInput } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
+import BotonVoz from "../../components/BotonVoz.jsx";
+import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 
 const campo = "input w-full";
 
@@ -160,8 +162,25 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-bold text-white mb-4">
+        <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {cita ? `Cita ${aFechaInput(cita.fecha)} ${cita.hora}` : "Nueva cita"}
+          {!cita && (
+            <BotonVoz
+              onResultado={(campos) => {
+                if (campos.hora && !HORAS_ENTRADA.includes(campos.hora)) setHoraLibre(true);
+                setForm((f) => ({
+                  ...f,
+                  fecha: campos.fecha ?? f.fecha,
+                  hora: campos.hora ?? f.hora,
+                  duracion: campos.duracion ?? f.duracion,
+                  clienteNombre: campos.clienteNombre ?? f.clienteNombre,
+                  telefono: campos.telefono ?? f.telefono,
+                  motivo: campos.motivo ?? f.motivo,
+                  notas: campos.notas ?? f.notas,
+                }));
+              }}
+            />
+          )}
         </h2>
         <form onSubmit={guardar} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -229,6 +248,21 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
                 onElegir={elegirCliente}
                 placeholder="Buscar en la cartera o escribir…"
               />
+              <div className="mt-1">
+                <AltaRapidaCliente
+                  nombreInicial={form.clienteNombre}
+                  telefonoInicial={form.telefono}
+                  onCreado={(c) => {
+                    setClientes((l) => [c, ...l]);
+                    setForm((f) => ({
+                      ...f,
+                      cliente: c._id,
+                      clienteNombre: c.nombre,
+                      telefono: c.telefono ?? f.telefono,
+                    }));
+                  }}
+                />
+              </div>
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Teléfono</label>

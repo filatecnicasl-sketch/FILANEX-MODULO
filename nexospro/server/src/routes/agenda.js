@@ -1,11 +1,26 @@
 import { Router } from "express";
 import Cita, { ESTADOS_CITA } from "../models/Cita.js";
 import Cliente from "../models/Cliente.js";
+import { interpretarCita } from "../services/interpretar-cita.js";
 
 // Agenda general de FILANEX facturación: citas y recordatorios para empresas
 // que no tienen ningún módulo sectorial. Comparte el modelo Cita con
 // ambito = "general" (las del taller usan ambito = "taller").
 const router = Router();
+
+// POST /api/agenda/interpretar — convierte un texto dictado por voz en los
+// campos de una cita/evento (fecha, hora, cliente, matrícula, motivo…).
+router.post("/interpretar", async (req, res, next) => {
+  try {
+    const texto = String(req.body?.texto ?? "").trim();
+    if (!texto) return res.status(400).json({ error: "No se recibió ningún texto" });
+    const hoy = new Date().toLocaleDateString("sv-SE");
+    const campos = await interpretarCita(texto, hoy);
+    res.json(campos);
+  } catch (err) {
+    next(err);
+  }
+});
 
 function diaLocal(texto) {
   const d = texto ? new Date(`${texto}T00:00:00`) : new Date();
