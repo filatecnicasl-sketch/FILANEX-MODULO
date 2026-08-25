@@ -11,8 +11,28 @@ import { GoogleGenAI } from "@google/genai";
 //   2. Un tiempo máximo por intento: si un modelo no responde, se pasa al
 //      siguiente en vez de bloquear al usuario.
 
+// Modelos que Google ya ha retirado («no longer available to new users») o que
+// se quedan aceptando la conexión sin responder. Se descartan incluso si
+// vienen en GEMINI_MODEL, para que un .env antiguo (instalaciones locales que
+// no se actualizan) no deje el OCR ni el dictado colgados.
+const RETIRADOS = new Set([
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+]);
+
+const preferido = process.env.GEMINI_MODEL;
+if (preferido && RETIRADOS.has(preferido)) {
+  console.warn(
+    `GEMINI_MODEL=${preferido} ya no está operativo: se usará gemini-3.6-flash. Actualiza server/.env.`
+  );
+}
+
 const MODELOS = [
-  process.env.GEMINI_MODEL,
+  RETIRADOS.has(preferido) ? null : preferido,
   "gemini-3.6-flash",
   "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
