@@ -1,10 +1,8 @@
-import { GoogleGenAI } from "@google/genai";
+import { generarJsonGemini } from "./gemini.js";
 
 // Interpreta una cita dictada por voz (texto ya transcrito por el navegador)
 // y devuelve los campos estructurados: fecha, hora, cliente, motivo, etc.
-
-const MODELO = process.env.GEMINI_MODEL || "gemini-flash-latest";
-const MODELOS_RESERVA = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+// El modelo, los reintentos y el tiempo máximo los gestiona services/gemini.js.
 
 const ESQUEMA = {
   type: "object",
@@ -35,35 +33,18 @@ Texto dictado: "${texto}"`;
 }
 
 export async function interpretarCita(texto, hoy) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY no configurada");
+  const datos = await generarJsonGemini({
+    contents: [{ text: construirPrompt(texto, hoy) }],
+    esquema: ESQUEMA,
+    // El usuario está esperando delante de la pantalla: no tiene sentido
+    // hacerle aguardar más de unos segundos por modelo.
+    timeoutMs: 15000,
+    etiqueta: "El dictado de citas",
+  });
+  // Limpiar campos vacíos para no pisar lo que ya tenga el formulario.
+  const limpio = {};
+  for (const [k, v] of Object.entries(datos)) {
+    if (v !== undefined && v !== null && v !== "") limpio[k] = v;
   }
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const modelos = [MODELO, ...MODELOS_RESERVA.filter((m) => m !== MODELO)];
-  let ultimoError;
-  for (const modelo of modelos) {
-    for (let intento = 0; intento < 2; intento++) {
-      try {
-        const respuesta = await ai.models.generateContent({
-          model: modelo,
-          contents: [{ text: construirPrompt(texto, hoy) }],
-          config: { responseMimeType: "application/json", responseSchema: ESQUEMA },
-        });
-        const datos = JSON.parse(respuesta.text);
-        // Limpiar campos vacíos para no pisar lo que ya tenga el formulario.
-        const limpio = {};
-        for (const [k, v] of Object.entries(datos)) {
-          if (v !== undefined && v !== null && v !== "") limpio[k] = v;
-        }
-        return limpio;
-      } catch (err) {
-        ultimoError = err;
-        const msg = String(err?.message ?? "");
-        const temporal = err?.status === 503 || err?.status === 429 || msg.includes("UNAVAILABLE") || msg.includes("high demand");
-        if (!temporal) throw err;
-        await new Promise((r) => setTimeout(r, 1200 * (intento + 1)));
-      }
-    }
-  }
-  throw new Error(`La IA está ocupada ahora mismo: ${ultimoError?.message ?? "inténtalo de nuevo"}`);
+  return limpio;
 }

@@ -1,65 +1,24 @@
-import { GoogleGenAI } from "@google/genai";
+import { generarJsonGemini } from "./gemini.js";
 
 // Extracción OCR de albaranes y facturas de COMPRA con Gemini (visión).
 // Salida garantizada en JSON mediante responseSchema.
+// La elección de modelo, los reintentos y el tiempo máximo viven en
+// services/gemini.js, compartidos con el resto de usos de IA.
 
-const MODELO = process.env.GEMINI_MODEL || "gemini-flash-latest";
-// Reserva por si el modelo principal está saturado (alta demanda en Google).
-const MODELOS_RESERVA = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
-
-const esTemporal = (err) => {
-  const msg = String(err?.message ?? "");
-  return (
-    err?.status === 503 ||
-    err?.status === 429 ||
-    msg.includes("UNAVAILABLE") ||
-    msg.includes("high demand") ||
-    msg.includes("RESOURCE_EXHAUSTED")
-  );
-};
-
-const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// Llama a Gemini con reintentos: si el modelo está saturado espera y prueba
-// de nuevo, y si sigue cae a los modelos de reserva. Solo entonces falla.
 async function generarJson(fichero, prompt, esquema) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY no configurada en server/.env");
-  }
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const modelos = [MODELO, ...MODELOS_RESERVA.filter((m) => m !== MODELO)];
-  let ultimoError;
-  for (const modelo of modelos) {
-    for (let intento = 0; intento < 2; intento++) {
-      try {
-        const respuesta = await ai.models.generateContent({
-          model: modelo,
-          contents: [
-            {
-              inlineData: {
-                mimeType: fichero.mimetype,
-                data: fichero.buffer.toString("base64"),
-              },
-            },
-            { text: prompt },
-          ],
-          config: {
-            responseMimeType: "application/json",
-            responseSchema: esquema,
-          },
-        });
-        return JSON.parse(respuesta.text);
-      } catch (err) {
-        ultimoError = err;
-        if (!esTemporal(err)) throw err;
-        await esperar(1500 * (intento + 1));
-      }
-    }
-  }
-  console.error("OCR Gemini agotado:", ultimoError?.message);
-  throw new Error(
-    "El servicio de OCR está saturado ahora mismo: inténtalo de nuevo en unos minutos."
-  );
+  return generarJsonGemini({
+    contents: [
+      {
+        inlineData: {
+          mimeType: fichero.mimetype,
+          data: fichero.buffer.toString("base64"),
+        },
+      },
+      { text: prompt },
+    ],
+    esquema,
+    etiqueta: "El servicio de OCR",
+  });
 }
 
 const esquemaDocumento = {
