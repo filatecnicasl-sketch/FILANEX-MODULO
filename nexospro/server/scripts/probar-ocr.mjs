@@ -71,6 +71,9 @@ const CASOS = [
   { nombre: "Ticket termico descolorido", tipo: "ticket", buffer: () => aImagen(TICKET, 340, { gris: true, brillo: 1.45, borroso: 1.1, calidad: 55 }), esperado: { total: 100.5 } },
   { nombre: "Factura compra con descuentos", tipo: "compra", buffer: () => aPdf(FACTURA, "A4"), esperado: { total: 1105.34, lineas: 3 } },
   { nombre: "Factura compra foto torcida", tipo: "compra", buffer: () => aImagen(FACTURA, 780, { rotar: 4, calidad: 70 }), esperado: { total: 1105.34, lineas: 3 } },
+  // No se juzga la precisión: sirve para comprobar que un documento que el
+  // modelo rápido no puede leer escala solo al modelo de calidad.
+  { nombre: "Ticket casi ilegible (prueba de escalado)", tipo: "ticket", soloEscalado: true, buffer: () => aImagen(TICKET, 340, { gris: true, brillo: 1.9, borroso: 3.2, calidad: 22 }) },
 ];
 
 let aciertos = 0;
@@ -86,6 +89,16 @@ for (const caso of CASOS) {
       : await extraerDocumentoCompra({ buffer, mimetype });
     const ms = Date.now() - t0;
     tiempos.push(ms);
+    const nivel = r._ocr?.nivel ?? "?";
+    const kb = Math.round(buffer.length / 1024);
+
+    if (caso.soloEscalado) {
+      const bien = nivel === "calidad";
+      if (bien) aciertos++;
+      console.log(`${bien ? "OK  " : "FALLA"} ${caso.nombre} — ${ms} ms (nivel usado: ${nivel}, ${kb} KB)`);
+      if (r._ocr?.motivo?.length) console.log(`      escaló porque: ${r._ocr.motivo.join("; ")}`);
+      continue;
+    }
 
     const fallos = [];
     const e = caso.esperado;
@@ -94,8 +107,6 @@ for (const caso of CASOS) {
     if (e.nifComercio && String(r.nifComercio ?? "").toUpperCase() !== e.nifComercio) fallos.push(`NIF ${r.nifComercio} ≠ ${e.nifComercio}`);
     if (e.lineas !== undefined && (r.lineas?.length ?? 0) !== e.lineas) fallos.push(`${r.lineas?.length ?? 0} líneas ≠ ${e.lineas}`);
 
-    const nivel = r._ocr?.nivel ?? "?";
-    const kb = Math.round(buffer.length / 1024);
     if (fallos.length === 0) {
       aciertos++;
       console.log(`OK   ${caso.nombre} — ${ms} ms (${nivel}, ${kb} KB)`);
