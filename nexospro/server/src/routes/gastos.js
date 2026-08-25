@@ -212,6 +212,11 @@ router.post("/ticket", subida.single("ticket"), contextoTrasSubida, async (req, 
       if ((extraccion.confianza ?? 0) < 0.6) {
         avisos.push("La foto se ha leído con poca seguridad: revisa los importes antes de validar.");
       }
+      // Lo que las comprobaciones automáticas no han podido cuadrar (importes
+      // que no suman, NIF con letra incorrecta, fecha imposible…).
+      for (const pega of extraccion._ocr?.avisos ?? []) {
+        avisos.push(`Revisa antes de validar: ${pega}.`);
+      }
 
       const gasto = await Gasto.create({
         ...datosDesdeCuerpo({

@@ -1,27 +1,74 @@
-import { generarJsonGemini } from "./gemini.js";
+import { generarJsonGemini, MODELOS_CALIDAD, MODELOS_RAPIDOS } from "./gemini.js";
+import { prepararParaOcr } from "./imagen-ocr.js";
+import { revisarTicket, revisarDocumentoCompra, revisarValoracion } from "./validar-ocr.js";
 
-// Extracción OCR de albaranes y facturas de COMPRA con Gemini (visión).
+// Extracción OCR de documentos con Gemini (visión).
 // Salida garantizada en JSON mediante responseSchema.
 // La elección de modelo, los reintentos y el tiempo máximo viven en
 // services/gemini.js, compartidos con el resto de usos de IA.
+//
+// Estrategia de dos niveles (rápido y robusto a la vez):
+//   1. Se prepara la imagen (orientación correcta y peso reducido).
+//   2. Se lee con el modelo rápido, que tarda 1-2 s.
+//   3. Se revisa el resultado con reglas duras (importes que cuadren, NIF con
+//      letra correcta, fecha posible…). Si pasa, se devuelve: caso normal.
+//   4. Si no pasa, se repite con el modelo de calidad. Solo los documentos
+//      difíciles pagan la espera larga.
+// El resultado indica en `_ocr` qué nivel se usó y qué quedó pendiente de
+// revisar, para poder avisar al usuario.
 
-async function generarJson(fichero, prompt, esquema) {
-  return generarJsonGemini({
-    contents: [
-      {
-        inlineData: {
-          mimeType: fichero.mimetype,
-          data: fichero.buffer.toString("base64"),
-        },
-      },
-      { text: prompt },
-    ],
+async function generarJson(fichero, prompt, esquema, revisar) {
+  const listo = await prepararParaOcr(fichero);
+  const contents = [
+    { inlineData: { mimeType: listo.mimetype, data: listo.buffer.toString("base64") } },
+    { text: prompt },
+  ];
+  const timeoutMs = Number(process.env.GEMINI_TIMEOUT_OCR_MS) || 90000;
+
+  let problemasRapido = [];
+  if (revisar) {
+    try {
+      const t0 = Date.now();
+      const rapido = await generarJsonGemini({
+        contents,
+        esquema,
+        modelos: MODELOS_RAPIDOS,
+        timeoutMs: Math.min(timeoutMs, 30000),
+        etiqueta: "El servicio de OCR",
+      });
+      const { ok, problemas } = revisar(rapido);
+      if (ok) {
+        return { ...rapido, _ocr: { nivel: "rapido", ms: Date.now() - t0, avisos: [] } };
+      }
+      problemasRapido = problemas;
+      console.warn(`OCR: primera lectura descartada (${problemas.join("; ")}), se repite con el modelo de calidad.`);
+    } catch (err) {
+      problemasRapido = [err.message];
+    }
+  }
+
+  const t1 = Date.now();
+  const bueno = await generarJsonGemini({
+    contents,
     esquema,
+    modelos: MODELOS_CALIDAD,
     // Un documento escaneado grande puede tardar bastante en analizarse: se
     // da margen amplio antes de pasar al siguiente modelo.
-    timeoutMs: Number(process.env.GEMINI_TIMEOUT_OCR_MS) || 90000,
+    timeoutMs,
     etiqueta: "El servicio de OCR",
   });
+  // Si tampoco el modelo bueno cuadra, se entrega igualmente pero avisando:
+  // es mejor que el usuario corrija cuatro campos a que no tenga nada.
+  const revision = revisar ? revisar(bueno) : { ok: true, problemas: [] };
+  return {
+    ...bueno,
+    _ocr: {
+      nivel: "calidad",
+      ms: Date.now() - t1,
+      motivo: problemasRapido,
+      avisos: revision.ok ? [] : revision.problemas,
+    },
+  };
 }
 
 const esquemaDocumento = {
@@ -77,7 +124,7 @@ Reglas:
 - No inventes datos: si un campo no aparece en el documento, omítelo.`;
 
 export async function extraerDocumentoCompra(fichero) {
-  return generarJson(fichero, PROMPT, esquemaDocumento);
+  return generarJson(fichero, PROMPT, esquemaDocumento, revisarDocumentoCompra);
 }
 
 // --- Tickets de gasto (facturas simplificadas) ---
@@ -132,7 +179,7 @@ Reglas:
 // Lee la foto de un ticket y devuelve los datos del gasto. Nada se da por
 // bueno: el gasto nace pendiente de revisión, igual que el OCR de compras.
 export async function extraerTicket(fichero) {
-  return generarJson(fichero, PROMPT_TICKET, esquemaTicket);
+  return generarJson(fichero, PROMPT_TICKET, esquemaTicket, revisarTicket);
 }
 
 // --- Valoraciones de siniestro (Audatex, GT Estimate, peritaciones) ---
@@ -184,5 +231,5 @@ Reglas:
 // Lee una valoración de siniestro (PDF o imagen) y devuelve las secciones
 // con sus operaciones e importes, listas para precargar una valoración.
 export async function extraerValoracion(fichero) {
-  return generarJson(fichero, PROMPT_VALORACION, esquemaValoracion);
+  return generarJson(fichero, PROMPT_VALORACION, esquemaValoracion, revisarValoracion);
 }
