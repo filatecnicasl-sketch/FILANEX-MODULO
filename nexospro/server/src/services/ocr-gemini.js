@@ -17,6 +17,9 @@ async function generarJson(fichero, prompt, esquema) {
       { text: prompt },
     ],
     esquema,
+    // Un documento escaneado grande puede tardar bastante en analizarse: se
+    // da margen amplio antes de pasar al siguiente modelo.
+    timeoutMs: Number(process.env.GEMINI_TIMEOUT_OCR_MS) || 90000,
     etiqueta: "El servicio de OCR",
   });
 }
