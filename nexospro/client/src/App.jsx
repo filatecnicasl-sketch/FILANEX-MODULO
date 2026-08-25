@@ -55,6 +55,7 @@ import AsesoriaLibrosPage from "./pages/asesoria/AsesoriaLibrosPage.jsx";
 import AsesoriaFiscalPage from "./pages/asesoria/AsesoriaFiscalPage.jsx";
 import AsesoriaPrevisionPage from "./pages/asesoria/AsesoriaPrevisionPage.jsx";
 import AsesoriaSolicitudesPage from "./pages/asesoria/AsesoriaSolicitudesPage.jsx";
+import AsesoriaCierresPage from "./pages/asesoria/AsesoriaCierresPage.jsx";
 import AdminTenantsPage from "./pages/AdminTenantsPage.jsx";
 
 // Abre la aplicación en el módulo de inicio elegido (Sistema → Módulos).
@@ -157,6 +158,7 @@ export default function App() {
           <Route path="asesoria/fiscalidad" element={<AsesoriaFiscalPage />} />
           <Route path="asesoria/prevision" element={<AsesoriaPrevisionPage />} />
           <Route path="asesoria/solicitudes" element={<AsesoriaSolicitudesPage />} />
+          <Route path="asesoria/cierres" element={<AsesoriaCierresPage />} />
           <Route path="ayuda" element={<Navigate to="/ayuda/facturacion" replace />} />
           <Route path="ayuda/facturacion" element={<AyudaFacturacionPage />} />
           <Route path="ayuda/taller" element={<AyudaTallerPage />} />

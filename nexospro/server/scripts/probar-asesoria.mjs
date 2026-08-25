@@ -150,10 +150,68 @@ ok(r.ok && sol.estado === "pendiente" && !sol.documento, "Solicitud reabierta y 
 r = await fetch(`${url}/api/asesoria/solicitudes/${solicitud._id}`, { method: "DELETE", headers: H });
 ok(r.ok, "Solicitud borrada");
 
-// 8. Panel (con contador de solicitudes)
+// 8. Duplicados: mismo tercero, número y fecha debe avisar (sin bloquear)
+r = await fetch(`${url}/api/asesoria/documentos`, {
+  method: "POST",
+  headers: H,
+  body: JSON.stringify({
+    clienteAsesoria: cliente._id,
+    tipo: "recibida",
+    fecha: hoy.toISOString().slice(0, 10),
+    numero: "PR-recibida",
+    tercero: "Tercero de prueba",
+    total: 484,
+    tipoIva: 21,
+  }),
+});
+const dup = await r.json();
+ok(r.status === 201 && (dup.avisos || []).length > 0, `Avisa de documento duplicado (${(dup.avisos || []).join(" ") || "sin aviso"})`);
+if (dup?._id ?? dup?.documento?._id) {
+  await fetch(`${url}/api/asesoria/documentos/${dup._id ?? dup.documento._id}`, { method: "DELETE", headers: H });
+}
+
+// 9. Cierres trimestrales: matriz, cambio de estado y kit de solicitudes
+const anoActual = hoy.getFullYear();
+const trimActual = Math.floor(hoy.getMonth() / 3) + 1;
+r = await fetch(`${url}/api/asesoria/cierres?ano=${anoActual}`, { headers: H });
+const matriz = await r.json();
+const fila = matriz.clientes?.find((f) => f.cliente._id === cliente._id);
+ok(r.ok && fila && fila.trimestres.length === 4, `Matriz de cierres (${matriz.clientes?.length ?? 0} clientes, 4 trimestres)`);
+
+r = await fetch(`${url}/api/asesoria/cierres`, {
+  method: "PUT",
+  headers: H,
+  body: JSON.stringify({ clienteAsesoria: cliente._id, ano: anoActual, trimestre: trimActual, estado: "presentado" }),
+});
+const cierre = await r.json();
+ok(r.ok && cierre.estado === "presentado" && cierre.presentadoEn, "Cierre marcado como presentado con fecha");
+
+r = await fetch(`${url}/api/asesoria/solicitudes/kit`, {
+  method: "POST",
+  headers: H,
+  body: JSON.stringify({ clienteAsesoria: cliente._id, ano: anoActual, trimestre: trimActual }),
+});
+const kit1 = await r.json();
+ok(r.status === 201 && kit1.creadas === 5, `Kit de cierre crea 5 solicitudes (${kit1.creadas})`);
+
+r = await fetch(`${url}/api/asesoria/solicitudes/kit`, {
+  method: "POST",
+  headers: H,
+  body: JSON.stringify({ clienteAsesoria: cliente._id, ano: anoActual, trimestre: trimActual }),
+});
+const kit2 = await r.json();
+ok(r.ok && kit2.creadas === 0, `Kit no duplica lo ya pedido (${kit2.creadas})`);
+
+const pendKit = await (await fetch(`${url}/api/asesoria/solicitudes?cliente=${cliente._id}`, { headers: H })).json();
+for (const s of pendKit) {
+  await fetch(`${url}/api/asesoria/solicitudes/${s._id}`, { method: "DELETE", headers: H });
+}
+
+// 10. Panel (con contador de solicitudes y alertas)
 r = await fetch(`${url}/api/asesoria/panel`, { headers: H });
 const panel = await r.json();
 ok(r.ok && panel.clientesActivos >= 1, `Panel (${panel.clientesActivos} clientes, ${panel.pendientesRevision} pendientes)`);
+ok(!!panel.alertas && Array.isArray(panel.alertas.clientesSinMovimiento), "Panel devuelve alertas");
 
 // 7. Limpieza: borrar documentos y cliente
 const docs = await (await fetch(`${url}/api/asesoria/documentos?cliente=${cliente._id}`, { headers: H })).json();

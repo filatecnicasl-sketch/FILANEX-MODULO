@@ -135,6 +135,7 @@ const gruposModulos = {
       { to: "/asesoria/prevision", etiqueta: "Previsión", Icono: IconTesoreria, tono: "amber" },
       { to: "/asesoria/fiscalidad", etiqueta: "Fiscalidad", Icono: IconAgenda, tono: "rose" },
       { to: "/asesoria/solicitudes", etiqueta: "Solicitudes", Icono: IconNotificaciones, tono: "orange" },
+      { to: "/asesoria/cierres", etiqueta: "Cierres", Icono: IconPlanning, tono: "cyan" },
     ],
   },
 };

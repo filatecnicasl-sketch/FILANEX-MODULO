@@ -63,6 +63,31 @@ export default function AsesoriaPanelPage() {
         ))}
       </div>
 
+      {(panel.alertas?.clientesSinMovimiento?.length > 0 || panel.alertas?.pocaConfianza > 0) && (
+        <div className="panel p-5 mb-4 border border-amber-400/20">
+          <h2 className="text-white font-semibold mb-3">Avisos</h2>
+          <ul className="space-y-2 text-sm">
+            {panel.alertas.pocaConfianza > 0 && (
+              <li className="flex items-center justify-between gap-3">
+                <span className="text-slate-300">
+                  {panel.alertas.pocaConfianza} documento(s) pendientes con lectura de IA poco fiable.
+                </span>
+                <a href="/asesoria/documentos" className="text-xs text-accent hover:underline shrink-0">Revisar</a>
+              </li>
+            )}
+            {panel.alertas.clientesSinMovimiento?.length > 0 && (
+              <li className="flex items-start justify-between gap-3">
+                <span className="text-slate-300">
+                  Sin documentos en 30 días:{" "}
+                  {panel.alertas.clientesSinMovimiento.map((c) => c.nombre).join(", ")}
+                </span>
+                <a href="/asesoria/solicitudes" className="text-xs text-accent hover:underline shrink-0">Pedir</a>
+              </li>
+            )}
+          </ul>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="panel p-5">
           <div className="flex items-center justify-between mb-4">

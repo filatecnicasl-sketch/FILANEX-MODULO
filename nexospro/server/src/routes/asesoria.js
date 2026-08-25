@@ -4,6 +4,7 @@ import { Router } from "express";
 import ClienteAsesoria, { MODELOS_FISCALES } from "../models/ClienteAsesoria.js";
 import DocumentoFiscal from "../models/DocumentoFiscal.js";
 import SolicitudDocumento from "../models/SolicitudDocumento.js";
+import CierreTrimestral, { ESTADOS_CIERRE } from "../models/CierreTrimestral.js";
 import Empresa from "../models/Empresa.js";
 import { requiereModulo } from "../config/modulos.js";
 import { extraerDocumentoCompra, extraerTicket } from "../services/ocr-gemini.js";
@@ -18,6 +19,21 @@ router.use(requiereModulo("asesoria"));
 
 const subida = uploadMemoria;
 const redondear = (n) => Math.round((Number(n) || 0) * 100) / 100;
+
+// Detecta si ya existe un documento igual (mismo cliente, tercero, número y
+// año): antes de contabilizar hay que saber que puede estar duplicado.
+async function duplicadoDe({ clienteAsesoria, nifTercero, numero, fecha, excluirId }) {
+  if (!numero) return null;
+  const ano = fecha ? new Date(fecha).getFullYear() : null;
+  const filtro = {
+    clienteAsesoria,
+    numero: String(numero).trim(),
+    ...(nifTercero ? { nifTercero: String(nifTercero).toUpperCase().replace(/[\s.-]/g, "") } : {}),
+    ...(ano ? { ano } : {}),
+    ...(excluirId ? { _id: { $ne: excluirId } } : {}),
+  };
+  return DocumentoFiscal.findOne(filtro).lean();
+}
 
 // ------------------------------------------------------------- vencimientos
 // Fechas oficiales habituales de los modelos (día límite de presentación).
@@ -211,7 +227,13 @@ router.post("/documentos", async (req, res, next) => {
       retencion: Number(retencion) || 0,
       notas, origen: "manual",
     });
-    res.status(201).json(doc);
+    const duplicado = await duplicadoDe({
+      clienteAsesoria, nifTercero, numero, fecha, excluirId: doc._id,
+    });
+    const avisos = duplicado
+      ? [`Posible duplicado: ya hay un documento de ${duplicado.tercero ?? "ese tercero"} con el número ${numero} de ${duplicado.ano}.`]
+      : [];
+    res.status(201).json({ ...doc.toObject(), avisos });
   } catch (err) {
     next(err);
   }
@@ -256,6 +278,17 @@ router.post("/documentos/ocr", subida.single("documento"), contextoTrasSubida, a
       }
       if ((extraccion.confianza ?? 1) < 0.6) {
         avisos.push("El documento se ha leído con poca seguridad: revisa los importes.");
+      }
+      const posibleDuplicado = await duplicadoDe({
+        clienteAsesoria,
+        nifTercero: extraccion.nifProveedor ?? extraccion.nifComercio,
+        numero: extraccion.numeroFacturaProveedor ?? extraccion.numero,
+        fecha: extraccion.fecha,
+      });
+      if (posibleDuplicado) {
+        avisos.push(
+          `Posible duplicado: ya existe ese número de ${posibleDuplicado.tercero ?? "ese tercero"} de ${posibleDuplicado.ano}.`
+        );
       }
 
       const doc = await DocumentoFiscal.create({
@@ -395,6 +428,103 @@ router.get("/libros-iva.csv", async (req, res, next) => {
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="${nombre}"`);
     res.send("﻿" + filas.join("\r\n"));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ------------------------------------------------------------------ cierres
+
+// Matriz de cierres del año: cada cliente activo con el estado de sus 4
+// trimestres y cuántos documentos le quedan por revisar en cada uno.
+router.get("/cierres", async (req, res, next) => {
+  try {
+    const ano = Number(req.query.ano) || new Date().getFullYear();
+    const [clientes, cierres, pendientes] = await Promise.all([
+      ClienteAsesoria.find({ activo: true }).sort({ nombre: 1 }).lean(),
+      CierreTrimestral.find({ ano }).lean(),
+      DocumentoFiscal.aggregate([
+        { $match: { ano, estado: "pendiente" } },
+        { $group: { _id: { c: "$clienteAsesoria", t: "$trimestre" }, n: { $sum: 1 } } },
+      ]),
+    ]);
+    const mapa = new Map(cierres.map((c) => [`${c.clienteAsesoria}:${c.trimestre}`, c]));
+    const mapaPend = new Map(pendientes.map((p) => [`${p._id.c}:${p._id.t}`, p.n]));
+
+    res.json({
+      ano,
+      clientes: clientes.map((cliente) => ({
+        cliente: { _id: cliente._id, nombre: cliente.nombre, nif: cliente.nif },
+        trimestres: [1, 2, 3, 4].map((t) => {
+          const cierre = mapa.get(`${cliente._id}:${t}`);
+          return {
+            trimestre: t,
+            estado: cierre?.estado ?? "pendiente_docs",
+            notas: cierre?.notas,
+            presentadoEn: cierre?.presentadoEn,
+            pendientes: mapaPend.get(`${cliente._id}:${t}`) ?? 0,
+          };
+        }),
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Cambia el estado de un cierre (se crea si no existía).
+router.put("/cierres", async (req, res, next) => {
+  try {
+    const { clienteAsesoria, ano, trimestre, estado, notas } = req.body;
+    if (!clienteAsesoria || !ano || !trimestre || !ESTADOS_CIERRE.includes(estado)) {
+      return res.status(400).json({ error: "Cliente, año, trimestre y un estado válido son obligatorios" });
+    }
+    const cierre = await CierreTrimestral.findOneAndUpdate(
+      { clienteAsesoria, ano: Number(ano), trimestre: Number(trimestre) },
+      {
+        estado,
+        ...(notas !== undefined ? { notas } : {}),
+        presentadoEn: estado === "presentado" ? new Date() : null,
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    res.json(cierre);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Kit de solicitudes de cierre: pide al cliente de una vez toda la
+// documentación habitual del trimestre. No duplica lo ya pedido y pendiente.
+const KIT_CIERRE = [
+  "Extractos bancarios del trimestre",
+  "Nóminas y seguros sociales",
+  "Facturas emitidas que falten",
+  "Facturas de compras y gastos que falten",
+  "Tickets y justificantes de gasto",
+];
+
+router.post("/solicitudes/kit", async (req, res, next) => {
+  try {
+    const { clienteAsesoria, ano, trimestre } = req.body;
+    if (!clienteAsesoria || !trimestre) {
+      return res.status(400).json({ error: "Indica el cliente y el trimestre" });
+    }
+    const periodo = `${trimestre}T ${ano ?? new Date().getFullYear()}`;
+    const yaPedidas = new Set(
+      (
+        await SolicitudDocumento.find({ clienteAsesoria, estado: "pendiente" })
+          .select("descripcion")
+          .lean()
+      ).map((s) => s.descripcion)
+    );
+    let creadas = 0;
+    for (const descripcion of KIT_CIERRE) {
+      if (yaPedidas.has(descripcion)) continue;
+      await SolicitudDocumento.create({ clienteAsesoria, descripcion, periodo });
+      creadas++;
+    }
+    res.status(201).json({ creadas, periodo });
   } catch (err) {
     next(err);
   }
@@ -623,6 +753,22 @@ router.get("/panel", async (req, res, next) => {
       docsIva.filter((d) => d.tipo !== "emitida").reduce((s, d) => s + d.cuotaIva, 0)
     );
 
+    // Alertas de trabajo: clientes activos sin documentos en 30 días (se les
+    // va a echar de menos al cerrar el trimestre) y lecturas dudosas.
+    const hace30 = new Date(ahora.getTime() - 30 * 86400000);
+    const conMovimiento = new Set(
+      (
+        await DocumentoFiscal.find({ createdAt: { $gte: hace30 } })
+          .select("clienteAsesoria")
+          .lean()
+      ).map((d) => String(d.clienteAsesoria))
+    );
+    const sinMovimiento = clientes.filter((c) => !conMovimiento.has(String(c._id)));
+    const pocaConfianza = await DocumentoFiscal.countDocuments({
+      estado: "pendiente",
+      "ocr.confianza": { $lt: 0.7 },
+    });
+
     res.json({
       clientesActivos,
       pendientesRevision: pendientes,
@@ -631,6 +777,10 @@ router.get("/panel", async (req, res, next) => {
       iva: { repercutido: rep, soportado: sop, resultado: redondear(rep - sop), trimestre, ano },
       proximosVencimientos: proximos,
       ultimosDocumentos: ultimos,
+      alertas: {
+        clientesSinMovimiento: sinMovimiento.map((c) => ({ _id: c._id, nombre: c.nombre })),
+        pocaConfianza,
+      },
     });
   } catch (err) {
     next(err);

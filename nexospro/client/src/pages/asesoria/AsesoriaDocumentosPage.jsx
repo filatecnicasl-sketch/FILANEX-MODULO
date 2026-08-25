@@ -156,6 +156,7 @@ export default function AsesoriaDocumentosPage() {
   const [estado, setEstado] = useState("");
   const [modal, setModal] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [progreso, setProgreso] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [error, setError] = useState(null);
   const inputFichero = useRef(null);
@@ -190,27 +191,38 @@ export default function AsesoriaDocumentosPage() {
     );
   }, [docs, q]);
 
-  async function subirOcr(archivo) {
-    if (!archivo || !cliente) return;
+  async function subirOcr(listaArchivos) {
+    const archivos = Array.from(listaArchivos || []);
+    if (!archivos.length || !cliente) return;
     setSubiendo(true);
     setAviso(null);
     setError(null);
-    const datos = new FormData();
-    datos.append("clienteAsesoria", cliente);
-    datos.append("tipo", "recibida");
-    datos.append("documento", archivo);
-    try {
-      const r = await fetch("/api/asesoria/documentos/ocr", { method: "POST", body: datos });
-      const res = await r.json();
-      if (!r.ok) throw new Error(res.error || "No se pudo leer el documento");
-      setAviso(res.avisos?.length ? res.avisos.join(" ") : "Documento leído. Revísalo y márcalo como revisado.");
-      cargarDocs();
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setSubiendo(false);
-      if (inputFichero.current) inputFichero.current.value = "";
+    const avisos = [];
+    const fallos = [];
+    let leidos = 0;
+    for (let i = 0; i < archivos.length; i++) {
+      setProgreso({ hecho: i, total: archivos.length, nombre: archivos[i].name });
+      const datos = new FormData();
+      datos.append("clienteAsesoria", cliente);
+      datos.append("tipo", "recibida");
+      datos.append("documento", archivos[i]);
+      try {
+        const r = await fetch("/api/asesoria/documentos/ocr", { method: "POST", body: datos });
+        const res = await r.json();
+        if (!r.ok) throw new Error(res.error || "No se pudo leer el documento");
+        leidos++;
+        (res.avisos || []).forEach((a) => avisos.push(`${archivos[i].name}: ${a}`));
+      } catch (e) {
+        fallos.push(`${archivos[i].name}: ${e.message}`);
+      }
     }
+    setProgreso(null);
+    setSubiendo(false);
+    if (inputFichero.current) inputFichero.current.value = "";
+    cargarDocs();
+    const resumen = [`${leidos} de ${archivos.length} documento(s) leídos.`, ...avisos];
+    setAviso(resumen.join(" "));
+    if (fallos.length) setError(fallos.join(" "));
   }
 
   async function cambiarEstado(d, nuevo) {
@@ -245,15 +257,19 @@ export default function AsesoriaDocumentosPage() {
           disabled={!cliente || subiendo}
           onClick={() => inputFichero.current?.click()}
         >
-          {subiendo ? "Leyendo con IA…" : "Subir documento"}
+          {subiendo
+            ? progreso
+              ? `Leyendo ${progreso.hecho + 1} de ${progreso.total}…`
+              : "Leyendo con IA…"
+            : "Subir documentos"}
         </button>
         <input
           ref={inputFichero}
           type="file"
           accept="image/*,application/pdf"
-          capture="environment"
+          multiple
           className="hidden"
-          onChange={(e) => subirOcr(e.target.files?.[0])}
+          onChange={(e) => subirOcr(e.target.files)}
         />
       </CabeceraPagina>
 
@@ -271,6 +287,20 @@ export default function AsesoriaDocumentosPage() {
         </select>
       </div>
 
+      {progreso && (
+        <div className="mb-3">
+          <div className="flex justify-between text-xs text-slate-400 mb-1">
+            <span className="truncate max-w-[70%]">{progreso.nombre}</span>
+            <span>{progreso.hecho + 1} / {progreso.total}</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-indigo-400 transition-all"
+              style={{ width: `${Math.round((progreso.hecho / progreso.total) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
       {aviso && <p className="text-sm text-emerald-400 mb-3">{aviso}</p>}
       {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
       {clientes.length === 0 && docs === null && (
