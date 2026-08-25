@@ -19,6 +19,11 @@ export const MODULOS = {
     descripcion: "SAT de informática y electrónica: aparatos, órdenes de reparación y recepción digital, en tienda o a domicilio.",
     disponible: true,
   },
+  asesoria: {
+    nombre: "Asesoría",
+    descripcion: "Despacho profesional: cartera de clientes, documentación con OCR, bandeja de revisión, libros de IVA y calendario fiscal.",
+    disponible: true,
+  },
   logistica: {
     nombre: "Logística",
     descripcion: "Rutas, portes y seguimiento de envíos.",

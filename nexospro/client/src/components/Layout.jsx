@@ -7,7 +7,7 @@ import {
   IconAgenda, IconCortesia, IconValoracion, IconPedidos, IconFacturaRecibida, IconTicket, IconSeries,
   IconPlanning, IconOperarios,
   IconNotificaciones, IconCertificado, IconUsuarios, IconCobros, IconPagos, IconModulos,
-  IconTelefono, IconAseguradora, IconAyuda, IconServicio, IconAparato,
+  IconTelefono, IconAseguradora, IconAyuda, IconServicio, IconAparato, IconLibro,
   LogoFX,
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
@@ -122,6 +122,17 @@ const gruposModulos = {
       { to: "/servicio/agenda", etiqueta: "Citas", Icono: IconAgenda, tono: "emerald" },
       { to: "/servicio/aparatos", etiqueta: "Aparatos", Icono: IconAparato, tono: "sky" },
       { to: "/servicio/ordenes", etiqueta: "Órdenes", Icono: IconOrdenes, tono: "violet" },
+    ],
+  },
+  asesoria: {
+    titulo: "Asesoría",
+    Icono: IconLibro,
+    items: [
+      { to: "/asesoria", etiqueta: "Panel", fin: true, Icono: IconPanel, tono: "indigo" },
+      { to: "/asesoria/cartera", etiqueta: "Cartera", Icono: IconClientes, tono: "emerald" },
+      { to: "/asesoria/documentos", etiqueta: "Documentos", Icono: IconOcr, tono: "sky" },
+      { to: "/asesoria/libros", etiqueta: "Libros IVA", Icono: IconLibro, tono: "violet" },
+      { to: "/asesoria/fiscalidad", etiqueta: "Fiscalidad", Icono: IconAgenda, tono: "amber" },
     ],
   },
 };

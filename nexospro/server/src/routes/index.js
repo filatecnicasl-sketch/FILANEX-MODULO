@@ -25,6 +25,7 @@ import servicio from "./servicio.js";
 import formatos from "./formatos.js";
 import documentos from "./documentos.js";
 import auditoria from "./auditoria.js";
+import asesoria from "./asesoria.js";
 import auth from "./auth.js";
 import adminTenants from "./admin/tenants.js";
 import { requiereAuth } from "../middleware/auth.js";
@@ -76,5 +77,6 @@ router.use("/servicio", servicio);
 router.use("/formatos", formatos);
 router.use("/documentos", documentos);
 router.use("/auditoria", auditoria);
+router.use("/asesoria", asesoria);
 
 export default router;

@@ -48,6 +48,11 @@ import ServicioPanelPage from "./pages/servicio/ServicioPanelPage.jsx";
 import ServicioAgendaPage from "./pages/servicio/ServicioAgendaPage.jsx";
 import ServicioAparatosPage from "./pages/servicio/ServicioAparatosPage.jsx";
 import ServicioOrdenesPage from "./pages/servicio/ServicioOrdenesPage.jsx";
+import AsesoriaPanelPage from "./pages/asesoria/AsesoriaPanelPage.jsx";
+import AsesoriaCarteraPage from "./pages/asesoria/AsesoriaCarteraPage.jsx";
+import AsesoriaDocumentosPage from "./pages/asesoria/AsesoriaDocumentosPage.jsx";
+import AsesoriaLibrosPage from "./pages/asesoria/AsesoriaLibrosPage.jsx";
+import AsesoriaFiscalPage from "./pages/asesoria/AsesoriaFiscalPage.jsx";
 import AdminTenantsPage from "./pages/AdminTenantsPage.jsx";
 
 // Abre la aplicación en el módulo de inicio elegido (Sistema → Módulos).
@@ -143,6 +148,11 @@ export default function App() {
           <Route path="servicio/agenda" element={<ServicioAgendaPage />} />
           <Route path="servicio/aparatos" element={<ServicioAparatosPage />} />
           <Route path="servicio/ordenes" element={<ServicioOrdenesPage />} />
+          <Route path="asesoria" element={<AsesoriaPanelPage />} />
+          <Route path="asesoria/cartera" element={<AsesoriaCarteraPage />} />
+          <Route path="asesoria/documentos" element={<AsesoriaDocumentosPage />} />
+          <Route path="asesoria/libros" element={<AsesoriaLibrosPage />} />
+          <Route path="asesoria/fiscalidad" element={<AsesoriaFiscalPage />} />
           <Route path="ayuda" element={<Navigate to="/ayuda/facturacion" replace />} />
           <Route path="ayuda/facturacion" element={<AyudaFacturacionPage />} />
           <Route path="ayuda/taller" element={<AyudaTallerPage />} />
