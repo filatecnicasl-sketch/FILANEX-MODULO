@@ -6,6 +6,7 @@ import Gasto, {
 } from "../models/Gasto.js";
 import { extraerTicket } from "../services/ocr-gemini.js";
 import { normalizarNIF } from "../services/validacion.js";
+import { cuadrarIva } from "../services/validar-ocr.js";
 import { contextoActual, conContexto } from "../models/tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 import { uploadMemoria, borrarSubida } from "../middleware/upload.js";
@@ -23,18 +24,18 @@ const subida = uploadMemoria;
 const redondear = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 // Con el total y el tipo de IVA se saca la base; si el ticket trae la base
-// desglosada, se respeta lo que venía impreso.
+// desglosada se respeta. Y si los números impresos no cuadran entre sí (mala
+// lectura o ticket mal emitido), se recalculan tomando el total como
+// referencia, que es el importe que mejor se lee porque va en grande.
 function cuadrarImportes({ base, cuotaIva, total, tipoIva }) {
   const tipo = Number.isFinite(Number(tipoIva)) ? Number(tipoIva) : 21;
-  let b = Number(base) || 0;
-  let c = Number(cuotaIva) || 0;
-  let t = Number(total) || 0;
-
-  if (t <= 0 && b > 0) t = b + (c || (b * tipo) / 100);
-  if (b <= 0 && t > 0) b = t / (1 + tipo / 100);
-  if (c <= 0) c = t - b;
-
-  return { base: redondear(b), cuotaIva: redondear(c), total: redondear(t), tipoIva: tipo };
+  const cuadrado = cuadrarIva({ base, cuotaIva, total, tipoIva: tipo });
+  return {
+    base: cuadrado.base,
+    cuotaIva: cuadrado.cuotaIva,
+    total: cuadrado.total,
+    tipoIva: cuadrado.tipoIva || tipo,
+  };
 }
 
 // Datos derivados que la pantalla necesita pero no se guardan.
