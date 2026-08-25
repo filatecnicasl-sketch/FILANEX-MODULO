@@ -132,7 +132,9 @@ const gruposModulos = {
       { to: "/asesoria/cartera", etiqueta: "Cartera", Icono: IconClientes, tono: "emerald" },
       { to: "/asesoria/documentos", etiqueta: "Documentos", Icono: IconOcr, tono: "sky" },
       { to: "/asesoria/libros", etiqueta: "Libros IVA", Icono: IconLibro, tono: "violet" },
-      { to: "/asesoria/fiscalidad", etiqueta: "Fiscalidad", Icono: IconAgenda, tono: "amber" },
+      { to: "/asesoria/prevision", etiqueta: "Previsión", Icono: IconTesoreria, tono: "amber" },
+      { to: "/asesoria/fiscalidad", etiqueta: "Fiscalidad", Icono: IconAgenda, tono: "rose" },
+      { to: "/asesoria/solicitudes", etiqueta: "Solicitudes", Icono: IconNotificaciones, tono: "orange" },
     ],
   },
 };

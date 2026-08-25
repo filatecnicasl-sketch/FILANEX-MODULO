@@ -47,6 +47,9 @@ import Recurrencia from "../src/models/Recurrencia.js";
 import Remesa from "../src/models/Remesa.js";
 import RegistroFacturacion from "../src/models/RegistroFacturacion.js";
 import Contador from "../src/models/Contador.js";
+import ClienteAsesoria from "../src/models/ClienteAsesoria.js";
+import DocumentoFiscal from "../src/models/DocumentoFiscal.js";
+import SolicitudDocumento from "../src/models/SolicitudDocumento.js";
 import { Auditoria } from "../src/models/Auditoria.js";
 
 // ---------------------------------------------------------------- utilidades
@@ -298,7 +301,8 @@ const COLECCIONES = [
   Presupuesto, AlbaranVenta, FacturaVenta, PresupuestoCompra, PedidoCompra,
   AlbaranCompra, FacturaCompra, OrdenTrabajo, OrdenServicio, Valoracion,
   PrestamoCortesia, Cita, Llamada, Gasto, Recurrencia, Remesa,
-  RegistroFacturacion, Contador,
+  RegistroFacturacion, Contador, ClienteAsesoria, DocumentoFiscal,
+  SolicitudDocumento,
 ];
 
 async function vaciar() {
@@ -1020,6 +1024,176 @@ async function crearGastosYCobros(empresa, { clientes, proveedores, facturas }) 
   }
 }
 
+// ------------------------------------------------------------------ asesoría
+
+const CARTERA = [
+  ["Autocares del Guadalquivir S.L.", cif("B", 5201101), "sl", ["303", "390", "200", "111", "190"], 240],
+  ["Restaurante El Puerto de Triana S.L.", cif("B", 5201102), "sl", ["303", "390", "200", "111", "115", "190", "180"], 260],
+  ["Comercial Textil Andaluza S.L.", cif("B", 5201103), "sl", ["303", "390", "200", "349"], 220],
+  ["Promociones Inmobiliarias Aljarafe S.A.", cif("A", 5201104), "sa", ["303", "390", "200", "202", "347"], 480],
+  ["Clínica Veterinaria San Bernardo S.L.P.", cif("B", 5201105), "sl", ["303", "390", "200", "111", "190"], 250],
+  ["Frutas y Hortalizas La Vega S.Coop.", cif("F", 5201106), "cooperativa", ["303", "390", "200"], 300],
+  ["Electricista: Juan Antonio Ramos Siles", dni(26884113), "autonomo", ["303", "390", "130", "100"], 90],
+  ["Diseñadora gráfica: Lucía Parejo Sanz", dni(51662290), "autonomo", ["303", "390", "130", "100", "349"], 85],
+  ["Fontanería: Andrés Márquez Rufo", dni(30445521), "autonomo", ["303", "390", "131", "100"], 80],
+  ["Peluquería: Encarnación Vidal Cobo", dni(45339087), "autonomo", ["303", "390", "131", "100"], 75],
+  ["Abogado: Rodrigo Sanz de Bremond", dni(28776640), "autonomo", ["303", "390", "130", "100"], 120],
+  ["Gestor administrativo: Pilar Corrales Úbeda", dni(44112255), "autonomo", ["303", "390", "130", "100"], 95],
+];
+
+const TERCEROS_EMITIDAS = [
+  "Ayuntamiento de Mairena del Aljarafe", "Colegio San Ignacio", "Hotel Doña María",
+  "Inversiones Costa Ballena S.L.", "Grupo Obras Públicas del Sur", "Farmacia Central de Camas",
+];
+const TERCEROS_RECIBIDAS = [
+  "Recambios del Sur S.A.", "Endesa Energía S.A.U.", "Telefónica de España S.A.U.",
+  "Papelería y Consumibles Alameda S.L.", "Vestuario Laboral Aljarafe S.L.", "Gestoría y Servicios Triana S.L.",
+];
+
+// Fecha dentro de un trimestre del año en curso (o en curso pasado).
+function fechaTrimestre(ano, trimestre, desplazamiento) {
+  const f = new Date(ano, (trimestre - 1) * 3 + (desplazamiento % 3), 4 + (desplazamiento % 22));
+  return f > HOY ? new Date(HOY.getTime() - 3 * 86400000) : f;
+}
+
+async function crearAsesoria(empresa) {
+  const ano = HOY.getFullYear();
+  const trimestreActual = Math.floor(HOY.getMonth() / 3) + 1;
+
+  const cartera = [];
+  for (let i = 0; i < CARTERA.length; i++) {
+    const [nombre, nif, forma, modelos, cuota] = CARTERA[i];
+    cartera.push(await ClienteAsesoria.create({
+      codigo: String(i + 1),
+      fechaAlta: dia(-300 + i * 11),
+      nombre,
+      nif,
+      formaJuridica: forma,
+      regimenIrpf: forma === "autonomo" ? (modelos.includes("131") ? "estimacion_objetiva" : "estimacion_directa_simplificada") : undefined,
+      actividad: elige(["Comercio al por menor", "Hostelería", "Servicios profesionales", "Construcción", "Transporte", "Salud"], i),
+      telefono: `6${String(10000000 + i * 137913).slice(0, 8)}`,
+      email: `cliente${i + 1}@ejemplo-cartera.es`,
+      direccion: { calle: `Calle Ejemplo ${i + 1}`, cp: "41001", ciudad: "Sevilla", provincia: "Sevilla" },
+      personaContacto: elige(["El titular", "Su hijo, que lleva el tema", "La encargada de administración"], i),
+      areas: { fiscal: true, contable: true, laboral: i % 3 === 0 },
+      modelos,
+      numeroEmpleados: forma === "autonomo" ? i % 3 : 4 + i,
+      cuotaMensual: cuota,
+    }));
+  }
+  empresa.contadores = empresa.contadores ?? {};
+  empresa.contadores.clienteAsesoria = CARTERA.length + 1;
+
+  // Documentos del año en curso para cada cliente de la cartera.
+  const documentos = [];
+  for (let i = 0; i < cartera.length; i++) {
+    const cliente = cartera[i];
+    const esAutonomoDirecta = (cliente.modelos ?? []).includes("130");
+    for (let t = 1; t <= trimestreActual; t++) {
+      const nEmitidas = 2 + ((i + t) % 2);
+      for (let k = 0; k < nEmitidas; k++) {
+        const base = dos(400 + i * 37 + t * 120 + k * 65);
+        const retencion = esAutonomoDirecta && (i + k) % 2 === 0 ? (i % 4 === 0 ? 7 : 15) : 0;
+        documentos.push(await DocumentoFiscal.create({
+          clienteAsesoria: cliente._id,
+          tipo: "emitida",
+          fecha: fechaTrimestre(ano, t, i + k),
+          numero: `${cliente.codigo}/${ano}-${String(t * 10 + k).padStart(3, "0")}`,
+          tercero: elige(TERCEROS_EMITIDAS, i + k + t),
+          base,
+          tipoIva: 21,
+          cuotaIva: dos(base * 0.21),
+          total: dos(base * 1.21),
+          retencion,
+          estado: "revisado",
+          origen: i % 3 === 0 ? "ocr" : "manual",
+        }));
+      }
+      const nRecibidas = 2 + ((i + t) % 2);
+      for (let k = 0; k < nRecibidas; k++) {
+        const base = dos(90 + i * 13 + t * 40 + k * 27);
+        documentos.push(await DocumentoFiscal.create({
+          clienteAsesoria: cliente._id,
+          tipo: "recibida",
+          fecha: fechaTrimestre(ano, t, i + k + 1),
+          numero: `PR${40000 + i * 100 + t * 10 + k}`,
+          tercero: elige(TERCEROS_RECIBIDAS, i + k),
+          base,
+          tipoIva: 21,
+          cuotaIva: dos(base * 0.21),
+          total: dos(base * 1.21),
+          estado: "revisado",
+          origen: "ocr",
+          ocr: { confianza: 0.94 },
+        }));
+      }
+      const baseGasto = dos(35 + i * 6 + t * 11);
+      documentos.push(await DocumentoFiscal.create({
+        clienteAsesoria: cliente._id,
+        tipo: "gasto",
+        fecha: fechaTrimestre(ano, t, i + 2),
+        tercero: elige(["Repsol", "Restaurante La Raza", "Aparcamiento Plaza Nueva", "MRW"], i + t),
+        base: baseGasto,
+        tipoIva: 21,
+        cuotaIva: dos(baseGasto * 0.21),
+        total: dos(baseGasto * 1.21),
+        estado: "revisado",
+        origen: "ocr",
+        ocr: { confianza: 0.91 },
+      }));
+    }
+  }
+
+  // Algunos documentos del trimestre en curso quedan pendientes de revisar,
+  // para enseñar la bandeja de trabajo.
+  for (let k = 0; k < 9; k++) {
+    const cliente = elige(cartera, k * 2);
+    const base = dos(60 + k * 23);
+    documentos.push(await DocumentoFiscal.create({
+      clienteAsesoria: cliente._id,
+      tipo: k % 3 === 0 ? "gasto" : "recibida",
+      fecha: fechaTrimestre(ano, trimestreActual, k),
+      numero: k % 3 === 0 ? undefined : `PD${77000 + k}`,
+      tercero: elige(TERCEROS_RECIBIDAS, k),
+      base,
+      tipoIva: 21,
+      cuotaIva: dos(base * 0.21),
+      total: dos(base * 1.21),
+      estado: "pendiente",
+      origen: "ocr",
+      ocr: { confianza: 0.88 },
+    }));
+  }
+
+  // Solicitudes de documentación: pendientes, recibidas y canceladas.
+  const TEXTOS = [
+    "Factura de la reforma del local de marzo",
+    "Tickets de gasoil del trimestre",
+    "Factura del hosting anual",
+    "Nóminas y seguros sociales del mes pasado",
+    "Factura de compra del ordenador nuevo",
+    "Recibo del alquiler del local",
+    "Facturas de los viajes a feria",
+    "Justificante de la cuota de la asociación",
+    "Factura del gestor de redes sociales",
+    "Tickets de comidas con clientes del mes",
+    "Factura de la reparación de la furgoneta",
+    "Extracto del préstamo para la deducción de intereses",
+  ];
+  for (let k = 0; k < TEXTOS.length; k++) {
+    const cliente = elige(cartera, k + 1);
+    const estado = k % 4 === 3 ? "cancelada" : k % 4 === 2 ? "recibida" : "pendiente";
+    await SolicitudDocumento.create({
+      clienteAsesoria: cliente._id,
+      descripcion: TEXTOS[k],
+      periodo: `${((k % trimestreActual) + 1)}T ${ano}`,
+      estado,
+      documento: estado === "recibida" ? documentos.find((d) => String(d.clienteAsesoria) === String(cliente._id))?._id : undefined,
+      notas: k % 5 === 0 ? "El cliente dice que la enviará esta semana." : "",
+    });
+  }
+}
+
 // Actividad de ejemplo para el registro de auditoría.
 async function crearAuditoria() {
   const RUTAS = [
@@ -1081,6 +1255,7 @@ async function main() {
     await crearServicioTecnico(empresa, fichas);
     await crearAgendaYTelefonia(fichas);
     await crearGastosYCobros(empresa, { ...fichas, facturas: ventas.facturas });
+    await crearAsesoria(empresa);
     await crearAuditoria();
     await empresa.save();
 

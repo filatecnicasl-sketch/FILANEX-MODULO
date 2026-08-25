@@ -27,6 +27,10 @@ const documentoFiscalSchema = new Schema(
     tipoIva: { type: Number, default: 21 },
     cuotaIva: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
+    // Retención de IRPF en facturas emitidas por autónomos (7 % o 15 %):
+    // se necesita para calcular la previsión del modelo 130.
+    retencion: { type: Number, default: 0, min: 0, max: 25 },
+    cuotaRetencion: { type: Number, default: 0 },
     // Año y trimestre calculados en el alta para filtrar rápido los libros.
     ano: { type: Number, index: true },
     trimestre: { type: Number, min: 1, max: 4, index: true },
@@ -54,6 +58,7 @@ documentoFiscalSchema.pre("validate", function () {
     }
   }
   if (this.nifTercero) this.nifTercero = this.nifTercero.toUpperCase().replace(/[\s.-]/g, "");
+  this.cuotaRetencion = Math.round((this.base ?? 0) * (this.retencion ?? 0)) / 100;
 });
 
 export default modeloTenant("DocumentoFiscal", documentoFiscalSchema);

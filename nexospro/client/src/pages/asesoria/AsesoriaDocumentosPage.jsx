@@ -21,6 +21,7 @@ const DOC_VACIO = {
   tipoIva: 21,
   cuotaIva: "",
   total: "",
+  retencion: 0,
   notas: "",
 };
 
@@ -50,6 +51,7 @@ function ModalDocumento({ cliente, inicial, onCerrar, onGuardado }) {
       tipoIva: num(f.tipoIva),
       cuotaIva: num(f.cuotaIva),
       total: num(f.total),
+      retencion: num(f.retencion) ?? 0,
       notas: f.notas,
     };
     const r = await fetch(inicial ? `/api/asesoria/documentos/${inicial._id}` : "/api/asesoria/documentos", {
@@ -119,6 +121,16 @@ function ModalDocumento({ cliente, inicial, onCerrar, onGuardado }) {
             <label className="label">Total</label>
             <input className="input" value={f.total} onChange={set("total")} placeholder="0,00" />
           </div>
+          {f.tipo === "emitida" && (
+            <div>
+              <label className="label">Retención IRPF %</label>
+              <select className="input" value={f.retencion} onChange={set("retencion")}>
+                {[0, 7, 15, 19].map((t) => (
+                  <option key={t} value={t}>{t} %</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="col-span-2">
             <label className="label">Notas</label>
             <input className="input" value={f.notas} onChange={set("notas")} />

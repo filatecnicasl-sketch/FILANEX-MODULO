@@ -3,6 +3,7 @@
 import { Router } from "express";
 import ClienteAsesoria, { MODELOS_FISCALES } from "../models/ClienteAsesoria.js";
 import DocumentoFiscal from "../models/DocumentoFiscal.js";
+import SolicitudDocumento from "../models/SolicitudDocumento.js";
 import Empresa from "../models/Empresa.js";
 import { requiereModulo } from "../config/modulos.js";
 import { extraerDocumentoCompra, extraerTicket } from "../services/ocr-gemini.js";
@@ -199,7 +200,7 @@ router.get("/documentos", async (req, res, next) => {
 // Alta manual de un documento.
 router.post("/documentos", async (req, res, next) => {
   try {
-    const { clienteAsesoria, tipo, fecha, numero, tercero, nifTercero, base, tipoIva, cuotaIva, total, notas } = req.body;
+    const { clienteAsesoria, tipo, fecha, numero, tercero, nifTercero, base, tipoIva, cuotaIva, total, retencion, notas } = req.body;
     if (!clienteAsesoria || !tipo || !fecha) {
       return res.status(400).json({ error: "Cliente, tipo y fecha son obligatorios" });
     }
@@ -207,6 +208,7 @@ router.post("/documentos", async (req, res, next) => {
     const doc = await DocumentoFiscal.create({
       clienteAsesoria, tipo, fecha, numero, tercero, nifTercero,
       base: cuadre.base, tipoIva: cuadre.tipoIva, cuotaIva: cuadre.cuotaIva, total: cuadre.total,
+      retencion: Number(retencion) || 0,
       notas, origen: "manual",
     });
     res.status(201).json(doc);
@@ -287,7 +289,7 @@ router.put("/documentos/:id", async (req, res, next) => {
     const salida = {};
     for (const clave of [
       "tipo", "fecha", "numero", "tercero", "nifTercero",
-      "base", "tipoIva", "cuotaIva", "total", "estado", "notas", "clienteAsesoria",
+      "base", "tipoIva", "cuotaIva", "total", "retencion", "estado", "notas", "clienteAsesoria",
     ]) {
       if (req.body[clave] !== undefined) salida[clave] = req.body[clave];
     }
@@ -398,6 +400,173 @@ router.get("/libros-iva.csv", async (req, res, next) => {
   }
 });
 
+// --------------------------------------------------------------- previsión
+
+// Previsión fiscal del año por cliente: modelo 303 (IVA con compensación de
+// cuotas negativas) y modelo 130 (pagos fraccionados de IRPF para autónomos
+// en estimación directa, con acumulados y retenciones soportadas).
+router.get("/prevision", async (req, res, next) => {
+  try {
+    const ano = Number(req.query.ano) || new Date().getFullYear();
+    const filtroCliente = { activo: true };
+    if (req.query.cliente) filtroCliente._id = req.query.cliente;
+    const clientes = await ClienteAsesoria.find(filtroCliente).sort({ nombre: 1 }).lean();
+    if (!clientes.length) return res.json({ ano, clientes: [] });
+
+    const docs = await DocumentoFiscal.find({
+      clienteAsesoria: { $in: clientes.map((c) => c._id) },
+      ano,
+      estado: { $in: ["revisado", "contabilizado"] },
+      tipo: { $in: ["emitida", "recibida", "gasto"] },
+    }).lean();
+
+    const salida = [];
+    for (const cliente of clientes) {
+      const suyos = docs.filter((d) => String(d.clienteAsesoria) === String(cliente._id));
+      const presenta130 = (cliente.modelos ?? []).includes("130");
+      let compensar = 0;
+      let irAcumulado = { ingresos: 0, gastos: 0, retenciones: 0, pagado: 0 };
+
+      const trimestres = [1, 2, 3, 4].map((t) => {
+        const delTrimestre = suyos.filter((d) => d.trimestre === t);
+        const emitidas = delTrimestre.filter((d) => d.tipo === "emitida");
+        const deducibles = delTrimestre.filter((d) => d.tipo !== "emitida");
+
+        // --- Modelo 303
+        const repercutido = redondear(emitidas.reduce((s, d) => s + d.cuotaIva, 0));
+        const soportado = redondear(deducibles.reduce((s, d) => s + d.cuotaIva, 0));
+        const resultado = redondear(repercutido - soportado);
+        let cuota303 = 0;
+        if (resultado >= 0) {
+          cuota303 = redondear(Math.max(0, resultado - compensar));
+          compensar = redondear(Math.max(0, compensar - resultado));
+        } else {
+          compensar = redondear(compensar - resultado);
+        }
+
+        // --- Modelo 130 (acumulado del año hasta este trimestre)
+        let irpf = null;
+        if (presenta130) {
+          irAcumulado = {
+            ingresos: redondear(irAcumulado.ingresos + emitidas.reduce((s, d) => s + d.base, 0)),
+            gastos: redondear(irAcumulado.gastos + deducibles.reduce((s, d) => s + d.base, 0)),
+            retenciones: redondear(
+              irAcumulado.retenciones + emitidas.reduce((s, d) => s + (d.cuotaRetencion ?? 0), 0)
+            ),
+            pagado: irAcumulado.pagado,
+          };
+          const rendimiento = redondear(Math.max(0, irAcumulado.ingresos - irAcumulado.gastos));
+          const pago = redondear(
+            Math.max(0, rendimiento * 0.2 - irAcumulado.retenciones - irAcumulado.pagado)
+          );
+          irAcumulado.pagado = redondear(irAcumulado.pagado + pago);
+          irpf = { ...irAcumulado, rendimiento, pagoTrimestre: pago };
+        }
+
+        return {
+          trimestre: t,
+          documentos: delTrimestre.length,
+          iva: { repercutido, soportado, resultado, cuota: cuota303, aCompensar: compensar },
+          irpf,
+        };
+      });
+
+      salida.push({
+        cliente: {
+          _id: cliente._id,
+          nombre: cliente.nombre,
+          nif: cliente.nif,
+          formaJuridica: cliente.formaJuridica,
+        },
+        presenta130,
+        trimestres,
+      });
+    }
+    res.json({ ano, clientes: salida });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// -------------------------------------------------------------- solicitudes
+
+router.get("/solicitudes", async (req, res, next) => {
+  try {
+    const { cliente, estado } = req.query;
+    const filtro = {};
+    if (cliente) filtro.clienteAsesoria = cliente;
+    if (estado) filtro.estado = estado;
+    const solicitudes = await SolicitudDocumento.find(filtro)
+      .populate("clienteAsesoria", "nombre nif telefono email")
+      .populate("documento", "tipo fecha numero tercero total estado")
+      .sort({ estado: 1, createdAt: -1 })
+      .limit(300)
+      .lean();
+    res.json(solicitudes);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/solicitudes", async (req, res, next) => {
+  try {
+    const { clienteAsesoria, descripcion, periodo, notas } = req.body;
+    if (!clienteAsesoria || !descripcion) {
+      return res.status(400).json({ error: "Indica el cliente y qué documento necesitas" });
+    }
+    const solicitud = await SolicitudDocumento.create({ clienteAsesoria, descripcion, periodo, notas });
+    res.status(201).json(solicitud);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/solicitudes/:id", async (req, res, next) => {
+  try {
+    const salida = {};
+    for (const clave of ["descripcion", "periodo", "estado", "notas"]) {
+      if (req.body[clave] !== undefined) salida[clave] = req.body[clave];
+    }
+    // Si se reabre, se desvincula el documento.
+    if (salida.estado === "pendiente") salida.documento = null;
+    const solicitud = await SolicitudDocumento.findByIdAndUpdate(req.params.id, salida, {
+      new: true,
+      runValidators: true,
+    });
+    if (!solicitud) return res.status(404).json({ error: "Solicitud no encontrada" });
+    res.json(solicitud);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Vincula un documento ya subido con la solicitud: queda recibida.
+router.post("/solicitudes/:id/vincular", async (req, res, next) => {
+  try {
+    const doc = await DocumentoFiscal.findById(req.body.documentoId);
+    if (!doc) return res.status(404).json({ error: "Documento no encontrado" });
+    const solicitud = await SolicitudDocumento.findByIdAndUpdate(
+      req.params.id,
+      { documento: doc._id, estado: "recibida" },
+      { new: true }
+    );
+    if (!solicitud) return res.status(404).json({ error: "Solicitud no encontrada" });
+    res.json(solicitud);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/solicitudes/:id", async (req, res, next) => {
+  try {
+    const borrada = await SolicitudDocumento.findByIdAndDelete(req.params.id);
+    if (!borrada) return res.status(404).json({ error: "Solicitud no encontrada" });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ---------------------------------------------------------------- fiscalidad
 
 router.get("/fiscalidad", async (req, res, next) => {
@@ -421,10 +590,11 @@ router.get("/panel", async (req, res, next) => {
     const ano = ahora.getFullYear();
     const trimestre = Math.floor(ahora.getMonth() / 3) + 1;
 
-    const [clientesActivos, pendientes, docsTrimestre] = await Promise.all([
+    const [clientesActivos, pendientes, docsTrimestre, solicitudesPendientes] = await Promise.all([
       ClienteAsesoria.countDocuments({ activo: true }),
       DocumentoFiscal.countDocuments({ estado: "pendiente" }),
       DocumentoFiscal.countDocuments({ ano, trimestre }),
+      SolicitudDocumento.countDocuments({ estado: "pendiente" }),
     ]);
 
     // Próximos vencimientos (30 días) de todos los clientes activos.
@@ -457,6 +627,7 @@ router.get("/panel", async (req, res, next) => {
       clientesActivos,
       pendientesRevision: pendientes,
       documentosTrimestre: docsTrimestre,
+      solicitudesPendientes,
       iva: { repercutido: rep, soportado: sop, resultado: redondear(rep - sop), trimestre, ano },
       proximosVencimientos: proximos,
       ultimosDocumentos: ultimos,

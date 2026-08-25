@@ -37,7 +37,7 @@ let r = await fetch(`${url}/api/asesoria/cartera`, {
     nombre: "Prueba Asesoría S.L.",
     nif: nifPrueba,
     formaJuridica: "sl",
-    modelos: ["303", "390", "200"],
+    modelos: ["303", "390", "200", "130"],
     cuotaMensual: 150,
   }),
 });
@@ -66,6 +66,7 @@ for (const [tipo, total] of [["emitida", 1210], ["recibida", 484]]) {
       tercero: "Tercero de prueba",
       total,
       tipoIva: 21,
+      retencion: tipo === "emitida" ? 7 : 0,
     }),
   });
   const doc = await r.json();
@@ -102,7 +103,54 @@ const fiscal = await r.json();
 const modelos = new Set(fiscal.vencimientos.filter((v) => v.cliente === cliente._id).map((v) => v.modelo));
 ok(modelos.has("303") && modelos.has("390") && modelos.has("200"), `Calendario fiscal con 303, 390 y 200 (${fiscal.vencimientos.length} vencimientos)`);
 
-// 6. Panel
+// 6. Previsión fiscal: 303 = 126 y 130 = 20 % de (1000-400) - 70 de retención = 50
+r = await fetch(`${url}/api/asesoria/prevision?ano=${hoy.getFullYear()}&cliente=${cliente._id}`, { headers: H });
+const prevision = await r.json();
+const prev = prevision.clientes?.[0];
+const tActual = prev?.trimestres?.[Math.floor(hoy.getMonth() / 3)];
+ok(prev?.presenta130 === true, "El cliente presenta el 130");
+ok(tActual && Math.abs(tActual.iva.cuota - 126) < 0.01, `Previsión 303 del trimestre: ${tActual?.iva.cuota} (esperado 126)`);
+ok(
+  tActual?.irpf && Math.abs(tActual.irpf.rendimiento - 600) < 0.01 && Math.abs(tActual.irpf.pagoTrimestre - 50) < 0.01,
+  `Previsión 130: rendimiento ${tActual?.irpf?.rendimiento}, pago ${tActual?.irpf?.pagoTrimestre} (esperado 600 y 50)`
+);
+
+// 7. Solicitudes de documentos: crear, vincular y reabrir
+r = await fetch(`${url}/api/asesoria/solicitudes`, {
+  method: "POST",
+  headers: H,
+  body: JSON.stringify({ clienteAsesoria: cliente._id, descripcion: "Factura de prueba de la solicitud", periodo: "3T" }),
+});
+const solicitud = await r.json();
+ok(r.status === 201, `Solicitud creada (${r.status})`);
+
+const docsPend = await (await fetch(`${url}/api/asesoria/documentos?cliente=${cliente._id}`, { headers: H })).json();
+// Volver a poner un documento en pendiente para vincularlo
+await fetch(`${url}/api/asesoria/documentos/${docsPend[0]._id}`, {
+  method: "PUT",
+  headers: H,
+  body: JSON.stringify({ estado: "pendiente" }),
+});
+r = await fetch(`${url}/api/asesoria/solicitudes/${solicitud._id}/vincular`, {
+  method: "POST",
+  headers: H,
+  body: JSON.stringify({ documentoId: docsPend[0]._id }),
+});
+let sol = await r.json();
+ok(r.ok && sol.estado === "recibida" && sol.documento === docsPend[0]._id, "Solicitud vinculada y recibida");
+
+r = await fetch(`${url}/api/asesoria/solicitudes/${solicitud._id}`, {
+  method: "PUT",
+  headers: H,
+  body: JSON.stringify({ estado: "pendiente" }),
+});
+sol = await r.json();
+ok(r.ok && sol.estado === "pendiente" && !sol.documento, "Solicitud reabierta y desvinculada");
+
+r = await fetch(`${url}/api/asesoria/solicitudes/${solicitud._id}`, { method: "DELETE", headers: H });
+ok(r.ok, "Solicitud borrada");
+
+// 8. Panel (con contador de solicitudes)
 r = await fetch(`${url}/api/asesoria/panel`, { headers: H });
 const panel = await r.json();
 ok(r.ok && panel.clientesActivos >= 1, `Panel (${panel.clientesActivos} clientes, ${panel.pendientesRevision} pendientes)`);

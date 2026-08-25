@@ -33,6 +33,7 @@ export default function AsesoriaPanelPage() {
   const kpis = [
     { etiqueta: "Clientes en cartera", valor: panel.clientesActivos },
     { etiqueta: "Pendientes de revisar", valor: panel.pendientesRevision, alerta: panel.pendientesRevision > 0 },
+    { etiqueta: "Solicitudes sin recibir", valor: panel.solicitudesPendientes, alerta: panel.solicitudesPendientes > 0 },
     { etiqueta: "Documentos del trimestre", valor: panel.documentosTrimestre },
     { etiqueta: `IVA repercutido ${panel.iva.trimestre}T`, valor: euros(panel.iva.repercutido) },
     { etiqueta: `IVA soportado ${panel.iva.trimestre}T`, valor: euros(panel.iva.soportado) },
@@ -53,7 +54,7 @@ export default function AsesoriaPanelPage() {
         <a href="/asesoria/documentos" className="btn-primary">Documentos</a>
       </CabeceraPagina>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
         {kpis.map((k) => (
           <div key={k.etiqueta} className="panel px-4 py-4">
             <p className={`text-2xl font-extrabold ${k.alerta ? "text-amber-300" : "text-white"}`}>{k.valor}</p>
