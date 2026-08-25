@@ -50,6 +50,7 @@ import Contador from "../src/models/Contador.js";
 import ClienteAsesoria from "../src/models/ClienteAsesoria.js";
 import DocumentoFiscal from "../src/models/DocumentoFiscal.js";
 import SolicitudDocumento from "../src/models/SolicitudDocumento.js";
+import CierreTrimestral from "../src/models/CierreTrimestral.js";
 import { Auditoria } from "../src/models/Auditoria.js";
 
 // ---------------------------------------------------------------- utilidades
@@ -302,7 +303,7 @@ const COLECCIONES = [
   AlbaranCompra, FacturaCompra, OrdenTrabajo, OrdenServicio, Valoracion,
   PrestamoCortesia, Cita, Llamada, Gasto, Recurrencia, Remesa,
   RegistroFacturacion, Contador, ClienteAsesoria, DocumentoFiscal,
-  SolicitudDocumento,
+  SolicitudDocumento, CierreTrimestral,
 ];
 
 async function vaciar() {
@@ -1191,6 +1192,24 @@ async function crearAsesoria(empresa) {
       documento: estado === "recibida" ? documentos.find((d) => String(d.clienteAsesoria) === String(cliente._id))?._id : undefined,
       notas: k % 5 === 0 ? "El cliente dice que la enviará esta semana." : "",
     });
+  }
+
+  // Control de cierres: trimestres cerrados/presentados en los ya vencidos.
+  for (let k = 0; k < cartera.length; k++) {
+    for (let t = 1; t <= trimestreActual; t++) {
+      const estado =
+        t < trimestreActual
+          ? "presentado"
+          : ["pendiente_docs", "en_revision", "listo", "presentado"][(k + t) % 4];
+      await CierreTrimestral.create({
+        clienteAsesoria: cartera[k]._id,
+        ano,
+        trimestre: t,
+        estado,
+        presentadoEn: estado === "presentado" ? new Date(ano, t * 3, 15) : null,
+        notas: estado === "listo" ? "Cuadrado con el cliente, pendiente de presentar." : "",
+      });
+    }
   }
 }
 
