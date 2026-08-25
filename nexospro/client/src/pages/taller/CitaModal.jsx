@@ -114,7 +114,7 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) 
   return (
     <>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {cita ? `Cita ${aFechaInput(cita.fecha)} ${cita.hora}` : "Nueva cita"}
           {!cita && (
