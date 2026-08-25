@@ -4,7 +4,9 @@ import { guardarArchivo, urlPublica, borrarArchivo } from "../services/storage.j
 
 export const uploadMemoria = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB por defecto
+  // 20 MB: las fotos de los móviles actuales pasan a menudo de 10 MB.
+  // Las imágenes se comprimen después en prepararParaOcr antes de enviarlas a la IA.
+  limits: { fileSize: 20 * 1024 * 1024 },
 });
 
 /**
