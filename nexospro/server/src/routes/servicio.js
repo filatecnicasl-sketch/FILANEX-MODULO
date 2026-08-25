@@ -397,7 +397,7 @@ router.post("/ordenes/:id/recepcion/fotos", rutasFotosRecepcion, async (req, res
     const orden = await OrdenServicio.findById(req.params.id);
     if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
     if (!req.files?.length) return res.status(400).json({ error: "No llegó ninguna foto" });
-    const slug = req.empresa?.slug || "local";
+    const slug = slugActual();
     const rutas = [];
     for (const f of req.files) {
       if (!f.mimetype.startsWith("image/")) continue;

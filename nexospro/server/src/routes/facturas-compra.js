@@ -10,7 +10,7 @@ import { calcularTotales } from "../services/totales.js";
 import { siguienteCodigoArticulo } from "../services/codigoArticulo.js";
 import { siguienteCodigoFicha } from "../services/codigoFicha.js";
 import { buscarPorNif } from "../services/nifDuplicado.js";
-import { contextoActual, conContexto } from "../models/tenant.js";
+import { contextoActual, conContexto, slugActual } from "../models/tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 import { uploadMemoria } from "../middleware/upload.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
@@ -100,7 +100,7 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
       if (confianza < 0.75) avisos.push(`Confianza OCR baja (${Math.round(confianza * 100)}%)`);
 
       const proveedor = await buscarProveedor(extraccion.proveedor);
-      const slug = req.empresa?.slug || "local";
+      const slug = slugActual();
       const nombreFichero = `${Date.now()}-${req.file.originalname.replace(/[^\w.\-]+/g, "_")}`;
       const remoto = `uploads/${slug}/documentos/${nombreFichero}`;
       await guardarArchivo(remoto, req.file.buffer, req.file.mimetype || "application/octet-stream");
