@@ -27,17 +27,30 @@ const RETIRADOS = new Set([
 const preferido = process.env.GEMINI_MODEL;
 if (preferido && RETIRADOS.has(preferido)) {
   console.warn(
-    `GEMINI_MODEL=${preferido} ya no está operativo: se usará gemini-3.6-flash. Actualiza server/.env.`
+    `GEMINI_MODEL=${preferido} ya no está operativo: se ignora y se usan los modelos vigentes. Actualiza server/.env.`
   );
 }
+const elegido = preferido && !RETIRADOS.has(preferido) ? preferido : null;
 
-const MODELOS = [
-  RETIRADOS.has(preferido) ? null : preferido,
+const sinRepetir = (l) => l.filter((m, i, a) => m && a.indexOf(m) === i);
+
+// Dos perfiles, medidos contra la API (ver scripts/probar-gemini.mjs):
+// - CALIDAD: documentos escaneados, donde acertar importa más que la espera.
+//   gemini-3.6-flash razona más y tarda 10-18 s por documento.
+// - RAPIDOS: el usuario está esperando delante de la pantalla (dictado de
+//   citas). gemini-3.5-flash-lite responde en menos de un segundo.
+export const MODELOS_CALIDAD = sinRepetir([
+  elegido,
   "gemini-3.6-flash",
   "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
+]);
+
+export const MODELOS_RAPIDOS = sinRepetir([
+  "gemini-3.5-flash-lite",
   "gemini-flash-lite-latest",
-].filter((m, i, l) => m && l.indexOf(m) === i);
+  "gemini-3.5-flash",
+]);
 
 const TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 40000;
 
@@ -65,17 +78,24 @@ function esRecuperable(err) {
  * @param {object} opciones
  * @param {Array} opciones.contents Partes del mensaje (texto y/o inlineData).
  * @param {object} opciones.esquema responseSchema de Gemini.
+ * @param {string[]} [opciones.modelos] Perfil de modelos (CALIDAD por defecto).
  * @param {number} [opciones.timeoutMs] Tiempo máximo por intento.
  * @param {string} [opciones.etiqueta] Nombre para los mensajes de error.
  */
-export async function generarJsonGemini({ contents, esquema, timeoutMs = TIMEOUT_MS, etiqueta = "El servicio de IA" }) {
+export async function generarJsonGemini({
+  contents,
+  esquema,
+  modelos = MODELOS_CALIDAD,
+  timeoutMs = TIMEOUT_MS,
+  etiqueta = "El servicio de IA",
+}) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY no configurada en server/.env");
   }
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   let ultimoError;
 
-  for (const modelo of MODELOS) {
+  for (const modelo of modelos) {
     for (let intento = 0; intento < 2; intento++) {
       const ctrl = new AbortController();
       const reloj = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -98,6 +118,7 @@ export async function generarJsonGemini({ contents, esquema, timeoutMs = TIMEOUT
         return JSON.parse(respuesta.text);
       } catch (err) {
         ultimoError = err;
+        console.warn(`Gemini ${modelo} (intento ${intento + 1}): ${String(err?.message).slice(0, 160)}`);
         if (!esRecuperable(err)) throw err;
         // Si el modelo está retirado no tiene sentido reintentarlo.
         if (err?.status === 404 || String(err?.message).includes("no longer available")) break;

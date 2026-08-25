@@ -1,9 +1,12 @@
 import "dotenv/config";
 
-// Diagnóstico: qué modelos hay disponibles con la clave configurada y cuáles
-// responden de verdad a generateContent (con tiempos). Timeout corto.
+// Diagnóstico de la IA: qué modelos hay disponibles con la clave configurada
+// y prueba real del dictado de citas de punta a punta.
+// Uso: node scripts/probar-gemini.mjs
+// Útil cuando Google retira modelos (el OCR o el dictado dejan de responder).
 
 const clave = process.env.GEMINI_API_KEY;
+console.log("GEMINI_MODEL en .env:", process.env.GEMINI_MODEL || "(sin definir)");
 
 const ctrl0 = new AbortController();
 setTimeout(() => ctrl0.abort(), 15000);
@@ -11,34 +14,24 @@ const rl = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?
 const lista = await rl.json();
 const disponibles = (lista.models ?? [])
   .filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent"))
-  .map((m) => m.name.replace("models/", ""));
-console.log("MODELOS DISPONIBLES:");
-console.log(disponibles.join("\n"));
+  .map((m) => m.name.replace("models/", ""))
+  .filter((m) => m.includes("flash") && !m.includes("image") && !m.includes("tts"));
+console.log("MODELOS FLASH DISPONIBLES:", disponibles.join(", "));
 console.log("---");
 
-const CANDIDATOS = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-flash-latest", "gemini-flash-lite-latest"];
-
-for (const modelo of CANDIDATOS) {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 20000);
-  const t0 = Date.now();
-  try {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${clave}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: "Responde solo: hola" }] }] }),
-        signal: ctrl.signal,
-      }
-    );
-    const cuerpo = await r.text();
-    console.log(`${modelo}: HTTP ${r.status} en ${Date.now() - t0} ms → ${cuerpo.slice(0, 200).replace(/\s+/g, " ")}`);
-  } catch (e) {
-    console.log(`${modelo}: FALLO en ${Date.now() - t0} ms → ${e.name}: ${e.message}`);
-  } finally {
-    clearTimeout(t);
-  }
+// Prueba real del dictado de citas usando el servicio del backend.
+const { interpretarCita } = await import("../src/services/interpretar-cita.js");
+const hoy = new Date().toLocaleDateString("sv-SE");
+const t0 = Date.now();
+try {
+  const r = await interpretarCita(
+    "el jueves que viene a las once y media, Antonio Ruiz, telefono 611223344, revision de la instalacion",
+    hoy
+  );
+  console.log(`interpretarCita OK en ${Date.now() - t0} ms (hoy ${hoy}):`);
+  console.log(JSON.stringify(r, null, 2));
+} catch (e) {
+  console.log(`interpretarCita FALLÓ en ${Date.now() - t0} ms: ${e.message}`);
 }
 
 process.exit(0);
