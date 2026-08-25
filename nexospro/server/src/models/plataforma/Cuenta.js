@@ -10,6 +10,9 @@ const cuentaSchema = new Schema(
     tenant: { type: Schema.Types.ObjectId, ref: "Tenant", required: true },
     activa: { type: Boolean, default: true },
     ultimoAcceso: { type: Date },
+    // Identificador de la sesión vigente: al entrar se renueva, así los tokens
+    // anteriores (otros dispositivos/pestañas) quedan invalidados al momento.
+    sesion: { type: String, default: "" },
   },
   { timestamps: true }
 );

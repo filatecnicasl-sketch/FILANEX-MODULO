@@ -54,9 +54,7 @@ export default function LoginPage() {
             <LogoFX size={42} />
           </div>
           <h1 className="text-2xl font-bold text-accent tracking-[0.16em]">FILANEX</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {estado?.empresa ?? "Facturación VeriFactu"}
-          </p>
+          <p className="text-sm text-slate-400 mt-1">Facturación VeriFactu</p>
         </div>
 
         <form onSubmit={entrar} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xl">
@@ -107,10 +105,6 @@ export default function LoginPage() {
             {cargando ? "Entrando…" : esBootstrap ? "Crear administrador y entrar" : "Entrar"}
           </button>
         </form>
-
-        <p className="text-center text-xs text-slate-600 mt-6">
-          Los datos de esta instalación se guardan en este equipo.
-        </p>
       </div>
     </div>
   );

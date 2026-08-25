@@ -24,11 +24,13 @@ import agenda from "./agenda.js";
 import servicio from "./servicio.js";
 import formatos from "./formatos.js";
 import documentos from "./documentos.js";
+import auditoria from "./auditoria.js";
 import auth from "./auth.js";
 import adminTenants from "./admin/tenants.js";
 import { requiereAuth } from "../middleware/auth.js";
 import { middlewareEmpresa } from "../middleware/empresa.js";
 import { idempotencia } from "../middleware/idempotencia.js";
+import { auditoria as registroAuditoria } from "../middleware/auditoria.js";
 
 const router = Router();
 
@@ -45,6 +47,8 @@ router.use("/admin/tenants", adminTenants);
 router.use(requiereAuth, middlewareEmpresa);
 // Reenvíos desde la cola sin conexión: la misma clave nunca se ejecuta dos veces.
 router.use(idempotencia);
+// Trazabilidad: cada alta/cambio/borrado queda registrado con su usuario.
+router.use(registroAuditoria);
 
 router.use("/clientes", clientes);
 router.use("/proveedores", proveedores);
@@ -71,5 +75,6 @@ router.use("/agenda", agenda);
 router.use("/servicio", servicio);
 router.use("/formatos", formatos);
 router.use("/documentos", documentos);
+router.use("/auditoria", auditoria);
 
 export default router;

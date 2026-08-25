@@ -75,6 +75,7 @@ const gruposBase = [
       { to: "/certificado", etiqueta: "Certificado", Icono: IconCertificado, tono: "teal" },
       { to: "/formatos", etiqueta: "Formatos", Icono: IconFormatos, tono: "sky" },
       { to: "/usuarios", etiqueta: "Usuarios", Icono: IconUsuarios, tono: "violet" },
+      { to: "/actividad", etiqueta: "Actividad", Icono: IconNotificaciones, tono: "amber" },
     ],
   },
   {

@@ -27,6 +27,7 @@ import SeriesPage from "./pages/SeriesPage.jsx";
 import CertificadoPage from "./pages/CertificadoPage.jsx";
 import NotificacionesPage from "./pages/NotificacionesPage.jsx";
 import UsuariosPage from "./pages/UsuariosPage.jsx";
+import ActividadPage from "./pages/ActividadPage.jsx";
 import FormatosPage from "./pages/FormatosPage.jsx";
 import AgendaPage from "./pages/AgendaPage.jsx";
 import TallerPanelPage from "./pages/taller/TallerPanelPage.jsx";
@@ -125,6 +126,7 @@ export default function App() {
           <Route path="certificado" element={<CertificadoPage />} />
           <Route path="notificaciones" element={<NotificacionesPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
+          <Route path="actividad" element={<ActividadPage />} />
           <Route path="formatos" element={<FormatosPage />} />
           <Route path="taller" element={<TallerPanelPage />} />
           <Route path="taller/agenda" element={<TallerAgendaPage />} />

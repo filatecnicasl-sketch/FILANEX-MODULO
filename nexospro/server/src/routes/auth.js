@@ -3,6 +3,7 @@
 // y datos de la sesión. Las cuentas viven en la BD plataforma y el token
 // lleva la empresa (slug + base de datos) a la que pertenecen.
 import { Router } from "express";
+import crypto from "node:crypto";
 import rateLimit from "express-rate-limit";
 import Cuenta from "../models/plataforma/Cuenta.js";
 import Tenant from "../models/plataforma/Tenant.js";
@@ -28,6 +29,7 @@ function tokenDe(cuenta, tenant) {
     email: cuenta.email,
     rol: cuenta.rol,
     superadmin: !!cuenta.superadmin,
+    sid: cuenta.sesion,
     t: tenant.slug,
     tid: String(tenant._id),
     db: tenant.dbName,
@@ -74,6 +76,11 @@ router.post("/login", limitadorAuth, async (req, res, next) => {
     ) {
       return res.status(401).json({ error: "Email o contraseña incorrectos" });
     }
+    // Sesión única por usuario: al entrar se genera un identificador nuevo y
+    // cualquier sesión anterior (otro PC, móvil o pestaña) queda cerrada.
+    cuenta.sesion = crypto.randomUUID();
+    cuenta.ultimoAcceso = new Date();
+    await cuenta.save();
     res.json({ token: tokenDe(cuenta, tenant), usuario: publico(cuenta, tenant) });
   } catch (err) {
     next(err);
@@ -107,6 +114,7 @@ router.post("/bootstrap", limitadorAuth, async (req, res, next) => {
       passwordHash: hashContrasena(String(password)),
       rol: "admin",
       superadmin: true,
+      sesion: crypto.randomUUID(),
       tenant: tenant._id,
     });
     res.status(201).json({ token: tokenDe(cuenta, tenant), usuario: publico(cuenta, tenant) });

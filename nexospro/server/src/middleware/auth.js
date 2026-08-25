@@ -2,14 +2,25 @@
 // Authorization: Bearer <token>. Todo /api lo requiere salvo las rutas
 // públicas (health, login, bootstrap del primer administrador).
 import { verificarToken } from "../services/jwt.js";
+import Cuenta from "../models/plataforma/Cuenta.js";
 
-export function requiereAuth(req, res, next) {
+export async function requiereAuth(req, res, next) {
   const m = String(req.headers.authorization ?? "").match(/^Bearer\s+(.+)$/i);
   // EventSource (telefonía SSE) no puede enviar cabeceras: acepta ?sesion=
   const token = m?.[1] ?? (req.query.sesion ? String(req.query.sesion) : null);
   const payload = token ? verificarToken(token) : null;
   if (!payload) {
     return res.status(401).json({ error: "Sesión no válida o caducada. Inicia sesión de nuevo." });
+  }
+  try {
+    // Sesión única: si el usuario entró desde otro dispositivo después, este
+    // token lleva un sid antiguo y se rechaza.
+    const cuenta = await Cuenta.findById(payload.sub).select("sesion activa").lean();
+    if (!cuenta || !cuenta.activa || cuenta.sesion !== payload.sid) {
+      return res.status(401).json({ error: "Esta sesión se cerró: se ha iniciado sesión desde otro dispositivo." });
+    }
+  } catch {
+    return res.status(503).json({ error: "No se pudo verificar la sesión. Inténtalo de nuevo." });
   }
   req.usuario = payload;
   next();
