@@ -16,6 +16,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
+// Detrás de Nginx (producción): sin esto Express ve siempre la IP del proxy
+// (127.0.0.1) y el rate limiting agruparía a TODOS los clientes en el mismo
+// cupo, de forma que un usuario podría bloquear el login de los demás.
+app.set("trust proxy", 1);
+
 // CORS restringido al frontend permitido y orígenes locales.
 const permitidos = new Set([
   process.env.FRONTEND_URL,
