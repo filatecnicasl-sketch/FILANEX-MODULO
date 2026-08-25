@@ -8,6 +8,10 @@ import { reglaOffline } from "./rutasOffline.js";
 import { encolar } from "./colaOffline.js";
 
 const CLAVE_TOKEN = "filanex-token";
+// Copia persistente del token, SOLO para poder abrir la app sin internet.
+// En condiciones normales manda sessionStorage (sesiones independientes por
+// pestaña); la copia se usa únicamente si la pestaña es nueva y no hay red.
+const CLAVE_TOKEN_OFFLINE = "filanex-token-offline";
 
 function getStorage() {
   try {
@@ -17,8 +21,23 @@ function getStorage() {
   }
 }
 
+function getLocal() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export function obtenerToken() {
-  return getStorage()?.getItem(CLAVE_TOKEN) ?? null;
+  const enPestana = getStorage()?.getItem(CLAVE_TOKEN);
+  if (enPestana) return enPestana;
+  // Sin sesión en esta pestaña y sin internet: recuperamos la última sesión
+  // del equipo para que la app abra offline (no se puede hacer login sin red).
+  if (navigator.onLine) return null;
+  const copia = getLocal()?.getItem(CLAVE_TOKEN_OFFLINE);
+  if (copia) getStorage()?.setItem(CLAVE_TOKEN, copia);
+  return copia ?? null;
 }
 
 // Decodifica el payload del JWT sin verificar firma (el backend ya la verifica).
@@ -48,10 +67,12 @@ export function esSuperAdmin() {
 
 export function guardarToken(token) {
   getStorage()?.setItem(CLAVE_TOKEN, token);
+  getLocal()?.setItem(CLAVE_TOKEN_OFFLINE, token);
 }
 
 export function cerrarSesion() {
   getStorage()?.removeItem(CLAVE_TOKEN);
+  getLocal()?.removeItem(CLAVE_TOKEN_OFFLINE);
   location.reload();
 }
 
