@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import FormDocumento from "../components/FormDocumento.jsx";
 import { Badge, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
@@ -181,6 +182,19 @@ export default function AlbaranesPage() {
   const [firmando, setFirmando] = useState(null); // albarán que se está firmando
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
+  const [params, setParams] = useSearchParams();
+
+  // Abre directamente un albarán cuando llega ?abrir=<id> (p. ej. desde el historial del vehículo).
+  useEffect(() => {
+    const id = params.get("abrir");
+    if (!id || albaranes.length === 0) return;
+    const a = albaranes.find((x) => x._id === id);
+    if (a) {
+      setEditando(a);
+      params.delete("abrir");
+      setParams(params, { replace: true });
+    }
+  }, [albaranes, params, setParams]);
 
   // Filtra por todos los campos visibles de la tabla.
   const filtrada = albaranes.filter((a) => {

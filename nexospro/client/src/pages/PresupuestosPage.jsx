@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import FormDocumento from "../components/FormDocumento.jsx";
 import { Badge, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
@@ -20,6 +21,20 @@ export default function PresupuestosPage() {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
+  const [params, setParams] = useSearchParams();
+
+  // Abre directamente la vista de impresión del presupuesto cuando llega ?abrir=<id>
+  // (p. ej. desde el historial del vehículo). No hay ficha de detalle: se muestra el documento.
+  useEffect(() => {
+    const id = params.get("abrir");
+    if (!id || presupuestos.length === 0) return;
+    const p = presupuestos.find((x) => x._id === id);
+    if (p) {
+      imprimirDocumentoRapido("presupuesto-venta", p._id);
+      params.delete("abrir");
+      setParams(params, { replace: true });
+    }
+  }, [presupuestos, params, setParams]);
 
   // Filtra por todos los campos visibles de la tabla.
   const filtrada = presupuestos.filter((p) =>

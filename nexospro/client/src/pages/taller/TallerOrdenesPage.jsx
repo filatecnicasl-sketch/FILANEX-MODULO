@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { EstadoVacio, euros } from "../../components/ui.jsx";
 import { ESTADOS_OT, tonoEstado } from "./datos.js";
@@ -146,6 +146,19 @@ export default function TallerOrdenesPage() {
   const [recepcionOT, setRecepcionOT] = useState(undefined); // orden en recepción digital
   const [recepcionNueva, setRecepcionNueva] = useState(false); // recién creada (flujo recepción rápida)
   const [vista, setVista] = useState("tablero"); // "tablero" (kanban) | "lista"
+  const [params, setParams] = useSearchParams();
+
+  // Abre directamente una orden cuando llega ?abrir=<id> (p. ej. desde el historial del vehículo).
+  useEffect(() => {
+    const id = params.get("abrir");
+    if (!id || !lista) return;
+    const o = lista.find((x) => x._id === id);
+    if (o) {
+      setOrdenForm(o);
+      params.delete("abrir");
+      setParams(params, { replace: true });
+    }
+  }, [lista, params, setParams]);
 
   async function cargar() {
     try {

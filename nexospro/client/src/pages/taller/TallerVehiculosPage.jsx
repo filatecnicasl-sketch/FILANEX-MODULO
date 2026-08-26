@@ -417,14 +417,14 @@ function DocumentoItem({ doc, tipo, onFoto }) {
     devuelto: "bg-slate-100 text-slate-600",
   };
 
-  // Ruta para abrir el documento según su tipo
+  // Ruta para abrir el documento: página de lista con ?abrir=<id> para que se abra sola.
   const rutas = {
-    ordenes: `/taller/ordenes/${doc._id}`,
-    presupuestos: `/presupuestos/${doc._id}`,
-    albaranes: `/albaranes/${doc._id}`,
-    facturas: `/ventas/${doc._id}`,
+    ordenes: `/taller/ordenes?abrir=${doc._id}`,
+    presupuestos: `/presupuestos?abrir=${doc._id}`,
+    albaranes: `/albaranes?abrir=${doc._id}`,
+    facturas: `/ventas?abrir=${doc._id}`,
     citas: `/taller/agenda`,
-    valoraciones: `/taller/valoraciones/${doc._id}`,
+    valoraciones: `/taller/valoraciones?abrir=${doc._id}`,
     cortesias: `/taller/cortesia`,
   };
 

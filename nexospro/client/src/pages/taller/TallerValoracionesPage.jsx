@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../../components/ui.jsx";
@@ -45,6 +46,20 @@ export default function TallerValoracionesPage() {
   const [importando, setImportando] = useState(false);
   const inputPdfRef = useRef(null);
   const [q, setQ] = useState("");
+  const [params, setParams] = useSearchParams();
+
+  // Abre directamente una valoración cuando llega ?abrir=<id> (p. ej. desde el historial del vehículo).
+  useEffect(() => {
+    const id = params.get("abrir");
+    if (!id || !lista) return;
+    const v = lista.find((x) => x._id === id);
+    if (v) {
+      abrirEdicion(v);
+      params.delete("abrir");
+      setParams(params, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lista, params, setParams]);
 
   // Filtra por todos los campos visibles de la tabla.
   const filtrada = (lista ?? []).filter((v) =>

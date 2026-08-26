@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Badge, euros, Avatar, coincideBusqueda } from "../components/ui.jsx";
 import { IconImprimir, IconPdf, IconOjo, IconXml, IconBorrar } from "../components/icons.jsx";
@@ -446,6 +447,19 @@ export default function VentasPage() {
   const [buscar, setBuscar] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todas");
   const [soloVencidas, setSoloVencidas] = useState(false);
+  const [params, setParams] = useSearchParams();
+
+  // Abre directamente una factura cuando llega ?abrir=<id> (p. ej. desde el historial del vehículo).
+  useEffect(() => {
+    const id = params.get("abrir");
+    if (!id || facturas.length === 0) return;
+    const f = facturas.find((x) => x._id === id);
+    if (f) {
+      setDetalle(f);
+      params.delete("abrir");
+      setParams(params, { replace: true });
+    }
+  }, [facturas, params, setParams]);
 
   const esVencida = (f) =>
     f.estado === "emitida" &&
