@@ -429,7 +429,6 @@ function DocumentoItem({ doc, tipo, onFoto }) {
   };
 
   const ruta = rutas[tipo];
-  const esClickable = ruta && !ruta.endsWith("/agenda") && !ruta.endsWith("/cortesia");
 
   const contenido = (
     <>
@@ -474,7 +473,7 @@ function DocumentoItem({ doc, tipo, onFoto }) {
     </>
   );
 
-  if (esClickable) {
+  if (ruta) {
     return (
       <li>
         <Link
