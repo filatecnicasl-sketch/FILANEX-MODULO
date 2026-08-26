@@ -109,6 +109,51 @@ router.post("/", async (req, res, next) => {
   }
 });
 
+// Modifica una factura mientras siga siendo borrador. Una vez emitida,
+// VeriFactu impide alterar sus datos y debe usarse una rectificativa.
+router.put("/:id", async (req, res, next) => {
+  try {
+    const factura = await FacturaVenta.findById(req.params.id);
+    if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
+    if (factura.estado !== "borrador") {
+      return res.status(409).json({
+        error: "Solo se pueden modificar facturas en borrador. Una factura validada debe corregirse mediante una rectificativa",
+      });
+    }
+    const lineas = limpiarLineas(req.body.lineas);
+    if (!req.body.cliente || !lineas) {
+      return res.status(400).json({ error: "cliente y al menos una línea con descripción son obligatorios" });
+    }
+    const totales = calcularTotales(lineas);
+    const empresa = await Empresa.findById(factura.empresa) ?? (await Empresa.findOne());
+    const metodo = buscarMetodoPago(empresa, req.body.metodoPago);
+    const cambios = {
+      cliente: req.body.cliente,
+      lineas,
+      ...totales,
+      metodoPago: req.body.metodoPago,
+      direccionEntrega: req.body.direccionEntrega,
+      vencimiento: req.body.vencimiento ? new Date(req.body.vencimiento) : factura.vencimiento,
+      plazos: [],
+    };
+    if (metodo?.plazos?.length > 0) {
+      const n = metodo.plazos.length;
+      const parte = Math.floor((totales.total / n) * 100) / 100;
+      const ultimo = Math.round((totales.total - (n - 1) * parte) * 100) / 100;
+      cambios.plazos = metodo.plazos.map((dias, indice) => ({
+        fecha: new Date(Date.now() + dias * 24 * 60 * 60 * 1000),
+        importe: indice < n - 1 ? parte : ultimo,
+      }));
+      if (!req.body.vencimiento) cambios.vencimiento = cambios.plazos[n - 1].fecha;
+    }
+    Object.assign(factura, cambios);
+    await factura.save();
+    res.json(factura);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Emite la factura: número por serie, registro de alta con huella
 // encadenada, QR y (si hay certificado configurado) remisión a la AEAT.
 router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {

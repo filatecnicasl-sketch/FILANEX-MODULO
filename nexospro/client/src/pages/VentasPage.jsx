@@ -20,20 +20,26 @@ const TONO_AEAT = {
   rechazado: "red",
 };
 
-function FormNuevaFactura({ clientes: clientesProp, onCreada, onCerrar }) {
+function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, onCerrar }) {
   const [clientes, setClientes] = useState(clientesProp);
-  const [clienteId, setClienteId] = useState(clientesProp[0]?._id ?? "");
-  const [lineas, setLineas] = useState([lineaVacia()]);
+  const [clienteId, setClienteId] = useState(inicial?.cliente?._id ?? inicial?.cliente ?? clientesProp[0]?._id ?? "");
+  const [lineas, setLineas] = useState(inicial?.lineas?.length ? inicial.lineas.map((linea) => ({ ...linea })) : [lineaVacia()]);
   // Vencimiento por defecto: 30 días (como RO App).
   const [vencimiento, setVencimiento] = useState(() => {
     const d = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    return d.toISOString().slice(0, 10);
+    return inicial?.vencimiento
+      ? new Date(inicial.vencimiento).toISOString().slice(0, 10)
+      : d.toISOString().slice(0, 10);
   });
   // Métodos de pago del catálogo de la empresa (Sistema → Series).
   const [metodosPago, setMetodosPago] = useState([]);
-  const [metodoPago, setMetodoPago] = useState("");
-  const [otraEntrega, setOtraEntrega] = useState(false);
-  const [entrega, setEntrega] = useState({ calle: "", ciudad: "", cp: "" });
+  const [metodoPago, setMetodoPago] = useState(inicial?.metodoPago ?? "");
+  const [otraEntrega, setOtraEntrega] = useState(Boolean(inicial?.direccionEntrega?.calle));
+  const [entrega, setEntrega] = useState({
+    calle: inicial?.direccionEntrega?.calle ?? "",
+    ciudad: inicial?.direccionEntrega?.ciudad ?? "",
+    cp: inicial?.direccionEntrega?.cp ?? "",
+  });
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -46,7 +52,7 @@ function FormNuevaFactura({ clientes: clientesProp, onCreada, onCerrar }) {
         const lista = e.metodosPago?.length ? e.metodosPago : [{ nombre: "Transferencia", plazos: [], defecto: true }];
         setMetodosPago(lista);
         const def = lista.find((m) => m.defecto) ?? lista[0];
-        setMetodoPago(def.nombre);
+        setMetodoPago((actual) => actual || def.nombre);
       })
       .catch(() => setMetodosPago([{ nombre: "Transferencia", plazos: [], defecto: true }]));
   }, []);
@@ -90,8 +96,8 @@ function FormNuevaFactura({ clientes: clientesProp, onCreada, onCerrar }) {
     try {
       const lineasOk = lineas.filter((l) => String(l.descripcion ?? "").trim() !== "");
       if (lineasOk.length === 0) throw new Error("Añade al menos una línea con descripción");
-      const r = await fetch("/api/facturas-venta", {
-        method: "POST",
+      const r = await fetch(inicial ? `/api/facturas-venta/${inicial._id}` : "/api/facturas-venta", {
+        method: inicial ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cliente: clienteId,
@@ -109,7 +115,7 @@ function FormNuevaFactura({ clientes: clientesProp, onCreada, onCerrar }) {
         }),
       });
       const datos = await r.json();
-      if (!r.ok) throw new Error(datos.error || "Error al crear la factura");
+      if (!r.ok) throw new Error(datos.error || "Error al guardar la factura");
       onCreada();
     } catch (e) {
       setError(e.message);
@@ -128,7 +134,9 @@ function FormNuevaFactura({ clientes: clientesProp, onCreada, onCerrar }) {
         onClick={(e) => e.stopPropagation()}
         onKeyDown={enterComoTab}
       >
-        <h2 className="text-lg font-bold text-white mb-4">Nueva factura (borrador)</h2>
+        <h2 className="text-lg font-bold text-white mb-4">
+          {inicial ? "Modificar factura borrador" : "Nueva factura (borrador)"}
+        </h2>
 
         <div className="space-y-5">
           <div>
@@ -229,7 +237,7 @@ function FormNuevaFactura({ clientes: clientesProp, onCreada, onCerrar }) {
               disabled={guardando || !clienteId}
               className="btn-primary"
             >
-              {guardando ? "Guardando…" : "Guardar borrador"}
+              {guardando ? "Guardando…" : inicial ? "Guardar cambios" : "Guardar borrador"}
             </button>
           </div>
         </div>
@@ -238,7 +246,7 @@ function FormNuevaFactura({ clientes: clientesProp, onCreada, onCerrar }) {
   );
 }
 
-function DetalleFactura({ f, onCerrar, onRectificar, onValidar }) {
+function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar }) {
   const vf = f.verifactu ?? {};
   const fecha = (d) => (d ? new Date(d).toLocaleDateString("es-ES") : "—");
 
@@ -424,12 +432,15 @@ function DetalleFactura({ f, onCerrar, onRectificar, onValidar }) {
             </button>
           )}
           {f.estado === "borrador" && (
-            <button
-              onClick={() => { onValidar(); onCerrar(); }}
-              className="btn-primary"
-            >
-              Validar y emitir
-            </button>
+            <>
+              <button onClick={onEditar} className="btn-ghost">Modificar borrador</button>
+              <button
+                onClick={() => { onValidar(); onCerrar(); }}
+                className="btn-primary"
+              >
+                Validar y emitir
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -441,6 +452,7 @@ export default function VentasPage() {
   const [facturas, setFacturas] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [facturaEditar, setFacturaEditar] = useState(null);
   const [detalle, setDetalle] = useState(null);
   const [error, setError] = useState(null);
   // Filtros del listado (inspirado en RO App).
@@ -566,6 +578,17 @@ export default function VentasPage() {
             cargar();
           }}
           onCerrar={() => setMostrarForm(false)}
+        />
+      )}
+      {facturaEditar && (
+        <FormNuevaFactura
+          clientes={clientes}
+          inicial={facturaEditar}
+          onCreada={() => {
+            setFacturaEditar(null);
+            cargar();
+          }}
+          onCerrar={() => setFacturaEditar(null)}
         />
       )}
 
@@ -748,6 +771,10 @@ export default function VentasPage() {
         <DetalleFactura
           f={detalle}
           onCerrar={() => setDetalle(null)}
+          onEditar={() => {
+            setFacturaEditar(detalle);
+            setDetalle(null);
+          }}
           onRectificar={() => accion(detalle._id, "rectificativa")}
           onValidar={() => accion(detalle._id, "emitir")}
         />
