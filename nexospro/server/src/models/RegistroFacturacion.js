@@ -24,4 +24,7 @@ const registroFacturacionSchema = new Schema(
   { timestamps: true }
 );
 
+registroFacturacionSchema.index({ facturaVenta: 1, tipo: 1 }, { unique: true });
+registroFacturacionSchema.index({ empresa: 1, numSerieFactura: 1, tipo: 1 }, { unique: true });
+
 export default modeloTenant("RegistroFacturacion", registroFacturacionSchema);

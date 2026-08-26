@@ -18,6 +18,25 @@ import {
 import { certificadoActual } from "../services/certificadoEmpresa.js";
 
 const router = Router();
+let colaRegistros = Promise.resolve();
+
+async function serializarRegistro(req, res, next) {
+  const anterior = colaRegistros;
+  let liberar;
+  colaRegistros = new Promise((resolve) => {
+    liberar = resolve;
+  });
+  await anterior.catch(() => {});
+  let liberado = false;
+  const finalizar = () => {
+    if (liberado) return;
+    liberado = true;
+    liberar();
+  };
+  res.once("finish", finalizar);
+  res.once("close", finalizar);
+  next();
+}
 
 // Añade información de tesorería derivada (no persistida) a cada factura.
 function conTesoreria(f) {
@@ -92,7 +111,7 @@ router.post("/", async (req, res, next) => {
 
 // Emite la factura: número por serie, registro de alta con huella
 // encadenada, QR y (si hay certificado configurado) remisión a la AEAT.
-router.post("/:id/emitir", async (req, res, next) => {
+router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
   try {
     const factura = await FacturaVenta.findById(req.params.id).populate("cliente", "nombre nif");
     if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
@@ -208,7 +227,7 @@ router.post("/:id/emitir", async (req, res, next) => {
 
 // Crea la factura rectificativa de una emitida: importes en negativo,
 // registro VeriFactu de alta tipo R1 y la original pasa a "rectificada".
-router.post("/:id/rectificativa", async (req, res, next) => {
+router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => {
   try {
     const original = await FacturaVenta.findById(req.params.id).populate("cliente", "nombre nif");
     if (!original) return res.status(404).json({ error: "Factura no encontrada" });
