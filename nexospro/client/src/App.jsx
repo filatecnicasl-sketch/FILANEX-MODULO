@@ -4,7 +4,6 @@ import Layout from "./components/Layout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import SetupWizard from "./pages/SetupWizard.jsx";
 import { obtenerToken } from "./lib/sesion.js";
-import PanelPage from "./pages/PanelPage.jsx";
 import VentasPage from "./pages/VentasPage.jsx";
 import PresupuestosPage from "./pages/PresupuestosPage.jsx";
 import AlbaranesPage from "./pages/AlbaranesPage.jsx";
@@ -70,7 +69,7 @@ function InicioRedirect() {
       })
       .catch(() => setDestino(null));
   }, []);
-  if (destino === null) return <PanelPage />; // por defecto, panel principal
+  if (destino === null) return <Navigate to="/tesoreria" replace />; // por defecto, tesorería
   return <Navigate to={destino} replace />;
 }
 

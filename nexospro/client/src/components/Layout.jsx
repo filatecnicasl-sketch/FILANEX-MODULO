@@ -300,8 +300,8 @@ export default function Layout() {
         <div className={`pt-5 pb-4 ${plegado ? "lg:px-2 px-4" : "px-4"}`}>
           <div className="flex items-center">
             <Link
-              to="/"
-              title="Panel general"
+              to="/tesoreria"
+              title="Tesorería"
               className={`flex items-center ${plegado ? "lg:justify-center gap-3" : "gap-3"}`}
             >
               <span className="relative w-16 h-16 rounded-2xl flex items-center justify-center border border-white/10 bg-white/[0.04] text-white shrink-0">
