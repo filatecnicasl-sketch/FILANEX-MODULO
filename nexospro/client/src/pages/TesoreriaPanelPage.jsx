@@ -198,23 +198,26 @@ export default function TesoreriaPanelPage() {
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-400 mb-5">
             Facturación mensual
           </p>
-          <div className="flex items-end gap-3 h-44">
-            {(resumen?.mensual ?? []).map((m) => (
-              <div key={m.clave} className="flex-1 flex flex-col items-center gap-2 min-w-0" title={euros(m.total)}>
-                <span className="text-[0.625rem] text-slate-400 tabular-nums">
-                  {m.total > 0 ? euros(m.total) : ""}
-                </span>
-                <div
-                  className={`w-full max-w-14 rounded-t-lg transition-all ${
-                    m.total > 0
-                      ? "bg-gradient-to-t from-accent/50 to-accent shadow-sm"
-                      : "bg-slate-100"
-                  }`}
-                  style={{ height: `${Math.max(m.total > 0 ? 6 : 2, (m.total / maxMes) * 100)}%` }}
-                />
-                <span className="text-[0.6875rem] text-slate-400 capitalize">{m.etiqueta}</span>
-              </div>
-            ))}
+          <div className="flex items-end gap-3" style={{ height: "176px" }}>
+            {(resumen?.mensual ?? []).map((m) => {
+              const alturaPx = m.total > 0 ? Math.max(8, Math.round((m.total / maxMes) * 120)) : 2;
+              return (
+                <div key={m.clave} className="flex-1 flex flex-col items-center justify-end gap-2 min-w-0 h-full" title={euros(m.total)}>
+                  <span className="text-[0.625rem] text-slate-400 tabular-nums">
+                    {m.total > 0 ? euros(m.total) : ""}
+                  </span>
+                  <div
+                    className={`w-full max-w-14 rounded-t-lg transition-all ${
+                      m.total > 0
+                        ? "bg-gradient-to-t from-accent/50 to-accent shadow-sm"
+                        : "bg-slate-100"
+                    }`}
+                    style={{ height: `${alturaPx}px` }}
+                  />
+                  <span className="text-[0.6875rem] text-slate-400 capitalize">{m.etiqueta}</span>
+                </div>
+              );
+            })}
             {!resumen && <p className="text-sm text-slate-400">Cargando…</p>}
           </div>
         </div>
