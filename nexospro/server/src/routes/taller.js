@@ -10,6 +10,7 @@ import Aseguradora from "../models/Aseguradora.js";
 import Cliente from "../models/Cliente.js";
 import Empresa from "../models/Empresa.js";
 import FacturaVenta from "../models/FacturaVenta.js";
+import AlbaranVenta from "../models/AlbaranVenta.js";
 import Presupuesto from "../models/Presupuesto.js";
 import { calcularTotales } from "../services/totales.js";
 import { tomarNumeroOrdenTrabajoAtomico } from "../services/numeracion.js";
@@ -58,6 +59,82 @@ router.get("/vehiculos/:id/historial", async (req, res, next) => {
       (a, b) => new Date(b.fecha ?? 0) - new Date(a.fecha ?? 0)
     );
     res.json(historial);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Documentos completos del vehículo: órdenes, presupuestos, albaranes,
+// facturas, citas, valoraciones y cortesías vinculados a esta matrícula.
+router.get("/vehiculos/:id/documentos", async (req, res, next) => {
+  try {
+    const vehiculo = await Vehiculo.findById(req.params.id).lean();
+    if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });
+
+    const matricula = vehiculo.matricula;
+    const clienteId = vehiculo.cliente;
+
+    // Órdenes de trabajo de esta matrícula
+    const ordenes = await OrdenTrabajo.find({ matricula })
+      .sort({ createdAt: -1 })
+      .lean();
+    const ordenIds = ordenes.map((o) => o._id);
+
+    // Presupuestos vinculados a esas órdenes
+    const presupuestos = await Presupuesto.find({
+      $or: [
+        { _id: { $in: ordenes.map((o) => o.presupuesto).filter(Boolean) } },
+        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Albaranes vinculados a esas órdenes
+    const albaranes = await AlbaranVenta.find({
+      $or: [
+        { ordenTrabajo: { $in: ordenIds } },
+        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Facturas vinculadas a esas órdenes
+    const facturas = await FacturaVenta.find({
+      $or: [
+        { "origen.ordenTrabajo": { $in: ordenIds } },
+        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Citas de esta matrícula
+    const citas = await Cita.find({ matricula })
+      .sort({ fecha: -1, hora: -1 })
+      .lean();
+
+    // Valoraciones de esta matrícula
+    const valoraciones = await Valoracion.find({ matricula })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Préstamos de cortesía de esta matrícula
+    const cortesias = await PrestamoCortesia.find({ matricula })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      vehiculo: { _id: vehiculo._id, matricula: vehiculo.matricula, marca: vehiculo.marca, modelo: vehiculo.modelo },
+      ordenes,
+      presupuestos,
+      albaranes,
+      facturas,
+      citas,
+      valoraciones,
+      cortesias,
+    });
   } catch (err) {
     next(err);
   }

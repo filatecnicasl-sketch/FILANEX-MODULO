@@ -297,22 +297,35 @@ export default function TallerVehiculosPage() {
   );
 }
 
-// Historial del vehículo: cada recepción con sus fotos del estado.
+// Historial del vehículo: todos los documentos vinculados a esta matrícula.
 function ModalHistorial({ vehiculo, onCerrar }) {
-  const [entradas, setEntradas] = useState(null);
+  const [datos, setDatos] = useState(null);
   const [fotoGrande, setFotoGrande] = useState(null);
+  const [pestana, setPestana] = useState("ordenes");
 
   useEffect(() => {
-    fetch(`/api/taller/vehiculos/${vehiculo._id}/historial`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setEntradas)
-      .catch(() => setEntradas([]));
+    fetch(`/api/taller/vehiculos/${vehiculo._id}/documentos`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setDatos)
+      .catch(() => setDatos(null));
   }, [vehiculo._id]);
+
+  const PESTANAS = [
+    { clave: "ordenes", nombre: "Órdenes", datos: datos?.ordenes ?? [] },
+    { clave: "presupuestos", nombre: "Presupuestos", datos: datos?.presupuestos ?? [] },
+    { clave: "albaranes", nombre: "Albaranes", datos: datos?.albaranes ?? [] },
+    { clave: "facturas", nombre: "Facturas", datos: datos?.facturas ?? [] },
+    { clave: "citas", nombre: "Citas", datos: datos?.citas ?? [] },
+    { clave: "valoraciones", nombre: "Valoraciones", datos: datos?.valoraciones ?? [] },
+    { clave: "cortesias", nombre: "Cortesías", datos: datos?.cortesias ?? [] },
+  ];
+
+  const activa = PESTANAS.find((p) => p.clave === pestana);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div
-        className="modal-panel w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6"
+        className="modal-panel w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4">
@@ -326,40 +339,40 @@ function ModalHistorial({ vehiculo, onCerrar }) {
           <button onClick={onCerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
 
-        {!entradas ? null : entradas.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-8">
-            Sin historial todavía. Las recepciones y las fotos del estado se guardan aquí automáticamente.
-          </p>
+        {!datos ? (
+          <p className="text-sm text-slate-500 text-center py-8">Cargando…</p>
         ) : (
-          <ul className="space-y-4">
-            {entradas.map((h, i) => (
-              <li key={h.orden ?? i} className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                  <span className="text-sm font-bold text-slate-800">{h.numeroOrden ?? "OT"}</span>
-                  <span className="text-xs text-slate-500">
-                    {h.fecha ? new Date(h.fecha).toLocaleDateString("es-ES") : ""}
-                  </span>
-                  {h.km != null && (
-                    <span className="text-xs text-slate-500">{Number(h.km).toLocaleString("es-ES")} km</span>
-                  )}
-                </div>
-                {h.motivo && <p className="text-sm text-slate-600 mt-1">{h.motivo}</p>}
-                {h.fotos?.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2.5">
-                    {h.fotos.map((f) => (
-                      <button key={f} type="button" onClick={() => setFotoGrande(f)} className="group">
-                        <img
-                          src={f}
-                          alt="Foto del estado"
-                          className="w-full h-20 object-cover rounded-lg border border-slate-200 group-hover:opacity-80 transition-opacity"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+          <>
+            {/* Pestañas */}
+            <div className="flex flex-wrap gap-1 mb-4 border-b border-slate-200 pb-2">
+              {PESTANAS.map((p) => (
+                <button
+                  key={p.clave}
+                  onClick={() => setPestana(p.clave)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    pestana === p.clave
+                      ? "bg-accent text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {p.nombre} ({p.datos.length})
+                </button>
+              ))}
+            </div>
+
+            {/* Contenido de la pestaña activa */}
+            {activa.datos.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-8">
+                Sin {activa.nombre.toLowerCase()} para este vehículo.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {activa.datos.map((doc) => (
+                  <DocumentoItem key={doc._id} doc={doc} tipo={pestana} onFoto={setFotoGrande} />
+                ))}
+              </ul>
+            )}
+          </>
         )}
 
         <div className="flex justify-end pt-4">
@@ -376,5 +389,73 @@ function ModalHistorial({ vehiculo, onCerrar }) {
         )}
       </div>
     </div>
+  );
+}
+
+function DocumentoItem({ doc, tipo, onFoto }) {
+  const fecha = doc.fecha ?? doc.createdAt;
+  const numero = doc.numero ?? doc.numeroOrden ?? "—";
+  const cliente = doc.clienteNombre ?? doc.cliente?.nombre ?? "";
+  const total = doc.total ?? 0;
+  const estado = doc.estado ?? "";
+
+  const tonosEstado = {
+    recepcion: "bg-sky-100 text-sky-700",
+    en_curso: "bg-amber-100 text-amber-700",
+    finalizado: "bg-emerald-100 text-emerald-700",
+    entregado: "bg-slate-100 text-slate-600",
+    borrador: "bg-slate-100 text-slate-600",
+    emitida: "bg-emerald-100 text-emerald-700",
+    cobrada: "bg-emerald-100 text-emerald-700",
+    pendiente: "bg-amber-100 text-amber-700",
+    aprobada: "bg-emerald-100 text-emerald-700",
+    rechazada: "bg-rose-100 text-rose-700",
+    facturado: "bg-emerald-100 text-emerald-700",
+    cancelada: "bg-rose-100 text-rose-700",
+    activo: "bg-emerald-100 text-emerald-700",
+    devuelto: "bg-slate-100 text-slate-600",
+  };
+
+  return (
+    <li className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold text-slate-800">{numero}</span>
+          {estado && (
+            <span className={`px-2 py-0.5 rounded-full text-[0.6875rem] font-medium ${tonosEstado[estado] || "bg-slate-100 text-slate-600"}`}>
+              {estado.replace(/_/g, " ")}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-slate-500">
+            {fecha ? new Date(fecha).toLocaleDateString("es-ES") : ""}
+          </span>
+          {total > 0 && (
+            <span className="text-sm font-semibold text-slate-700 tabular-nums">
+              {new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(total)}
+            </span>
+          )}
+        </div>
+      </div>
+      {cliente && <p className="text-xs text-slate-500 mt-1">{cliente}</p>}
+      {doc.motivo && <p className="text-sm text-slate-600 mt-1">{doc.motivo}</p>}
+      {doc.trabajos?.length > 0 && (
+        <p className="text-xs text-slate-400 mt-1">{doc.trabajos.join(", ")}</p>
+      )}
+      {doc.fotos?.length > 0 && (
+        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2.5">
+          {doc.fotos.map((f) => (
+            <button key={f} type="button" onClick={() => onFoto(f)} className="group">
+              <img
+                src={f}
+                alt="Foto"
+                className="w-full h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-80 transition-opacity"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </li>
   );
 }
