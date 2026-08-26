@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
@@ -302,6 +301,7 @@ export default function TallerVehiculosPage() {
 function ModalHistorial({ vehiculo, onCerrar }) {
   const [datos, setDatos] = useState(null);
   const [fotoGrande, setFotoGrande] = useState(null);
+  const [documentoAbierto, setDocumentoAbierto] = useState(null);
   const [pestana, setPestana] = useState("ordenes");
 
   useEffect(() => {
@@ -369,7 +369,13 @@ function ModalHistorial({ vehiculo, onCerrar }) {
             ) : (
               <ul className="space-y-3">
                 {activa.datos.map((doc) => (
-                  <DocumentoItem key={doc._id} doc={doc} tipo={pestana} onFoto={setFotoGrande} />
+                  <DocumentoItem
+                    key={doc._id}
+                    doc={doc}
+                    tipo={pestana}
+                    onFoto={setFotoGrande}
+                    onAbrir={() => setDocumentoAbierto({ doc, tipo: pestana })}
+                  />
                 ))}
               </ul>
             )}
@@ -388,12 +394,20 @@ function ModalHistorial({ vehiculo, onCerrar }) {
             <img src={fotoGrande} alt="Foto ampliada" className="max-w-full max-h-full rounded-xl" />
           </div>
         )}
+
+        {documentoAbierto && (
+          <VisualizadorDocumento
+            doc={documentoAbierto.doc}
+            tipo={documentoAbierto.tipo}
+            onCerrar={() => setDocumentoAbierto(null)}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function DocumentoItem({ doc, tipo, onFoto }) {
+function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
   const fecha = doc.fecha ?? doc.createdAt;
   const numero = doc.numero ?? doc.numeroOrden ?? "—";
   const cliente = doc.clienteNombre ?? doc.cliente?.nombre ?? "";
@@ -416,19 +430,6 @@ function DocumentoItem({ doc, tipo, onFoto }) {
     activo: "bg-emerald-100 text-emerald-700",
     devuelto: "bg-slate-100 text-slate-600",
   };
-
-  // Ruta para abrir el documento: página de lista con ?abrir=<id> para que se abra sola.
-  const rutas = {
-    ordenes: `/taller/ordenes?abrir=${doc._id}`,
-    presupuestos: `/presupuestos?abrir=${doc._id}`,
-    albaranes: `/albaranes?abrir=${doc._id}`,
-    facturas: `/ventas?abrir=${doc._id}`,
-    citas: `/taller/agenda`,
-    valoraciones: `/taller/valoraciones?abrir=${doc._id}`,
-    cortesias: `/taller/cortesia`,
-  };
-
-  const ruta = rutas[tipo];
 
   const contenido = (
     <>
@@ -473,22 +474,107 @@ function DocumentoItem({ doc, tipo, onFoto }) {
     </>
   );
 
-  if (ruta) {
-    return (
-      <li>
-        <Link
-          to={ruta}
-          className="block rounded-xl border border-slate-200 bg-white p-4 hover:shadow-md hover:border-accent/30 transition-all"
-        >
-          {contenido}
-        </Link>
-      </li>
-    );
-  }
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onAbrir}
+        className="block w-full text-left rounded-xl border border-slate-200 bg-white p-4 hover:shadow-md hover:border-accent/30 transition-all"
+      >
+        {contenido}
+      </button>
+    </li>
+  );
+}
+
+function VisualizadorDocumento({ doc, tipo, onCerrar }) {
+  const titulos = {
+    ordenes: "Orden de trabajo",
+    presupuestos: "Presupuesto",
+    albaranes: "Albarán",
+    facturas: "Factura",
+    citas: "Cita",
+    valoraciones: "Valoración",
+    cortesias: "Vehículo de cortesía",
+  };
+  const numero = doc.serieNumero ?? doc.numero ?? doc.numeroOrden ?? "Sin número";
+  const fecha = doc.fecha ?? doc.createdAt;
+  const lineas = doc.lineas ?? doc.trabajos ?? [];
+  const cliente = doc.clienteNombre ?? doc.cliente?.nombre;
 
   return (
-    <li className="rounded-xl border border-slate-200 bg-white p-4">
-      {contenido}
-    </li>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onCerrar}>
+      <div className="w-full max-w-3xl max-h-[88vh] overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent">{titulos[tipo]}</p>
+            <h3 className="mt-1 text-xl font-bold text-slate-900">{numero}</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              {fecha ? new Date(fecha).toLocaleDateString("es-ES") : ""}
+              {cliente ? ` · ${cliente}` : ""}
+            </p>
+          </div>
+          <button type="button" onClick={onCerrar} className="rounded-lg px-3 py-1 text-2xl text-slate-500 hover:bg-slate-100 hover:text-slate-900">×</button>
+        </div>
+
+        <div className="space-y-5 p-6">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {doc.matricula && <DatoDocumento etiqueta="Matrícula" valor={doc.matricula} />}
+            {doc.estado && <DatoDocumento etiqueta="Estado" valor={String(doc.estado).replace(/_/g, " ")} />}
+            {doc.total != null && <DatoDocumento etiqueta="Total" valor={new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(doc.total)} />}
+            {doc.hora && <DatoDocumento etiqueta="Hora" valor={doc.hora} />}
+            {doc.km != null && <DatoDocumento etiqueta="Kilómetros" valor={doc.km} />}
+            {doc.numeroSiniestro && <DatoDocumento etiqueta="Nº siniestro" valor={doc.numeroSiniestro} />}
+            {doc.compania && <DatoDocumento etiqueta="Compañía" valor={doc.compania} />}
+            {doc.fechaDesde && <DatoDocumento etiqueta="Desde" valor={new Date(doc.fechaDesde).toLocaleDateString("es-ES")} />}
+            {doc.fechaHasta && <DatoDocumento etiqueta="Hasta" valor={new Date(doc.fechaHasta).toLocaleDateString("es-ES")} />}
+          </div>
+
+          {(doc.motivo || doc.descripcion || doc.notas || doc.observaciones) && (
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
+                {doc.motivo || doc.descripcion || doc.notas || doc.observaciones}
+              </p>
+            </div>
+          )}
+
+          {lineas.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Detalle</div>
+              <div className="divide-y divide-slate-100">
+                {lineas.map((linea, indice) => {
+                  const descripcion = typeof linea === "string" ? linea : linea.descripcion ?? linea.nombre ?? "Trabajo";
+                  const importe = typeof linea === "object" ? linea.total ?? (Number(linea.cantidad || 0) * Number(linea.precio || 0)) : null;
+                  return (
+                    <div key={linea._id ?? indice} className="flex items-start justify-between gap-4 px-4 py-3">
+                      <span className="text-sm text-slate-700">{descripcion}</span>
+                      {importe != null && importe !== 0 && (
+                        <span className="shrink-0 text-sm font-semibold text-slate-900">
+                          {new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(importe)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 flex justify-end border-t border-slate-200 bg-white px-6 py-4">
+          <button type="button" onClick={onCerrar} className="btn-primary">Cerrar documento</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DatoDocumento({ etiqueta, valor }) {
+  return (
+    <div className="rounded-xl border border-slate-200 px-4 py-3">
+      <p className="text-xs font-medium text-slate-500">{etiqueta}</p>
+      <p className="mt-1 text-sm font-semibold capitalize text-slate-800">{valor}</p>
+    </div>
   );
 }
