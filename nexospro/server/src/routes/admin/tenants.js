@@ -231,7 +231,7 @@ router.post("/:id/reset-password", async (req, res, next) => {
     if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
     const admin = await Cuenta.findOne({ tenant: tenant._id, rol: "admin" });
     if (!admin) return res.status(404).json({ error: "No se encontró el administrador" });
-    const { hashContrasena } = await import("../routes/usuarios.js");
+    const { hashContrasena } = await import("../usuarios.js");
     admin.passwordHash = hashContrasena(String(password));
     await admin.save();
     res.json({ ok: true });
