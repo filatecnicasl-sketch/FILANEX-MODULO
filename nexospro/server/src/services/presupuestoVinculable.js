@@ -10,16 +10,16 @@ export const ESTADOS_PTO_ABIERTO = ["borrador", "enviado", "aceptado"];
 // orden. `ModeloOrden` es OrdenTrabajo u OrdenServicio (ambos tienen el
 // campo `presupuesto`).
 export function presupuestosAbiertosCliente(ModeloOrden, clienteId, excluirOrdenId) {
-  return ModeloOrden.find({
-    presupuesto: { $ne: null },
-    ...(excluirOrdenId ? { _id: { $ne: excluirOrdenId } } : {}),
-  })
-    .distinct("presupuesto")
-    .then((vinculados) =>
+  const filtro = excluirOrdenId ? { _id: { $ne: excluirOrdenId } } : {};
+  return Promise.all([
+    ModeloOrden.find(filtro).distinct("presupuesto"),
+    ModeloOrden.find(filtro).distinct("presupuestos"),
+  ])
+    .then(([singulares, multiples]) =>
       Presupuesto.find({
         cliente: clienteId,
         estado: { $in: ESTADOS_PTO_ABIERTO },
-        _id: { $nin: vinculados },
+        _id: { $nin: [...singulares, ...multiples] },
       })
         .sort({ createdAt: -1 })
         .limit(20)
@@ -37,7 +37,7 @@ export async function validarPresupuestoVinculable(ModeloOrden, id, ordenId, cli
     return { error: `El presupuesto ${p.serieNumero} está a nombre de otro cliente`, codigo: 409 };
   }
   const ocupado = await ModeloOrden.exists({
-    presupuesto: p._id,
+    $or: [{ presupuesto: p._id }, { presupuestos: p._id }],
     ...(ordenId ? { _id: { $ne: ordenId } } : {}),
   });
   if (ocupado) return { error: `El presupuesto ${p.serieNumero} ya está vinculado a otra orden`, codigo: 409 };

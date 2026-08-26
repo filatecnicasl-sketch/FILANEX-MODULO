@@ -81,7 +81,7 @@ router.post("/:id/facturar", async (req, res, next) => {
       total: p.total,
       metodoPago: metodoPagoDefecto(empresa),
       vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      origen: { presupuesto: p._id },
+      origen: { presupuesto: p._id, presupuestos: [p._id] },
     });
     p.estado = "facturado";
     p.facturaVenta = factura._id;
@@ -112,6 +112,7 @@ router.post("/:id/albaran", async (req, res, next) => {
       serie,
       numero,
       serieNumero,
+      origen: { presupuesto: p._id, presupuestos: [p._id] },
     });
     p.albaranVenta = albaran._id;
     await p.save();

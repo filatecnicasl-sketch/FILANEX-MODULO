@@ -34,6 +34,8 @@ const ordenTrabajoSchema = new Schema(
     // la OT al vincularlo y queda marcado aceptado/facturado con ella.
     presupuesto: { type: Schema.Types.ObjectId, ref: "Presupuesto", index: true },
     presupuestoNumero: String, // desnormalizado (p.ej. "P-3") para listados
+    presupuestos: [{ type: Schema.Types.ObjectId, ref: "Presupuesto" }],
+    presupuestosNumeros: { type: [String], default: [] },
     lineas: { type: [lineaSchema], default: [] }, // mano de obra y materiales a facturar
     total: { type: Number, default: 0 }, // total con IVA de las líneas
     // Trabajo de compañía de seguros: la aseguradora lleva las condiciones

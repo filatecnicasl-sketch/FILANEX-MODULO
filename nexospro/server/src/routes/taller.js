@@ -80,20 +80,18 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
       .lean();
     const ordenIds = ordenes.map((o) => o._id);
 
-    // Presupuestos vinculados a esas órdenes
-    const presupuestos = await Presupuesto.find({
-      $or: [
-        { _id: { $in: ordenes.map((o) => o.presupuesto).filter(Boolean) } },
-        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
-      ],
-    })
-      .sort({ createdAt: -1 })
-      .lean();
+    const idsPresupuestosOrden = ordenes.flatMap((o) => [
+      o.presupuesto,
+      ...(o.presupuestos ?? []),
+    ]).filter(Boolean);
 
     // Albaranes vinculados a esas órdenes
     const albaranes = await AlbaranVenta.find({
       $or: [
         { ordenTrabajo: { $in: ordenIds } },
+        { "origen.ordenTrabajo": { $in: ordenIds } },
+        { "origen.presupuesto": { $in: idsPresupuestosOrden } },
+        { "origen.presupuestos": { $in: idsPresupuestosOrden } },
         { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
       ],
     })
@@ -104,6 +102,29 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
     const facturas = await FacturaVenta.find({
       $or: [
         { "origen.ordenTrabajo": { $in: ordenIds } },
+        { "origen.presupuesto": { $in: idsPresupuestosOrden } },
+        { "origen.presupuestos": { $in: idsPresupuestosOrden } },
+        { "origen.albaranes": { $in: albaranes.map((a) => a._id) } },
+        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const idsPresupuestos = [
+      ...idsPresupuestosOrden,
+      ...albaranes.flatMap((a) => [
+        a.origen?.presupuesto,
+        ...(a.origen?.presupuestos ?? []),
+      ]),
+      ...facturas.flatMap((f) => [
+        f.origen?.presupuesto,
+        ...(f.origen?.presupuestos ?? []),
+      ]),
+    ].filter(Boolean);
+    const presupuestos = await Presupuesto.find({
+      $or: [
+        { _id: { $in: idsPresupuestos } },
         { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
       ],
     })
@@ -217,23 +238,26 @@ router.post("/ordenes", async (req, res, next) => {
   try {
     const { matricula } = req.body;
     if (!matricula) return res.status(400).json({ error: "La matrícula es obligatoria" });
-    let pto = null;
-    if (req.body.presupuesto) {
+    const ids = [...new Set([
+      ...(Array.isArray(req.body.presupuestos) ? req.body.presupuestos : []),
+      req.body.presupuesto,
+    ].filter(Boolean).map(String))];
+    const ptos = [];
+    for (const id of ids) {
       const { presupuesto, error, codigo } = await validarPresupuestoVinculable(
-        OrdenTrabajo,
-        req.body.presupuesto,
-        null,
-        req.body.cliente
+        OrdenTrabajo, id, null, req.body.cliente
       );
       if (error) return res.status(codigo).json({ error });
-      pto = presupuesto;
+      ptos.push(presupuesto);
     }
     const orden = await crearOrden({
       ...req.body,
-      presupuesto: pto?._id,
-      presupuestoNumero: pto?.serieNumero,
+      presupuesto: ptos[0]?._id,
+      presupuestoNumero: ptos[0]?.serieNumero,
+      presupuestos: ptos.map((p) => p._id),
+      presupuestosNumeros: ptos.map((p) => p.serieNumero),
     });
-    if (pto) await marcarPresupuestoAceptado(pto);
+    await Promise.all(ptos.map(marcarPresupuestoAceptado));
     res.status(201).json(orden);
   } catch (err) {
     next(err);
@@ -252,28 +276,34 @@ router.put("/ordenes/:id", async (req, res, next) => {
       cambios.fechaEntrada = req.body.fechaEntrada ? new Date(req.body.fechaEntrada) : null;
     }
     if (req.body.cliente !== undefined) cambios.cliente = req.body.cliente || null;
-    // Vincular/desvincular el presupuesto del que nace la orden.
-    if (req.body.presupuesto !== undefined) {
-      if (!req.body.presupuesto) {
+    if (req.body.presupuestos !== undefined || req.body.presupuesto !== undefined) {
+      const ids = [...new Set([
+        ...(Array.isArray(req.body.presupuestos) ? req.body.presupuestos : []),
+        req.body.presupuesto,
+      ].filter(Boolean).map(String))];
+      if (ids.length === 0) {
         cambios.presupuesto = null;
         cambios.presupuestoNumero = null;
+        cambios.presupuestos = [];
+        cambios.presupuestosNumeros = [];
       } else {
-        // El cliente efectivo: el nuevo si se cambia en esta misma llamada,
-        // si no el que ya tiene la orden guardada.
         let clienteEfectivo = req.body.cliente;
         if (clienteEfectivo === undefined) {
           clienteEfectivo = (await OrdenTrabajo.findById(req.params.id).lean())?.cliente;
         }
-        const { presupuesto: pto, error: errPto, codigo } = await validarPresupuestoVinculable(
-          OrdenTrabajo,
-          req.body.presupuesto,
-          req.params.id,
-          clienteEfectivo
-        );
-        if (errPto) return res.status(codigo).json({ error: errPto });
-        cambios.presupuesto = pto._id;
-        cambios.presupuestoNumero = pto.serieNumero;
-        await marcarPresupuestoAceptado(pto);
+        const ptos = [];
+        for (const id of ids) {
+          const { presupuesto: pto, error: errPto, codigo } = await validarPresupuestoVinculable(
+            OrdenTrabajo, id, req.params.id, clienteEfectivo
+          );
+          if (errPto) return res.status(codigo).json({ error: errPto });
+          ptos.push(pto);
+        }
+        cambios.presupuesto = ptos[0]._id;
+        cambios.presupuestoNumero = ptos[0].serieNumero;
+        cambios.presupuestos = ptos.map((p) => p._id);
+        cambios.presupuestosNumeros = ptos.map((p) => p.serieNumero);
+        await Promise.all(ptos.map(marcarPresupuestoAceptado));
       }
     }
     if (Array.isArray(lineas)) {
@@ -401,16 +431,26 @@ router.post("/ordenes/:id/facturar", async (req, res, next) => {
       ...totales,
       descripcion: detalleFactura,
       vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      origen: { ordenTrabajo: orden._id, presupuesto: orden.presupuesto || undefined },
+      origen: {
+        ordenTrabajo: orden._id,
+        presupuesto: orden.presupuesto || orden.presupuestos?.[0] || undefined,
+        presupuestos: [...new Set([
+          ...(orden.presupuestos ?? []).map(String),
+          orden.presupuesto ? String(orden.presupuesto) : null,
+        ].filter(Boolean))],
+      },
     });
 
     orden.factura = factura._id;
     orden.total = totales.total;
     await orden.save();
 
-    // El presupuesto que originó la OT queda facturado con la misma factura.
-    if (orden.presupuesto) {
-      await Presupuesto.findByIdAndUpdate(orden.presupuesto, {
+    const idsPresupuestos = [...new Set([
+      ...(orden.presupuestos ?? []).map(String),
+      orden.presupuesto ? String(orden.presupuesto) : null,
+    ].filter(Boolean))];
+    if (idsPresupuestos.length > 0) {
+      await Presupuesto.updateMany({ _id: { $in: idsPresupuestos } }, {
         estado: "facturado",
         facturaVenta: factura._id,
       });
@@ -1214,6 +1254,8 @@ async function crearOrden(datos) {
     facturarA: datos.aseguradora && datos.facturarA === "aseguradora" ? "aseguradora" : "cliente",
     presupuesto: datos.presupuesto || undefined,
     presupuestoNumero: datos.presupuestoNumero || undefined,
+    presupuestos: datos.presupuestos ?? (datos.presupuesto ? [datos.presupuesto] : []),
+    presupuestosNumeros: datos.presupuestosNumeros ?? (datos.presupuestoNumero ? [datos.presupuestoNumero] : []),
   });
 }
 

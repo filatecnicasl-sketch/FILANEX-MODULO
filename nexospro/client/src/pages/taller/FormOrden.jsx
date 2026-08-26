@@ -146,7 +146,10 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
     aseguradora: orden?.aseguradora?._id ?? orden?.aseguradora ?? "",
     numeroSiniestro: orden?.numeroSiniestro ?? "",
     facturarA: orden?.facturarA ?? "cliente",
-    presupuesto: orden?.presupuesto?._id ?? orden?.presupuesto ?? "",
+    presupuestos: [...new Set([
+      ...(orden?.presupuestos ?? []).map((p) => String(p?._id ?? p)),
+      orden?.presupuesto ? String(orden.presupuesto?._id ?? orden.presupuesto) : null,
+    ].filter(Boolean))],
   }));
   const [presupuestos, setPresupuestos] = useState([]); // abiertos del cliente (vinculables)
   const [lineas, setLineas] = useState(() =>
@@ -190,29 +193,31 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
     setForm((f) => {
       const siguiente = { ...f, vehiculoId: id };
       if (v?.cliente) siguiente.clienteId = v.cliente;
-      if (String(siguiente.clienteId ?? "") !== String(f.clienteId ?? "")) siguiente.presupuesto = "";
+      if (String(siguiente.clienteId ?? "") !== String(f.clienteId ?? "")) siguiente.presupuestos = [];
       return siguiente;
     });
   }
 
   function elegirCliente(id) {
     const c = clientes.find((x) => x._id === id);
-    setForm((f) => ({ ...f, clienteId: id, telefono: c?.telefono ?? f.telefono, presupuesto: "" }));
+    setForm((f) => ({ ...f, clienteId: id, telefono: c?.telefono ?? f.telefono, presupuestos: [] }));
   }
 
-  // Carga las líneas del presupuesto elegido en el editor de la orden.
-  function cargarLineasPresupuesto() {
-    const p = presupuestos.find((x) => String(x._id) === String(form.presupuesto));
-    if (!p) return;
+  function alternarPresupuesto(p) {
+    const id = String(p._id);
+    const marcado = form.presupuestos.includes(id);
+    if (marcado) {
+      setForm((f) => ({ ...f, presupuestos: f.presupuestos.filter((x) => x !== id) }));
+      return;
+    }
     const nuevas = (p.lineas ?? []).filter((l) => l.descripcion).map((l) => ({ ...l }));
-    if (nuevas.length === 0) return;
-    setLineas((ls) => {
-      const actuales = ls.filter((l) => l.descripcion);
-      if (actuales.length > 0 && !window.confirm(`La orden ya tiene ${actuales.length} línea(s). ¿Añadir las ${nuevas.length} del presupuesto ${p.serieNumero} al final?`)) {
-        return ls;
-      }
-      return [...actuales, ...nuevas];
-    });
+    const actuales = lineas.filter((l) => l.descripcion);
+    if (nuevas.length > 0 && actuales.length > 0 &&
+        !window.confirm(`La orden ya tiene ${actuales.length} línea(s). ¿Añadir las ${nuevas.length} del presupuesto ${p.serieNumero}?`)) {
+      return;
+    }
+    setForm((f) => ({ ...f, presupuestos: [...f.presupuestos, id] }));
+    if (nuevas.length > 0) setLineas([...actuales, ...nuevas]);
   }
 
   function alternarTrabajo(t) {
@@ -264,7 +269,8 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
         aseguradora: form.aseguradora || null,
         numeroSiniestro: form.numeroSiniestro.trim() || undefined,
         facturarA: form.aseguradora ? form.facturarA : "cliente",
-        presupuesto: form.presupuesto || null,
+        presupuesto: form.presupuestos[0] || null,
+        presupuestos: form.presupuestos,
       };
       const r = await fetch(editando ? `/api/taller/ordenes/${orden._id}` : "/api/taller/ordenes", {
         method: editando ? "PUT" : "POST",
@@ -432,47 +438,32 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
             />
           </div>
 
-          {/* Presupuesto del que nace la orden (abierto, del cliente). Al
-              vincularlo queda aceptado y se pueden cargar sus líneas. */}
-          {(presupuestos.length > 0 || form.presupuesto) && (
+          {(presupuestos.length > 0 || form.presupuestos.length > 0) && (
             <fieldset className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3">
-              <legend className="text-xs uppercase tracking-wider text-violet-300 px-1">Presupuesto</legend>
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="flex-1 min-w-[220px]">
-                  <select
-                    className={campo}
-                    value={form.presupuesto}
-                    onChange={(e) => poner("presupuesto", e.target.value)}
-                  >
-                    <option value="">Sin presupuesto</option>
-                    {presupuestos.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.serieNumero} · {new Date(p.fecha).toLocaleDateString("es-ES")} · {p.total?.toFixed(2)} €
-                      </option>
-                    ))}
-                    {/* El vinculado puede no salir en la lista (p.ej. ya facturado) */}
-                    {form.presupuesto &&
-                      !presupuestos.some((p) => String(p._id) === String(form.presupuesto)) && (
-                        <option value={form.presupuesto}>
-                          {orden?.presupuestoNumero ?? "Presupuesto vinculado"}
-                        </option>
-                      )}
-                  </select>
-                </div>
-                {form.presupuesto &&
-                  presupuestos.some((p) => String(p._id) === String(form.presupuesto)) && (
-                    <button
-                      type="button"
-                      onClick={cargarLineasPresupuesto}
-                      className="btn-ghost !py-2 !px-3.5 text-xs whitespace-nowrap"
-                    >
-                      ⇩ Cargar sus líneas en la orden
-                    </button>
-                  )}
+              <legend className="text-xs uppercase tracking-wider text-violet-300 px-1">Presupuestos vinculados</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {presupuestos.map((p) => (
+                  <label key={p._id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-violet-400/20 px-3 py-2 text-sm text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={form.presupuestos.includes(String(p._id))}
+                      onChange={() => alternarPresupuesto(p)}
+                    />
+                    <span>{p.serieNumero} · {new Date(p.fecha).toLocaleDateString("es-ES")} · {p.total?.toFixed(2)} €</span>
+                  </label>
+                ))}
+                {form.presupuestos
+                  .filter((id) => !presupuestos.some((p) => String(p._id) === id))
+                  .map((id, indice) => (
+                    <label key={id} className="flex items-center gap-2 rounded-lg border border-violet-400/20 px-3 py-2 text-sm text-slate-300">
+                      <input type="checkbox" checked onChange={() => setForm((f) => ({ ...f, presupuestos: f.presupuestos.filter((x) => x !== id) }))} />
+                      <span>{orden?.presupuestosNumeros?.[indice] ?? orden?.presupuestoNumero ?? "Presupuesto vinculado"}</span>
+                    </label>
+                  ))}
               </div>
-              {form.presupuesto && (
+              {form.presupuestos.length > 0 && (
                 <p className="text-[0.6875rem] text-violet-300/80 mt-1.5">
-                  Al guardar, el presupuesto queda vinculado y aceptado; al facturar la orden se marca facturado.
+                  Los presupuestos seleccionados quedan vinculados y aceptados; al facturar la orden se marcan facturados.
                 </p>
               )}
             </fieldset>

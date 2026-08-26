@@ -77,6 +77,7 @@ const facturaVentaSchema = new Schema(
     remesa: { type: Schema.Types.ObjectId, ref: "Remesa" },
     origen: {
       presupuesto: { type: Schema.Types.ObjectId, ref: "Presupuesto" },
+      presupuestos: [{ type: Schema.Types.ObjectId, ref: "Presupuesto" }],
       albaranes: [{ type: Schema.Types.ObjectId, ref: "AlbaranVenta" }],
       recurrencia: { type: Schema.Types.ObjectId, ref: "Recurrencia" },
       ordenTrabajo: { type: Schema.Types.ObjectId, ref: "OrdenTrabajo", index: true },

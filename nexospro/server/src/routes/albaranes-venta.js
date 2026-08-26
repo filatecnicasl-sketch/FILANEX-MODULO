@@ -2,6 +2,7 @@ import { Router } from "express";
 import AlbaranVenta from "../models/AlbaranVenta.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import Empresa from "../models/Empresa.js";
+import Presupuesto from "../models/Presupuesto.js";
 import { calcularTotales, limpiarLineas } from "../services/totales.js";
 import { metodoPagoDefecto } from "../services/metodos-pago.js";
 import { tomarNumero } from "../services/numeracion.js";
@@ -111,6 +112,14 @@ router.post("/facturar", async (req, res, next) => {
     const empresa = await Empresa.findOne();
     // Dirección de entrega: la del primer albarán que la tenga.
     const conEntrega = albaranes.find((a) => a.direccionEntrega?.calle);
+    const idsPresupuestos = [...new Set(albaranes.flatMap((a) => [
+      a.origen?.presupuesto ? String(a.origen.presupuesto) : null,
+      ...(a.origen?.presupuestos ?? []).map(String),
+    ]).filter(Boolean))];
+    const ordenes = [...new Set(albaranes
+      .map((a) => a.origen?.ordenTrabajo)
+      .filter(Boolean)
+      .map(String))];
     const factura = await FacturaVenta.create({
       empresa: albaranes[0].empresa,
       cliente: albaranes[0].cliente,
@@ -120,12 +129,23 @@ router.post("/facturar", async (req, res, next) => {
       metodoPago: metodoPagoDefecto(empresa),
       // Vencimiento por defecto: 30 días desde la creación de la factura.
       vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      origen: { albaranes: albaranes.map((a) => a._id) },
+      origen: {
+        albaranes: albaranes.map((a) => a._id),
+        presupuesto: idsPresupuestos[0],
+        presupuestos: idsPresupuestos,
+        ordenTrabajo: ordenes.length === 1 ? ordenes[0] : undefined,
+      },
     });
     await AlbaranVenta.updateMany(
       { _id: { $in: ids } },
       { estado: "facturado", facturaVenta: factura._id }
     );
+    if (idsPresupuestos.length > 0) {
+      await Presupuesto.updateMany(
+        { _id: { $in: idsPresupuestos } },
+        { estado: "facturado", facturaVenta: factura._id }
+      );
+    }
     res.status(201).json(factura);
   } catch (err) {
     next(err);

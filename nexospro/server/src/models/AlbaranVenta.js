@@ -22,6 +22,11 @@ const albaranVentaSchema = new Schema(
       default: "pendiente",
     },
     facturaVenta: { type: Schema.Types.ObjectId, ref: "FacturaVenta" },
+    origen: {
+      ordenTrabajo: { type: Schema.Types.ObjectId, ref: "OrdenTrabajo" },
+      presupuesto: { type: Schema.Types.ObjectId, ref: "Presupuesto" },
+      presupuestos: [{ type: Schema.Types.ObjectId, ref: "Presupuesto" }],
+    },
     // Firma de entrega del material (tableta/móvil): acredita quién recoge.
     firmaEntrega: {
       nombre: String,
