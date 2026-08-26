@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
@@ -416,8 +417,22 @@ function DocumentoItem({ doc, tipo, onFoto }) {
     devuelto: "bg-slate-100 text-slate-600",
   };
 
-  return (
-    <li className="rounded-xl border border-slate-200 bg-white p-4">
+  // Ruta para abrir el documento según su tipo
+  const rutas = {
+    ordenes: `/taller/ordenes/${doc._id}`,
+    presupuestos: `/presupuestos/${doc._id}`,
+    albaranes: `/albaranes/${doc._id}`,
+    facturas: `/ventas/${doc._id}`,
+    citas: `/taller/agenda`,
+    valoraciones: `/taller/valoraciones/${doc._id}`,
+    cortesias: `/taller/cortesia`,
+  };
+
+  const ruta = rutas[tipo];
+  const esClickable = ruta && !ruta.endsWith("/agenda") && !ruta.endsWith("/cortesia");
+
+  const contenido = (
+    <>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <span className="text-sm font-bold text-slate-800">{numero}</span>
@@ -446,7 +461,7 @@ function DocumentoItem({ doc, tipo, onFoto }) {
       {doc.fotos?.length > 0 && (
         <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2.5">
           {doc.fotos.map((f) => (
-            <button key={f} type="button" onClick={() => onFoto(f)} className="group">
+            <button key={f} type="button" onClick={(e) => { e.stopPropagation(); onFoto(f); }} className="group">
               <img
                 src={f}
                 alt="Foto"
@@ -456,6 +471,25 @@ function DocumentoItem({ doc, tipo, onFoto }) {
           ))}
         </div>
       )}
+    </>
+  );
+
+  if (esClickable) {
+    return (
+      <li>
+        <Link
+          to={ruta}
+          className="block rounded-xl border border-slate-200 bg-white p-4 hover:shadow-md hover:border-accent/30 transition-all"
+        >
+          {contenido}
+        </Link>
+      </li>
+    );
+  }
+
+  return (
+    <li className="rounded-xl border border-slate-200 bg-white p-4">
+      {contenido}
     </li>
   );
 }
