@@ -32,7 +32,9 @@ const permitidos = new Set([
 app.use(cors({
   origin(origin, cb) {
     if (!origin || permitidos.has(origin)) return cb(null, true);
-    cb(new Error(`Origen no permitido: ${origin}`));
+    const error = new Error("Origen no permitido");
+    error.status = 403;
+    cb(error);
   },
   credentials: true,
 }));
@@ -59,13 +61,15 @@ const limitadorApi = rateLimit({
 // El router sirve tanto /uploads/* como /cert/*.
 app.use(uploadsRouter);
 
+// Health check: debe responder incluso cuando se sirve el frontend compilado.
+const responderHealth = (req, res) => {
+  res.json({ ok: true, servicio: "nexospro-api", version: "0.1.0" });
+};
+app.get("/health", responderHealth);
+app.get("/api/health", responderHealth);
+
 // API protegida por rate limiting general.
 app.use("/api", limitadorApi, apiRouter);
-
-// Health check: debe responder incluso cuando se sirve el frontend compilado.
-app.get("/health", (req, res) => {
-  res.json({ ok: true, servicio: "nexospro-api", version: "0.1.0" });
-});
 
 // Producción: la API sirve también el cliente compilado (client/dist).
 // Así todo NEXOSPRO corre en un único puerto y un único proceso.
@@ -92,6 +96,9 @@ if (fs.existsSync(distDir)) {
 app.use((err, req, res, next) => {
   if (err?.name === "MongooseError") {
     return res.status(503).json({ error: "Base de datos no disponible" });
+  }
+  if (err?.status === 403) {
+    return res.status(403).json({ error: err.message });
   }
   console.error(err);
   res.status(500).json({ error: "Error interno del servidor" });
