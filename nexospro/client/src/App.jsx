@@ -58,6 +58,15 @@ import AsesoriaCierresPage from "./pages/asesoria/AsesoriaCierresPage.jsx";
 import AdminTenantsPage from "./pages/AdminTenantsPage.jsx";
 
 // Abre la aplicación en el módulo de inicio elegido (Sistema → Módulos).
+// Cada clave de inicio corresponde a una ruta real de la aplicación.
+const RUTAS_INICIO = {
+  taller: "/taller",
+  telefonia: "/telefonia",
+  servicio: "/servicio",
+  asesoria: "/asesoria",
+  agenda: "/agenda",
+};
+
 function InicioRedirect() {
   const [destino, setDestino] = useState(null);
   useEffect(() => {
@@ -65,11 +74,21 @@ function InicioRedirect() {
       .then((r) => (r.ok ? r.json() : null))
       .then((e) => {
         const inicio = e?.moduloInicio ?? "panel";
-        setDestino(inicio !== "panel" && (e?.modulos ?? []).includes(inicio) ? `/${inicio}` : null);
+        // La agenda siempre está disponible; los módulos solo si están activos.
+        const permitida =
+          RUTAS_INICIO[inicio] &&
+          (inicio === "agenda" || (e?.modulos ?? []).includes(inicio));
+        setDestino(permitida ? RUTAS_INICIO[inicio] : "/tesoreria");
       })
-      .catch(() => setDestino(null));
+      .catch(() => setDestino("/tesoreria"));
   }, []);
-  if (destino === null) return <Navigate to="/tesoreria" replace />; // por defecto, tesorería
+  if (destino === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-400 text-sm">Cargando…</p>
+      </div>
+    );
+  }
   return <Navigate to={destino} replace />;
 }
 

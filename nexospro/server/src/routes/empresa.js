@@ -145,9 +145,9 @@ router.put("/", async (req, res, next) => {
     if (direccion !== undefined) empresa.direccion = direccion;
     if (logoUrl !== undefined) empresa.logoUrl = logoUrl;
     if (moduloInicio !== undefined) {
-      const validos = ["panel", ...(empresa.modulos ?? [])];
+      const validos = ["panel", "agenda", ...(empresa.modulos ?? [])];
       if (!validos.includes(moduloInicio)) {
-        return res.status(400).json({ error: "El módulo de inicio debe ser el panel o un módulo activo" });
+        return res.status(400).json({ error: "El módulo de inicio debe ser el panel, la agenda o un módulo activo" });
       }
       empresa.moduloInicio = moduloInicio;
     }

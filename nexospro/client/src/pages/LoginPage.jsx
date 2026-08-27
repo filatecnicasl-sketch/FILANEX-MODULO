@@ -7,7 +7,7 @@ import { LogoFX } from "../components/icons.jsx";
 export default function LoginPage() {
   const [estado, setEstado] = useState(null); // {usuarios, empresa}
   const [modo, setModo] = useState("login"); // login | bootstrap
-  const [form, setForm] = useState({ nombre: "", email: "", password: "" });
+  const [form, setForm] = useState({ nombre: "", email: "", password: "", recordar: true });
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
 
@@ -36,7 +36,7 @@ export default function LoginPage() {
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo iniciar sesión");
-      guardarToken(datos.token);
+      guardarToken(datos.token, datos.recordar);
       location.reload(); // recarga limpia con la sesión ya activa
     } catch (err) {
       setError(err.message);
@@ -98,6 +98,18 @@ export default function LoginPage() {
               required
             />
           </div>
+
+          {!esBootstrap && (
+            <label className="flex items-center gap-2 text-sm text-slate-300 select-none cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.recordar}
+                onChange={(e) => setForm((f) => ({ ...f, recordar: e.target.checked }))}
+                className="h-4 w-4 accent-accent"
+              />
+              Mantener sesión iniciada en este dispositivo
+            </label>
+          )}
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
 

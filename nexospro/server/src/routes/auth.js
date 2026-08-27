@@ -22,7 +22,7 @@ const limitadorAuth = rateLimit({
   message: { error: "Demasiados intentos. Espera unos minutos." },
 });
 
-function tokenDe(cuenta, tenant) {
+function tokenDe(cuenta, tenant, segundosExp) {
   return firmarToken({
     sub: String(cuenta._id),
     nombre: cuenta.nombre,
@@ -33,7 +33,7 @@ function tokenDe(cuenta, tenant) {
     t: tenant.slug,
     tid: String(tenant._id),
     db: tenant.dbName,
-  });
+  }, segundosExp);
 }
 
 function publico(cuenta, tenant) {
@@ -61,7 +61,11 @@ router.get("/estado", async (req, res, next) => {
   }
 });
 
-// Inicio de sesión: email + contraseña → token de 12 horas con la empresa.
+// Inicio de sesión: email + contraseña → token con la empresa.
+// "recordar": token de 30 días para el móvil/tablet propio; sin marcar, 12 horas.
+const EXP_NORMAL = 12 * 60 * 60;
+const EXP_RECORDAR = 30 * 24 * 60 * 60;
+
 router.post("/login", limitadorAuth, async (req, res, next) => {
   try {
     const correo = String(req.body.email ?? "").trim().toLowerCase();
@@ -81,7 +85,12 @@ router.post("/login", limitadorAuth, async (req, res, next) => {
     cuenta.sesion = crypto.randomUUID();
     cuenta.ultimoAcceso = new Date();
     await cuenta.save();
-    res.json({ token: tokenDe(cuenta, tenant), usuario: publico(cuenta, tenant) });
+    const duracion = req.body.recordar ? EXP_RECORDAR : EXP_NORMAL;
+    res.json({
+      token: tokenDe(cuenta, tenant, duracion),
+      recordar: !!req.body.recordar,
+      usuario: publico(cuenta, tenant),
+    });
   } catch (err) {
     next(err);
   }

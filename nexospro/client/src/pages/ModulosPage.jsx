@@ -72,6 +72,7 @@ export default function ModulosPage() {
   const activos = empresa.modulos ?? [];
   const opcionesInicio = [
     { clave: "panel", nombre: "Panel principal", descripcion: "Resumen del ERP (ventas, compras, facturas)" },
+    { clave: "agenda", nombre: "Agenda", descripcion: "Calendario y citas: ideal si trabajas cada día con la agenda" },
     ...catalogo
       .filter((m) => m.disponible && activos.includes(m.clave))
       .map((m) => ({

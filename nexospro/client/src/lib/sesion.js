@@ -12,6 +12,9 @@ const CLAVE_TOKEN = "filanex-token";
 // En condiciones normales manda sessionStorage (sesiones independientes por
 // pestaña); la copia se usa únicamente si la pestaña es nueva y no hay red.
 const CLAVE_TOKEN_OFFLINE = "filanex-token-offline";
+// Sesión persistente (opción "Mantener sesión iniciada"): pensada para el
+// móvil o tablet propio. Manda sobre sessionStorage si existe.
+const CLAVE_TOKEN_RECORDAR = "filanex-token-recordar";
 
 function getStorage() {
   try {
@@ -32,6 +35,13 @@ function getLocal() {
 export function obtenerToken() {
   const enPestana = getStorage()?.getItem(CLAVE_TOKEN);
   if (enPestana) return enPestana;
+  // Sesión persistente: el usuario marcó "Mantener sesión iniciada"
+  // (típico del móvil). Se recupera en cualquier pestaña o apertura de la app.
+  const recordada = getLocal()?.getItem(CLAVE_TOKEN_RECORDAR);
+  if (recordada) {
+    getStorage()?.setItem(CLAVE_TOKEN, recordada);
+    return recordada;
+  }
   // Sin sesión en esta pestaña y sin internet: recuperamos la última sesión
   // del equipo para que la app abra offline (no se puede hacer login sin red).
   if (navigator.onLine) return null;
@@ -65,14 +75,20 @@ export function esSuperAdmin() {
   return !!payloadToken()?.superadmin;
 }
 
-export function guardarToken(token) {
+export function guardarToken(token, recordar = false) {
   getStorage()?.setItem(CLAVE_TOKEN, token);
   getLocal()?.setItem(CLAVE_TOKEN_OFFLINE, token);
+  if (recordar) {
+    getLocal()?.setItem(CLAVE_TOKEN_RECORDAR, token);
+  } else {
+    getLocal()?.removeItem(CLAVE_TOKEN_RECORDAR);
+  }
 }
 
 export function cerrarSesion() {
   getStorage()?.removeItem(CLAVE_TOKEN);
   getLocal()?.removeItem(CLAVE_TOKEN_OFFLINE);
+  getLocal()?.removeItem(CLAVE_TOKEN_RECORDAR);
   location.reload();
 }
 
@@ -131,6 +147,7 @@ export function instalarFetchConSesion() {
       // Sesión caducada o inválida: fuera el token y a la pantalla de login.
       if (resp.status === 401 && url.startsWith("/api") && !url.startsWith("/api/auth/")) {
         getStorage()?.removeItem(CLAVE_TOKEN);
+        getLocal()?.removeItem(CLAVE_TOKEN_RECORDAR);
         location.reload();
       }
       return resp;
