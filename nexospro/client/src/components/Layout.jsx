@@ -72,6 +72,7 @@ const gruposBase = [
       { to: "/modulos", etiqueta: "Módulos", Icono: IconModulos, tono: "cyan" },
       { to: "/series", etiqueta: "Series", Icono: IconSeries, tono: "indigo" },
       { to: "/notificaciones", etiqueta: "Notificaciones", Icono: IconNotificaciones, tono: "amber" },
+      { to: "/whatsapp", etiqueta: "WhatsApp", Icono: IconTelefono, tono: "emerald" },
       { to: "/certificado", etiqueta: "Certificado", Icono: IconCertificado, tono: "teal" },
       { to: "/formatos", etiqueta: "Formatos", Icono: IconFormatos, tono: "sky" },
       { to: "/usuarios", etiqueta: "Usuarios", Icono: IconUsuarios, tono: "violet" },

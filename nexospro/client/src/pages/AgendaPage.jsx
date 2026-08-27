@@ -4,6 +4,7 @@ import Calendario, { aFechaInput } from "../components/Calendario.jsx";
 import SelectorContacto from "../components/SelectorContacto.jsx";
 import BotonVoz from "../components/BotonVoz.jsx";
 import AltaRapidaCliente from "../components/AltaRapidaCliente.jsx";
+import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 
 const campo = "input w-full";
 
@@ -60,9 +61,10 @@ function EventoModal({
     horaFin: evento?.horaFin ?? horario.horaFin,
     tipo: evento?.tipo ?? "reunion",
     titulo: evento?.titulo ?? "",
-    clienteId: evento?.cliente ?? "",
+    clienteId: evento?.cliente?._id ?? evento?.cliente ?? "",
     clienteNombre: evento?.clienteNombre ?? "",
     telefono: evento?.telefono ?? "",
+    whatsappAutorizado: evento?.whatsappAutorizado ?? false,
     lugar: evento?.lugar ?? "",
     estado: evento?.estado ?? "pendiente",
     notas: evento?.notas ?? "",
@@ -83,6 +85,7 @@ function EventoModal({
       clienteId: id,
       clienteNombre: c?.nombre ?? f.clienteNombre,
       telefono: c?.telefono ?? f.telefono,
+      whatsappAutorizado: c?.comunicaciones?.whatsapp?.autorizado ?? false,
     }));
   }
 
@@ -125,6 +128,15 @@ function EventoModal({
       <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {evento ? `Evento ${aFechaInput(evento.fecha)} ${evento.hora}` : "Nuevo evento"}
+          {evento && (
+            <EnviarWhatsApp
+              telefono={evento.telefono}
+              cliente={evento.cliente?._id ?? evento.cliente}
+              clienteNombre={evento.clienteNombre}
+              tipo="cliente"
+              id={evento._id}
+            />
+          )}
           {!evento && (
             <BotonVoz
               onResultado={(campos) => {
@@ -239,6 +251,7 @@ function EventoModal({
                       clienteId: c._id,
                       clienteNombre: c.nombre,
                       telefono: c.telefono ?? f.telefono,
+                      whatsappAutorizado: c.comunicaciones?.whatsapp?.autorizado ?? false,
                     }));
                   }}
                 />
@@ -303,6 +316,18 @@ function EventoModal({
               </label>
             )}
           </div>
+          <label className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.whatsappAutorizado}
+              onChange={(e) => actualizar("whatsappAutorizado", e.target.checked)}
+              className="accent-emerald-500 mt-0.5"
+            />
+            <span>
+              El contacto autoriza recordatorios por WhatsApp
+              <span className="block text-xs text-slate-500 mt-0.5">Esta autorización es obligatoria para los envíos automáticos.</span>
+            </span>
+          </label>
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
 

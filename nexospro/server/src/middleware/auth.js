@@ -7,10 +7,20 @@ import Cuenta from "../models/plataforma/Cuenta.js";
 export async function requiereAuth(req, res, next) {
   const m = String(req.headers.authorization ?? "").match(/^Bearer\s+(.+)$/i);
   // EventSource (telefonía SSE) no puede enviar cabeceras: acepta ?sesion=
-  const token = m?.[1] ?? (req.query.sesion ? String(req.query.sesion) : null);
+  const token = m?.[1]
+    ?? (req.query.sesion ? String(req.query.sesion) : null)
+    ?? (req.query.wa ? String(req.query.wa) : null);
   const payload = token ? verificarToken(token) : null;
   if (!payload) {
     return res.status(401).json({ error: "Sesión no válida o caducada. Inicia sesión de nuevo." });
+  }
+  if (payload.tipo === "whatsapp-documento") {
+    const rutaPermitida = `/documentos/${payload.documentoTipo}/${payload.documentoId}/pdf`;
+    if (req.path !== rutaPermitida || !payload.db) {
+      return res.status(401).json({ error: "Enlace de documento no válido." });
+    }
+    req.usuario = payload;
+    return next();
   }
   try {
     // Sesión única: si el usuario entró desde otro dispositivo después, este

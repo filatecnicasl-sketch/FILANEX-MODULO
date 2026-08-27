@@ -81,6 +81,26 @@ const empresaSchema = new Schema(
       ocr: { type: Boolean, default: true },           // documentos OCR pendientes de validar
       agendaEventos: { type: Boolean, default: true },
       minutosAgenda: { type: Number, default: 15 },
+      whatsapp: {
+        agenda: {
+          activo: { type: Boolean, default: true },
+          confirmacion: { type: Boolean, default: true },
+          recordatorios: { type: Boolean, default: true },
+          minutosAntes: { type: Number, default: 1440 },
+        },
+        taller: {
+          activo: { type: Boolean, default: true },
+          confirmacion: { type: Boolean, default: true },
+          recordatorios: { type: Boolean, default: true },
+          minutosAntes: { type: Number, default: 1440 },
+        },
+        servicio: {
+          activo: { type: Boolean, default: true },
+          confirmacion: { type: Boolean, default: true },
+          recordatorios: { type: Boolean, default: true },
+          minutosAntes: { type: Number, default: 1440 },
+        },
+      },
     },
     agendaSeparadaMigrada: { type: Boolean, default: false },
     modulos: { type: [String], default: [] }, // módulos activados (licencia): taller, logistica...

@@ -18,6 +18,7 @@ import { contextoTrasSubida } from "../middleware/empresa.js";
 import { uploadMemoria, borrarSubida } from "../middleware/upload.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
 import { slugActual } from "../models/tenant.js";
+import { sincronizarWhatsAppCita } from "../services/whatsapp.js";
 
 const router = Router();
 
@@ -600,6 +601,8 @@ router.post("/citas", async (req, res, next) => {
       cliente: req.body.cliente || undefined,
       clienteNombre: req.body.clienteNombre || undefined,
       telefono: req.body.telefono || undefined,
+      whatsappAutorizado: req.body.whatsappAutorizado === true,
+      whatsappAutorizadoAt: req.body.whatsappAutorizado === true ? new Date() : undefined,
       aparato: req.body.aparato || undefined,
       aparatoDescripcion: req.body.aparatoDescripcion || undefined,
       direccion: req.body.direccion || undefined,
@@ -607,6 +610,8 @@ router.post("/citas", async (req, res, next) => {
       presupuesto: Boolean(req.body.presupuesto),
       notas: req.body.notas || undefined,
     });
+    await sincronizarWhatsAppCita({ ambito: "servicio", documento: cita, usuario: req.usuario })
+      .catch((error) => console.error("WhatsApp cita servicio:", error.message));
     res.status(201).json(cita);
   } catch (err) {
     next(err);
@@ -615,14 +620,20 @@ router.post("/citas", async (req, res, next) => {
 
 router.put("/citas/:id", async (req, res, next) => {
   try {
-    const { fecha, hora, duracion, clienteNombre, telefono, aparatoDescripcion, direccion, motivo, presupuesto, estado, notas } = req.body;
+    const { fecha, hora, duracion, clienteNombre, telefono, aparatoDescripcion, direccion, motivo, presupuesto, estado, notas, whatsappAutorizado } = req.body;
     if (estado !== undefined && !ESTADOS_CITA.includes(estado)) {
       return res.status(400).json({ error: `Estado no válido. Válidos: ${ESTADOS_CITA.join(", ")}` });
     }
+    const anterior = await Cita.findOne({ _id: req.params.id, ambito: "servicio" }).lean();
+    if (!anterior) return res.status(404).json({ error: "Cita no encontrada" });
     const cambios = { hora, duracion, clienteNombre, telefono, aparatoDescripcion, direccion, motivo, estado, notas };
     if (req.body.cliente !== undefined) cambios.cliente = req.body.cliente || null;
     if (req.body.aparato !== undefined) cambios.aparato = req.body.aparato || null;
     if (presupuesto !== undefined) cambios.presupuesto = Boolean(presupuesto);
+    if (whatsappAutorizado !== undefined) {
+      cambios.whatsappAutorizado = whatsappAutorizado === true;
+      cambios.whatsappAutorizadoAt = whatsappAutorizado === true ? new Date() : null;
+    }
     if (fecha) {
       const dia = diaLocal(fecha);
       if (!dia) return res.status(400).json({ error: "Fecha no válida" });
@@ -630,6 +641,8 @@ router.put("/citas/:id", async (req, res, next) => {
     }
     const cita = await Cita.findOneAndUpdate({ _id: req.params.id, ambito: "servicio" }, cambios, { new: true, omitUndefined: true });
     if (!cita) return res.status(404).json({ error: "Cita no encontrada" });
+    await sincronizarWhatsAppCita({ ambito: "servicio", documento: cita, anterior, usuario: req.usuario })
+      .catch((error) => console.error("WhatsApp cita servicio:", error.message));
     res.json(cita);
   } catch (err) {
     next(err);
@@ -640,6 +653,10 @@ router.delete("/citas/:id", async (req, res, next) => {
   try {
     const cita = await Cita.findOneAndDelete({ _id: req.params.id, ambito: "servicio" });
     if (!cita) return res.status(404).json({ error: "Cita no encontrada" });
+    const cancelada = cita.toObject();
+    cancelada.estado = "cancelada";
+    await sincronizarWhatsAppCita({ ambito: "servicio", documento: cancelada, anterior: cita, usuario: req.usuario })
+      .catch((error) => console.error("WhatsApp cita servicio:", error.message));
     res.json({ ok: true });
   } catch (err) {
     next(err);

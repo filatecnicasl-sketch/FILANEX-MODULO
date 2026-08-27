@@ -4,6 +4,7 @@ import AgendaEvento, { ESTADOS_EVENTO, TIPOS_EVENTO } from "../models/AgendaEven
 import Cliente from "../models/Cliente.js";
 import Empresa from "../models/Empresa.js";
 import { interpretarEvento } from "../services/interpretar-evento.js";
+import { sincronizarWhatsAppCita } from "../services/whatsapp.js";
 
 // Agenda profesional independiente de las citas de Taller y Servicio Técnico.
 const router = Router();
@@ -188,6 +189,8 @@ router.post("/eventos", async (req, res, next) => {
       cliente: clienteId,
       clienteNombre: req.body.clienteNombre || undefined,
       telefono: req.body.telefono || undefined,
+      whatsappAutorizado: req.body.whatsappAutorizado === true,
+      whatsappAutorizadoAt: req.body.whatsappAutorizado === true ? new Date() : undefined,
       lugar: req.body.lugar || undefined,
       estado,
       notas: req.body.notas || undefined,
@@ -195,6 +198,8 @@ router.post("/eventos", async (req, res, next) => {
       minutosAviso,
       claveHorario: claveHorario(dia, hora, estado),
     });
+    await sincronizarWhatsAppCita({ ambito: "agenda", documento: evento, usuario: req.usuario })
+      .catch((error) => console.error("WhatsApp evento agenda:", error.message));
     res.status(201).json(evento);
   } catch (err) {
     if (err?.code === 11000) {
@@ -208,7 +213,7 @@ router.put("/eventos/:id", async (req, res, next) => {
   try {
     const actual = await AgendaEvento.findById(req.params.id);
     if (!actual) return res.status(404).json({ error: "Evento no encontrado" });
-    const { fecha, hora, horaFin, tipo, titulo, clienteId, clienteNombre, telefono, lugar, estado, notas, avisar, minutosAviso } = req.body;
+    const { fecha, hora, horaFin, tipo, titulo, clienteId, clienteNombre, telefono, lugar, estado, notas, avisar, minutosAviso, whatsappAutorizado } = req.body;
     if (estado !== undefined && !ESTADOS_EVENTO.includes(estado)) {
       return res.status(400).json({ error: `Estado no válido. Válidos: ${ESTADOS_EVENTO.join(", ")}` });
     }
@@ -248,6 +253,10 @@ router.put("/eventos/:id", async (req, res, next) => {
       minutosAviso: minutosAviso !== undefined
         ? Math.max(1, Math.min(240, Number(minutosAviso) || 15))
         : undefined,
+      whatsappAutorizado: whatsappAutorizado !== undefined ? whatsappAutorizado === true : undefined,
+      whatsappAutorizadoAt: whatsappAutorizado !== undefined
+        ? (whatsappAutorizado === true ? new Date() : null)
+        : undefined,
       claveHorario: estadoNuevo === "cancelada"
         ? `cancelada|${actual._id}`
         : claveHorario(dia, horaNueva, estadoNuevo),
@@ -265,6 +274,8 @@ router.put("/eventos/:id", async (req, res, next) => {
       omitUndefined: true,
     });
     if (!evento) return res.status(404).json({ error: "Evento no encontrado" });
+    await sincronizarWhatsAppCita({ ambito: "agenda", documento: evento, anterior: actual.toObject(), usuario: req.usuario })
+      .catch((error) => console.error("WhatsApp evento agenda:", error.message));
     res.json(evento);
   } catch (err) {
     if (err?.code === 11000) {
@@ -278,6 +289,10 @@ router.delete("/eventos/:id", async (req, res, next) => {
   try {
     const evento = await AgendaEvento.findByIdAndDelete(req.params.id);
     if (!evento) return res.status(404).json({ error: "Evento no encontrado" });
+    const cancelado = evento.toObject();
+    cancelado.estado = "cancelada";
+    await sincronizarWhatsAppCita({ ambito: "agenda", documento: cancelado, anterior: evento, usuario: req.usuario })
+      .catch((error) => console.error("WhatsApp evento agenda:", error.message));
     res.json({ ok: true });
   } catch (err) {
     next(err);

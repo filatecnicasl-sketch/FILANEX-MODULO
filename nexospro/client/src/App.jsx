@@ -57,6 +57,7 @@ import AsesoriaSolicitudesPage from "./pages/asesoria/AsesoriaSolicitudesPage.js
 import AsesoriaCierresPage from "./pages/asesoria/AsesoriaCierresPage.jsx";
 import AdminTenantsPage from "./pages/AdminTenantsPage.jsx";
 import PreferenciasPage from "./pages/PreferenciasPage.jsx";
+import WhatsAppPage from "./pages/WhatsAppPage.jsx";
 import { obtenerInicioDispositivo } from "./lib/preferenciaInicio.js";
 
 // Cada clave de inicio corresponde a una ruta real de la aplicación.
@@ -152,6 +153,7 @@ export default function App() {
           <Route path="series" element={<SeriesPage />} />
           <Route path="certificado" element={<CertificadoPage />} />
           <Route path="notificaciones" element={<NotificacionesPage />} />
+          <Route path="whatsapp" element={<WhatsAppPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="actividad" element={<ActividadPage />} />
           <Route path="inicio" element={<PreferenciasPage />} />

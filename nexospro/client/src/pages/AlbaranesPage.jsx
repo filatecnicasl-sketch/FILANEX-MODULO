@@ -6,6 +6,7 @@ import { Badge, InputBusqueda, coincideBusqueda, euros } from "../components/ui.
 import { IconImprimir, IconPdf, IconFirma, IconEditar, IconBorrar } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
+import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 
 // Totales de un albarán a partir de sus líneas (con el descuento % aplicado).
 function totalesDe(a) {
@@ -379,6 +380,14 @@ export default function AlbaranesPage() {
                     </div>
                   </td>
                   <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                    <EnviarWhatsApp
+                      telefono={a.cliente?.telefono}
+                      cliente={a.cliente?._id}
+                      clienteNombre={a.cliente?.nombre}
+                      tipo="albaran"
+                      id={a._id}
+                      numero={a.serieNumero}
+                    />
                     {a.estado === "pendiente" && (
                       <>
                         <button

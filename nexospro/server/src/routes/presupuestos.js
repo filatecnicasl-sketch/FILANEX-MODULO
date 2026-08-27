@@ -12,7 +12,7 @@ const router = Router();
 router.get("/", async (req, res, next) => {
   try {
     const lista = await Presupuesto.find()
-      .populate("cliente", "nombre nif")
+      .populate("cliente", "nombre nif telefono comunicaciones")
       .sort({ createdAt: -1 })
       .limit(200);
     res.json(lista);

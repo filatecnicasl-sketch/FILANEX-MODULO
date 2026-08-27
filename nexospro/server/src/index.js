@@ -8,7 +8,9 @@ import { fileURLToPath } from "node:url";
 import { connectDB } from "./config/db.js";
 import apiRouter from "./routes/index.js";
 import uploadsRouter from "./routes/uploads.js";
+import whatsappWebhook from "./routes/whatsapp-webhook.js";
 import { iniciarReintentoVerifactu } from "./services/verifactu-reintento.js";
+import { iniciarColaWhatsApp } from "./services/whatsapp-cola.js";
 
 import { cerrarPoolPdf } from "./services/pdfRenderer.js";
 
@@ -39,7 +41,14 @@ app.use(cors({
   credentials: true,
 }));
 
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({
+  limit: "2mb",
+  verify(req, res, buffer) {
+    if (req.originalUrl.startsWith("/api/whatsapp/webhook")) req.rawBody = Buffer.from(buffer);
+  },
+}));
+
+app.use("/api/whatsapp/webhook", whatsappWebhook);
 
 // Rate limiting: protege login, bootstrap y la API en general.
 const limitadorAuth = rateLimit({
@@ -108,6 +117,7 @@ const PORT = process.env.PORT || 4700;
 connectDB()
   .then(() => {
     iniciarReintentoVerifactu();
+    iniciarColaWhatsApp();
   })
   .finally(() => {
     const server = app.listen(PORT, () => {

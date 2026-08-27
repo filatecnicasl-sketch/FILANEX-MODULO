@@ -7,6 +7,7 @@ import EditorLineas, { lineaVacia } from "../components/EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import SelectorContacto from "../components/SelectorContacto.jsx";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
+import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 
 const btnIcono =
   "inline-flex items-center justify-center w-6 h-6 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors";
@@ -698,6 +699,14 @@ export default function VentasPage() {
                   </td>
                   <td className="px-3.5 py-3 text-right whitespace-nowrap">
                     <span className="inline-flex items-center gap-0.5">
+                      <EnviarWhatsApp
+                        telefono={f.cliente?.telefono}
+                        cliente={f.cliente?._id}
+                        clienteNombre={f.cliente?.nombre}
+                        tipo="factura"
+                        id={f._id}
+                        numero={f.serieNumero}
+                      />
                       <button
                         onClick={() => setDetalle(f)}
                         title="Ver detalle"

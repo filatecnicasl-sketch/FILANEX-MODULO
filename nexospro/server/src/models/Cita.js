@@ -14,6 +14,8 @@ const citaSchema = new Schema(
     cliente: { type: Schema.Types.ObjectId, ref: "Cliente" }, // agenda general
     clienteNombre: String,
     telefono: String,
+    whatsappAutorizado: { type: Boolean, default: false },
+    whatsappAutorizadoAt: Date,
     vehiculo: { type: Schema.Types.ObjectId, ref: "Vehiculo" },
     matricula: { type: String, uppercase: true, trim: true },
     // SAT: aparato y dirección de la intervención (visitas a domicilio).

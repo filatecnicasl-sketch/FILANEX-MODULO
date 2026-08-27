@@ -3,13 +3,14 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Avatar, EstadoVacio } from "../components/ui.jsx";
 import { IconEditar, IconBorrar, IconImprimir } from "../components/icons.jsx";
 import { imprimirFicha } from "../utils/imprimir.js";
+import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 
 const VACIO = {
   codigo: "", fechaAlta: "", nombre: "", nif: "", telefono: "", email: "",
   calle: "", ciudad: "", cp: "", provincia: "",
   iban: "", banco: "", bic: "",
   entregaCalle: "", entregaCiudad: "", entregaCp: "",
-  esAdministracionPublica: false, notas: "",
+  esAdministracionPublica: false, whatsappAutorizado: false, notas: "",
 };
 
 const aFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
@@ -37,6 +38,7 @@ function FormCliente({ inicial, onGuardado, onCerrar }) {
       entregaCiudad: inicial.direccionEntrega?.ciudad ?? "",
       entregaCp: inicial.direccionEntrega?.cp ?? "",
       esAdministracionPublica: inicial.esAdministracionPublica ?? false,
+      whatsappAutorizado: inicial.comunicaciones?.whatsapp?.autorizado ?? false,
       notas: inicial.notas ?? "",
     };
   });
@@ -65,6 +67,12 @@ function FormCliente({ inicial, onGuardado, onCerrar }) {
         direccion: { calle: form.calle, ciudad: form.ciudad, cp: form.cp, provincia: form.provincia },
         direccionEntrega: { calle: form.entregaCalle, ciudad: form.entregaCiudad, cp: form.entregaCp },
         esAdministracionPublica: form.esAdministracionPublica,
+        comunicaciones: {
+          whatsapp: {
+            autorizado: form.whatsappAutorizado,
+            origen: "ficha_cliente",
+          },
+        },
         notas: form.notas,
       };
       const r = await fetch(editando ? `/api/clientes/${inicial._id}` : "/api/clientes", {
@@ -184,6 +192,21 @@ function FormCliente({ inicial, onGuardado, onCerrar }) {
               className="accent-cyan-400 w-4 h-4"
             />
             Es Administración Pública (factura electrónica FACe)
+          </label>
+
+          <label className="flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.whatsappAutorizado}
+              onChange={(e) => setForm((f) => ({ ...f, whatsappAutorizado: e.target.checked }))}
+              className="accent-emerald-500 w-4 h-4 mt-0.5"
+            />
+            <span>
+              Autoriza comunicaciones por WhatsApp
+              <span className="block text-xs text-slate-500 mt-0.5">
+                Guarda el consentimiento para confirmaciones, recordatorios y documentos.
+              </span>
+            </span>
           </label>
 
           <div>
@@ -365,6 +388,13 @@ export default function ClientesPage() {
                     </td>
                     <td className="text-[0.75rem] text-slate-500 whitespace-nowrap">{aFecha(c.fechaAlta)}</td>
                     <td className="text-right whitespace-nowrap">
+                      <EnviarWhatsApp
+                        telefono={c.telefono}
+                        cliente={c._id}
+                        clienteNombre={c.nombre}
+                        tipo="cliente"
+                        id={c._id}
+                      />
                       <button
                         onClick={() =>
                           imprimirFicha({

@@ -51,7 +51,7 @@ router.get("/", async (req, res, next) => {
       filtro.estado = "emitida";
     }
     const lista = await FacturaVenta.find(filtro)
-      .populate("cliente", "nombre nif iban")
+      .populate("cliente", "nombre nif iban telefono comunicaciones")
       .populate("rectifica", "serieNumero")
       .sort({ createdAt: -1 })
       .limit(200);

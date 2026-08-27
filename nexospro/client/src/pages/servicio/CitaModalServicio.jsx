@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ESTADOS_CITA, aFechaInput } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
+import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 
 const campo = "input w-full";
 
@@ -39,6 +40,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
     cliente: cita?.cliente?._id ?? cita?.cliente ?? "",
     clienteNombre: cita?.clienteNombre ?? "",
     telefono: cita?.telefono ?? "",
+    whatsappAutorizado: cita?.whatsappAutorizado ?? false,
     aparato: cita?.aparato?._id ?? cita?.aparato ?? "",
     aparatoDescripcion: cita?.aparatoDescripcion ?? "",
     // La cita no guarda el lugar: se deduce de si tiene dirección.
@@ -76,13 +78,14 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
       cliente: String(op._id),
       clienteNombre: op.nombre,
       telefono: op.telefono ?? f.telefono,
+      whatsappAutorizado: op.comunicaciones?.whatsapp?.autorizado ?? false,
       direccion: f.lugar === "domicilio" ? dirTexto(op.direccion) || f.direccion : f.direccion,
     }));
   }
 
   // Si se retoca el nombre a mano tras elegirlo, se desvincula el cliente.
   function textoCliente(t) {
-    setForm((f) => ({ ...f, clienteNombre: t, cliente: f.clienteNombre === t ? f.cliente : "" }));
+    setForm((f) => ({ ...f, clienteNombre: t, cliente: "", whatsappAutorizado: false }));
   }
 
   // Selector de aparato dado de alta: "marca modelo · S/N …" con código y
@@ -106,6 +109,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
       cliente: f.cliente || (a?.cliente ? String(a.cliente) : f.cliente),
       clienteNombre: f.clienteNombre || a?.clienteNombre || f.clienteNombre,
       telefono: f.telefono || cli?.telefono || f.telefono,
+      whatsappAutorizado: f.whatsappAutorizado || cli?.comunicaciones?.whatsapp?.autorizado || false,
       direccion: f.lugar === "domicilio" ? f.direccion || dirTexto(cli?.direccion) : f.direccion,
     }));
   }
@@ -171,6 +175,15 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
       <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {cita ? `Cita ${aFechaInput(cita.fecha)} ${cita.hora}` : "Nueva cita"}
+          {cita && (
+            <EnviarWhatsApp
+              telefono={cita.telefono}
+              cliente={cita.cliente?._id ?? cita.cliente}
+              clienteNombre={cita.clienteNombre}
+              tipo="cliente"
+              id={cita._id}
+            />
+          )}
         </h2>
         <form onSubmit={guardar} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -226,6 +239,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
                       cliente: c._id,
                       clienteNombre: c.nombre,
                       telefono: c.telefono ?? f.telefono,
+                      whatsappAutorizado: c.comunicaciones?.whatsapp?.autorizado ?? false,
                     }));
                   }}
                 />
@@ -315,6 +329,18 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
               className="accent-[#2ec4b6]"
             />
             Viene de presupuesto
+          </label>
+          <label className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.whatsappAutorizado}
+              onChange={(e) => actualizar("whatsappAutorizado", e.target.checked)}
+              className="accent-emerald-500 mt-0.5"
+            />
+            <span>
+              El cliente autoriza recordatorios por WhatsApp
+              <span className="block text-xs text-slate-500 mt-0.5">Confirmación al crear y recordatorio según Ajustes → WhatsApp.</span>
+            </span>
           </label>
           <div>
             <label className="text-sm text-slate-400 block mb-1">Notas</label>

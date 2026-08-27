@@ -14,7 +14,7 @@ const upload = multer({
 
 const CAMPOS = [
   "codigo", "fechaAlta", "nombre", "nif", "email", "telefono", "iban", "banco", "bic",
-  "direccion", "direccionEntrega", "esAdministracionPublica", "notas",
+  "direccion", "direccionEntrega", "esAdministracionPublica", "comunicaciones", "notas",
 ];
 
 const limpiarIban = (iban) => iban?.replace(/\s/g, "").toUpperCase() || undefined;
@@ -25,6 +25,15 @@ function limpiar(body) {
     if (body[c] !== undefined) datos[c] = body[c] === "" ? undefined : body[c];
   }
   if (datos.iban) datos.iban = limpiarIban(datos.iban);
+  if (datos.comunicaciones?.whatsapp) {
+    const autorizado = datos.comunicaciones.whatsapp.autorizado === true;
+    datos.comunicaciones.whatsapp = {
+      autorizado,
+      fecha: autorizado ? datos.comunicaciones.whatsapp.fecha || new Date() : undefined,
+      origen: autorizado ? datos.comunicaciones.whatsapp.origen || "ficha_cliente" : undefined,
+      revocadoAt: autorizado ? undefined : new Date(),
+    };
+  }
   return datos;
 }
 

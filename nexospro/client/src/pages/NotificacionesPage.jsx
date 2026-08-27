@@ -174,6 +174,16 @@ export default function NotificacionesPage() {
             </FilaAviso>
           </div>
 
+          <div className="panel p-5 max-w-3xl mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-white font-semibold">Avisos a clientes por WhatsApp</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Configura por separado Agenda, Taller y Servicio Técnico.
+              </p>
+            </div>
+            <Link to="/whatsapp" className="btn-primary shrink-0">Configurar</Link>
+          </div>
+
           <div className="panel p-5 max-w-3xl">
             <h2 className="text-white font-semibold mb-3">Avisos ahora mismo</h2>
             {avisos.length === 0 ? (

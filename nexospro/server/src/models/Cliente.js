@@ -27,6 +27,14 @@ const clienteSchema = new Schema(
       cp: String,
     },
     esAdministracionPublica: { type: Boolean, default: false }, // factura electrónica FACe
+    comunicaciones: {
+      whatsapp: {
+        autorizado: { type: Boolean, default: false },
+        fecha: Date,
+        origen: String,
+        revocadoAt: Date,
+      },
+    },
     notas: String,
   },
   { timestamps: true }

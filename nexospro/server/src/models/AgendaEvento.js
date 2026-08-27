@@ -14,6 +14,8 @@ const agendaEventoSchema = new Schema(
     cliente: { type: Schema.Types.ObjectId, ref: "Cliente" },
     clienteNombre: String,
     telefono: String,
+    whatsappAutorizado: { type: Boolean, default: false },
+    whatsappAutorizadoAt: Date,
     lugar: String,
     estado: { type: String, enum: ESTADOS_EVENTO, default: "pendiente" },
     notas: String,

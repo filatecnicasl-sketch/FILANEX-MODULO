@@ -16,7 +16,7 @@ router.get("/", async (req, res, next) => {
   try {
     const filtro = req.query.estado ? { estado: req.query.estado } : {};
     const lista = await AlbaranVenta.find(filtro)
-      .populate("cliente", "nombre nif")
+      .populate("cliente", "nombre nif telefono comunicaciones")
       .sort({ createdAt: -1 })
       .limit(200);
     res.json(lista);

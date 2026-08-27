@@ -6,6 +6,7 @@ import { Badge, InputBusqueda, coincideBusqueda, euros } from "../components/ui.
 import { IconImprimir, IconPdf } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
+import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 
 const TONO = {
   borrador: "slate",
@@ -149,6 +150,14 @@ export default function PresupuestosPage() {
                   <td className="px-3.5 py-3 text-right text-white">{euros(p.total)}</td>
                   <td className="px-3.5 py-3"><Badge tono={TONO[p.estado]}>{p.estado}</Badge></td>
                   <td className="px-3.5 py-3 text-right space-x-2 whitespace-nowrap">
+                    <EnviarWhatsApp
+                      telefono={p.cliente?.telefono}
+                      cliente={p.cliente?._id}
+                      clienteNombre={p.cliente?.nombre}
+                      tipo="presupuesto"
+                      id={p._id}
+                      numero={p.serieNumero}
+                    />
                     <button
                       onClick={() => imprimirDocumentoRapido("presupuesto-venta", p._id)}
                       title="Imprimir"
