@@ -100,9 +100,16 @@ router.get("/", async (req, res, next) => {
         .lean();
       if (citasHoy.length > 0) {
         const primera = citasHoy[0];
+        const eventos = citasHoy.filter((cita) => cita.ambito === "general").length;
+        const citas = citasHoy.length - eventos;
+        const resumen = [
+          eventos > 0 ? `${eventos} evento(s) de agenda` : "",
+          citas > 0 ? `${citas} cita(s) de taller/servicio` : "",
+        ].filter(Boolean).join(" y ");
+        const tipoProximo = primera.ambito === "general" ? "evento" : "cita";
         avisos.push({
           tipo: "cita",
-          texto: `${citasHoy.length} cita(s) hoy — la próxima a las ${primera.hora}${primera.motivo ? ` (${primera.motivo})` : ""}`,
+          texto: `${resumen} hoy — próximo ${tipoProximo} a las ${primera.hora}${primera.motivo ? ` (${primera.motivo})` : ""}`,
           enlace: "/agenda",
         });
       }

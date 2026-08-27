@@ -152,8 +152,8 @@ export default function NotificacionesPage() {
               onCambio={(v) => setPrefs({ ...prefs, ocr: v })}
             />
             <FilaAviso
-              titulo="Citas de la agenda"
-              descripcion="Avisa con alarma en pantalla unos minutos antes de cada cita (agenda, taller y servicio técnico)"
+              titulo="Eventos de agenda y citas"
+              descripcion="Avisa de los eventos de la agenda de facturación y, por separado, de las citas de taller y servicio técnico"
               activo={prefs.citas}
               onCambio={(v) => setPrefs({ ...prefs, citas: v })}
             >
@@ -168,7 +168,7 @@ export default function NotificacionesPage() {
                     onChange={(e) => setPrefs({ ...prefs, minutosCitas: e.target.value })}
                     className="input !w-20 !py-1 text-right num"
                   />
-                  minutos antes de la cita
+                  minutos antes del evento o la cita
                 </label>
               )}
             </FilaAviso>

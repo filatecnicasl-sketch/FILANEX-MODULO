@@ -53,7 +53,11 @@ function sonar() {
   }
 }
 
-const ETIQUETA_AMBITO = { general: "Agenda", taller: "Taller", servicio: "Servicio técnico" };
+const ETIQUETA_AMBITO = { general: "Agenda de facturación", taller: "Taller", servicio: "Servicio técnico" };
+
+function tipoAviso(ambito) {
+  return ambito === "general" ? "Evento" : "Cita";
+}
 
 export default function AvisosCitas() {
   const [alertas, setAlertas] = useState([]);
@@ -94,8 +98,9 @@ export default function AvisosCitas() {
         setAlertas((actuales) => [...actuales, ...nuevas]);
         if (window.Notification?.permission === "granted") {
           for (const cita of nuevas) {
-            const quien = cita.clienteNombre || cita.matricula || cita.motivo || "Cita";
-            new Notification(`Cita a las ${cita.hora} — ${ETIQUETA_AMBITO[cita.ambito] ?? "Agenda"}`, {
+            const tipo = tipoAviso(cita.ambito);
+            const quien = cita.clienteNombre || cita.matricula || cita.motivo || tipo;
+            new Notification(`${tipo} a las ${cita.hora} — ${ETIQUETA_AMBITO[cita.ambito] ?? "Agenda"}`, {
               body: `${quien}${cita.restan > 0 ? ` · en ${cita.restan} min` : " · ahora"}`,
             });
           }
@@ -133,7 +138,7 @@ export default function AvisosCitas() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white">
-                Cita a las {cita.hora}
+                {tipoAviso(cita.ambito)} a las {cita.hora}
                 <span className="ml-2 text-xs font-normal text-accent">
                   {cita.restan > 0 ? `en ${cita.restan} min` : "ahora"}
                 </span>
