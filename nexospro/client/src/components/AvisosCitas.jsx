@@ -53,7 +53,7 @@ function sonar() {
   }
 }
 
-export default function AvisosCitas() {
+export default function AvisosAgenda() {
   const [alertas, setAlertas] = useState([]);
   const avisadasRef = useRef(leerAvisadas());
 
@@ -67,23 +67,22 @@ export default function AvisosCitas() {
         if (!rPrefs.ok) return;
         const { prefs } = await rPrefs.json();
         if (!prefs?.agendaEventos) return;
-        const antelacion = Math.max(1, Number(prefs.minutosAgenda) || 15);
-
         const dia = hoyLocal();
-        const rCitas = await fetch(`/api/agenda/proximas?dia=${dia}`);
-        if (!rCitas.ok) return;
-        const citas = await rCitas.json();
+        const respuesta = await fetch(`/api/agenda/proximas?dia=${dia}`);
+        if (!respuesta.ok) return;
+        const eventos = await respuesta.json();
 
         const ahora = Date.now();
         const nuevas = [];
-        for (const cita of citas) {
-          const inicio = new Date(`${dia}T${cita.hora}:00`).getTime();
+        for (const evento of eventos) {
+          const inicio = new Date(`${dia}T${evento.hora}:00`).getTime();
           const restan = (inicio - ahora) / 60000;
+          const antelacion = Math.max(1, Number(evento.minutosAviso) || Number(prefs.minutosAgenda) || 15);
           // Avisa dentro de la antelación y hasta 10 min después de la hora
           // (por si se abrió la app justo encima).
-          if (restan <= antelacion && restan > -10 && !avisadasRef.current.has(cita._id)) {
-            avisadasRef.current.add(cita._id);
-            nuevas.push({ ...cita, restan: Math.max(0, Math.round(restan)) });
+          if (restan <= antelacion && restan > -10 && !avisadasRef.current.has(evento._id)) {
+            avisadasRef.current.add(evento._id);
+            nuevas.push({ ...evento, restan: Math.max(0, Math.round(restan)) });
           }
         }
         if (nuevas.length === 0 || cancelado) return;
@@ -91,10 +90,10 @@ export default function AvisosCitas() {
         sonar();
         setAlertas((actuales) => [...actuales, ...nuevas]);
         if (window.Notification?.permission === "granted") {
-          for (const cita of nuevas) {
-            const quien = cita.clienteNombre || cita.motivo || "Evento";
-            new Notification(`Evento de agenda a las ${cita.hora}`, {
-              body: `${quien}${cita.restan > 0 ? ` · en ${cita.restan} min` : " · ahora"}`,
+          for (const evento of nuevas) {
+            const quien = evento.clienteNombre || evento.titulo || "Evento";
+            new Notification(`Evento de agenda a las ${evento.hora}`, {
+              body: `${quien}${evento.restan > 0 ? ` · en ${evento.restan} min` : " · ahora"}`,
             });
           }
         }
@@ -117,9 +116,9 @@ export default function AvisosCitas() {
 
   return (
     <div className="fixed top-4 right-4 z-[110] flex flex-col gap-2 w-[min(22rem,calc(100vw-2rem))]">
-      {alertas.map((cita) => (
+      {alertas.map((evento) => (
         <div
-          key={cita._id}
+          key={evento._id}
           className="rounded-xl border border-accent/40 bg-slate-900/95 px-4 py-3 shadow-xl backdrop-blur"
         >
           <div className="flex items-start gap-3">
@@ -131,15 +130,15 @@ export default function AvisosCitas() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white">
-                Evento de agenda a las {cita.hora}
+                Evento de agenda a las {evento.hora}
                 <span className="ml-2 text-xs font-normal text-accent">
-                  {cita.restan > 0 ? `en ${cita.restan} min` : "ahora"}
+                  {evento.restan > 0 ? `en ${evento.restan} min` : "ahora"}
                 </span>
               </p>
               <p className="text-xs text-slate-400 mt-0.5 truncate">
                 Agenda de facturación
-                {cita.clienteNombre ? ` · ${cita.clienteNombre}` : ""}
-                {cita.motivo ? ` · ${cita.motivo}` : ""}
+                {evento.clienteNombre ? ` · ${evento.clienteNombre}` : ""}
+                {evento.titulo ? ` · ${evento.titulo}` : ""}
               </p>
               {puedeNotificar && Notification.permission === "default" && (
                 <button
@@ -154,7 +153,7 @@ export default function AvisosCitas() {
             <button
               type="button"
               aria-label="Cerrar aviso"
-              onClick={() => setAlertas((actuales) => actuales.filter((a) => a._id !== cita._id))}
+              onClick={() => setAlertas((actuales) => actuales.filter((a) => a._id !== evento._id))}
               className="shrink-0 text-slate-500 hover:text-white transition-colors"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

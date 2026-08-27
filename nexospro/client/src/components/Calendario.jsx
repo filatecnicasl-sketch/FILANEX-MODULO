@@ -43,7 +43,7 @@ function sumarDias(fecha, n) {
 }
 
 function textoCita(c) {
-  return c.matricula ?? c.clienteNombre ?? c.motivo ?? "—";
+  return c.titulo ?? c.matricula ?? c.clienteNombre ?? c.motivo ?? "—";
 }
 
 // "Sábado, 15 de agosto de 2026"
@@ -95,7 +95,15 @@ function SelectorEstado({ cita, onEstado }) {
   );
 }
 
-export default function Calendario({ citas, onNueva, onAbrir, onRango, onEstado, etiquetaNueva = "Nueva cita" }) {
+export default function Calendario({
+  citas,
+  onNueva,
+  onAbrir,
+  onRango,
+  onEstado,
+  etiquetaNueva = "Nueva cita",
+  nombreElementos = "citas",
+}) {
   const [vista, setVista] = useState("agenda"); // agenda | semana | mes
   const [ref, setRef] = useState(() => new Date());
   const hoyTxt = aFechaInput(new Date());
@@ -193,7 +201,7 @@ export default function Calendario({ citas, onNueva, onAbrir, onRango, onEstado,
       {vista === "agenda" && (
         diasConCitas.length === 0 ? (
           <div className="panel px-6 py-10 text-center text-sm text-slate-400">
-            No hay citas en este periodo. Toca un día del mes o pulsa «+ {etiquetaNueva}» para crear una.
+            No hay {nombreElementos} en este periodo. Toca un día del mes o pulsa «+ {etiquetaNueva}» para crear uno.
           </div>
         ) : (
           <div className="space-y-5 max-w-4xl">
@@ -221,8 +229,8 @@ export default function Calendario({ citas, onNueva, onAbrir, onRango, onEstado,
                       <span className="num text-sm font-bold text-slate-700 w-12 shrink-0">{c.hora}</span>
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-semibold text-slate-800 truncate">
-                          {c.matricula ?? c.clienteNombre ?? "—"}
-                          {c.motivo && <span className="text-slate-400 font-normal"> · {c.motivo}</span>}
+                          {c.titulo ?? c.matricula ?? c.clienteNombre ?? "—"}
+                          {!c.titulo && c.motivo && <span className="text-slate-400 font-normal"> · {c.motivo}</span>}
                           {c.presupuesto && (
                             <span
                               title="Cita que viene de un presupuesto"
@@ -234,7 +242,7 @@ export default function Calendario({ citas, onNueva, onAbrir, onRango, onEstado,
                         </span>
                         {(c.matricula && c.clienteNombre) || c.notas ? (
                           <span className="block text-xs text-slate-500 truncate mt-0.5">
-                            {[c.matricula ? c.clienteNombre : null, c.notas].filter(Boolean).join(" · ")}
+                            {[c.titulo ? c.clienteNombre : c.matricula ? c.clienteNombre : null, c.lugar, c.notas].filter(Boolean).join(" · ")}
                           </span>
                         ) : null}
                       </span>
@@ -275,7 +283,7 @@ export default function Calendario({ citas, onNueva, onAbrir, onRango, onEstado,
                   className={`min-h-[74px] sm:min-h-[104px] p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-accent/5 ${
                     delMes ? "bg-white" : "bg-slate-50"
                   }`}
-                  title="Nueva cita este día"
+                  title={`Nuevo ${nombreElementos === "eventos" ? "evento" : "cita"} este día`}
                 >
                   <p className="flex justify-end px-0.5">
                     <span
@@ -328,7 +336,7 @@ export default function Calendario({ citas, onNueva, onAbrir, onRango, onEstado,
                     className={`px-2 py-2.5 text-center border-b border-slate-200 transition-colors hover:bg-accent/5 ${
                       esHoy ? "bg-accent/10" : "bg-slate-50"
                     }`}
-                    title="Nueva cita este día"
+                    title={`Nuevo ${nombreElementos === "eventos" ? "evento" : "cita"} este día`}
                   >
                     <span className="block text-[0.65625rem] font-bold uppercase tracking-widest text-slate-500">
                       {DIAS[i]}

@@ -20,6 +20,22 @@ function aHora(minutos) {
   return `${hh}:${mm}`;
 }
 
+function horarioSiguiente() {
+  const ahora = new Date();
+  let inicio = ahora.getHours() * 60 + ahora.getMinutes();
+  inicio = Math.ceil(inicio / 30) * 30;
+  if (inicio >= 23 * 60 + 30) inicio = 9 * 60;
+  return { hora: aHora(inicio), horaFin: aHora(inicio + 30) };
+}
+
+const TIPOS_EVENTO = [
+  { clave: "reunion", nombre: "Reunión" },
+  { clave: "llamada", nombre: "Llamada" },
+  { clave: "tarea", nombre: "Tarea" },
+  { clave: "recordatorio", nombre: "Recordatorio" },
+  { clave: "otro", nombre: "Otro" },
+];
+
 const ESTADOS_EVENTO = [
   { clave: "pendiente", nombre: "Pendiente" },
   { clave: "confirmada", nombre: "Confirmada" },
@@ -28,17 +44,30 @@ const ESTADOS_EVENTO = [
 ];
 
 /** Modal de alta/edición de evento de la agenda general. */
-function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar, onGuardada }) {
+function EventoModal({
+  evento,
+  fechaInicial,
+  clientes,
+  minutosAvisoDefecto,
+  onClienteCreado,
+  onCerrar,
+  onGuardada,
+}) {
+  const horario = horarioSiguiente();
   const [form, setForm] = useState({
     fecha: evento ? aFechaInput(evento.fecha) : fechaInicial,
-    hora: evento?.hora ?? "07:00",
-    horaFin: evento ? aHora(aMinutos(evento.hora) + (evento.duracion ?? 60)) : "10:00",
+    hora: evento?.hora ?? horario.hora,
+    horaFin: evento?.horaFin ?? horario.horaFin,
+    tipo: evento?.tipo ?? "reunion",
+    titulo: evento?.titulo ?? "",
     clienteId: evento?.cliente ?? "",
     clienteNombre: evento?.clienteNombre ?? "",
     telefono: evento?.telefono ?? "",
-    motivo: evento?.motivo ?? "",
+    lugar: evento?.lugar ?? "",
     estado: evento?.estado ?? "pendiente",
     notas: evento?.notas ?? "",
+    avisar: evento?.avisar ?? true,
+    minutosAviso: evento?.minutosAviso ?? minutosAvisoDefecto,
   });
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
@@ -59,8 +88,7 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
 
   async function guardar(e) {
     e.preventDefault();
-    const duracion = aMinutos(form.horaFin) - aMinutos(form.hora);
-    if (duracion <= 0) {
+    if (aMinutos(form.horaFin) <= aMinutos(form.hora)) {
       setError("La hora de fin debe ser posterior a la de inicio");
       return;
     }
@@ -72,8 +100,6 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          duracion,
-          horaFin: undefined,
           clienteId: form.clienteId || undefined,
         }),
       });
@@ -114,7 +140,9 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
                       : f.horaFin,
                   clienteNombre: campos.clienteNombre ?? f.clienteNombre,
                   telefono: campos.telefono ?? f.telefono,
-                  motivo: campos.motivo ?? f.motivo,
+                  tipo: campos.tipo ?? f.tipo,
+                  titulo: campos.titulo ?? f.titulo,
+                  lugar: campos.lugar ?? f.lugar,
                   notas: campos.notas ?? f.notas,
                 }));
               }}
@@ -156,7 +184,43 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Cliente (de la cartera)</label>
+              <label className="text-sm text-slate-400 block mb-1">Tipo de evento *</label>
+              <select
+                className={campo}
+                value={form.tipo}
+                onChange={(e) => actualizar("tipo", e.target.value)}
+              >
+                {TIPOS_EVENTO.map((tipo) => (
+                  <option key={tipo.clave} value={tipo.clave}>{tipo.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Estado</label>
+              <select
+                className={campo}
+                value={form.estado}
+                onChange={(e) => actualizar("estado", e.target.value)}
+              >
+                {ESTADOS_EVENTO.map((est) => (
+                  <option key={est.clave} value={est.clave}>{est.nombre}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm text-slate-400 block mb-1">Asunto *</label>
+            <input
+              className={campo}
+              value={form.titulo}
+              onChange={(e) => actualizar("titulo", e.target.value)}
+              placeholder="Reunión con asesoría, llamada pendiente, presentar documentación…"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Cliente o contacto (opcional)</label>
               <SelectorContacto
                 tipo="cliente"
                 contactos={clientes}
@@ -181,16 +245,13 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
               </div>
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Estado</label>
-              <select
+              <label className="text-sm text-slate-400 block mb-1">Lugar</label>
+              <input
                 className={campo}
-                value={form.estado}
-                onChange={(e) => actualizar("estado", e.target.value)}
-              >
-                {ESTADOS_EVENTO.map((est) => (
-                  <option key={est.clave} value={est.clave}>{est.nombre}</option>
-                ))}
-              </select>
+                value={form.lugar}
+                onChange={(e) => actualizar("lugar", e.target.value)}
+                placeholder="Oficina, videollamada, dirección…"
+              />
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Nombre / contacto</label>
@@ -210,21 +271,37 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
             </div>
           </div>
           <div>
-            <label className="text-sm text-slate-400 block mb-1">Asunto</label>
-            <input
-              className={campo}
-              value={form.motivo}
-              onChange={(e) => actualizar("motivo", e.target.value)}
-              placeholder="Reunión, entrega de documentación, llamada…"
-            />
-          </div>
-          <div>
             <label className="text-sm text-slate-400 block mb-1">Notas</label>
-            <input
+            <textarea
               className={campo}
               value={form.notas}
               onChange={(e) => actualizar("notas", e.target.value)}
+              rows={3}
             />
+          </div>
+          <div className="rounded-xl border border-line px-4 py-3">
+            <label className="flex items-center gap-3 text-sm text-white">
+              <input
+                type="checkbox"
+                checked={form.avisar}
+                onChange={(e) => actualizar("avisar", e.target.checked)}
+              />
+              Avisarme antes de este evento
+            </label>
+            {form.avisar && (
+              <label className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+                Avisar
+                <input
+                  type="number"
+                  min="1"
+                  max="240"
+                  className="input !w-20 !py-1 text-right num"
+                  value={form.minutosAviso}
+                  onChange={(e) => actualizar("minutosAviso", e.target.value)}
+                />
+                minutos antes
+              </label>
+            )}
           </div>
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
@@ -255,6 +332,7 @@ export default function AgendaPage() {
   const [rango, setRango] = useState(null);
   const [eventos, setEventos] = useState(null);
   const [clientes, setClientes] = useState([]);
+  const [minutosAvisoDefecto, setMinutosAvisoDefecto] = useState(15);
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(null); // { evento?, fecha }
 
@@ -276,9 +354,14 @@ export default function AgendaPage() {
   }, [cargar]);
 
   useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((lista) => setClientes(Array.isArray(lista) ? lista : []))
+    Promise.all([
+      fetch("/api/clientes").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/notificaciones").then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([lista, notificaciones]) => {
+        setClientes(Array.isArray(lista) ? lista : []);
+        setMinutosAvisoDefecto(Number(notificaciones?.prefs?.minutosAgenda) || 15);
+      })
       .catch(() => setClientes([]));
   }, []);
 
@@ -294,7 +377,7 @@ export default function AgendaPage() {
 
   return (
     <>
-      <CabeceraPagina titulo="Agenda" descripcion="Citas, reuniones y recordatorios de la empresa." />
+      <CabeceraPagina titulo="Agenda" descripcion="Organiza reuniones, llamadas, tareas y recordatorios sin duplicar horarios." />
 
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
@@ -307,6 +390,7 @@ export default function AgendaPage() {
         onNueva={(fecha) => setModal({ fecha })}
         onAbrir={(evento) => setModal({ evento, fecha: aFechaInput(evento.fecha) })}
         onEstado={cambiarEstado}
+        nombreElementos="eventos"
       />
 
       {modal && (
@@ -314,6 +398,7 @@ export default function AgendaPage() {
           evento={modal.evento ?? null}
           fechaInicial={modal.fecha}
           clientes={clientes}
+          minutosAvisoDefecto={minutosAvisoDefecto}
           onClienteCreado={(c) => setClientes((cs) => [...cs, c])}
           onCerrar={() => setModal(null)}
           onGuardada={() => {

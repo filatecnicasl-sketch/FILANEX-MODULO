@@ -82,6 +82,7 @@ const empresaSchema = new Schema(
       agendaEventos: { type: Boolean, default: true },
       minutosAgenda: { type: Number, default: 15 },
     },
+    agendaSeparadaMigrada: { type: Boolean, default: false },
     modulos: { type: [String], default: [] }, // módulos activados (licencia): taller, logistica...
     contadores: {
       presupuesto: { type: Number, default: 1 },

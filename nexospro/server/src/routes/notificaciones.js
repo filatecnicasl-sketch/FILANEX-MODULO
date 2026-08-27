@@ -5,7 +5,7 @@ import Empresa from "../models/Empresa.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import FacturaCompra from "../models/FacturaCompra.js";
 import AlbaranCompra from "../models/AlbaranCompra.js";
-import Cita from "../models/Cita.js";
+import AgendaEvento from "../models/AgendaEvento.js";
 
 const router = Router();
 
@@ -90,10 +90,10 @@ router.get("/", async (req, res, next) => {
       hoyFin.setHours(23, 59, 59, 999);
       const ahora = new Date();
       const horaActual = `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
-      const eventosHoy = await Cita.find({
-        ambito: "general",
+      const eventosHoy = await AgendaEvento.find({
         fecha: { $gte: hoy0, $lte: hoyFin },
         estado: { $in: ["pendiente", "confirmada"] },
+        avisar: true,
         hora: { $gte: horaActual },
       })
         .sort({ hora: 1 })
@@ -103,7 +103,7 @@ router.get("/", async (req, res, next) => {
         const primero = eventosHoy[0];
         avisos.push({
           tipo: "agenda",
-          texto: `${eventosHoy.length} evento(s) de agenda hoy — próximo a las ${primero.hora}${primero.motivo ? ` (${primero.motivo})` : ""}`,
+          texto: `${eventosHoy.length} evento(s) de agenda hoy — próximo a las ${primero.hora}${primero.titulo ? ` (${primero.titulo})` : ""}`,
           enlace: "/agenda",
         });
       }

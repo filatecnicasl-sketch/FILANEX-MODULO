@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-// Botón de dictado de citas.
+// Botón de dictado de eventos de la agenda.
 // 1. Pulsa → el navegador transcribe lo que dices (Web Speech API, gratis).
 // 2. El texto va a la IA (Gemini) que extrae fecha, hora, cliente, matrícula…
 // 3. El formulario se rellena solo; el usuario revisa y guarda.
@@ -8,13 +8,13 @@ import { useEffect, useRef, useState } from "react";
 // En los navegadores que no traen reconocimiento de voz (Chrome/Firefox en
 // iPhone, algunos Android y navegadores integrados) el botón NO se oculta:
 // abre un cuadro de texto donde se puede dictar con el micrófono del teclado
-// del móvil o escribir la cita a mano. La interpretación es la misma.
+// del móvil o escribir el evento a mano. La interpretación es la misma.
 
 const SR = typeof window !== "undefined"
   ? window.SpeechRecognition || window.webkitSpeechRecognition
   : null;
 
-const EJEMPLO = "mañana a las 9, Juan García, 666123456, cambio de aceite del 1234BCD";
+const EJEMPLO_EVENTO = "mañana a las 11, reunión con Juan García durante una hora en la oficina";
 
 export default function BotonVoz({ onResultado, className = "" }) {
   const [estado, setEstado] = useState("idle"); // idle | escuchando | pensando
@@ -22,13 +22,15 @@ export default function BotonVoz({ onResultado, className = "" }) {
   const [textoManual, setTextoManual] = useState("");
   const [escribiendo, setEscribiendo] = useState(false);
   const reconocimiento = useRef(null);
+  const nombre = "evento";
+  const ejemplo = EJEMPLO_EVENTO;
 
   useEffect(() => () => reconocimiento.current?.abort(), []);
 
   // Manda el texto (dictado o escrito) a la IA y rellena el formulario.
   async function interpretar(texto) {
     if (!texto.trim()) {
-      setError("Di o escribe la cita antes de continuar");
+      setError(`Di o escribe el ${nombre} antes de continuar`);
       return;
     }
     setEstado("pensando");
@@ -40,7 +42,7 @@ export default function BotonVoz({ onResultado, className = "" }) {
         body: JSON.stringify({ texto }),
       });
       const datos = await r.json();
-      if (!r.ok) throw new Error(datos.error || "No se entendió la cita");
+      if (!r.ok) throw new Error(datos.error || `No se entendió el ${nombre}`);
       onResultado(datos, texto);
       setEscribiendo(false);
       setTextoManual("");
@@ -96,7 +98,7 @@ export default function BotonVoz({ onResultado, className = "" }) {
           estado === "escuchando" ? parar : SR ? empezar : () => setEscribiendo((v) => !v)
         }
         disabled={estado === "pensando"}
-        title={`Dictar la cita: «${EJEMPLO}»`}
+        title={`Dictar el ${nombre}: «${ejemplo}»`}
         className={`${pastilla} ${
           estado === "escuchando"
             ? "bg-rose-500 text-white animate-pulse"
@@ -132,14 +134,14 @@ export default function BotonVoz({ onResultado, className = "" }) {
       {escribiendo && (
         <div className="basis-full rounded-lg border border-slate-700 bg-slate-900/60 p-3 space-y-2">
           <p className="text-xs text-slate-400">
-            Dicta con el micrófono del teclado del móvil o escríbelo. Ejemplo: «{EJEMPLO}».
+            Dicta con el micrófono del teclado del móvil o escríbelo. Ejemplo: «{ejemplo}».
           </p>
           <textarea
             rows={3}
             className="input w-full text-sm"
             value={textoManual}
             onChange={(e) => setTextoManual(e.target.value)}
-            placeholder="Di o escribe la cita…"
+            placeholder={`Di o escribe el ${nombre}…`}
             autoFocus
           />
           <div className="flex gap-2">
@@ -149,7 +151,7 @@ export default function BotonVoz({ onResultado, className = "" }) {
               disabled={estado === "pensando"}
               className="btn-primary !py-1.5 !px-3.5 text-xs"
             >
-              {estado === "pensando" ? "Interpretando…" : "Rellenar la cita"}
+              {estado === "pensando" ? "Interpretando…" : `Rellenar el ${nombre}`}
             </button>
             <button
               type="button"

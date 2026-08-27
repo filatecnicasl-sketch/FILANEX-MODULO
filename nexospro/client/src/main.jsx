@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import AvisoConexion from './components/AvisoConexion.jsx'
-import AvisosCitas from './components/AvisosCitas.jsx'
+import AvisosAgenda from './components/AvisosCitas.jsx'
 import { instalarFetchConSesion } from './lib/sesion.js'
 import { arrancarCola } from './lib/colaOffline.js'
 
@@ -55,7 +55,7 @@ createRoot(document.getElementById('root')).render(
     <CortaErrores>
       <App />
       <AvisoConexion />
-      <AvisosCitas />
+      <AvisosAgenda />
     </CortaErrores>
   </StrictMode>,
 )

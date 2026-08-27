@@ -168,7 +168,7 @@ export default function NotificacionesPage() {
                     onChange={(e) => setPrefs({ ...prefs, minutosAgenda: e.target.value })}
                     className="input !w-20 !py-1 text-right num"
                   />
-                  minutos antes del evento
+                  minutos por defecto antes de los nuevos eventos
                 </label>
               )}
             </FilaAviso>
