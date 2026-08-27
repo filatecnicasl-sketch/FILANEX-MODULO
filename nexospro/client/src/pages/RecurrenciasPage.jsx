@@ -14,6 +14,7 @@ export default function RecurrenciasPage() {
   // Formulario
   const [clienteId, setClienteId] = useState("");
   const [concepto, setConcepto] = useState("");
+  const [tipoDocumento, setTipoDocumento] = useState("albaran");
   const [lineas, setLineas] = useState([lineaVacia()]);
   const [periodicidad, setPeriodicidad] = useState("mensual");
   const [proximaEmision, setProximaEmision] = useState("");
@@ -48,6 +49,7 @@ export default function RecurrenciasPage() {
         body: JSON.stringify({
           cliente: clienteId,
           concepto,
+          tipoDocumento,
           lineas: lineasOk.map((l) => ({
             ...l,
             cantidad: Number(l.cantidad) || 0,
@@ -76,7 +78,7 @@ export default function RecurrenciasPage() {
     if (r.ok) {
       setNoticia(datos.generadas === 0
         ? "No había recurrencias vencidas. Nada que generar."
-        : `${datos.generadas} factura(s) generada(s) como borrador en Ventas.`);
+        : `${datos.generadas} documento(s) generado(s): albaranes en Compras/Ventas y facturas borrador en Ventas.`);
       await cargar();
     } else setError(datos.error);
   }
@@ -90,7 +92,7 @@ export default function RecurrenciasPage() {
     <>
       <CabeceraPagina
         titulo="Facturación recurrente"
-        descripcion="Cuotas periódicas (mantenimientos, líneas…). Al generar se crean facturas borrador listas para emitir."
+        descripcion="Cuotas periódicas (mantenimientos, líneas…). Genera albaranes o facturas borrador automáticamente."
       >
         <div className="space-x-2">
           <button
@@ -134,6 +136,14 @@ export default function RecurrenciasPage() {
               className="input"
             />
             <select
+              value={tipoDocumento}
+              onChange={(e) => setTipoDocumento(e.target.value)}
+              className="input"
+            >
+              <option value="albaran">Albarán (cobro mensual)</option>
+              <option value="factura">Factura borrador</option>
+            </select>
+            <select
               value={periodicidad}
               onChange={(e) => setPeriodicidad(e.target.value)}
               className="input"
@@ -173,7 +183,7 @@ export default function RecurrenciasPage() {
               <div>
                 <p className="text-white text-sm font-medium">{r.concepto}</p>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {r.cliente?.nombre} · {r.periodicidad} · próxima:{" "}
+                  {r.tipoDocumento === "albaran" ? "Albarán" : "Factura"} · {r.cliente?.nombre} · {r.periodicidad} · próxima:{" "}
                   {new Date(r.proximaEmision).toLocaleDateString("es-ES")}
                 </p>
               </div>
