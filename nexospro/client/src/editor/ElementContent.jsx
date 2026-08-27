@@ -282,7 +282,9 @@ function TableView({ el, variant, formData, onFormValue, fs, mm }) {
           ))}
         </tr>
         {Array.from({ length: el.rows }, (_, r) => (
-          <tr key={r} style={{ height: mm(rowH) }}>
+          // min-height en vez de height fija: la fila crece si la línea lleva
+          // texto detalle multilínea, para que no se corte al imprimir.
+          <tr key={r} style={{ minHeight: mm(rowH) }}>
             {el.showRowNumbers && (
               <td style={{ border, textAlign: "center", fontSize: fs(el.headerFontSize), padding: 0 }}>{r + 1}</td>
             )}
@@ -305,8 +307,17 @@ function TableView({ el, variant, formData, onFormValue, fs, mm }) {
                   />
                 ) : (
                   <div
-                    className="truncate px-0.5"
-                    style={{ fontSize: fs(el.headerFontSize), textAlign: alinea(c) }}
+                    className="px-0.5"
+                    style={{
+                      fontSize: fs(el.headerFontSize),
+                      textAlign: alinea(c),
+                      // Respeta los saltos de línea del detalle bajo la línea
+                      // y envuelve el texto largo, igual que en el PDF.
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      overflowWrap: "break-word",
+                      lineHeight: 1.25,
+                    }}
                   >
                     {String(formData[cellKey(r, c)] ?? "")}
                   </div>
