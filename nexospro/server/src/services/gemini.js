@@ -1,20 +1,25 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Punto único de acceso a Gemini para todo el backend (OCR de compras,
-// tickets, valoraciones y dictado de citas).
+// Punto único de acceso a la IA para todo el backend (OCR de compras,
+// tickets, valoraciones y dictado de la agenda).
 //
-// Por qué existe este módulo: Google retira modelos sin avisar. Los `2.x`
-// devuelven ahora 404 («no longer available to new users») y el alias
-// `gemini-flash-latest` se quedó aceptando la conexión sin responder nunca,
-// lo que dejaba la petición colgada para siempre. Aquí se centraliza:
-//   1. La lista de modelos verificados, con reserva.
-//   2. Un tiempo máximo por intento: si un modelo no responde, se pasa al
-//      siguiente en vez de bloquear al usuario.
+// Por qué existe este módulo:
+//   1. Google retira modelos sin avisar y algunos alias se quedan colgados
+//      sin responder, así que hay lista de modelos verificados y reserva.
+//   2. Google bloquea por ubicación las claves de AI Studio usadas desde
+//      centros de datos ("User location is not supported for the API use"),
+//      aunque la misma clave funcione desde una conexión doméstica. Por eso
+//      el backend admite un proveedor alternativo (OpenAI) y un proxy propio,
+//      y conmuta solo cuando detecta ese bloqueo.
+//
+// Configuración en server/.env:
+//   IA_PROVEEDOR=auto | gemini | openai   (auto: Gemini y, si está bloqueado, OpenAI)
+//   GEMINI_API_KEY=...                    clave de Google AI Studio
+//   GEMINI_BASE_URL=...                   opcional: proxy propio en región permitida
+//   OPENAI_API_KEY=...                    clave de OpenAI
+//   OPENAI_MODEL=gpt-4o-mini              modelo con visión
+//   OPENAI_BASE_URL=...                   opcional: Azure u otro compatible
 
-// Modelos que Google ya ha retirado («no longer available to new users») o que
-// se quedan aceptando la conexión sin responder. Se descartan incluso si
-// vienen en GEMINI_MODEL, para que un .env antiguo (instalaciones locales que
-// no se actualizan) no deje el OCR ni el dictado colgados.
 const RETIRADOS = new Set([
   "gemini-flash-latest",
   "gemini-2.5-flash",
@@ -34,11 +39,6 @@ const elegido = preferido && !RETIRADOS.has(preferido) ? preferido : null;
 
 const sinRepetir = (l) => l.filter((m, i, a) => m && a.indexOf(m) === i);
 
-// Dos perfiles, medidos contra la API (ver scripts/probar-gemini.mjs):
-// - CALIDAD: documentos escaneados, donde acertar importa más que la espera.
-//   gemini-3.6-flash razona más y tarda 10-18 s por documento.
-// - RAPIDOS: el usuario está esperando delante de la pantalla (dictado de
-//   citas). gemini-3.5-flash-lite responde en menos de un segundo.
 export const MODELOS_CALIDAD = sinRepetir([
   elegido,
   "gemini-3.6-flash",
@@ -56,8 +56,6 @@ const TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 40000;
 
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Errores que merecen reintento o cambio de modelo (saturación, modelo
-// retirado, o el modelo que no contesta).
 function esRecuperable(err) {
   const msg = String(err?.message ?? "");
   return (
@@ -73,26 +71,37 @@ function esRecuperable(err) {
   );
 }
 
-/**
- * Pide a Gemini una respuesta en JSON con esquema garantizado.
- * @param {object} opciones
- * @param {Array} opciones.contents Partes del mensaje (texto y/o inlineData).
- * @param {object} opciones.esquema responseSchema de Gemini.
- * @param {string[]} [opciones.modelos] Perfil de modelos (CALIDAD por defecto).
- * @param {number} [opciones.timeoutMs] Tiempo máximo por intento.
- * @param {string} [opciones.etiqueta] Nombre para los mensajes de error.
- */
-export async function generarJsonGemini({
-  contents,
-  esquema,
-  modelos = MODELOS_CALIDAD,
-  timeoutMs = TIMEOUT_MS,
-  etiqueta = "El servicio de IA",
-}) {
+// Google devuelve este error cuando la IP de salida es de un centro de datos
+// o de un país no admitido. Reintentar no sirve de nada: hay que cambiar de
+// proveedor o salir por un proxy permitido.
+export function esBloqueoUbicacion(err) {
+  const msg = String(err?.message ?? "");
+  return msg.includes("User location is not supported") || msg.includes("FAILED_PRECONDITION");
+}
+
+// Se recuerda el bloqueo para no perder tiempo intentando Google en cada
+// petición: el usuario está esperando delante de la pantalla.
+let geminiBloqueado = false;
+
+function proveedorConfigurado() {
+  const elegidoEnv = (process.env.IA_PROVEEDOR || "auto").toLowerCase();
+  if (elegidoEnv === "openai") return "openai";
+  if (elegidoEnv === "gemini") return "gemini";
+  return "auto";
+}
+
+const hayOpenAi = () => Boolean(process.env.OPENAI_API_KEY);
+
+// --- Google Gemini ---
+
+async function generarConGemini({ contents, esquema, modelos, timeoutMs }) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY no configurada en server/.env");
   }
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}),
+  });
   let ultimoError;
 
   for (const modelo of modelos) {
@@ -109,8 +118,6 @@ export async function generarJsonGemini({
             abortSignal: ctrl.signal,
           },
         });
-        // Red de seguridad: aunque el SDK ignore la señal, no se espera más
-        // del tiempo máximo.
         const corte = new Promise((_, rechazar) =>
           setTimeout(() => rechazar(new Error(`El modelo ${modelo} tardó demasiado`)), timeoutMs + 500)
         );
@@ -118,9 +125,9 @@ export async function generarJsonGemini({
         return JSON.parse(respuesta.text);
       } catch (err) {
         ultimoError = err;
+        if (esBloqueoUbicacion(err)) throw err;
         console.warn(`Gemini ${modelo} (intento ${intento + 1}): ${String(err?.message).slice(0, 160)}`);
         if (!esRecuperable(err)) throw err;
-        // Si el modelo está retirado no tiene sentido reintentarlo.
         if (err?.status === 404 || String(err?.message).includes("no longer available")) break;
         await esperar(1200 * (intento + 1));
       } finally {
@@ -128,7 +135,144 @@ export async function generarJsonGemini({
       }
     }
   }
+  throw ultimoError ?? new Error("Gemini no devolvió respuesta");
+}
 
-  console.error("Gemini agotado:", ultimoError?.message);
-  throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+// --- OpenAI (y compatibles: Azure OpenAI, pasarelas propias) ---
+
+// Traduce las partes al formato de OpenAI. Se usa el mismo `contents` que
+// Gemini para no tocar el resto del backend.
+function partesParaOpenAi(contents) {
+  const partes = [];
+  for (const bloque of contents) {
+    if (bloque?.text) partes.push({ type: "text", text: bloque.text });
+    if (bloque?.inlineData) {
+      partes.push({
+        type: "image_url",
+        image_url: { url: `data:${bloque.inlineData.mimeType};base64,${bloque.inlineData.data}` },
+      });
+    }
+  }
+  return partes;
+}
+
+// El esquema de Gemini usa tipos en mayúsculas; OpenAI espera JSON Schema.
+function esquemaParaOpenAi(nodo) {
+  if (!nodo || typeof nodo !== "object") return nodo;
+  if (Array.isArray(nodo)) return nodo.map(esquemaParaOpenAi);
+  const salida = {};
+  for (const [clave, valor] of Object.entries(nodo)) {
+    if (clave === "type" && typeof valor === "string") salida.type = valor.toLowerCase();
+    else if (clave === "properties") {
+      salida.properties = Object.fromEntries(
+        Object.entries(valor).map(([k, v]) => [k, esquemaParaOpenAi(v)])
+      );
+    } else if (clave === "items") salida.items = esquemaParaOpenAi(valor);
+    else salida[clave] = valor;
+  }
+  if (salida.type === "object") {
+    salida.properties = salida.properties ?? {};
+    // OpenAI exige que todas las propiedades estén en `required` cuando el
+    // esquema es estricto; se relaja desactivando el modo estricto.
+    salida.additionalProperties = false;
+  }
+  return salida;
+}
+
+async function generarConOpenAi({ contents, esquema, timeoutMs }) {
+  const clave = process.env.OPENAI_API_KEY;
+  if (!clave) throw new Error("OPENAI_API_KEY no configurada en server/.env");
+  const base = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
+  const modelo = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+  const respuesta = await fetch(`${base}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${clave}` },
+    body: JSON.stringify({
+      model: modelo,
+      messages: [
+        {
+          role: "system",
+          content: "Devuelve únicamente un JSON válido que cumpla el esquema indicado. No añadas texto ni Markdown.",
+        },
+        { role: "user", content: partesParaOpenAi(contents) },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "resultado", schema: esquemaParaOpenAi(esquema), strict: false },
+      },
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+
+  const texto = await respuesta.text();
+  if (!respuesta.ok) {
+    let detalle = texto.slice(0, 200);
+    try {
+      detalle = JSON.parse(texto)?.error?.message ?? detalle;
+    } catch {
+      /* se deja el texto crudo */
+    }
+    throw new Error(`OpenAI ${respuesta.status}: ${detalle}`);
+  }
+  const datos = JSON.parse(texto);
+  const contenido = datos?.choices?.[0]?.message?.content;
+  if (!contenido) throw new Error("OpenAI no devolvió contenido");
+  return JSON.parse(contenido);
+}
+
+/**
+ * Pide a la IA una respuesta en JSON con esquema garantizado.
+ * Mantiene el nombre histórico para no tocar el resto del backend.
+ */
+export async function generarJsonGemini({
+  contents,
+  esquema,
+  modelos = MODELOS_CALIDAD,
+  timeoutMs = TIMEOUT_MS,
+  etiqueta = "El servicio de IA",
+}) {
+  const proveedor = proveedorConfigurado();
+  const usarOpenAiPrimero = proveedor === "openai" || (proveedor === "auto" && geminiBloqueado && hayOpenAi());
+
+  if (!usarOpenAiPrimero) {
+    try {
+      return await generarConGemini({ contents, esquema, modelos, timeoutMs });
+    } catch (err) {
+      if (esBloqueoUbicacion(err)) {
+        geminiBloqueado = true;
+        console.error(
+          "Google rechaza la clave desde la IP de este servidor (User location is not supported). Se intenta con el proveedor alternativo."
+        );
+        if (!hayOpenAi()) {
+          throw new Error(
+            `${etiqueta} no está disponible: Google bloquea este servidor por ubicación. Configura OPENAI_API_KEY o GEMINI_BASE_URL en server/.env.`
+          );
+        }
+      } else if (proveedor === "gemini" || !hayOpenAi()) {
+        console.error("IA agotada:", err?.message);
+        throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+      } else {
+        console.warn("Gemini falló, se prueba con OpenAI:", String(err?.message).slice(0, 160));
+      }
+    }
+  }
+
+  try {
+    return await generarConOpenAi({ contents, esquema, timeoutMs });
+  } catch (err) {
+    console.error("IA agotada:", err?.message);
+    throw new Error(`${etiqueta} no está disponible ahora mismo: ${err.message}`);
+  }
+}
+
+// Estado para el diagnóstico administrativo.
+export function estadoIa() {
+  return {
+    proveedor: proveedorConfigurado(),
+    geminiConfigurado: Boolean(process.env.GEMINI_API_KEY),
+    geminiBloqueadoPorUbicacion: geminiBloqueado,
+    openaiConfigurado: hayOpenAi(),
+    proxyGemini: Boolean(process.env.GEMINI_BASE_URL),
+  };
 }

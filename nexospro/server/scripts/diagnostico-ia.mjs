@@ -40,4 +40,20 @@ await probar(
   }
 );
 
+const claveOpenAi = process.env.OPENAI_API_KEY ?? "";
+console.log("\nOPENAI_API_KEY:", claveOpenAi ? `configurada (termina en ${claveOpenAi.slice(-4)})` : "NO configurada");
+if (claveOpenAi) {
+  await probar("OpenAI", `${(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "")}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${claveOpenAi}` },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      messages: [{ role: "user", content: "Responde solo con la palabra OK" }],
+    }),
+  });
+}
+
+const { estadoIa } = await import("../src/services/gemini.js");
+console.log("\nEstado que usará FILANEX:", estadoIa());
+
 process.exit(0);
