@@ -18,7 +18,7 @@ const ESTADOS_EVENTO = [
 function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar, onGuardada }) {
   const [form, setForm] = useState({
     fecha: evento ? aFechaInput(evento.fecha) : fechaInicial,
-    hora: evento?.hora ?? "09:00",
+    hora: evento?.hora ?? "07:00",
     duracion: evento?.duracion ?? 60,
     clienteId: evento?.cliente ?? "",
     clienteNombre: evento?.clienteNombre ?? "",

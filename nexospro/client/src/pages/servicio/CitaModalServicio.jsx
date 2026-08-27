@@ -26,7 +26,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
   const [aparatos, setAparatos] = useState([]);
   const [form, setForm] = useState({
     fecha: cita ? aFechaInput(cita.fecha) : fechaInicial,
-    hora: cita?.hora ?? "09:00",
+    hora: cita?.hora ?? "07:00",
     duracion: cita?.duracion ?? 60,
     cliente: cita?.cliente?._id ?? cita?.cliente ?? "",
     clienteNombre: cita?.clienteNombre ?? "",
@@ -216,7 +216,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
               ) : (
                 <select
                   className={campo}
-                  value={HORAS_ENTRADA.includes(form.hora) ? form.hora : "09:00"}
+                  value={HORAS_ENTRADA.includes(form.hora) ? form.hora : "07:00"}
                   onChange={(e) => elegirHora(e.target.value)}
                 >
                   {HORAS_ENTRADA.map((h) => (
