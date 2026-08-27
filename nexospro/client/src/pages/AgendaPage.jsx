@@ -7,6 +7,19 @@ import AltaRapidaCliente from "../components/AltaRapidaCliente.jsx";
 
 const campo = "input w-full";
 
+/** Convierte "HH:MM" a minutos desde medianoche. */
+function aMinutos(h) {
+  const [hh, mm] = String(h ?? "0:0").split(":").map(Number);
+  return (hh || 0) * 60 + (mm || 0);
+}
+
+/** Convierte minutos desde medianoche a "HH:MM". */
+function aHora(minutos) {
+  const hh = String(Math.max(0, Math.floor(minutos / 60))).padStart(2, "0");
+  const mm = String(Math.max(0, minutos % 60)).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 const ESTADOS_EVENTO = [
   { clave: "pendiente", nombre: "Pendiente" },
   { clave: "confirmada", nombre: "Confirmada" },
@@ -19,7 +32,7 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
   const [form, setForm] = useState({
     fecha: evento ? aFechaInput(evento.fecha) : fechaInicial,
     hora: evento?.hora ?? "07:00",
-    duracion: evento?.duracion ?? 60,
+    horaFin: evento ? aHora(aMinutos(evento.hora) + (evento.duracion ?? 60)) : "10:00",
     clienteId: evento?.cliente ?? "",
     clienteNombre: evento?.clienteNombre ?? "",
     telefono: evento?.telefono ?? "",
@@ -46,6 +59,11 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
 
   async function guardar(e) {
     e.preventDefault();
+    const duracion = aMinutos(form.horaFin) - aMinutos(form.hora);
+    if (duracion <= 0) {
+      setError("La hora de fin debe ser posterior a la de inicio");
+      return;
+    }
     setGuardando(true);
     setError(null);
     try {
@@ -54,7 +72,8 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          duracion: Number(form.duracion) || 60,
+          duracion,
+          horaFin: undefined,
           clienteId: form.clienteId || undefined,
         }),
       });
@@ -82,18 +101,23 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
           {evento ? `Evento ${aFechaInput(evento.fecha)} ${evento.hora}` : "Nuevo evento"}
           {!evento && (
             <BotonVoz
-              onResultado={(campos) =>
+              onResultado={(campos) => {
+                const hora = campos.hora;
                 setForm((f) => ({
                   ...f,
                   fecha: campos.fecha ?? f.fecha,
-                  hora: campos.hora ?? f.hora,
-                  duracion: campos.duracion ?? f.duracion,
+                  hora: hora ?? f.hora,
+                  horaFin: hora && campos.duracion
+                    ? aHora(aMinutos(hora) + Number(campos.duracion))
+                    : campos.duracion
+                      ? aHora(aMinutos(f.hora) + Number(campos.duracion))
+                      : f.horaFin,
                   clienteNombre: campos.clienteNombre ?? f.clienteNombre,
                   telefono: campos.telefono ?? f.telefono,
                   motivo: campos.motivo ?? f.motivo,
                   notas: campos.notas ?? f.notas,
-                }))
-              }
+                }));
+              }}
             />
           )}
         </h2>
@@ -110,7 +134,7 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Hora *</label>
+              <label className="text-sm text-slate-400 block mb-1">De *</label>
               <input
                 type="time"
                 className={campo}
@@ -120,14 +144,13 @@ function EventoModal({ evento, fechaInicial, clientes, onClienteCreado, onCerrar
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Duración (min)</label>
+              <label className="text-sm text-slate-400 block mb-1">A *</label>
               <input
-                type="number"
-                min="15"
-                step="15"
+                type="time"
                 className={campo}
-                value={form.duracion}
-                onChange={(e) => actualizar("duracion", e.target.value)}
+                value={form.horaFin}
+                onChange={(e) => actualizar("horaFin", e.target.value)}
+                required
               />
             </div>
           </div>

@@ -7,18 +7,26 @@ import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 
 const campo = "input w-full";
 
-// Franja habitual de recepción de vehículos. Si se necesita otra hora,
-// se elige «Otra hora…» y se escribe a mano.
-const HORAS_ENTRADA = ["07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00"];
+/** Convierte "HH:MM" a minutos desde medianoche. */
+function aMinutos(h) {
+  const [hh, mm] = String(h ?? "0:0").split(":").map(Number);
+  return (hh || 0) * 60 + (mm || 0);
+}
 
-/** Modal de alta/edición de cita de taller. */
+/** Convierte minutos desde medianoche a "HH:MM". */
+function aHora(minutos) {
+  const hh = String(Math.max(0, Math.floor(minutos / 60))).padStart(2, "0");
+  const mm = String(Math.max(0, minutos % 60)).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) {
   const [clientes, setClientes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [form, setForm] = useState({
     fecha: cita ? aFechaInput(cita.fecha) : fechaInicial,
     hora: cita?.hora ?? "07:00",
-    duracion: cita?.duracion ?? 60,
+    horaFin: cita ? aHora(aMinutos(cita.hora) + (cita.duracion ?? 60)) : "10:00",
     clienteNombre: cita?.clienteNombre ?? "",
     telefono: cita?.telefono ?? "",
     matricula: cita?.matricula ?? "",
@@ -27,8 +35,6 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) 
     estado: cita?.estado ?? "pendiente",
     notas: cita?.notas ?? "",
   });
-  // Hora fuera de la franja habitual (al editar) o elección libre.
-  const [horaLibre, setHoraLibre] = useState(() => Boolean(cita && !HORAS_ENTRADA.includes(cita.hora)));
   const [cortesiaAbierta, setCortesiaAbierta] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
@@ -74,13 +80,13 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) 
     }));
   }
 
-  function elegirHora(v) {
-    if (v === "__otra") setHoraLibre(true);
-    else actualizar("hora", v);
-  }
-
   async function guardar(e) {
     e.preventDefault();
+    const duracion = aMinutos(form.horaFin) - aMinutos(form.hora);
+    if (duracion <= 0) {
+      setError("La hora de fin debe ser posterior a la de inicio");
+      return;
+    }
     setGuardando(true);
     setError(null);
     try {
@@ -89,7 +95,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          duracion: Number(form.duracion) || 60,
+          duracion,
+          horaFin: undefined,
           matricula: form.matricula || undefined,
           presupuesto: Boolean(form.presupuesto),
         }),
@@ -120,12 +127,16 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) 
           {!cita && (
             <BotonVoz
               onResultado={(campos) => {
-                if (campos.hora && !HORAS_ENTRADA.includes(campos.hora)) setHoraLibre(true);
+                const hora = campos.hora;
                 setForm((f) => ({
                   ...f,
                   fecha: campos.fecha ?? f.fecha,
-                  hora: campos.hora ?? f.hora,
-                  duracion: campos.duracion ?? f.duracion,
+                  hora: hora ?? f.hora,
+                  horaFin: hora && campos.duracion
+                    ? aHora(aMinutos(hora) + Number(campos.duracion))
+                    : campos.duracion
+                      ? aHora(aMinutos(f.hora) + Number(campos.duracion))
+                      : f.horaFin,
                   clienteNombre: campos.clienteNombre ?? f.clienteNombre,
                   telefono: campos.telefono ?? f.telefono,
                   matricula: campos.matricula ?? f.matricula,
@@ -149,46 +160,23 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) 
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Hora *</label>
-              {horaLibre ? (
-                <>
-                  <input
-                    type="time"
-                    className={campo}
-                    value={form.hora}
-                    onChange={(e) => actualizar("hora", e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setHoraLibre(false)}
-                    className="text-[0.6875rem] text-accent hover:underline mt-1"
-                  >
-                    ← Franja habitual (07:00–10:00)
-                  </button>
-                </>
-              ) : (
-                <select
-                  className={campo}
-                  value={HORAS_ENTRADA.includes(form.hora) ? form.hora : "07:00"}
-                  onChange={(e) => elegirHora(e.target.value)}
-                >
-                  {HORAS_ENTRADA.map((h) => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                  <option value="__otra">Otra hora…</option>
-                </select>
-              )}
+              <label className="text-sm text-slate-400 block mb-1">De *</label>
+              <input
+                type="time"
+                className={campo}
+                value={form.hora}
+                onChange={(e) => actualizar("hora", e.target.value)}
+                required
+              />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Duración (min)</label>
+              <label className="text-sm text-slate-400 block mb-1">A *</label>
               <input
-                type="number"
-                min="15"
-                step="15"
+                type="time"
                 className={campo}
-                value={form.duracion}
-                onChange={(e) => actualizar("duracion", e.target.value)}
+                value={form.horaFin}
+                onChange={(e) => actualizar("horaFin", e.target.value)}
+                required
               />
             </div>
           </div>
