@@ -298,11 +298,11 @@ export default function RecepcionRapida({ onCerrar, onCreada }) {
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Marca</label>
-              <input className={campo} value={form.marca} onChange={(e) => actualizar("marca", e.target.value)} />
+              <input className={campo} value={form.marca} onChange={(e) => actualizar("marca", e.target.value)} autoComplete="off" />
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Modelo</label>
-              <input className={campo} value={form.modelo} onChange={(e) => actualizar("modelo", e.target.value)} />
+              <input className={campo} value={form.modelo} onChange={(e) => actualizar("modelo", e.target.value)} autoComplete="off" />
             </div>
           </div>
 
