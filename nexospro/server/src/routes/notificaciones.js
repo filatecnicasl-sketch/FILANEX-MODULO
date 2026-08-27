@@ -5,12 +5,13 @@ import Empresa from "../models/Empresa.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import FacturaCompra from "../models/FacturaCompra.js";
 import AlbaranCompra from "../models/AlbaranCompra.js";
+import Cita from "../models/Cita.js";
 
 const router = Router();
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-const PREFS_DEFECTO = { vencidas: true, proximas: true, diasProximas: 7, ocr: true };
+const PREFS_DEFECTO = { vencidas: true, proximas: true, diasProximas: 7, ocr: true, citas: true, minutosCitas: 15 };
 
 // Vencimiento efectivo: el explícito, o expedición + 30 días (igual que Tesorería).
 function vencimientoDe(f) {
@@ -82,6 +83,31 @@ router.get("/", async (req, res, next) => {
       }
     }
 
+    if (prefs.citas) {
+      const hoy0 = new Date();
+      hoy0.setHours(0, 0, 0, 0);
+      const hoyFin = new Date(hoy0);
+      hoyFin.setHours(23, 59, 59, 999);
+      const ahora = new Date();
+      const horaActual = `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
+      const citasHoy = await Cita.find({
+        fecha: { $gte: hoy0, $lte: hoyFin },
+        estado: { $in: ["pendiente", "confirmada"] },
+        hora: { $gte: horaActual },
+      })
+        .sort({ hora: 1 })
+        .limit(50)
+        .lean();
+      if (citasHoy.length > 0) {
+        const primera = citasHoy[0];
+        avisos.push({
+          tipo: "cita",
+          texto: `${citasHoy.length} cita(s) hoy — la próxima a las ${primera.hora}${primera.motivo ? ` (${primera.motivo})` : ""}`,
+          enlace: "/agenda",
+        });
+      }
+    }
+
     res.json({ prefs, avisos });
   } catch (err) {
     next(err);
@@ -94,11 +120,14 @@ router.put("/", async (req, res, next) => {
     const { empresa } = await cargarPrefs();
     if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });
     const dias = Math.trunc(Number(req.body.diasProximas));
+    const minutos = Math.trunc(Number(req.body.minutosCitas));
     empresa.notificaciones = {
       vencidas: Boolean(req.body.vencidas),
       proximas: Boolean(req.body.proximas),
       diasProximas: Number.isFinite(dias) && dias >= 1 && dias <= 90 ? dias : 7,
       ocr: Boolean(req.body.ocr),
+      citas: Boolean(req.body.citas),
+      minutosCitas: Number.isFinite(minutos) && minutos >= 1 && minutos <= 240 ? minutos : 15,
     };
     await empresa.save();
     res.json({ prefs: empresa.notificaciones });

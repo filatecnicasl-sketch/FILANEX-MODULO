@@ -52,6 +52,39 @@ router.get("/eventos", async (req, res, next) => {
   }
 });
 
+// GET /api/agenda/proximas?dia=YYYY-MM-DD — citas de ese día de TODOS los
+// ámbitos (agenda general, taller y servicio técnico) pendientes o
+// confirmadas. La usa el avisador de citas: el día lo manda el cliente con
+// su propia fecha local, así no hay ambigüedad de zonas horarias.
+router.get("/proximas", async (req, res, next) => {
+  try {
+    const dia = diaLocal(req.query.dia);
+    if (!dia) return res.status(400).json({ error: "Parámetro dia (YYYY-MM-DD) obligatorio" });
+    const lista = await Cita.find({
+      fecha: { $gte: dia, $lte: finDia(dia) },
+      estado: { $in: ["pendiente", "confirmada"] },
+    })
+      .sort({ hora: 1 })
+      .limit(200)
+      .lean();
+    res.json(
+      lista.map((c) => ({
+        _id: c._id,
+        ambito: c.ambito,
+        hora: c.hora,
+        duracion: c.duracion,
+        motivo: c.motivo ?? "",
+        clienteNombre: c.clienteNombre ?? "",
+        matricula: c.matricula ?? "",
+        telefono: c.telefono ?? "",
+        estado: c.estado,
+      }))
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post("/eventos", async (req, res, next) => {
   try {
     const { fecha, hora } = req.body;

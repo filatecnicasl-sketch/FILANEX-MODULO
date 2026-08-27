@@ -46,8 +46,8 @@ function FilaAviso({ titulo, descripcion, activo, onCambio, children }) {
   );
 }
 
-const TONO_AVISO = { vencida: "red", proxima: "amber", ocr: "cyan" };
-const ETIQUETA_AVISO = { vencida: "Vencida", proxima: "Próxima", ocr: "OCR" };
+const TONO_AVISO = { vencida: "red", proxima: "amber", ocr: "cyan", cita: "green" };
+const ETIQUETA_AVISO = { vencida: "Vencida", proxima: "Próxima", ocr: "OCR", cita: "Cita" };
 
 export default function NotificacionesPage() {
   const [prefs, setPrefs] = useState(null);
@@ -151,6 +151,27 @@ export default function NotificacionesPage() {
               activo={prefs.ocr}
               onCambio={(v) => setPrefs({ ...prefs, ocr: v })}
             />
+            <FilaAviso
+              titulo="Citas de la agenda"
+              descripcion="Avisa con alarma en pantalla unos minutos antes de cada cita (agenda, taller y servicio técnico)"
+              activo={prefs.citas}
+              onCambio={(v) => setPrefs({ ...prefs, citas: v })}
+            >
+              {prefs.citas && (
+                <label className="flex items-center gap-2 mt-2 text-xs text-slate-400">
+                  Avisar
+                  <input
+                    type="number"
+                    min="1"
+                    max="240"
+                    value={prefs.minutosCitas}
+                    onChange={(e) => setPrefs({ ...prefs, minutosCitas: e.target.value })}
+                    className="input !w-20 !py-1 text-right num"
+                  />
+                  minutos antes de la cita
+                </label>
+              )}
+            </FilaAviso>
           </div>
 
           <div className="panel p-5 max-w-3xl">
