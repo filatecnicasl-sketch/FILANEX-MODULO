@@ -154,7 +154,8 @@ export default function App() {
           <Route path="notificaciones" element={<NotificacionesPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="actividad" element={<ActividadPage />} />
-          <Route path="preferencias" element={<PreferenciasPage />} />
+          <Route path="inicio" element={<PreferenciasPage />} />
+          <Route path="preferencias" element={<Navigate to="/inicio" replace />} />
           <Route path="formatos" element={<FormatosPage />} />
           <Route path="taller" element={<TallerPanelPage />} />
           <Route path="taller/agenda" element={<TallerAgendaPage />} />

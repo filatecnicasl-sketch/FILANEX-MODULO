@@ -51,16 +51,17 @@ export default function PreferenciasPage() {
   return (
     <>
       <CabeceraPagina
-        titulo="Mis preferencias"
-        descripcion="Personaliza cómo se abre FILANEX en este dispositivo."
+        titulo="Módulo de inicio"
+        descripcion="Elige dónde quieres entrar al abrir FILANEX en este dispositivo."
       />
 
       {aviso && <p className="text-sm text-emerald-600 mb-4">{aviso}</p>}
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
       <div className="panel p-6">
-        <h2 className="text-white font-semibold">Pantalla de inicio</h2>
+        <h2 className="text-white font-semibold">Selecciona tu inicio</h2>
         <p className="text-xs text-slate-500 mt-0.5 mb-5">
+          Pulsa una opción. El texto situado junto a cada botón explica qué pantalla abrirá.
           Esta elección solo afecta a tu usuario en este móvil, tableta u ordenador.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

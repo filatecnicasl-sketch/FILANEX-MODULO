@@ -88,6 +88,7 @@ const gruposBase = [
       { to: "/ayuda/servicio", etiqueta: "Servicio Técnico", Icono: IconServicio, tono: "teal" },
     ],
   },
+  { titulo: "Inicio", Icono: IconModulos, directo: "/inicio", tono: "cyan" },
 ];
 
 // Grupos ligados a módulos activables (licencias): se insertan antes de Sistema.
@@ -256,6 +257,7 @@ export default function Layout() {
       .map(([, g]) => g),
     ...(esUsuarioSuperAdmin ? [gruposBase.find((g) => g.titulo === "Sistema")] : []),
     ...(esUsuarioAdmin ? [gruposBase.find((g) => g.titulo === "Ajustes")] : []),
+    gruposBase.find((g) => g.titulo === "Inicio"),
     gruposBase.find((g) => g.titulo === "Ayuda"),
   ].filter(Boolean);
 
@@ -523,20 +525,12 @@ export default function Layout() {
             {/* Sesión: usuario conectado y salir */}
             {usuario && (
               <div className="flex items-center gap-2 shrink-0 pl-3 border-l border-white/[0.09]">
-                <Link
-                  to="/preferencias"
+                <span
                   className="hidden md:inline-flex items-center justify-center w-7 h-7 rounded-full bg-accent/20 text-accent text-[0.6875rem] font-bold"
-                  title={`Preferencias de ${usuario.nombre} · ${usuario.email}`}
+                  title={`${usuario.nombre} · ${usuario.email}`}
                 >
                   {usuario.nombre?.slice(0, 1).toUpperCase()}
-                </Link>
-                <Link
-                  to="/preferencias"
-                  className="text-slate-400 hover:text-accent text-[0.75rem] font-medium transition-colors"
-                  title="Elegir pantalla de inicio en este dispositivo"
-                >
-                  Inicio
-                </Link>
+                </span>
                 <button
                   onClick={cerrarSesion}
                   title={`Cerrar sesión (${usuario.nombre})`}
