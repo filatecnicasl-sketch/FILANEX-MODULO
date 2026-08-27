@@ -21,6 +21,7 @@ export function limpiarLineas(lineas) {
     .filter((l) => String(l?.descripcion ?? "").trim() !== "")
     .map((l) => ({
       descripcion: String(l.descripcion).trim(),
+      ...(String(l.detalle ?? "").trim() !== "" ? { detalle: String(l.detalle).trim() } : {}),
       cantidad: Number(l.cantidad) || 0,
       precioUnitario: Number(l.precioUnitario) || 0,
       descuento: Number(l.descuento) || 0,

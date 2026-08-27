@@ -59,7 +59,7 @@ async function datosFacturaVenta(id) {
 
   // Tabla de líneas: usamos la primera tabla de la plantilla
   formData.lineas = (f.lineas ?? []).map((l) => ({
-    concepto: l.descripcion ?? "",
+    concepto: l.detalle ? `${l.descripcion ?? ""}\n${l.detalle}` : (l.descripcion ?? ""),
     cantidad: l.cantidad ?? "",
     precio: euros(l.precioUnitario),
     dto: conDto ? ((Number(l.descuento) || 0) > 0 ? `${l.descuento}%` : "") : null,
@@ -101,7 +101,7 @@ async function datosPresupuestoVenta(id) {
   };
 
   formData.lineas = (p.lineas ?? []).map((l) => ({
-    concepto: l.descripcion ?? "",
+    concepto: l.detalle ? `${l.descripcion ?? ""}\n${l.detalle}` : (l.descripcion ?? ""),
     cantidad: l.cantidad ?? "",
     precio: euros(l.precioUnitario),
     dto: conDto ? ((Number(l.descuento) || 0) > 0 ? `${l.descuento}%` : "") : null,
@@ -139,7 +139,7 @@ async function datosAlbaranVenta(id) {
   };
 
   formData.lineas = (a.lineas ?? []).map((l) => ({
-    concepto: l.descripcion ?? "",
+    concepto: l.detalle ? `${l.descripcion ?? ""}\n${l.detalle}` : (l.descripcion ?? ""),
     cantidad: l.cantidad ?? "",
     precio: euros(l.precioUnitario),
     dto: conDto ? ((Number(l.descuento) || 0) > 0 ? `${l.descuento}%` : "") : null,
@@ -187,7 +187,7 @@ async function datosOrdenTrabajo(id) {
   };
 
   formData.lineas = (o.lineas ?? []).map((l) => ({
-    concepto: l.descripcion ?? "",
+    concepto: l.detalle ? `${l.descripcion ?? ""}\n${l.detalle}` : (l.descripcion ?? ""),
     tipo: l.tipo === "mano_obra" ? "Mano de obra" : l.tipo === "material" ? "Material" : "",
     cantidad: l.cantidad ?? "",
     precio: euros(l.precioUnitario),
@@ -235,7 +235,7 @@ async function datosOrdenServicio(id) {
   };
 
   formData.lineas = (o.lineas ?? []).map((l) => ({
-    concepto: l.descripcion ?? "",
+    concepto: l.detalle ? `${l.descripcion ?? ""}\n${l.detalle}` : (l.descripcion ?? ""),
     tipo: l.tipo === "mano_obra" ? "Mano de obra" : l.tipo === "material" ? "Material" : "",
     cantidad: l.cantidad ?? "",
     precio: euros(l.precioUnitario),

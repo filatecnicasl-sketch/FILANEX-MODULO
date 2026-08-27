@@ -94,7 +94,7 @@ export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quie
   const filas = lineas
     .map((l) => {
       return `<tr>
-        <td>${esc(l.descripcion)}</td>
+        <td>${esc(l.descripcion)}${l.detalle ? `<div style="font-size:11px;color:#555;white-space:pre-wrap;margin-top:2px;">${esc(l.detalle)}</div>` : ""}</td>
         <td class="num">${l.cantidad ?? ""}</td>
         <td class="num">${euros(l.precioUnitario)}</td>
         ${conDto ? `<td class="num">${(Number(l.descuento) || 0) > 0 ? `${l.descuento}%` : ""}</td>` : ""}

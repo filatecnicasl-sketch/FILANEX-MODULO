@@ -20,6 +20,7 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
   const [sugerenciasEn, setSugerenciasEn] = useState(null); // índice de línea con el desplegable abierto
   const [creando, setCreando] = useState(null); // { indice, descripcion, precio, iva }
   const [errorAlta, setErrorAlta] = useState(null);
+  const [detalleAbierto, setDetalleAbierto] = useState(null); // índice de línea con el textarea de detalle abierto
   const contenedorRef = useRef(null);
 
   useEffect(() => {
@@ -249,6 +250,28 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
             className="input !py-1 mt-1 w-full sm:w-[46%] sm:min-w-[220px] text-xs"
             title="Grupo de trabajo al que se imputa la línea (subtotal en la orden y en el parte impreso)"
           />
+        )}
+
+        {/* Texto extendido bajo la línea (detalle del servicio, alcance…). Se
+            imprime bajo la descripción en el documento. Plegable para no
+            ensuciar el editor cuando no se usa. */}
+        {(l.detalle || detalleAbierto === i) ? (
+          <textarea
+            data-editor="linea"
+            rows={2}
+            placeholder="Detalle del servicio (se imprime bajo la línea)…"
+            value={l.detalle ?? ""}
+            onChange={(e) => cambiar(i, "detalle", e.target.value)}
+            className="input !py-1.5 mt-1 w-full text-xs leading-snug whitespace-pre-wrap"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setDetalleAbierto(i)}
+            className="mt-1 text-[0.6875rem] text-slate-500 hover:text-accent transition-colors"
+          >
+            + añadir texto bajo la línea
+          </button>
         )}
 
         {/* Sugerencias del catálogo + alta rápida de artículo */}

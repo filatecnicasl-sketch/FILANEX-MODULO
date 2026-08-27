@@ -4,6 +4,9 @@ import { modeloTenant } from "./tenant.js";
 export const lineaSchema = new Schema(
   {
     descripcion: { type: String, required: true },
+    // Texto extendido bajo la descripción (detalle del servicio, alcance del
+    // mantenimiento…). Multilínea, opcional; se imprime bajo la línea.
+    detalle: String,
     cantidad: { type: Number, default: 1 },
     precioUnitario: { type: Number, default: 0 },
     // Descuento en porcentaje sobre cantidad × precio (habitual en facturas
