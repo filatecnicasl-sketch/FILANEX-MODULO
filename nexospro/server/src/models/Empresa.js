@@ -73,6 +73,22 @@ const empresaSchema = new Schema(
       iban: String,          // cuenta de cobro de la empresa
       idAcreedor: String,    // identificador de acreedor SEPA (ES + sufijo + NIF)
     },
+    // Cuenta de correo de ESTA empresa. La contraseña se guarda cifrada y
+    // nunca se devuelve al navegador.
+    correo: {
+      activo: { type: Boolean, default: false },
+      tipo: { type: String, enum: ["smtp", "gmail"], default: "smtp" },
+      nombreRemitente: String,
+      usuario: String,
+      host: String,
+      puerto: { type: Number, default: 587 },
+      seguridad: { type: String, enum: ["ssl", "starttls", "ninguna"], default: "starttls" },
+      responderA: String,
+      copiaOculta: String,
+      passwordCifrada: String,
+      comprobadaAt: Date,
+      ultimoError: String,
+    },
     // Preferencias de avisos (pantalla Sistema → Notificaciones).
     notificaciones: {
       vencidas: { type: Boolean, default: true },      // facturas vencidas sin cobrar

@@ -7,6 +7,7 @@ import { IconImprimir, IconPdf } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
+import EnviarCorreo from "../components/EnviarCorreo.jsx";
 
 const TONO = {
   borrador: "slate",
@@ -155,6 +156,13 @@ export default function PresupuestosPage() {
                       cliente={p.cliente?._id}
                       clienteNombre={p.cliente?.nombre}
                       tipo="presupuesto"
+                      id={p._id}
+                      numero={p.serieNumero}
+                    />
+                    <EnviarCorreo
+                      email={p.cliente?.email}
+                      clienteNombre={p.cliente?.nombre}
+                      tipo="presupuesto-venta"
                       id={p._id}
                       numero={p.serieNumero}
                     />

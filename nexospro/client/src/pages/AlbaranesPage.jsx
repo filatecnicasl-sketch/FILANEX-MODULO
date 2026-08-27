@@ -7,6 +7,7 @@ import { IconImprimir, IconPdf, IconFirma, IconEditar, IconBorrar } from "../com
 import { imprimirDocumento } from "../utils/imprimir.js";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
+import EnviarCorreo from "../components/EnviarCorreo.jsx";
 
 // Totales de un albarán a partir de sus líneas (con el descuento % aplicado).
 function totalesDe(a) {
@@ -385,6 +386,13 @@ export default function AlbaranesPage() {
                       cliente={a.cliente?._id}
                       clienteNombre={a.cliente?.nombre}
                       tipo="albaran"
+                      id={a._id}
+                      numero={a.serieNumero}
+                    />
+                    <EnviarCorreo
+                      email={a.cliente?.email}
+                      clienteNombre={a.cliente?.nombre}
+                      tipo="albaran-venta"
                       id={a._id}
                       numero={a.serieNumero}
                     />

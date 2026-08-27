@@ -7,7 +7,7 @@ import {
   IconAgenda, IconCortesia, IconValoracion, IconPedidos, IconFacturaRecibida, IconTicket, IconSeries,
   IconPlanning, IconOperarios,
   IconNotificaciones, IconCertificado, IconUsuarios, IconCobros, IconPagos, IconModulos,
-  IconTelefono, IconAseguradora, IconAyuda, IconServicio, IconAparato, IconLibro,
+  IconTelefono, IconAseguradora, IconAyuda, IconServicio, IconAparato, IconLibro, IconCorreo,
   LogoFX,
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
@@ -72,6 +72,7 @@ const gruposBase = [
       { to: "/modulos", etiqueta: "Módulos", Icono: IconModulos, tono: "cyan" },
       { to: "/series", etiqueta: "Series", Icono: IconSeries, tono: "indigo" },
       { to: "/notificaciones", etiqueta: "Notificaciones", Icono: IconNotificaciones, tono: "amber" },
+      { to: "/correo", etiqueta: "Correo", Icono: IconCorreo, tono: "sky" },
       { to: "/whatsapp", etiqueta: "WhatsApp", Icono: IconTelefono, tono: "emerald" },
       { to: "/certificado", etiqueta: "Certificado", Icono: IconCertificado, tono: "teal" },
       { to: "/formatos", etiqueta: "Formatos", Icono: IconFormatos, tono: "sky" },

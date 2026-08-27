@@ -92,6 +92,13 @@ export const IconCertificado = () => (
   </Svg>
 );
 
+export const IconCorreo = () => (
+  <Svg>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </Svg>
+);
+
 export const IconUsuarios = () => (
   <Svg>
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />

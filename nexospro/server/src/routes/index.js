@@ -29,6 +29,7 @@ import asesoria from "./asesoria.js";
 import auth from "./auth.js";
 import adminTenants from "./admin/tenants.js";
 import whatsapp from "./whatsapp.js";
+import correo from "./correo.js";
 import { requiereAuth } from "../middleware/auth.js";
 import { middlewareEmpresa } from "../middleware/empresa.js";
 import { idempotencia } from "../middleware/idempotencia.js";
@@ -80,5 +81,6 @@ router.use("/documentos", documentos);
 router.use("/auditoria", auditoria);
 router.use("/asesoria", asesoria);
 router.use("/whatsapp", whatsapp);
+router.use("/correo", correo);
 
 export default router;
