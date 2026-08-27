@@ -79,6 +79,8 @@ const empresaSchema = new Schema(
       proximas: { type: Boolean, default: true },      // facturas próximas a vencer
       diasProximas: { type: Number, default: 7 },      // margen en días
       ocr: { type: Boolean, default: true },           // documentos OCR pendientes de validar
+      agendaEventos: { type: Boolean, default: true },
+      minutosAgenda: { type: Number, default: 15 },
     },
     modulos: { type: [String], default: [] }, // módulos activados (licencia): taller, logistica...
     contadores: {

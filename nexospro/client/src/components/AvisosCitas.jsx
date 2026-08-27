@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { payloadToken } from "../lib/sesion.js";
 
-// Avisador global de citas: mientras la app está abierta, vigila las citas de
-// hoy (agenda general, taller y servicio técnico) y avisa unos minutos antes
+// Avisador de la agenda de facturación: mientras la app está abierta, vigila
+// los eventos de hoy y avisa unos minutos antes
 // con un aviso en pantalla, un sonido y, si el navegador lo permite, una
 // notificación del sistema. La antelación se configura en Sistema →
-// Notificaciones ("Citas de la agenda").
+// Notificaciones ("Eventos de la agenda").
 
 const INTERVALO_MS = 30 * 1000;
-const CLAVE_AVISADAS = "filanex-citas-avisadas";
+const CLAVE_AVISADAS = "filanex-eventos-agenda-avisados";
 
 function hoyLocal() {
   const d = new Date();
@@ -53,12 +53,6 @@ function sonar() {
   }
 }
 
-const ETIQUETA_AMBITO = { general: "Agenda de facturación", taller: "Taller", servicio: "Servicio técnico" };
-
-function tipoAviso(ambito) {
-  return ambito === "general" ? "Evento" : "Cita";
-}
-
 export default function AvisosCitas() {
   const [alertas, setAlertas] = useState([]);
   const avisadasRef = useRef(leerAvisadas());
@@ -72,8 +66,8 @@ export default function AvisosCitas() {
         const rPrefs = await fetch("/api/notificaciones");
         if (!rPrefs.ok) return;
         const { prefs } = await rPrefs.json();
-        if (!prefs?.citas) return;
-        const antelacion = Math.max(1, Number(prefs.minutosCitas) || 15);
+        if (!prefs?.agendaEventos) return;
+        const antelacion = Math.max(1, Number(prefs.minutosAgenda) || 15);
 
         const dia = hoyLocal();
         const rCitas = await fetch(`/api/agenda/proximas?dia=${dia}`);
@@ -98,9 +92,8 @@ export default function AvisosCitas() {
         setAlertas((actuales) => [...actuales, ...nuevas]);
         if (window.Notification?.permission === "granted") {
           for (const cita of nuevas) {
-            const tipo = tipoAviso(cita.ambito);
-            const quien = cita.clienteNombre || cita.matricula || cita.motivo || tipo;
-            new Notification(`${tipo} a las ${cita.hora} — ${ETIQUETA_AMBITO[cita.ambito] ?? "Agenda"}`, {
+            const quien = cita.clienteNombre || cita.motivo || "Evento";
+            new Notification(`Evento de agenda a las ${cita.hora}`, {
               body: `${quien}${cita.restan > 0 ? ` · en ${cita.restan} min` : " · ahora"}`,
             });
           }
@@ -138,15 +131,14 @@ export default function AvisosCitas() {
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-white">
-                {tipoAviso(cita.ambito)} a las {cita.hora}
+                Evento de agenda a las {cita.hora}
                 <span className="ml-2 text-xs font-normal text-accent">
                   {cita.restan > 0 ? `en ${cita.restan} min` : "ahora"}
                 </span>
               </p>
               <p className="text-xs text-slate-400 mt-0.5 truncate">
-                {ETIQUETA_AMBITO[cita.ambito] ?? "Agenda"}
+                Agenda de facturación
                 {cita.clienteNombre ? ` · ${cita.clienteNombre}` : ""}
-                {cita.matricula ? ` · ${cita.matricula}` : ""}
                 {cita.motivo ? ` · ${cita.motivo}` : ""}
               </p>
               {puedeNotificar && Notification.permission === "default" && (

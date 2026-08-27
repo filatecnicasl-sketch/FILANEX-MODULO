@@ -46,8 +46,8 @@ function FilaAviso({ titulo, descripcion, activo, onCambio, children }) {
   );
 }
 
-const TONO_AVISO = { vencida: "red", proxima: "amber", ocr: "cyan", cita: "green" };
-const ETIQUETA_AVISO = { vencida: "Vencida", proxima: "Próxima", ocr: "OCR", cita: "Cita" };
+const TONO_AVISO = { vencida: "red", proxima: "amber", ocr: "cyan", agenda: "green" };
+const ETIQUETA_AVISO = { vencida: "Vencida", proxima: "Próxima", ocr: "OCR", agenda: "Agenda" };
 
 export default function NotificacionesPage() {
   const [prefs, setPrefs] = useState(null);
@@ -152,23 +152,23 @@ export default function NotificacionesPage() {
               onCambio={(v) => setPrefs({ ...prefs, ocr: v })}
             />
             <FilaAviso
-              titulo="Eventos de agenda y citas"
-              descripcion="Avisa de los eventos de la agenda de facturación y, por separado, de las citas de taller y servicio técnico"
-              activo={prefs.citas}
-              onCambio={(v) => setPrefs({ ...prefs, citas: v })}
+              titulo="Eventos de la agenda"
+              descripcion="Avisa de los eventos y recordatorios de la agenda de facturación. No afecta a las citas de Taller ni Servicio Técnico"
+              activo={prefs.agendaEventos}
+              onCambio={(v) => setPrefs({ ...prefs, agendaEventos: v })}
             >
-              {prefs.citas && (
+              {prefs.agendaEventos && (
                 <label className="flex items-center gap-2 mt-2 text-xs text-slate-400">
                   Avisar
                   <input
                     type="number"
                     min="1"
                     max="240"
-                    value={prefs.minutosCitas}
-                    onChange={(e) => setPrefs({ ...prefs, minutosCitas: e.target.value })}
+                    value={prefs.minutosAgenda}
+                    onChange={(e) => setPrefs({ ...prefs, minutosAgenda: e.target.value })}
                     className="input !w-20 !py-1 text-right num"
                   />
-                  minutos antes del evento o la cita
+                  minutos antes del evento
                 </label>
               )}
             </FilaAviso>

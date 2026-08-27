@@ -11,7 +11,7 @@ const router = Router();
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-const PREFS_DEFECTO = { vencidas: true, proximas: true, diasProximas: 7, ocr: true, citas: true, minutosCitas: 15 };
+const PREFS_DEFECTO = { vencidas: true, proximas: true, diasProximas: 7, ocr: true, agendaEventos: true, minutosAgenda: 15 };
 
 // Vencimiento efectivo: el explícito, o expedición + 30 días (igual que Tesorería).
 function vencimientoDe(f) {
@@ -83,14 +83,15 @@ router.get("/", async (req, res, next) => {
       }
     }
 
-    if (prefs.citas) {
+    if (prefs.agendaEventos) {
       const hoy0 = new Date();
       hoy0.setHours(0, 0, 0, 0);
       const hoyFin = new Date(hoy0);
       hoyFin.setHours(23, 59, 59, 999);
       const ahora = new Date();
       const horaActual = `${String(ahora.getHours()).padStart(2, "0")}:${String(ahora.getMinutes()).padStart(2, "0")}`;
-      const citasHoy = await Cita.find({
+      const eventosHoy = await Cita.find({
+        ambito: "general",
         fecha: { $gte: hoy0, $lte: hoyFin },
         estado: { $in: ["pendiente", "confirmada"] },
         hora: { $gte: horaActual },
@@ -98,18 +99,11 @@ router.get("/", async (req, res, next) => {
         .sort({ hora: 1 })
         .limit(50)
         .lean();
-      if (citasHoy.length > 0) {
-        const primera = citasHoy[0];
-        const eventos = citasHoy.filter((cita) => cita.ambito === "general").length;
-        const citas = citasHoy.length - eventos;
-        const resumen = [
-          eventos > 0 ? `${eventos} evento(s) de agenda` : "",
-          citas > 0 ? `${citas} cita(s) de taller/servicio` : "",
-        ].filter(Boolean).join(" y ");
-        const tipoProximo = primera.ambito === "general" ? "evento" : "cita";
+      if (eventosHoy.length > 0) {
+        const primero = eventosHoy[0];
         avisos.push({
-          tipo: "cita",
-          texto: `${resumen} hoy — próximo ${tipoProximo} a las ${primera.hora}${primera.motivo ? ` (${primera.motivo})` : ""}`,
+          tipo: "agenda",
+          texto: `${eventosHoy.length} evento(s) de agenda hoy — próximo a las ${primero.hora}${primero.motivo ? ` (${primero.motivo})` : ""}`,
           enlace: "/agenda",
         });
       }
@@ -127,14 +121,14 @@ router.put("/", async (req, res, next) => {
     const { empresa } = await cargarPrefs();
     if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });
     const dias = Math.trunc(Number(req.body.diasProximas));
-    const minutos = Math.trunc(Number(req.body.minutosCitas));
+    const minutos = Math.trunc(Number(req.body.minutosAgenda));
     empresa.notificaciones = {
       vencidas: Boolean(req.body.vencidas),
       proximas: Boolean(req.body.proximas),
       diasProximas: Number.isFinite(dias) && dias >= 1 && dias <= 90 ? dias : 7,
       ocr: Boolean(req.body.ocr),
-      citas: Boolean(req.body.citas),
-      minutosCitas: Number.isFinite(minutos) && minutos >= 1 && minutos <= 240 ? minutos : 15,
+      agendaEventos: Boolean(req.body.agendaEventos),
+      minutosAgenda: Number.isFinite(minutos) && minutos >= 1 && minutos <= 240 ? minutos : 15,
     };
     await empresa.save();
     res.json({ prefs: empresa.notificaciones });
