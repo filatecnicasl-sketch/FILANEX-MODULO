@@ -12,7 +12,7 @@ import {
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
-import { cerrarSesion, esAdmin, esSuperAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
+import { cerrarSesion, esSuperAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
 
 // Nodo de la barra superior donde CabeceraPagina inserta (portal) el
 // título de la página. Los botones de acción van en el propio contenido.
@@ -523,12 +523,20 @@ export default function Layout() {
             {/* Sesión: usuario conectado y salir */}
             {usuario && (
               <div className="flex items-center gap-2 shrink-0 pl-3 border-l border-white/[0.09]">
-                <span
+                <Link
+                  to="/preferencias"
                   className="hidden md:inline-flex items-center justify-center w-7 h-7 rounded-full bg-accent/20 text-accent text-[0.6875rem] font-bold"
-                  title={`${usuario.nombre} · ${usuario.email}`}
+                  title={`Preferencias de ${usuario.nombre} · ${usuario.email}`}
                 >
                   {usuario.nombre?.slice(0, 1).toUpperCase()}
-                </span>
+                </Link>
+                <Link
+                  to="/preferencias"
+                  className="text-slate-400 hover:text-accent text-[0.75rem] font-medium transition-colors"
+                  title="Elegir pantalla de inicio en este dispositivo"
+                >
+                  Inicio
+                </Link>
                 <button
                   onClick={cerrarSesion}
                   title={`Cerrar sesión (${usuario.nombre})`}

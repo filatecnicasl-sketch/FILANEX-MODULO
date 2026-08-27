@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
+import { guardarInicioDispositivo, obtenerInicioDispositivo } from "../lib/preferenciaInicio.js";
 
 const tarjetaModulo = (activo, disponible) =>
   `text-left rounded-xl border p-4 transition ${
@@ -13,13 +14,17 @@ const tarjetaModulo = (activo, disponible) =>
 export default function ModulosPage() {
   const [empresa, setEmpresa] = useState(null);
   const [catalogo, setCatalogo] = useState([]);
+  const [inicio, setInicio] = useState("panel");
   const [aviso, setAviso] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch("/api/empresa")
       .then((r) => r.json())
-      .then(setEmpresa)
+      .then((datos) => {
+        setEmpresa(datos);
+        setInicio(obtenerInicioDispositivo(datos?.moduloInicio ?? "panel"));
+      })
       .catch(() => setError("No se pudo conectar con la API."));
     fetch("/api/empresa/modulos")
       .then((r) => r.json())
@@ -28,18 +33,15 @@ export default function ModulosPage() {
   }, []);
 
   function alternarModulo(clave) {
-    setEmpresa((e) => {
-      const actuales = e.modulos ?? [];
-      const modulos = actuales.includes(clave)
-        ? actuales.filter((m) => m !== clave)
-        : [...actuales, clave];
-      // Si se desactiva el módulo que era el de inicio, vuelve al panel.
-      const moduloInicio =
-        e.moduloInicio !== "panel" && !modulos.includes(e.moduloInicio)
-          ? "panel"
-          : e.moduloInicio;
-      return { ...e, modulos, moduloInicio };
-    });
+    const actuales = empresa.modulos ?? [];
+    const modulos = actuales.includes(clave)
+      ? actuales.filter((modulo) => modulo !== clave)
+      : [...actuales, clave];
+    setEmpresa((datos) => ({ ...datos, modulos }));
+    if (inicio !== "panel" && inicio !== "agenda" && !modulos.includes(inicio)) {
+      setInicio("panel");
+      guardarInicioDispositivo("panel");
+    }
   }
 
   async function guardar() {
@@ -50,12 +52,12 @@ export default function ModulosPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         modulos: empresa.modulos ?? [],
-        moduloInicio: empresa.moduloInicio ?? "panel",
       }),
     });
     const datos = await r.json();
     if (r.ok) {
       setEmpresa(datos);
+      guardarInicioDispositivo(inicio);
       setAviso("Módulos guardados. Se aplican al cambiar de página.");
     } else setError(datos.error || "Error al guardar");
   }
@@ -141,16 +143,16 @@ export default function ModulosPage() {
       <div className="panel p-6">
         <h2 className="text-white font-semibold">Módulo de inicio</h2>
         <p className="text-xs text-slate-500 mt-0.5 mb-5">
-          Elige qué pantalla se abre al entrar en la aplicación.
+          Esta elección solo afecta a tu usuario en este dispositivo.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {opcionesInicio.map((o) => {
-            const seleccionado = (empresa.moduloInicio ?? "panel") === o.clave;
+            const seleccionado = inicio === o.clave;
             return (
               <button
                 key={o.clave}
                 type="button"
-                onClick={() => setEmpresa((e) => ({ ...e, moduloInicio: o.clave }))}
+                onClick={() => setInicio(o.clave)}
                 className={tarjetaModulo(seleccionado, true)}
               >
                 <span className="font-semibold text-white text-sm">{o.nombre}</span>

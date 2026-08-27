@@ -56,8 +56,9 @@ import AsesoriaPrevisionPage from "./pages/asesoria/AsesoriaPrevisionPage.jsx";
 import AsesoriaSolicitudesPage from "./pages/asesoria/AsesoriaSolicitudesPage.jsx";
 import AsesoriaCierresPage from "./pages/asesoria/AsesoriaCierresPage.jsx";
 import AdminTenantsPage from "./pages/AdminTenantsPage.jsx";
+import PreferenciasPage from "./pages/PreferenciasPage.jsx";
+import { obtenerInicioDispositivo } from "./lib/preferenciaInicio.js";
 
-// Abre la aplicación en el módulo de inicio elegido (Sistema → Módulos).
 // Cada clave de inicio corresponde a una ruta real de la aplicación.
 const RUTAS_INICIO = {
   taller: "/taller",
@@ -73,7 +74,7 @@ function InicioRedirect() {
     fetch("/api/empresa")
       .then((r) => (r.ok ? r.json() : null))
       .then((e) => {
-        const inicio = e?.moduloInicio ?? "panel";
+        const inicio = obtenerInicioDispositivo(e?.moduloInicio ?? "panel");
         // La agenda siempre está disponible; los módulos solo si están activos.
         const permitida =
           RUTAS_INICIO[inicio] &&
@@ -153,6 +154,7 @@ export default function App() {
           <Route path="notificaciones" element={<NotificacionesPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="actividad" element={<ActividadPage />} />
+          <Route path="preferencias" element={<PreferenciasPage />} />
           <Route path="formatos" element={<FormatosPage />} />
           <Route path="taller" element={<TallerPanelPage />} />
           <Route path="taller/agenda" element={<TallerAgendaPage />} />
