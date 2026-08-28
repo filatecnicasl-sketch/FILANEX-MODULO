@@ -94,14 +94,8 @@ const hayOpenAi = () => Boolean(process.env.OPENAI_API_KEY);
 
 // --- Google Gemini ---
 
-async function generarConGemini({ contents, esquema, modelos, timeoutMs }) {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY no configurada en server/.env");
-  }
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY,
-    ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}),
-  });
+// Ejecuta la petición contra un cliente ya construido (AI Studio o Vertex AI).
+async function generarConCliente({ ai, contents, esquema, modelos, timeoutMs, motor }) {
   let ultimoError;
 
   for (const modelo of modelos) {
@@ -126,7 +120,7 @@ async function generarConGemini({ contents, esquema, modelos, timeoutMs }) {
       } catch (err) {
         ultimoError = err;
         if (esBloqueoUbicacion(err)) throw err;
-        console.warn(`Gemini ${modelo} (intento ${intento + 1}): ${String(err?.message).slice(0, 160)}`);
+        console.warn(`${motor} ${modelo} (intento ${intento + 1}): ${String(err?.message).slice(0, 160)}`);
         if (!esRecuperable(err)) throw err;
         if (err?.status === 404 || String(err?.message).includes("no longer available")) break;
         await esperar(1200 * (intento + 1));
@@ -135,7 +129,40 @@ async function generarConGemini({ contents, esquema, modelos, timeoutMs }) {
       }
     }
   }
-  throw ultimoError ?? new Error("Gemini no devolvió respuesta");
+  throw ultimoError ?? new Error(`${motor} no devolvió respuesta`);
+}
+
+async function generarConGemini({ contents, esquema, modelos, timeoutMs }) {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY no configurada en server/.env");
+  }
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}),
+  });
+  return generarConCliente({ ai, contents, esquema, modelos, timeoutMs, motor: "Gemini" });
+}
+
+// --- Vertex AI (Google Cloud) ---
+//
+// Es la vía oficial para servidores: autentica con la cuenta de servicio del
+// proyecto (GOOGLE_APPLICATION_CREDENTIALS) en lugar de validar la ubicación
+// de la IP, por lo que no puede aparecer el error "User location is not
+// supported". La llamada es directa de FILANEX a Google, sin intermediarios.
+async function generarConVertex({ contents, esquema, timeoutMs }) {
+  const proyecto = process.env.VERTEX_PROJECT_ID;
+  if (!proyecto) throw new Error("VERTEX_PROJECT_ID no configurado en server/.env");
+  const ai = new GoogleGenAI({
+    vertexai: true,
+    project: proyecto,
+    location: process.env.VERTEX_LOCATION || "europe-west1",
+  });
+  const modelos = sinRepetir([
+    process.env.VERTEX_MODEL,
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+  ]);
+  return generarConCliente({ ai, contents, esquema, modelos, timeoutMs, motor: "Vertex AI" });
 }
 
 // --- OpenAI (y compatibles: Azure OpenAI, pasarelas propias) ---
@@ -233,7 +260,21 @@ export async function generarJsonGemini({
   etiqueta = "El servicio de IA",
 }) {
   const proveedor = proveedorConfigurado();
+  const hayVertex = Boolean(process.env.VERTEX_PROJECT_ID);
   const usarOpenAiPrimero = proveedor === "openai" || (proveedor === "auto" && geminiBloqueado && hayOpenAi());
+
+  // Prioridad: Vertex AI si está configurado (motor directo y estable);
+  // después AI Studio; y OpenAI como reserva si Google bloquea el servidor.
+  if (!usarOpenAiPrimero && hayVertex && (proveedor === "auto" || proveedor === "vertex" || proveedor === "gemini")) {
+    try {
+      return await generarConVertex({ contents, esquema, timeoutMs });
+    } catch (err) {
+      console.error("Vertex AI:", err?.message);
+      if (proveedor === "vertex" || !hayOpenAi()) {
+        throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+      }
+    }
+  }
 
   if (!usarOpenAiPrimero) {
     try {
@@ -244,17 +285,26 @@ export async function generarJsonGemini({
         console.error(
           "Google rechaza la clave desde la IP de este servidor (User location is not supported). Se intenta con el proveedor alternativo."
         );
-        if (!hayOpenAi()) {
+        if (!hayOpenAi() && !hayVertex) {
           throw new Error(
-            `${etiqueta} no está disponible: Google bloquea este servidor por ubicación. Configura OPENAI_API_KEY o GEMINI_BASE_URL en server/.env.`
+            `${etiqueta} no está disponible: Google bloquea este servidor por ubicación. Configura Vertex AI (VERTEX_PROJECT_ID y GOOGLE_APPLICATION_CREDENTIALS) en server/.env.`
           );
         }
-      } else if (proveedor === "gemini" || !hayOpenAi()) {
+      } else if (proveedor === "gemini" || (!hayOpenAi() && !hayVertex)) {
         console.error("IA agotada:", err?.message);
         throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
       } else {
-        console.warn("Gemini falló, se prueba con OpenAI:", String(err?.message).slice(0, 160));
+        console.warn("Gemini falló, se prueba la alternativa:", String(err?.message).slice(0, 160));
       }
+    }
+  }
+
+  if (hayVertex) {
+    try {
+      return await generarConVertex({ contents, esquema, timeoutMs });
+    } catch (err) {
+      console.error("Vertex AI:", err?.message);
+      if (!hayOpenAi()) throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
     }
   }
 
@@ -270,6 +320,9 @@ export async function generarJsonGemini({
 export function estadoIa() {
   return {
     proveedor: proveedorConfigurado(),
+    vertexConfigurado: Boolean(process.env.VERTEX_PROJECT_ID),
+    vertexRegion: process.env.VERTEX_LOCATION || "europe-west1",
+    credencialVertex: Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS),
     geminiConfigurado: Boolean(process.env.GEMINI_API_KEY),
     geminiBloqueadoPorUbicacion: geminiBloqueado,
     openaiConfigurado: hayOpenAi(),

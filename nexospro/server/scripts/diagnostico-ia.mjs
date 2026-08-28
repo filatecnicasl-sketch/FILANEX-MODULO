@@ -53,6 +53,25 @@ if (claveOpenAi) {
   });
 }
 
+if (process.env.VERTEX_PROJECT_ID) {
+  console.log("\nVERTEX_PROJECT_ID:", process.env.VERTEX_PROJECT_ID);
+  console.log("VERTEX_LOCATION:", process.env.VERTEX_LOCATION || "europe-west1");
+  console.log("GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS ? "configurada" : "NO configurada");
+  try {
+    const { generarJsonGemini } = await import("../src/services/gemini.js");
+    const resultado = await generarJsonGemini({
+      contents: [{ text: "Responde en JSON con {\"prueba\": \"OK\"}" }],
+      esquema: { type: "OBJECT", properties: { prueba: { type: "STRING" } } },
+      etiqueta: "Vertex AI",
+    });
+    console.log("[Vertex AI] respuesta correcta:", resultado);
+  } catch (e) {
+    console.log("[Vertex AI] ERROR:", e.message);
+  }
+} else {
+  console.log("\nVertex AI: NO configurado (falta VERTEX_PROJECT_ID)");
+}
+
 const { estadoIa } = await import("../src/services/gemini.js");
 console.log("\nEstado que usará FILANEX:", estadoIa());
 
