@@ -159,8 +159,9 @@ async function generarConVertex({ contents, esquema, timeoutMs }) {
   });
   const modelos = sinRepetir([
     process.env.VERTEX_MODEL,
-    "gemini-2.5-flash",
     "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash",
   ]);
   return generarConCliente({ ai, contents, esquema, modelos, timeoutMs, motor: "Vertex AI" });
 }
