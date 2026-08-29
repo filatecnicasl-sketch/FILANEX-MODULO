@@ -68,10 +68,9 @@ export default function CopiasSeguridadPage() {
       const resp = await r.json();
       if (!r.ok) throw new Error(resp.error || "No se pudo crear la copia");
       setAviso(
-        `Copia creada: ${resp.documentos.toLocaleString("es-ES")} documentos de ${resp.colecciones} apartados. Descárgala para guardarla en tu equipo.`
+        `Copia creada: ${resp.documentos.toLocaleString("es-ES")} documentos de ${resp.colecciones} apartados. Ya está guardada en la carpeta de copias; pulsa Descargar si quieres llevártela a otro equipo.`
       );
       cargar();
-      await descargar(resp.archivo);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -143,7 +142,7 @@ export default function CopiasSeguridadPage() {
     <>
       <CabeceraPagina
         titulo="Copias de seguridad"
-        descripcion="Copia completa de los datos de tu empresa (clientes, facturas, taller, agenda…). Descárgala y guárdala en tu ordenador, servidor o NAS."
+        descripcion="Copia completa de los datos de tu empresa (clientes, facturas, taller, agenda…). Se guarda en la carpeta de copias y puedes descargarla cuando quieras."
       />
 
       {aviso && <p className="text-sm text-accent mb-4">{aviso}</p>}
@@ -158,11 +157,11 @@ export default function CopiasSeguridadPage() {
       <div className="panel p-5 mb-5 max-w-3xl">
         <h2 className="text-white font-semibold mb-1">Crear copia ahora</h2>
         <p className="text-xs text-slate-500 mb-4">
-          Genera un archivo ZIP con todos los datos de la empresa y se descarga en este equipo.
-          Guárdalo en tu ordenador, en un disco externo o en la carpeta de tu NAS.
+          Genera un archivo ZIP con todos los datos de la empresa y lo guarda en la carpeta de copias.
+          Si además quieres llevártelo a otro equipo, NAS o disco externo, pulsa Descargar en la lista.
         </p>
         <button type="button" onClick={generar} disabled={generando} className="btn-primary">
-          {generando ? "Creando copia…" : "Crear y descargar copia"}
+          {generando ? "Creando copia…" : "Crear copia"}
         </button>
       </div>
 
@@ -196,8 +195,8 @@ export default function CopiasSeguridadPage() {
       <div className="panel p-5 max-w-3xl">
         <h2 className="text-white font-semibold mb-1">Cómo guardarla en tu NAS o servidor</h2>
         <ol className="text-xs text-slate-400 list-decimal list-inside space-y-1.5">
-          <li>Pulsa «Crear y descargar copia» o descarga la automática más reciente.</li>
-          <li>El archivo ZIP se guarda en la carpeta de descargas de este equipo.</li>
+          <li>Todas las copias (manuales y automáticas) están ya en la carpeta de copias.</li>
+          <li>Pulsa Descargar en la que quieras: el ZIP se guarda en Descargas de este equipo.</li>
           <li>Cópialo a tu NAS, disco externo o servidor: con arrastrarlo a la carpeta vale.</li>
           <li>Recomendación: conserva al menos una copia por semana fuera del servidor.</li>
         </ol>
