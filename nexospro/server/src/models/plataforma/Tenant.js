@@ -37,6 +37,12 @@ const tenantSchema = new Schema(
     // Módulos contratados por el cliente (se sincronizan con Empresa)
     modulos: { type: [String], default: [] },
 
+    // Token del agente de copia local: permite al PC del cliente descargar
+    // su última copia de seguridad sin sesión interactiva. Se genera desde
+    // Ajustes → Copias y se puede regenerar (invalida el anterior).
+    copiaToken: { type: String, index: true, sparse: true },
+    copiaTokenFecha: { type: Date },
+
     // Notas internas para el administrador de la plataforma
     notas: { type: String },
   },

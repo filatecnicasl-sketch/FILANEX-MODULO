@@ -41,6 +41,7 @@ async function descargar(archivo) {
 export default function CopiasSeguridadPage() {
   const [copias, setCopias] = useState(null);
   const [almacen, setAlmacen] = useState(null);
+  const [agente, setAgente] = useState(null);
   const [generando, setGenerando] = useState(false);
   const [descargando, setDescargando] = useState(null);
   const [aviso, setAviso] = useState(null);
@@ -52,6 +53,7 @@ export default function CopiasSeguridadPage() {
       .then((datos) => {
         setCopias(Array.isArray(datos?.copias) ? datos.copias : []);
         setAlmacen(datos?.almacen ?? null);
+        setAgente(datos?.agente ?? null);
       })
       .catch(() => setError("No se pudo conectar con la API."));
 
@@ -101,6 +103,47 @@ export default function CopiasSeguridadPage() {
       if (!r.ok) throw new Error(resp.error || "No se pudo borrar");
       setAviso("Copia borrada.");
       cargar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function generarToken() {
+    const seguro = agente?.token
+      ? window.confirm("Ya existe un token. Si generas uno nuevo, el agente instalado con el anterior dejará de funcionar y habrá que reinstalarlo. ¿Continuar?")
+      : true;
+    if (!seguro) return;
+    setAviso(null);
+    setError(null);
+    try {
+      const r = await fetch("/api/backups/token", { method: "POST" });
+      const resp = await r.json();
+      if (!r.ok) throw new Error(resp.error || "No se pudo generar el token");
+      setAviso("Token generado. Ahora descarga el instalador del agente.");
+      cargar();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function descargarInstalador() {
+    setAviso(null);
+    setError(null);
+    try {
+      const r = await fetch("/api/backups/agente-instalador");
+      if (!r.ok) {
+        const resp = await r.json().catch(() => ({}));
+        throw new Error(resp.error || "No se pudo descargar el instalador");
+      }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = "filanex-agente-copia.zip";
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(url);
     } catch (e) {
       setError(e.message);
     }
@@ -191,6 +234,36 @@ export default function CopiasSeguridadPage() {
           {manuales.map((c) => <FilaCopia key={c.archivo} copia={c} />)}
         </div>
       )}
+
+      <div className="panel p-5 mb-5 max-w-3xl">
+        <h2 className="text-white font-semibold mb-1">Copia local automática en tu ordenador</h2>
+        <p className="text-xs text-slate-500 mb-3">
+          Instala el agente de copia en tu PC y cada día tu copia de seguridad más reciente
+          se descargará sola a <span className="text-slate-300">C:\backup\filanex</span>.
+          Tus datos, en tu poder, todos los días — aunque el servidor fallara.
+        </p>
+        {agente?.token ? (
+          <>
+            <p className="text-xs text-emerald-400 mb-3">
+              Token activo desde {fechaLarga(agente.fecha)}. Descarga el instalador (ya lleva el token puesto),
+              descomprímelo en una carpeta fija (p. ej. C:\filanex-agente) y ejecuta
+              «instalar-agente-copia.cmd» una sola vez.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={descargarInstalador} className="btn-primary">
+                Descargar instalador del agente
+              </button>
+              <button type="button" onClick={generarToken} className="btn-ghost text-xs px-3">
+                Regenerar token
+              </button>
+            </div>
+          </>
+        ) : (
+          <button type="button" onClick={generarToken} className="btn-primary">
+            Activar copia local automática
+          </button>
+        )}
+      </div>
 
       <div className="panel p-5 max-w-3xl">
         <h2 className="text-white font-semibold mb-1">Cómo guardarla en tu NAS o servidor</h2>

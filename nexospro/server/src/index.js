@@ -9,6 +9,7 @@ import { connectDB } from "./config/db.js";
 import apiRouter from "./routes/index.js";
 import uploadsRouter from "./routes/uploads.js";
 import whatsappWebhook from "./routes/whatsapp-webhook.js";
+import backupsAgente from "./routes/backups-agente.js";
 import { iniciarReintentoVerifactu } from "./services/verifactu-reintento.js";
 import { iniciarColaWhatsApp } from "./services/whatsapp-cola.js";
 import { iniciarCopiasSeguridad } from "./services/backup.js";
@@ -51,6 +52,7 @@ app.use(express.json({
 }));
 
 app.use("/api/whatsapp/webhook", whatsappWebhook);
+app.use("/api/backups-agente", backupsAgente);
 
 // Rate limiting: protege login, bootstrap y la API en general.
 const limitadorAuth = rateLimit({
