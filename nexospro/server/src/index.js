@@ -11,6 +11,7 @@ import uploadsRouter from "./routes/uploads.js";
 import whatsappWebhook from "./routes/whatsapp-webhook.js";
 import { iniciarReintentoVerifactu } from "./services/verifactu-reintento.js";
 import { iniciarColaWhatsApp } from "./services/whatsapp-cola.js";
+import { iniciarCopiasSeguridad } from "./services/backup.js";
 
 import { cerrarPoolPdf } from "./services/pdfRenderer.js";
 
@@ -118,6 +119,7 @@ connectDB()
   .then(() => {
     iniciarReintentoVerifactu();
     iniciarColaWhatsApp();
+    iniciarCopiasSeguridad();
   })
   .finally(() => {
     const server = app.listen(PORT, () => {

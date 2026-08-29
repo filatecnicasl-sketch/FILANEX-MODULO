@@ -12,7 +12,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
 function s3Activo() {
   return Boolean(
@@ -116,6 +116,32 @@ export async function borrarArchivo(remoto) {
   }
   const destino = rutaLocal(remoto);
   if (fs.existsSync(destino)) fs.unlinkSync(destino);
+}
+
+/**
+ * Lista los archivos directamente bajo un prefijo/carpeta.
+ * Devuelve [{ ruta, tamano, fecha }] con la ruta relativa completa.
+ */
+export async function listarArchivos(prefijo) {
+  const p = clave(prefijo);
+  if (s3Activo()) {
+    const client = crearClienteS3();
+    const respuesta = await client.send(
+      new ListObjectsV2Command({ Bucket: bucket(), Prefix: `${p}/` }),
+    );
+    return (respuesta.Contents ?? [])
+      .filter((o) => o.Key.slice(p.length + 1).indexOf("/") === -1)
+      .map((o) => ({ ruta: o.Key, tamano: o.Size ?? 0, fecha: o.LastModified ?? null }));
+  }
+  const dir = rutaLocal(prefijo);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => fs.statSync(path.join(dir, f)).isFile())
+    .map((f) => {
+      const st = fs.statSync(path.join(dir, f));
+      return { ruta: `${p}/${f}`, tamano: st.size, fecha: st.mtime };
+    });
 }
 
 /**
