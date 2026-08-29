@@ -58,6 +58,15 @@ const gruposBase = [
     ],
   },
   {
+    titulo: "Informes",
+    Icono: IconLibro,
+    items: [
+      { to: "/informes/ventas", etiqueta: "Ventas", Icono: IconVentas, tono: "violet", fin: true },
+      { to: "/informes/compras", etiqueta: "Compras", Icono: IconFacturaRecibida, tono: "orange" },
+      { to: "/informes/iva", etiqueta: "Resumen de IVA", Icono: IconTesoreria, tono: "teal" },
+    ],
+  },
+  {
     titulo: "Sistema",
     Icono: IconConfig,
     items: [
@@ -259,6 +268,7 @@ export default function Layout() {
     ...Object.entries(gruposModulos)
       .filter(([clave]) => modulos.includes(clave))
       .map(([, g]) => g),
+    gruposBase.find((g) => g.titulo === "Informes"),
     ...(esUsuarioSuperAdmin ? [gruposBase.find((g) => g.titulo === "Sistema")] : []),
     ...(esUsuarioAdmin ? [gruposBase.find((g) => g.titulo === "Ajustes")] : []),
     gruposBase.find((g) => g.titulo === "Inicio"),
