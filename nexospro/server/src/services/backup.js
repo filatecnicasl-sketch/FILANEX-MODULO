@@ -9,12 +9,77 @@
 // conservando solo las últimas BACKUP_RETENER automáticas por empresa.
 import { EJSON } from "bson";
 import archiver from "archiver";
+import fs from "node:fs";
+import path from "node:path";
 import Tenant from "../models/plataforma/Tenant.js";
 import { conexionTenant } from "../models/tenant.js";
 import { guardarArchivo, leerArchivo, borrarArchivo, listarArchivos } from "./storage.js";
 
 const RETENER = Number(process.env.BACKUP_RETENER) || 14;
 const HORA = process.env.BACKUP_HORA || "03:30";
+
+// Carpeta elegida por el administrador del servidor para las copias
+// (automáticas y manuales). Si BACKUP_DIR está definida y NO hay S3/R2, las
+// copias van a esa carpeta (puede ser un disco externo, un NAS montado, etc.).
+// Sin BACKUP_DIR, se usa el almacenamiento por defecto: la carpeta backups/
+// del servidor, o el bucket S3/R2 cuando esté configurado.
+const CARPETA = process.env.BACKUP_DIR?.trim() || null;
+const S3_ACTIVO = Boolean(process.env.R2_ENDPOINT || process.env.S3_ENDPOINT);
+const USA_CARPETA = Boolean(CARPETA) && !S3_ACTIVO;
+
+/** Dónde se guardan las copias, para mostrarlo en Ajustes → Copias. */
+export function almacenCopias() {
+  if (S3_ACTIVO) return { tipo: "s3", descripcion: "almacenamiento externo (S3/R2), fuera del servidor" };
+  if (USA_CARPETA) return { tipo: "carpeta", descripcion: CARPETA };
+  return { tipo: "local", descripcion: "carpeta backups/ dentro del servidor" };
+}
+
+function rutaDisco(slug, archivo) {
+  return path.join(CARPETA, slug, archivo);
+}
+
+async function guardarCopiaZip(slug, archivo, buffer) {
+  if (USA_CARPETA) {
+    const destino = rutaDisco(slug, archivo);
+    fs.mkdirSync(path.dirname(destino), { recursive: true });
+    fs.writeFileSync(destino, buffer);
+    return;
+  }
+  await guardarArchivo(rutaCopia(slug, archivo), buffer, "application/zip");
+}
+
+async function listarCopiasDisco(slug) {
+  const dir = path.join(CARPETA, slug);
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => fs.statSync(path.join(dir, f)).isFile())
+    .map((f) => {
+      const st = fs.statSync(path.join(dir, f));
+      return { archivo: f, tamano: st.size, fecha: st.mtime };
+    });
+}
+
+async function leerCopiaZip(slug, archivo) {
+  if (USA_CARPETA) {
+    const p = rutaDisco(slug, archivo);
+    return fs.existsSync(p) ? fs.readFileSync(p) : null;
+  }
+  try {
+    return await leerArchivo(rutaCopia(slug, archivo));
+  } catch {
+    return null;
+  }
+}
+
+async function borrarCopiaZip(slug, archivo) {
+  if (USA_CARPETA) {
+    const p = rutaDisco(slug, archivo);
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+    return;
+  }
+  await borrarArchivo(rutaCopia(slug, archivo));
+}
 
 export const PATRON_NOMBRE = /^backup-(auto|manual)-\d{8}-\d{6}\.zip$/;
 
@@ -65,7 +130,7 @@ export async function crearCopiaTenant({ slug, dbName, origen = "manual" }) {
   entradas.unshift({ nombre: "metadatos.json", contenido: JSON.stringify(metadatos, null, 2) });
   const zip = await empaquetar(entradas);
   const archivo = nombreCopia(origen);
-  await guardarArchivo(rutaCopia(slug, archivo), zip, "application/zip");
+  await guardarCopiaZip(slug, archivo, zip);
   return {
     archivo,
     tamano: zip.length,
@@ -77,16 +142,21 @@ export async function crearCopiaTenant({ slug, dbName, origen = "manual" }) {
 }
 
 export async function listarCopias(slug) {
-  const archivos = await listarArchivos(`backups/${slug}`);
-  return archivos
-    .map((a) => {
-      const archivo = a.ruta.split("/").pop();
-      if (!PATRON_NOMBRE.test(archivo)) return null;
-      return {
-        archivo,
+  const archivos = USA_CARPETA
+    ? await listarCopiasDisco(slug)
+    : (await listarArchivos(`backups/${slug}`)).map((a) => ({
+        archivo: a.ruta.split("/").pop(),
         tamano: a.tamano,
         fecha: a.fecha,
-        origen: archivo.startsWith("backup-auto") ? "auto" : "manual",
+      }));
+  return archivos
+    .map((a) => {
+      if (!PATRON_NOMBRE.test(a.archivo)) return null;
+      return {
+        archivo: a.archivo,
+        tamano: a.tamano,
+        fecha: a.fecha,
+        origen: a.archivo.startsWith("backup-auto") ? "auto" : "manual",
       };
     })
     .filter(Boolean)
@@ -95,16 +165,12 @@ export async function listarCopias(slug) {
 
 export async function descargarCopia(slug, archivo) {
   if (!PATRON_NOMBRE.test(archivo)) return null;
-  try {
-    return await leerArchivo(rutaCopia(slug, archivo));
-  } catch {
-    return null;
-  }
+  return leerCopiaZip(slug, archivo);
 }
 
 export async function borrarCopia(slug, archivo) {
   if (!PATRON_NOMBRE.test(archivo)) throw new Error("Nombre de copia no válido");
-  await borrarArchivo(rutaCopia(slug, archivo));
+  await borrarCopiaZip(slug, archivo);
 }
 
 // Deja solo las RETENER automáticas más recientes. Las manuales no se tocan:
@@ -113,7 +179,7 @@ async function purgarCopias(slug) {
   const copias = await listarCopias(slug);
   const automaticas = copias.filter((c) => c.origen === "auto");
   for (const vieja of automaticas.slice(RETENER)) {
-    await borrarArchivo(rutaCopia(slug, vieja.archivo));
+    await borrarCopiaZip(slug, vieja.archivo);
   }
 }
 

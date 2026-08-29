@@ -40,6 +40,7 @@ async function descargar(archivo) {
 
 export default function CopiasSeguridadPage() {
   const [copias, setCopias] = useState(null);
+  const [almacen, setAlmacen] = useState(null);
   const [generando, setGenerando] = useState(false);
   const [descargando, setDescargando] = useState(null);
   const [aviso, setAviso] = useState(null);
@@ -48,7 +49,10 @@ export default function CopiasSeguridadPage() {
   const cargar = () =>
     fetch("/api/backups")
       .then((r) => r.json())
-      .then((datos) => setCopias(Array.isArray(datos) ? datos : []))
+      .then((datos) => {
+        setCopias(Array.isArray(datos?.copias) ? datos.copias : []);
+        setAlmacen(datos?.almacen ?? null);
+      })
       .catch(() => setError("No se pudo conectar con la API."));
 
   useEffect(() => {
@@ -144,6 +148,12 @@ export default function CopiasSeguridadPage() {
 
       {aviso && <p className="text-sm text-accent mb-4">{aviso}</p>}
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+
+      {almacen && (
+        <p className="text-xs text-slate-500 mb-4">
+          Las copias de tu empresa se guardan en: <span className="text-slate-300">{almacen.descripcion}</span>
+        </p>
+      )}
 
       <div className="panel p-5 mb-5 max-w-3xl">
         <h2 className="text-white font-semibold mb-1">Crear copia ahora</h2>

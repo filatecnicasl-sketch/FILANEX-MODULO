@@ -12,6 +12,17 @@ set -euo pipefail
 
 DESTINO=${BACKUP_SERVIDOR_DIR:-/opt/filanex/backups/mongo}
 RETENER_DIAS=${BACKUP_SERVIDOR_RETENER:-7}
+
+# Si el .env del servidor define la carpeta o la retención, manda sobre el
+# valor por defecto (así se elige la carpeta sin tocar el script ni el cron).
+ENV_FILE="$(cd "$(dirname "$0")/.." && pwd)/.env"
+if [ -f "$ENV_FILE" ]; then
+  DIR_ENV=$(grep -E '^BACKUP_SERVIDOR_DIR=' "$ENV_FILE" | tail -1 | cut -d= -f2- | tr -d "\"'\r")
+  [ -n "$DIR_ENV" ] && DESTINO="$DIR_ENV"
+  RET_ENV=$(grep -E '^BACKUP_SERVIDOR_RETENER=' "$ENV_FILE" | tail -1 | cut -d= -f2- | tr -d "\"'\r")
+  [ -n "$RET_ENV" ] && RETENER_DIAS="$RET_ENV"
+fi
+
 SELLO=$(date +%Y%m%d-%H%M%S)
 
 mkdir -p "$DESTINO"

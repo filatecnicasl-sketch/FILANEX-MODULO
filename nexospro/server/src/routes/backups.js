@@ -8,16 +8,21 @@ import {
   listarCopias,
   borrarCopia,
   descargarCopia,
+  almacenCopias,
   PATRON_NOMBRE,
 } from "../services/backup.js";
 
 const router = Router();
 router.use(requiereRol("admin"));
 
-// GET /api/backups — copias disponibles de la empresa de la sesión.
+// GET /api/backups — copias disponibles de la empresa de la sesión,
+// junto con la ubicación donde se están guardando.
 router.get("/", async (req, res, next) => {
   try {
-    res.json(await listarCopias(req.contextoEmpresa.slug));
+    res.json({
+      almacen: almacenCopias(),
+      copias: await listarCopias(req.contextoEmpresa.slug),
+    });
   } catch (err) {
     next(err);
   }
