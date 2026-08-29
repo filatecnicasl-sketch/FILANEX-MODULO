@@ -3,8 +3,8 @@
 import { useState } from "react";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import {
-  FiltroFechas, useInforme, TablaInforme, Td, TdNum, BotonCSV,
-  euros, textoDesglose,
+  FiltroFechas, useInforme, TablaInforme, Td, TdNum, BotonCSV, BotonImprimir,
+  euros, textoDesglose, textoPeriodo,
 } from "./comun.jsx";
 import { useFiltroInforme, Pestanas, ResumenPeriodo, Documentos } from "./InformesVentasPage.jsx";
 
@@ -21,7 +21,24 @@ function PorProveedor({ desde, hasta }) {
   const t = datos?.totales;
   return (
     <div className="panel p-5">
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end gap-2 mb-2">
+        <BotonImprimir
+          titulo="Compras por proveedor"
+          subtitulo={textoPeriodo(desde, hasta)}
+          horizontal
+          secciones={[{
+            columnas: [
+              { etiqueta: "Proveedor" }, { etiqueta: "NIF" }, { etiqueta: "Facturas", num: true },
+              { etiqueta: "Base", num: true }, { etiqueta: "IVA", num: true }, { etiqueta: "Total", num: true },
+              { etiqueta: "Pendiente", num: true }, { etiqueta: "Desglose IVA" },
+            ],
+            filas: filas.map((f) => [
+              f.nombre, f.nif, f.documentos, euros(f.base), euros(f.cuotaIva), euros(f.total),
+              f.pendiente > 0 ? euros(f.pendiente) : "—", textoDesglose(f.iva),
+            ]),
+            pie: ["TOTALES", "", t?.documentos, euros(t?.base), euros(t?.cuotaIva), euros(t?.total), euros(t?.pendiente), ""],
+          }]}
+        />
         <BotonCSV
           nombre="compras-por-proveedor"
           cabeceras={["Proveedor", "NIF", "Facturas", "Base", "IVA", "Total", "Pendiente de pago", "Desglose IVA"]}
@@ -74,7 +91,19 @@ function PorArticulo({ desde, hasta }) {
   const t = datos?.totales;
   return (
     <div className="panel p-5">
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end gap-2 mb-2">
+        <BotonImprimir
+          titulo="Compras por artículo"
+          subtitulo={textoPeriodo(desde, hasta)}
+          secciones={[{
+            columnas: [
+              { etiqueta: "Artículo / servicio" }, { etiqueta: "Cantidad", num: true },
+              { etiqueta: "Base", num: true }, { etiqueta: "IVA", num: true }, { etiqueta: "Total", num: true },
+            ],
+            filas: filas.map((f) => [f.descripcion, f.cantidad, euros(f.base), euros(f.cuotaIva), euros(f.total)]),
+            pie: ["TOTALES", t?.cantidad, euros(t?.base), euros(t?.cuotaIva), euros(t?.total)],
+          }]}
+        />
         <BotonCSV
           nombre="compras-por-articulo"
           cabeceras={["Artículo / servicio", "Cantidad", "Base", "IVA", "Total"]}
@@ -128,10 +157,10 @@ export default function InformesComprasPage() {
       {pestana === "proveedor" && <PorProveedor desde={desde} hasta={hasta} />}
       {pestana === "articulo" && <PorArticulo desde={desde} hasta={hasta} />}
       {pestana === "resumen" && (
-        <ResumenPeriodo url="/api/informes/compras/resumen" nombre="compras-resumen" desde={desde} hasta={hasta} />
+        <ResumenPeriodo url="/api/informes/compras/resumen" nombre="compras-resumen" titulo="Compras" desde={desde} hasta={hasta} />
       )}
       {pestana === "documentos" && (
-        <Documentos url="/api/informes/compras/documentos" nombre="compras-documentos" desde={desde} hasta={hasta} tituloNumero="Nº factura" />
+        <Documentos url="/api/informes/compras/documentos" nombre="compras-documentos" titulo="Facturas de compra" desde={desde} hasta={hasta} tituloNumero="Nº factura" />
       )}
     </>
   );

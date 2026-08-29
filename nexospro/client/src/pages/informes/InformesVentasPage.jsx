@@ -4,8 +4,8 @@ import { useState } from "react";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { Badge } from "../../components/ui.jsx";
 import {
-  ATAJOS, FiltroFechas, useInforme, TablaInforme, Td, TdNum, BotonCSV,
-  euros, fmtFecha, textoDesglose, rangoInicial,
+  ATAJOS, FiltroFechas, useInforme, TablaInforme, Td, TdNum, BotonCSV, BotonImprimir,
+  euros, fmtFecha, textoDesglose, textoPeriodo, rangoInicial,
 } from "./comun.jsx";
 
 const PESTANAS = [
@@ -56,9 +56,27 @@ function PorCliente({ desde, hasta }) {
   const { datos, error, cargando } = useInforme("/api/informes/ventas/por-cliente", desde, hasta);
   const filas = datos?.filas ?? [];
   const t = datos?.totales;
+  const columnasImpresion = [
+    { etiqueta: "Cliente" }, { etiqueta: "NIF" }, { etiqueta: "Facturas", num: true },
+    { etiqueta: "Base", num: true }, { etiqueta: "IVA", num: true }, { etiqueta: "Total", num: true },
+    { etiqueta: "Pendiente", num: true }, { etiqueta: "Desglose IVA" },
+  ];
   return (
     <div className="panel p-5">
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end gap-2 mb-2">
+        <BotonImprimir
+          titulo="Ventas por cliente"
+          subtitulo={textoPeriodo(desde, hasta)}
+          horizontal
+          secciones={[{
+            columnas: columnasImpresion,
+            filas: filas.map((f) => [
+              f.nombre, f.nif, f.documentos, euros(f.base), euros(f.cuotaIva), euros(f.total),
+              f.pendiente > 0 ? euros(f.pendiente) : "—", textoDesglose(f.iva),
+            ]),
+            pie: ["TOTALES", "", t?.documentos, euros(t?.base), euros(t?.cuotaIva), euros(t?.total), euros(t?.pendiente), ""],
+          }]}
+        />
         <BotonCSV
           nombre="ventas-por-cliente"
           cabeceras={["Cliente", "NIF", "Facturas", "Base", "IVA", "Total", "Pendiente de cobro", "Desglose IVA"]}
@@ -111,7 +129,19 @@ function PorArticulo({ desde, hasta }) {
   const t = datos?.totales;
   return (
     <div className="panel p-5">
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end gap-2 mb-2">
+        <BotonImprimir
+          titulo="Ventas por artículo"
+          subtitulo={textoPeriodo(desde, hasta)}
+          secciones={[{
+            columnas: [
+              { etiqueta: "Artículo / servicio" }, { etiqueta: "Cantidad", num: true },
+              { etiqueta: "Base", num: true }, { etiqueta: "IVA", num: true }, { etiqueta: "Total", num: true },
+            ],
+            filas: filas.map((f) => [f.descripcion, f.cantidad, euros(f.base), euros(f.cuotaIva), euros(f.total)]),
+            pie: ["TOTALES", t?.cantidad, euros(t?.base), euros(t?.cuotaIva), euros(t?.total)],
+          }]}
+        />
         <BotonCSV
           nombre="ventas-por-articulo"
           cabeceras={["Artículo / servicio", "Cantidad", "Base", "IVA", "Total"]}
@@ -151,11 +181,12 @@ function PorArticulo({ desde, hasta }) {
   );
 }
 
-export function ResumenPeriodo({ url, nombre, desde, hasta }) {
+export function ResumenPeriodo({ url, nombre, titulo, desde, hasta }) {
   const [agrupar, setAgrupar] = useState("mes");
   const { datos, error, cargando } = useInforme(`${url}?agrupar=${agrupar}`, desde, hasta);
   const filas = datos?.filas ?? [];
   const t = datos?.totales;
+  const etiquetaAgrupar = { dia: "por día", mes: "por mes", trimestre: "por trimestre" }[agrupar];
   return (
     <div className="panel p-5">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -175,11 +206,25 @@ export function ResumenPeriodo({ url, nombre, desde, hasta }) {
             </button>
           ))}
         </div>
-        <BotonCSV
-          nombre={nombre}
-          cabeceras={["Periodo", "Documentos", "Base", "IVA", "Total"]}
-          filas={filas.map((f) => [f.periodo, f.documentos, f.base, f.cuotaIva, f.total])}
-        />
+        <div className="flex gap-2">
+          <BotonImprimir
+            titulo={`${titulo} ${etiquetaAgrupar}`}
+            subtitulo={textoPeriodo(desde, hasta)}
+            secciones={[{
+              columnas: [
+                { etiqueta: "Periodo" }, { etiqueta: "Documentos", num: true },
+                { etiqueta: "Base", num: true }, { etiqueta: "IVA", num: true }, { etiqueta: "Total", num: true },
+              ],
+              filas: filas.map((f) => [f.periodo, f.documentos, euros(f.base), euros(f.cuotaIva), euros(f.total)]),
+              pie: ["TOTALES", t?.documentos, euros(t?.base), euros(t?.cuotaIva), euros(t?.total)],
+            }]}
+          />
+          <BotonCSV
+            nombre={nombre}
+            cabeceras={["Periodo", "Documentos", "Base", "IVA", "Total"]}
+            filas={filas.map((f) => [f.periodo, f.documentos, f.base, f.cuotaIva, f.total])}
+          />
+        </div>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
       <TablaInforme
@@ -214,13 +259,29 @@ export function ResumenPeriodo({ url, nombre, desde, hasta }) {
   );
 }
 
-export function Documentos({ url, nombre, desde, hasta, tituloNumero }) {
+export function Documentos({ url, nombre, titulo, desde, hasta, tituloNumero }) {
   const { datos, error, cargando } = useInforme(url, desde, hasta);
   const filas = datos?.filas ?? [];
   const t = datos?.totales;
   return (
     <div className="panel p-5">
-      <div className="flex justify-end mb-2">
+      <div className="flex justify-end gap-2 mb-2">
+        <BotonImprimir
+          titulo={titulo}
+          subtitulo={textoPeriodo(desde, hasta)}
+          horizontal
+          secciones={[{
+            columnas: [
+              { etiqueta: tituloNumero }, { etiqueta: "Fecha" }, { etiqueta: "Contacto" },
+              { etiqueta: "Base", num: true }, { etiqueta: "IVA", num: true },
+              { etiqueta: "Total", num: true }, { etiqueta: "Estado" },
+            ],
+            filas: filas.map((f) => [
+              f.numero, fmtFecha(f.fecha), f.contacto, euros(f.base), euros(f.cuotaIva), euros(f.total), f.estadoPago,
+            ]),
+            pie: ["TOTALES", "", "", euros(t?.base), euros(t?.cuotaIva), euros(t?.total), ""],
+          }]}
+        />
         <BotonCSV
           nombre={nombre}
           cabeceras={[tituloNumero, "Fecha", "Contacto", "Base", "IVA", "Total", "Estado"]}
@@ -280,10 +341,10 @@ export default function InformesVentasPage() {
       {pestana === "cliente" && <PorCliente desde={desde} hasta={hasta} />}
       {pestana === "articulo" && <PorArticulo desde={desde} hasta={hasta} />}
       {pestana === "resumen" && (
-        <ResumenPeriodo url="/api/informes/ventas/resumen" nombre="ventas-resumen" desde={desde} hasta={hasta} />
+        <ResumenPeriodo url="/api/informes/ventas/resumen" nombre="ventas-resumen" titulo="Ventas" desde={desde} hasta={hasta} />
       )}
       {pestana === "documentos" && (
-        <Documentos url="/api/informes/ventas/documentos" nombre="ventas-documentos" desde={desde} hasta={hasta} tituloNumero="Factura" />
+        <Documentos url="/api/informes/ventas/documentos" nombre="ventas-documentos" titulo="Facturas de venta" desde={desde} hasta={hasta} tituloNumero="Factura" />
       )}
     </>
   );

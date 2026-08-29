@@ -2,7 +2,7 @@
 // más la parte deducible de los tickets) entre fechas, con el resultado que
 // anticipa el modelo 303 del trimestre.
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
-import { FiltroFechas, useInforme, TablaInforme, Td, TdNum, BotonCSV, euros } from "./comun.jsx";
+import { FiltroFechas, useInforme, TablaInforme, Td, TdNum, BotonCSV, BotonImprimir, euros, textoPeriodo } from "./comun.jsx";
 import { useFiltroInforme } from "./InformesVentasPage.jsx";
 
 function TablaIva({ titulo, filas, total, nombre }) {
@@ -63,6 +63,37 @@ export default function InformesIvaPage() {
         <p className="text-sm text-slate-500 py-8 text-center">Cargando…</p>
       ) : datos ? (
         <>
+          <div className="flex justify-end mb-3">
+            <BotonImprimir
+              titulo="Resumen de IVA"
+              subtitulo={textoPeriodo(desde, hasta)}
+              notaFinal="Orientativo para preparar el modelo 303: no incluye recargo de equivalencia ni operaciones especiales. Revísalo con tu asesor antes de presentar."
+              secciones={[
+                {
+                  titulo: "IVA repercutido (ventas)",
+                  columnas: [{ etiqueta: "Tipo" }, { etiqueta: "Base", num: true }, { etiqueta: "Cuota", num: true }],
+                  filas: datos.repercutido.map((f) => [`${f.tipo} %`, euros(f.base), euros(f.cuota)]),
+                  pie: ["TOTAL", euros(datos.repercutido.reduce((s, f) => s + f.base, 0)), euros(datos.totalRepercutido)],
+                },
+                {
+                  titulo: "IVA soportado (compras)",
+                  columnas: [{ etiqueta: "Tipo" }, { etiqueta: "Base", num: true }, { etiqueta: "Cuota", num: true }],
+                  filas: datos.soportado.map((f) => [`${f.tipo} %`, euros(f.base), euros(f.cuota)]),
+                  pie: ["TOTAL", euros(datos.soportado.reduce((s, f) => s + f.base, 0)), euros(datos.totalSoportado - datos.gastos.deducible)],
+                },
+                {
+                  titulo: "Liquidación del periodo",
+                  columnas: [{ etiqueta: "Concepto" }, { etiqueta: "Importe", num: true }],
+                  filas: [
+                    ["IVA repercutido", euros(datos.totalRepercutido)],
+                    ["IVA soportado (facturas de compra)", `− ${euros(datos.totalSoportado - datos.gastos.deducible)}`],
+                    ["IVA deducible de tickets", `− ${euros(datos.gastos.deducible)}`],
+                  ],
+                  pie: ["Resultado", resultado >= 0 ? `${euros(resultado)} a ingresar` : `${euros(-resultado)} a compensar`],
+                },
+              ]}
+            />
+          </div>
           <div className="flex flex-wrap gap-5 mb-5">
             <TablaIva
               titulo="IVA repercutido (ventas)"

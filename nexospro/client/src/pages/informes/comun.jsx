@@ -197,3 +197,89 @@ export const Td = ({ children }) => <td className="py-2.5 pr-3 text-slate-300">{
 // Desglose de IVA en una línea: "21 %: 1.000,00 € + 210,00 €".
 export const textoDesglose = (iva) =>
   (iva ?? []).map((d) => `${d.tipo} %: ${euros(d.base)} + ${euros(d.cuota)}`).join("  ·  ");
+
+// Subtítulo del periodo para las impresiones: "Del 01/01/2026 al 29/08/2026".
+export const textoPeriodo = (desde, hasta) =>
+  desde && hasta ? `Del ${fmtFecha(desde + "T00:00:00")} al ${fmtFecha(hasta + "T00:00:00")}`
+    : desde ? `Desde el ${fmtFecha(desde + "T00:00:00")}`
+    : hasta ? `Hasta el ${fmtFecha(hasta + "T00:00:00")}`
+    : "Todos los datos";
+
+const esc = (s) =>
+  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Imprime el informe en una ventana limpia (A4, sin recuadros, estilo
+// documento): el usuario elige impresora o "Guardar como PDF".
+// secciones: [{ titulo, columnas: [{ etiqueta, num }], filas: [[...]], pie: [...] }]
+export function imprimirInforme({ titulo, subtitulo, empresa, secciones, notaFinal, horizontal }) {
+  const ventana = window.open("", "_blank");
+  if (!ventana) return;
+
+  const seccionHtml = (s) => `
+    ${s.titulo ? `<h2>${esc(s.titulo)}</h2>` : ""}
+    <table>
+      <thead><tr>${s.columnas.map((c) => `<th class="${c.num ? "num" : ""}">${esc(c.etiqueta)}</th>`).join("")}</tr></thead>
+      <tbody>
+        ${s.filas.map((f) => `<tr>${f.map((v, i) => `<td class="${s.columnas[i]?.num ? "num" : ""}">${esc(v)}</td>`).join("")}</tr>`).join("")}
+      </tbody>
+      ${s.pie ? `<tfoot><tr>${s.pie.map((v, i) => `<td class="${s.columnas[i]?.num ? "num" : ""}">${esc(v)}</td>`).join("")}</tr></tfoot>` : ""}
+    </table>`;
+
+  ventana.document.write(`<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>${esc(titulo)}</title>
+<style>
+  @page { size: A4 ${horizontal ? "landscape" : "portrait"}; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; color: #1a1a1a; font-size: 10pt; margin: 0; }
+  .cab { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #0f172a; padding-bottom: 8px; margin-bottom: 14px; }
+  .marca { font-size: 15pt; font-weight: 800; letter-spacing: 3px; color: #0f172a; }
+  .marca span { color: #0891b2; }
+  .empresa { text-align: right; font-size: 9pt; color: #444; }
+  .empresa b { font-size: 10pt; color: #1a1a1a; }
+  h1 { font-size: 14pt; margin: 0 0 2px; }
+  .periodo { color: #666; font-size: 9pt; margin-bottom: 14px; }
+  h2 { font-size: 11pt; margin: 18px 0 6px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .4px; color: #555; border-bottom: 1.5px solid #333; padding: 4px 6px; }
+  td { border-bottom: .5px solid #ddd; padding: 5px 6px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tfoot td { border-top: 2px solid #333; border-bottom: none; font-weight: 700; padding-top: 6px; }
+  .nota { margin-top: 14px; font-size: 8pt; color: #777; }
+  .pie-pagina { margin-top: 22px; font-size: 8pt; color: #999; display: flex; justify-content: space-between; border-top: .5px solid #ddd; padding-top: 6px; }
+  tr { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+  <div class="cab">
+    <div class="marca">FI<span>LA</span>NEX</div>
+    <div class="empresa"><b>${esc(empresa?.nombre ?? "")}</b>${empresa?.nif ? `<br>NIF ${esc(empresa.nif)}` : ""}</div>
+  </div>
+  <h1>${esc(titulo)}</h1>
+  <p class="periodo">${esc(subtitulo)}</p>
+  ${secciones.map(seccionHtml).join("")}
+  ${notaFinal ? `<p class="nota">${esc(notaFinal)}</p>` : ""}
+  <div class="pie-pagina"><span>Generado el ${new Date().toLocaleString("es-ES")}</span><span>FILANEX — Facturación VeriFactu</span></div>
+  <script>window.onload = () => window.print();<\/script>
+</body>
+</html>`);
+  ventana.document.close();
+}
+
+export function BotonImprimir({ titulo, subtitulo, secciones, notaFinal, horizontal }) {
+  const [empresa, setEmpresa] = useState(null);
+  useEffect(() => {
+    fetch("/api/empresa").then((r) => r.json()).then(setEmpresa).catch(() => {});
+  }, []);
+  return (
+    <button
+      type="button"
+      onClick={() => imprimirInforme({ titulo, subtitulo, empresa, secciones, notaFinal, horizontal })}
+      className="btn-ghost text-xs px-3 py-1.5"
+    >
+      Imprimir / PDF
+    </button>
+  );
+}
