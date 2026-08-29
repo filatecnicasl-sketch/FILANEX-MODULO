@@ -191,32 +191,50 @@ function msHastaProxima() {
   return proxima - ahora;
 }
 
-// Programador diario: primera pasada a la hora BACKUP_HORA y luego cada 24 h.
+// Sello de fecha local AAAAMMDD, igual que el que llevan los nombres de copia.
+function selloHoy(fecha = new Date()) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${fecha.getFullYear()}${p(fecha.getMonth() + 1)}${p(fecha.getDate())}`;
+}
+
+// Una pasada de copias sobre todas las empresas activas. Si una empresa ya
+// tiene su copia automática de HOY (la hizo el programador de la app o el
+// Programador de tareas de Windows), no se repite: la copia diaria es única.
+export async function ejecutarCopiasDiarias() {
+  let tenants = [];
+  try {
+    tenants = await Tenant.find({ estado: { $nin: ["inactivo", "suspendido"] } }).lean();
+  } catch (e) {
+    console.warn("[backup] No se pudieron listar las empresas:", e.message);
+    return;
+  }
+  const hoy = selloHoy();
+  for (const tenant of tenants) {
+    try {
+      const copias = await listarCopias(tenant.slug);
+      if (copias.some((c) => c.origen === "auto" && c.archivo.includes(hoy))) {
+        console.log(`[backup] ${tenant.slug}: ya tiene la copia de hoy, se omite`);
+        continue;
+      }
+      const info = await crearCopiaTenant({ slug: tenant.slug, dbName: tenant.dbName, origen: "auto" });
+      await purgarCopias(tenant.slug);
+      console.log(
+        `[backup] Copia diaria (${tenant.slug}): ${info.documentos} documentos, ${(info.tamano / 1024 / 1024).toFixed(1)} MB`
+      );
+    } catch (e) {
+      console.warn(`[backup] Copia fallida (${tenant.slug}):`, e.message);
+    }
+  }
+}
+
+// Programador diario dentro de la app: primera pasada a la hora BACKUP_HORA
+// y luego cada 24 h. En instalaciones locales de clientes (PC que se apaga),
+// la garantía la da el Programador de tareas de Windows (backup-local.mjs).
 export function iniciarCopiasSeguridad() {
   if (process.env.BACKUP_DESACTIVADO === "true") return;
-  const pasada = async () => {
-    let tenants = [];
-    try {
-      tenants = await Tenant.find({ estado: { $nin: ["inactivo", "suspendido"] } }).lean();
-    } catch (e) {
-      console.warn("[backup] No se pudieron listar las empresas:", e.message);
-      return;
-    }
-    for (const tenant of tenants) {
-      try {
-        const info = await crearCopiaTenant({ slug: tenant.slug, dbName: tenant.dbName, origen: "auto" });
-        await purgarCopias(tenant.slug);
-        console.log(
-          `[backup] Copia diaria (${tenant.slug}): ${info.documentos} documentos, ${(info.tamano / 1024 / 1024).toFixed(1)} MB`
-        );
-      } catch (e) {
-        console.warn(`[backup] Copia fallida (${tenant.slug}):`, e.message);
-      }
-    }
-  };
   setTimeout(() => {
-    pasada();
-    setInterval(pasada, 24 * 60 * 60 * 1000);
+    ejecutarCopiasDiarias();
+    setInterval(ejecutarCopiasDiarias, 24 * 60 * 60 * 1000);
   }, msHastaProxima());
   console.log(`[backup] Copias diarias a las ${HORA}; se conservan ${RETENER} automáticas por empresa`);
 }
