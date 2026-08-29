@@ -96,3 +96,29 @@ export async function asegurarTareaCopiaWindows() {
     console.warn(`[backup] No se pudo comprobar la tarea "${TAREA}":`, e.message);
   }
 }
+
+// Garantiza el arranque automático del servidor en PCs Windows: copia el
+// lanzador de pm2 a la carpeta de inicio del usuario si aún no está. Así, al
+// iniciar sesión, "pm2 resurrect" levanta la API guardada con pm2 save.
+export function asegurarArranqueWindows() {
+  if (process.platform !== "win32") return;
+  try {
+    const origen = path.join(RAIZ_SERVER, "scripts", "filanex-arranque.cmd");
+    const destino = path.join(
+      os.homedir(),
+      "AppData",
+      "Roaming",
+      "Microsoft",
+      "Windows",
+      "Start Menu",
+      "Programs",
+      "Startup",
+      "filanex-arranque.cmd"
+    );
+    if (!fs.existsSync(origen) || fs.existsSync(destino)) return;
+    fs.copyFileSync(origen, destino);
+    console.log("[arranque] FILANEX arrancará solo al iniciar sesión (carpeta de inicio de Windows)");
+  } catch (e) {
+    console.warn("[arranque] No se pudo instalar el arranque automático:", e.message);
+  }
+}

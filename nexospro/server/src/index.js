@@ -12,7 +12,7 @@ import whatsappWebhook from "./routes/whatsapp-webhook.js";
 import { iniciarReintentoVerifactu } from "./services/verifactu-reintento.js";
 import { iniciarColaWhatsApp } from "./services/whatsapp-cola.js";
 import { iniciarCopiasSeguridad } from "./services/backup.js";
-import { asegurarTareaCopiaWindows } from "./services/backup-tarea.js";
+import { asegurarTareaCopiaWindows, asegurarArranqueWindows } from "./services/backup-tarea.js";
 
 import { cerrarPoolPdf } from "./services/pdfRenderer.js";
 
@@ -122,6 +122,7 @@ connectDB()
     iniciarColaWhatsApp();
     iniciarCopiasSeguridad();
     asegurarTareaCopiaWindows();
+    asegurarArranqueWindows();
   })
   .finally(() => {
     const server = app.listen(PORT, () => {
