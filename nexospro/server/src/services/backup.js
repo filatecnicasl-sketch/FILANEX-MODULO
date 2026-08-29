@@ -18,20 +18,19 @@ import { guardarArchivo, leerArchivo, borrarArchivo, listarArchivos } from "./st
 const RETENER = Number(process.env.BACKUP_RETENER) || 14;
 const HORA = process.env.BACKUP_HORA || "03:30";
 
-// Carpeta elegida por el administrador del servidor para las copias
-// (automáticas y manuales). Si BACKUP_DIR está definida y NO hay S3/R2, las
-// copias van a esa carpeta (puede ser un disco externo, un NAS montado, etc.).
-// Sin BACKUP_DIR, se usa el almacenamiento por defecto: la carpeta backups/
-// del servidor, o el bucket S3/R2 cuando esté configurado.
-const CARPETA = process.env.BACKUP_DIR?.trim() || null;
+// Carpeta de las copias (automáticas y manuales), estándar en todas las
+// instalaciones: C:\backup\filanex en Windows, /backup/filanex en Linux.
+// Se puede cambiar con BACKUP_DIR en el .env (p. ej. un NAS montado). Si hay
+// S3/R2 configurado, las copias van al bucket y esta carpeta no se usa.
+const CARPETA_POR_DEFECTO = process.platform === "win32" ? "C:\\backup\\filanex" : "/backup/filanex";
+const CARPETA = process.env.BACKUP_DIR?.trim() || CARPETA_POR_DEFECTO;
 const S3_ACTIVO = Boolean(process.env.R2_ENDPOINT || process.env.S3_ENDPOINT);
-const USA_CARPETA = Boolean(CARPETA) && !S3_ACTIVO;
+const USA_CARPETA = !S3_ACTIVO;
 
 /** Dónde se guardan las copias, para mostrarlo en Ajustes → Copias. */
 export function almacenCopias() {
   if (S3_ACTIVO) return { tipo: "s3", descripcion: "almacenamiento externo (S3/R2), fuera del servidor" };
-  if (USA_CARPETA) return { tipo: "carpeta", descripcion: CARPETA };
-  return { tipo: "local", descripcion: "carpeta backups/ dentro del servidor" };
+  return { tipo: "carpeta", descripcion: CARPETA };
 }
 
 function rutaDisco(slug, archivo) {
