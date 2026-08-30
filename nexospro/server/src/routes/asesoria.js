@@ -6,6 +6,8 @@ import DocumentoFiscal from "../models/DocumentoFiscal.js";
 import SolicitudDocumento from "../models/SolicitudDocumento.js";
 import CierreTrimestral, { ESTADOS_CIERRE } from "../models/CierreTrimestral.js";
 import Empresa from "../models/Empresa.js";
+import Tenant from "../models/plataforma/Tenant.js";
+import VinculoAsesoria from "../models/plataforma/VinculoAsesoria.js";
 import { requiereModulo } from "../config/modulos.js";
 import { extraerDocumentoCompra, extraerTicket } from "../services/ocr-gemini.js";
 import { cuadrarIva } from "../services/validar-ocr.js";
@@ -13,6 +15,12 @@ import { contextoActual, conContexto, slugActual } from "../models/tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 import { uploadMemoria } from "../middleware/upload.js";
 import { guardarArchivo, urlPublica, borrarArchivo } from "../services/storage.js";
+import {
+  codigoDeAsesoria,
+  documentosDeVinculo,
+  tipoIvaEfectivo,
+  asegurarClienteEnCartera,
+} from "../services/vinculos-asesoria.js";
 
 const router = Router();
 router.use(requiereModulo("asesoria"));
@@ -727,6 +735,12 @@ router.get("/panel", async (req, res, next) => {
       SolicitudDocumento.countDocuments({ estado: "pendiente" }),
     ]);
 
+    // Empresas conectadas por vínculo FILANEX con autorización activa.
+    const tenantPanel = await Tenant.findOne({ slug: req.usuario.t }).lean();
+    const clientesConectados = tenantPanel
+      ? await VinculoAsesoria.countDocuments({ asesoria: tenantPanel._id, estado: "activo" })
+      : 0;
+
     // Próximos vencimientos (30 días) de todos los clientes activos.
     const clientes = await ClienteAsesoria.find({ activo: true }).lean();
     const limite = new Date(ahora.getTime() + 30 * 86400000);
@@ -771,6 +785,7 @@ router.get("/panel", async (req, res, next) => {
 
     res.json({
       clientesActivos,
+      clientesConectados,
       pendientesRevision: pendientes,
       documentosTrimestre: docsTrimestre,
       solicitudesPendientes,
@@ -782,6 +797,148 @@ router.get("/panel", async (req, res, next) => {
         pocaConfianza,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ------------------------------------------------- vínculo con empresas ---
+// La asesoría enseña su código a sus clientes; cuando la empresa lo firma en
+// su FILANEX, aparece aquí y sus documentos se pueden leer e importar.
+
+async function tenantAsesoriaActual(req) {
+  return Tenant.findOne({ slug: req.usuario.t });
+}
+
+// Código público de esta asesoría (se genera la primera vez que se consulta).
+router.get("/mi-codigo", async (req, res, next) => {
+  try {
+    const tenant = await tenantAsesoriaActual(req);
+    if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+    res.json({ codigo: await codigoDeAsesoria(tenant) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Empresas vinculadas con autorización activa (o pendientes de firma).
+router.get("/vinculados", async (req, res, next) => {
+  try {
+    const tenant = await tenantAsesoriaActual(req);
+    if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+    const vinculos = await VinculoAsesoria.find({
+      asesoria: tenant._id,
+      estado: { $in: ["activo", "pendiente"] },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    const clientes = await Tenant.find({ _id: { $in: vinculos.map((v) => v.cliente) } }).lean();
+    const porId = new Map(clientes.map((t) => [String(t._id), t]));
+    res.json(
+      vinculos.map((v) => {
+        const t = porId.get(String(v.cliente));
+        return {
+          id: v._id,
+          estado: v.estado,
+          compartir: v.compartir,
+          clienteCarteraId: v.clienteCarteraId ?? null,
+          fechaFirma: v.autorizacion?.fechaAceptacion ?? null,
+          empresa: t ? { nombre: t.nombre, nif: t.nif ?? "", slug: t.slug } : null,
+        };
+      })
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Documentos fiscales del tenant cliente, marcando los ya importados. La BD
+// se resuelve en el servidor desde el vínculo: nunca se acepta del cliente.
+router.get("/vinculados/:id/documentos", async (req, res, next) => {
+  try {
+    const tenant = await tenantAsesoriaActual(req);
+    const vinculo = await VinculoAsesoria.findById(req.params.id).lean();
+    if (!vinculo || String(vinculo.asesoria) !== String(tenant?._id)) {
+      return res.status(404).json({ error: "Vínculo no encontrado" });
+    }
+    if (vinculo.estado !== "activo") {
+      return res.status(403).json({ error: "La autorización no está activa" });
+    }
+    const cliente = await Tenant.findById(vinculo.cliente).lean();
+    if (!cliente) return res.status(404).json({ error: "La empresa ya no existe" });
+
+    const { tipo = "todos", desde, hasta } = req.query;
+    const docs = await documentosDeVinculo(vinculo, cliente, { tipo, desde, hasta });
+
+    const importados = await DocumentoFiscal.find({ "origenRef.vinculo": vinculo._id })
+      .select("origenRef.coleccion origenRef.documentoId")
+      .lean();
+    const ya = new Set(importados.map((d) => `${d.origenRef.coleccion}:${d.origenRef.documentoId}`));
+    res.json(docs.map((d) => ({ ...d, importado: ya.has(`${d.coleccion}:${d.documentoId}`) })));
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Importa una selección de documentos a la contabilidad de la asesoría.
+// Antiduplicado por origenRef único: reimportar no crea copias.
+router.post("/vinculados/:id/importar", async (req, res, next) => {
+  try {
+    const tenant = await tenantAsesoriaActual(req);
+    const vinculo = await VinculoAsesoria.findById(req.params.id);
+    if (!vinculo || String(vinculo.asesoria) !== String(tenant?._id)) {
+      return res.status(404).json({ error: "Vínculo no encontrado" });
+    }
+    if (vinculo.estado !== "activo") {
+      return res.status(403).json({ error: "La autorización no está activa" });
+    }
+    const cliente = await Tenant.findById(vinculo.cliente).lean();
+    if (!cliente) return res.status(404).json({ error: "La empresa ya no existe" });
+
+    const seleccion = Array.isArray(req.body?.documentos) ? req.body.documentos : [];
+    const claves = new Set(seleccion.map((s) => `${s.coleccion}:${s.documentoId}`));
+    const { desde, hasta } = req.body ?? {};
+    // Los datos se releen SIEMPRE del tenant cliente en el servidor: nunca
+    // se confía en importes o fechas que vengan en la petición.
+    let docs = await documentosDeVinculo(vinculo, cliente, { tipo: "todos", desde, hasta });
+    if (claves.size) docs = docs.filter((d) => claves.has(`${d.coleccion}:${d.documentoId}`));
+    if (!docs.length) return res.json({ importados: 0, duplicados: 0, errores: 0 });
+
+    if (!vinculo.clienteCarteraId) {
+      vinculo.clienteCarteraId = await asegurarClienteEnCartera(vinculo, tenant, {
+        nombre: cliente.nombre, nif: cliente.nif ?? "",
+      });
+      await vinculo.save();
+    }
+
+    let importados = 0;
+    let duplicados = 0;
+    let errores = 0;
+    for (const d of docs) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await new DocumentoFiscal({
+          clienteAsesoria: vinculo.clienteCarteraId,
+          tipo: d.tipo,
+          fecha: d.fecha,
+          numero: d.numero,
+          tercero: d.tercero,
+          nifTercero: d.nifTercero,
+          base: d.base,
+          tipoIva: tipoIvaEfectivo(d.base, d.cuotaIva),
+          cuotaIva: d.cuotaIva,
+          total: d.total,
+          origen: "filanex",
+          origenRef: { vinculo: vinculo._id, coleccion: d.coleccion, documentoId: d.documentoId },
+          estado: "revisado",
+        }).save();
+        importados += 1;
+      } catch (e) {
+        if (e?.code === 11000) duplicados += 1;
+        else errores += 1;
+      }
+    }
+    res.json({ importados, duplicados, errores });
   } catch (err) {
     next(err);
   }

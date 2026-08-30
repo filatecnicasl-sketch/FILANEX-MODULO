@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../../components/ui.jsx";
-import { FORMAS_JURIDICAS, MODELOS_FISCALES, REGIMENES_IRPF, fechaCorta, nombreForma } from "./datos.js";
+import { FORMAS_JURIDICAS, MODELOS_FISCALES, REGIMENES_IRPF, nombreForma } from "./datos.js";
+import DocumentosVinculados from "./DocumentosVinculados.jsx";
 
 const VACIO = {
   nombre: "",
@@ -202,6 +203,9 @@ export default function AsesoriaCarteraPage() {
   const [q, setQ] = useState("");
   const [modal, setModal] = useState(null);
   const [error, setError] = useState(null);
+  const [miCodigo, setMiCodigo] = useState(null);
+  const [vinculados, setVinculados] = useState([]);
+  const [visorVinculo, setVisorVinculo] = useState(null);
 
   async function cargar() {
     try {
@@ -216,7 +220,24 @@ export default function AsesoriaCarteraPage() {
 
   useEffect(() => {
     cargar();
+    fetch("/api/asesoria/mi-codigo")
+      .then((r) => r.json())
+      .then((d) => setMiCodigo(d.codigo ?? null))
+      .catch(() => {});
+    fetch("/api/asesoria/vinculados")
+      .then((r) => r.json())
+      .then((d) => setVinculados(Array.isArray(d) ? d : []))
+      .catch(() => {});
   }, []);
+
+  // Cliente de cartera → vínculo FILANEX activo (si lo tiene).
+  const vinculoPorCartera = useMemo(() => {
+    const mapa = new Map();
+    for (const v of vinculados) {
+      if (v.estado === "activo" && v.clienteCarteraId) mapa.set(String(v.clienteCarteraId), v);
+    }
+    return mapa;
+  }, [vinculados]);
 
   const filtrados = useMemo(() => {
     if (!clientes) return [];
@@ -255,6 +276,20 @@ export default function AsesoriaCarteraPage() {
       </CabeceraPagina>
 
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+
+      {miCodigo && (
+        <div className="panel p-4 mb-4 flex flex-wrap items-center gap-3">
+          <div>
+            <p className="text-xs text-slate-500">Tu código de asesoría (dáselo a tus clientes que usen FILANEX)</p>
+            <p className="text-lg font-bold text-sky-300 tracking-wider">{miCodigo}</p>
+          </div>
+          <p className="text-xs text-slate-500 max-w-md ml-auto">
+            Cuando un cliente lo introduce en su FILANEX (Ajustes → Asesoría) y firma la autorización,
+            aparece aquí con la insignia FILANEX y puedes importar sus facturas y tickets directamente.
+          </p>
+        </div>
+      )}
+
       {clientes && filtrados.length === 0 && (
         <EstadoVacio
           titulo="Sin clientes en la cartera"
@@ -263,7 +298,9 @@ export default function AsesoriaCarteraPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtrados.map((c) => (
+        {filtrados.map((c) => {
+          const vinculo = vinculoPorCartera.get(String(c._id));
+          return (
           <div key={c._id} className={`panel p-5 ${c.activo ? "" : "opacity-60"}`}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
@@ -272,7 +309,10 @@ export default function AsesoriaCarteraPage() {
                   {c.codigo} · {c.nif} · {nombreForma(c.formaJuridica)}
                 </p>
               </div>
-              <Badge tono={c.activo ? "emerald" : "slate"}>{c.activo ? "Activo" : "Baja"}</Badge>
+              <div className="flex gap-1.5 shrink-0">
+                {vinculo && <Badge tono="sky">FILANEX</Badge>}
+                <Badge tono={c.activo ? "emerald" : "slate"}>{c.activo ? "Activo" : "Baja"}</Badge>
+              </div>
             </div>
             <p className="text-xs text-slate-400 mt-2">
               {[c.personaContacto, c.telefono, c.email].filter(Boolean).join(" · ") || "Sin datos de contacto"}
@@ -293,6 +333,11 @@ export default function AsesoriaCarteraPage() {
                 )}
               </div>
               <div className="flex gap-2">
+                {vinculo && (
+                  <button className="btn-ghost text-xs text-sky-300" onClick={() => setVisorVinculo(vinculo)}>
+                    Docs FILANEX
+                  </button>
+                )}
                 <button className="btn-ghost text-xs" onClick={() => setModal(c)}>Editar</button>
                 <button className="btn-ghost text-xs" onClick={() => alternarActivo(c)}>
                   {c.activo ? "Dar de baja" : "Reactivar"}
@@ -301,8 +346,13 @@ export default function AsesoriaCarteraPage() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
+
+      {visorVinculo && (
+        <DocumentosVinculados vinculo={visorVinculo} onCerrar={() => setVisorVinculo(null)} />
+      )}
 
       {modal !== null && (
         <ModalCliente

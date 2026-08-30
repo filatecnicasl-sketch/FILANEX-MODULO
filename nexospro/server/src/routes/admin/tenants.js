@@ -2,12 +2,14 @@ import { Router } from "express";
 import mongoose from "mongoose";
 import Tenant, { ESTADOS, PLANES } from "../../models/plataforma/Tenant.js";
 import Cuenta from "../../models/plataforma/Cuenta.js";
+import VinculoAsesoria from "../../models/plataforma/VinculoAsesoria.js";
 import Empresa from "../../models/Empresa.js";
 import { requiereAuth, requiereSuperAdmin } from "../../middleware/auth.js";
 import { crearTenant, resumenTenants } from "../../services/tenant.js";
 import { prefijoBd } from "../../config/db.js";
 import { MODULOS, MODULOS_ACTIVABLES } from "../../config/modulos.js";
 import { conexionTenant, conContexto } from "../../models/tenant.js";
+import { buscarAsesoriaPorCodigo } from "../../services/vinculos-asesoria.js";
 
 const router = Router();
 
@@ -74,6 +76,17 @@ async function normalizarTenant(t) {
 router.get("/", async (req, res, next) => {
   try {
     const tenantsRaw = await resumenTenants();
+    // Asesoría referente de cada empresa (vínculo activo o pendiente de firma).
+    const vinculos = await VinculoAsesoria.find({ estado: { $in: ["activo", "pendiente"] } }).lean();
+    const asesoriasIds = [...new Set(vinculos.map((v) => String(v.asesoria)))];
+    const asesorias = await Tenant.find({ _id: { $in: asesoriasIds } }).select("nombre").lean();
+    const nombreAsesoria = new Map(asesorias.map((a) => [String(a._id), a.nombre]));
+    const referentePorCliente = new Map(
+      vinculos.map((v) => [
+        String(v.cliente),
+        { nombre: nombreAsesoria.get(String(v.asesoria)) ?? "—", estado: v.estado },
+      ])
+    );
     const completos = [];
     for (const raw of tenantsRaw) {
       const t = await normalizarTenant(raw);
@@ -92,6 +105,7 @@ router.get("/", async (req, res, next) => {
         adminNombre: admin?.nombre,
         ultimoAcceso: admin?.ultimoAcceso,
         diasCaducidad: diasRestantes(t.fechaCaducidad),
+        asesoriaReferente: referentePorCliente.get(String(t._id)) ?? null,
       });
     }
     res.json(completos);
@@ -139,7 +153,7 @@ router.post("/", async (req, res, next) => {
       nif, direccion, codigoPostal, ciudad, provincia, telefono, emailContacto,
       estado, plan, importeMensual, fechaRenovacion, fechaCaducidad,
       limiteUsuarios, limiteFacturasMes, limiteAlmacenamientoMB, notas,
-      modulos,
+      modulos, codigoAsesoriaCliente,
     } = req.body;
 
     if (!slug || !nombre || !email || !password) {
@@ -169,7 +183,26 @@ router.post("/", async (req, res, next) => {
 
     await tenant.save();
     await sincronizarModulosEmpresa(tenant, modulosLimpios);
-    res.status(201).json(tenant.toObject());
+
+    // Si viene recomendado por una asesoría, se deja el vínculo preparado en
+    // pendiente: la empresa lo firma en su primer acceso (Ajustes → Asesoría).
+    let avisoVinculo = null;
+    if (codigoAsesoriaCliente) {
+      const asesoria = await buscarAsesoriaPorCodigo(codigoAsesoriaCliente);
+      if (!asesoria) {
+        avisoVinculo = "Empresa creada, pero el código de asesoría no existe o no está activo.";
+      } else if (String(asesoria._id) === String(tenant._id)) {
+        avisoVinculo = "Empresa creada; no se puede vincular una empresa consigo misma.";
+      } else {
+        await VinculoAsesoria.findOneAndUpdate(
+          { asesoria: asesoria._id, cliente: tenant._id },
+          { $setOnInsert: { asesoria: asesoria._id, cliente: tenant._id, estado: "pendiente", origen: "plataforma" } },
+          { upsert: true }
+        );
+      }
+    }
+
+    res.status(201).json({ ...tenant.toObject(), ...(avisoVinculo ? { aviso: avisoVinculo } : {}) });
   } catch (err) {
     next(err);
   }

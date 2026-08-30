@@ -151,6 +151,11 @@ export default function AsesoriaPanelPage() {
           alerta={panel.solicitudesPendientes > 0}
         />
         <TarjetaContador
+          etiqueta="Clientes conectados"
+          valor={panel.clientesConectados ?? 0}
+          enlace="/asesoria/cartera"
+        />
+        <TarjetaContador
           etiqueta="IVA soportado"
           valor={euros(panel.iva.soportado)}
           enlace="/asesoria/libros-iva"

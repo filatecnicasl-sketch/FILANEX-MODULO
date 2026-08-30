@@ -43,6 +43,11 @@ const tenantSchema = new Schema(
     copiaToken: { type: String, index: true, sparse: true },
     copiaTokenFecha: { type: Date },
 
+    // Código público de asesoría (p.ej. "ASC-7F3K2P"): las empresas cliente
+    // lo introducen en Ajustes → Asesoría para vincularse y compartir sus
+    // documentos fiscales. Solo lo tienen tenants con el módulo asesoría.
+    codigoAsesoria: { type: String, unique: true, sparse: true },
+
     // Notas internas para el administrador de la plataforma
     notas: { type: String },
   },

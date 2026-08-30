@@ -26,6 +26,7 @@ const VACIO = {
   limiteAlmacenamientoMB: 1024,
   modulos: [],
   notas: "",
+  codigoAsesoriaCliente: "",
 };
 
 const PLANES_PRESETS = {
@@ -92,7 +93,7 @@ function ModalTenant({ inicial, editando, onCerrar, onGuardado, alerta }) {
       );
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || "Error al guardar");
-      onGuardado();
+      onGuardado(data.aviso ?? null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -255,6 +256,21 @@ function ModalTenant({ inicial, editando, onCerrar, onGuardado, alerta }) {
             <label className="text-sm text-slate-400">Notas internas</label>
             <textarea value={form.notas} onChange={(e) => cambiar("notas", e.target.value)} rows={3} className="input" />
           </div>
+
+          {!editando && (
+            <div className="space-y-1">
+              <label className="text-sm text-slate-400">Cliente de la asesoría (código, opcional)</label>
+              <input
+                value={form.codigoAsesoriaCliente}
+                onChange={(e) => cambiar("codigoAsesoriaCliente", e.target.value.toUpperCase())}
+                placeholder="ASC-XXXXXX · si viene recomendado por una asesoría"
+                className="input"
+              />
+              <p className="text-xs text-slate-500">
+                Queda pendiente de que la empresa firme la autorización en su primer acceso.
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
@@ -506,6 +522,12 @@ export default function AdminTenantsPage() {
                     <div className="font-semibold text-white">{t.nombre}</div>
                     <div className="text-xs text-slate-500">{t.slug} · {t.dbName}</div>
                     {t.nif && <div className="text-xs text-slate-500">NIF {t.nif}</div>}
+                    {t.asesoriaReferente && (
+                      <div className="text-xs text-sky-400 mt-0.5">
+                        Cliente de: {t.asesoriaReferente.nombre}
+                        {t.asesoriaReferente.estado === "pendiente" && " (pendiente de firma)"}
+                      </div>
+                    )}
                   </td>
                   <td className="text-sm">
                     <div className="text-slate-300">{t.adminNombre || t.adminEmail}</div>
@@ -554,9 +576,9 @@ export default function AdminTenantsPage() {
           inicial={modal.inicial}
           editando={modal.editando}
           onCerrar={() => setModal(null)}
-          onGuardado={() => {
+          onGuardado={(aviso) => {
             setModal(null);
-            setMensaje(modal.editando ? "Empresa actualizada." : "Empresa creada.");
+            setMensaje(aviso ?? (modal.editando ? "Empresa actualizada." : "Empresa creada."));
             cargar();
           }}
         />

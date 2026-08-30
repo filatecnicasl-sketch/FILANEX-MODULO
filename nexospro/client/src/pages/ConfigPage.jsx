@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
+import VinculoAsesoria from "../components/VinculoAsesoria.jsx";
 
 const campo = "w-full input";
 const etiqueta = "block text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-400 mb-1.5";
@@ -184,6 +185,8 @@ export default function ConfigPage() {
           </div>
         </div>
       </div>
+
+      <VinculoAsesoria />
 
       <div className="panel p-6 space-y-3">
         <h2 className="text-white font-semibold">Remesas SEPA</h2>

@@ -36,7 +36,15 @@ const documentoFiscalSchema = new Schema(
     trimestre: { type: Number, min: 1, max: 4, index: true },
     archivo: { type: String },
     nombreArchivo: { type: String },
-    origen: { type: String, enum: ["manual", "ocr"], default: "manual" },
+    origen: { type: String, enum: ["manual", "ocr", "filanex"], default: "manual" },
+    // Cuando entra por el vínculo con la empresa (origen "filanex"), referencia
+    // única al documento original en la BD del cliente: impide importarlo dos
+    // veces aunque se pulse "Importar" de nuevo.
+    origenRef: {
+      vinculo: { type: Schema.Types.ObjectId },
+      coleccion: { type: String },
+      documentoId: { type: String },
+    },
     ocr: {
       confianza: Number,
       datosExtraidos: Schema.Types.Mixed,
@@ -48,6 +56,10 @@ const documentoFiscalSchema = new Schema(
 );
 
 documentoFiscalSchema.index({ clienteAsesoria: 1, ano: 1, trimestre: 1, tipo: 1 });
+documentoFiscalSchema.index(
+  { "origenRef.coleccion": 1, "origenRef.documentoId": 1 },
+  { unique: true, sparse: true }
+);
 
 documentoFiscalSchema.pre("validate", function () {
   if (this.fecha) {
