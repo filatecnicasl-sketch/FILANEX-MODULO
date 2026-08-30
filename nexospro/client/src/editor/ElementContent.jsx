@@ -57,16 +57,29 @@ function TextView({ el, fs, print }) {
 
   // En impresión, si el texto no cabe en su caja, reduce la fuente hasta que
   // quepa en vez de cortarlo (nombres de cliente largos, direcciones de 2 líneas).
+  // Hay que medir también cuando termina de cargar la fuente del documento:
+  // con la fuente de reserva el texto ocupa menos y parecería que cabe.
   useLayoutEffect(() => {
     if (!print || !ref.current) return;
     const node = ref.current;
-    let f = 1;
-    node.style.fontSize = fs(el.fontSize);
-    while (f > 0.55 && node.scrollHeight > node.clientHeight + 1) {
-      f -= 0.05;
-      node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
-    }
-    setFactor(f);
+    let cancelado = false;
+
+    const ajustar = () => {
+      if (cancelado || !ref.current) return;
+      let f = 1;
+      node.style.fontSize = fs(el.fontSize);
+      while (f > 0.5 && node.scrollHeight > node.clientHeight + 1) {
+        f -= 0.05;
+        node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
+      }
+      setFactor(f);
+    };
+
+    ajustar();
+    document.fonts?.ready?.then(ajustar).catch(() => {});
+    return () => {
+      cancelado = true;
+    };
   }, [print, el.text, el.fontSize, el.w, el.h]);
 
   return (

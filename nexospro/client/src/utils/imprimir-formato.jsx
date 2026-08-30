@@ -39,7 +39,14 @@ export function imprimirFormato(template, formData, signatures = {}) {
   window.addEventListener("afterprint", limpiar);
 
   // Da tiempo a React a pintar la hoja antes de abrir la vista de impresión.
-  setTimeout(() => window.print(), 80);
+  // Se espera además a que la fuente esté cargada: si no, los textos se miden
+  // con la fuente de reserva y el auto-ajuste no reduce lo que hace falta.
+  const abrirImpresion = () => setTimeout(() => window.print(), 120);
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(abrirImpresion).catch(abrirImpresion);
+  } else {
+    abrirImpresion();
+  }
   // Red de seguridad por si afterprint no dispara (cierres raros del diálogo).
   setTimeout(limpiar, 120000);
 }
