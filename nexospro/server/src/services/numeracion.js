@@ -105,7 +105,11 @@ export function tomarNumero(empresa, tipo) {
 // riesgo de duplicados ni bloqueos sobre el documento Empresa.
 // Con { serieNombre } numera en una serie concreta (p.ej. la "T" del TPV),
 // creándola si no existe; sin opciones usa la serie por defecto.
-export async function tomarNumeroFacturaVentaAtomico(empresa, { serieNombre } = {}) {
+// Si la empresa tiene renumerarAnual (por defecto sí), la serie efectiva
+// lleva el año del documento: "A-2027", "T-2027"…, y cada 1 de enero la
+// numeración vuelve a 1 sin romper la unicidad de serie exigida por
+// VeriFactu (la cadena de huella continúa entre años).
+export async function tomarNumeroFacturaVentaAtomico(empresa, { serieNombre, ano } = {}) {
   asegurarSeries(empresa);
   const lista = empresa.seriesVenta;
   let serie;
@@ -129,13 +133,17 @@ export async function tomarNumeroFacturaVentaAtomico(empresa, { serieNombre } = 
   } else {
     serie = lista.find((s) => s.defecto) ?? lista[0];
   }
-  const clave = `facturaVenta:${serie.nombre}`;
+
+  const ejercicio = Number(ano) || new Date().getFullYear();
+  const renumerar = empresa.renumerarAnual !== false;
+  const nombreEfectivo = renumerar ? `${serie.nombre}-${ejercicio}` : serie.nombre;
+  const clave = `facturaVenta:${nombreEfectivo}`;
 
   const { default: FacturaVenta } = await import("../models/FacturaVenta.js");
-  // El máximo se calcula solo dentro de ESTA serie (T-1, T-2…), para que la
-  // serie nueva del TPV empiece en 1 aunque ya existan facturas A-…
+  // El máximo se calcula solo dentro de ESTA serie (T-1, T-2… o T-2027-1…),
+  // para que cada serie (y cada ejercicio) empiece en 1.
   await inicializarSiEsNuevo(clave, FacturaVenta, "serieNumero", {
-    serieNumero: new RegExp(`^${serie.nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-`),
+    serieNumero: new RegExp(`^${nombreEfectivo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-`),
   });
 
   const contador = await Contador.findOneAndUpdate(
@@ -144,7 +152,7 @@ export async function tomarNumeroFacturaVentaAtomico(empresa, { serieNombre } = 
     { new: true, upsert: true }
   );
   const numero = contador.valor;
-  return { serie: serie.nombre, numero, serieNumero: `${serie.nombre}-${numero}` };
+  return { serie: nombreEfectivo, numero, serieNumero: `${nombreEfectivo}-${numero}` };
 }
 
 // Contador atómico para órdenes de trabajo. Desacoplado del documento Empresa.

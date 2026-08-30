@@ -17,6 +17,7 @@ import {
 } from "../services/verifactu.js";
 import { certificadoActual } from "../services/certificadoEmpresa.js";
 import { serializarRegistro } from "../services/registro-cola.js";
+import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 
 const router = Router();
 
@@ -54,6 +55,11 @@ router.post("/", async (req, res, next) => {
     const lineas = limpiarLineas(req.body.lineas);
     if (!cliente || !lineas) {
       return res.status(400).json({ error: "cliente y al menos una línea con descripción son obligatorios" });
+    }
+    // Ejercicio cerrado: no se pueden crear documentos con fecha de ese año.
+    const anoDoc = new Date(req.body.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoDoc)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
     }
     const totales = calcularTotales(lineas);
     const empresa = await Empresa.findOne();
@@ -101,6 +107,10 @@ router.put("/:id", async (req, res, next) => {
       return res.status(409).json({
         error: "Solo se pueden modificar facturas en borrador. Una factura validada debe corregirse mediante una rectificativa",
       });
+    }
+    const anoDoc = new Date(factura.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoDoc)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
     }
     const lineas = limpiarLineas(req.body.lineas);
     if (!req.body.cliente || !lineas) {
@@ -151,9 +161,14 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
     if (!empresa) {
       return res.status(503).json({ error: "No hay empresa configurada (ver /api/configuracion)" });
     }
+    const anoDoc = new Date(factura.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoDoc)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
+    }
     // Numeración atómica con contador separado: libre de duplicados y sin
-    // bloquear el documento Empresa.
-    const { serie: nombreSerie, numero, serieNumero } = await tomarNumeroFacturaVentaAtomico(empresa);
+    // bloquear el documento Empresa. La serie lleva el año del documento
+    // (A-2027-…), con renumeración a 1 cada 1 de enero.
+    const { serie: nombreSerie, numero, serieNumero } = await tomarNumeroFacturaVentaAtomico(empresa, { ano: anoDoc });
     const fechaExpedicion = fechaDDMMYYYY(factura.fechaExpedicion);
     const fechaHoraGen = timestampRegistro();
 
@@ -268,6 +283,8 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
     const empresa = await Empresa.findById(original.empresa) ?? (await Empresa.findOne());
     if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
 
+    // La rectificativa se numera en el ejercicio ACTUAL (la corrección de un
+    // año cerrado se registra en el año en curso, como exige la AEAT).
     const { serie, numero, serieNumero } = await tomarNumeroFacturaVentaAtomico(empresa);
 
     // Líneas y totales en negativo (rectificación íntegra por sustitución).
@@ -400,6 +417,10 @@ router.delete("/:id", async (req, res, next) => {
       return res.status(409).json({
         error: "Solo se pueden eliminar borradores. Una factura validada ya está en VeriFactu: corrígela con una factura rectificativa",
       });
+    }
+    const anoDoc = new Date(factura.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoDoc)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
     }
     await factura.deleteOne();
     res.json({ ok: true });

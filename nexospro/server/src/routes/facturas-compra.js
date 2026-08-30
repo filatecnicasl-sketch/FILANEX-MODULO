@@ -14,6 +14,7 @@ import { contextoActual, conContexto, slugActual } from "../models/tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 import { uploadMemoria } from "../middleware/upload.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
+import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 
 const router = Router();
 
@@ -53,6 +54,10 @@ router.post("/", async (req, res, next) => {
     if (lineas.length === 0) return res.status(400).json({ error: "Añade al menos una línea" });
 
     const fecha = req.body.fechaExpedicion ?? req.body.fecha;
+    const anoDoc = new Date(fecha ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoDoc)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
+    }
     const factura = await FacturaCompra.create({
       proveedor,
       numeroFacturaProveedor: numeroFacturaProveedor || undefined,
@@ -175,6 +180,10 @@ router.put("/:id", async (req, res, next) => {
     if (fc.estado !== "pendiente_revision") {
       return res.status(409).json({ error: `La factura ya está ${fc.estado}` });
     }
+    const anoEdit = new Date(fc.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoEdit)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoEdit) });
+    }
 
     const { proveedor, numeroFacturaProveedor, notas } = req.body;
     if (proveedor !== undefined) fc.proveedor = proveedor || null;
@@ -212,6 +221,10 @@ router.post("/:id/validar", async (req, res, next) => {
     if (!fc) return res.status(404).json({ error: "Factura no encontrada" });
     if (fc.estado !== "pendiente_revision") {
       return res.status(409).json({ error: `La factura ya está ${fc.estado}` });
+    }
+    const anoVal = new Date(fc.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoVal)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoVal) });
     }
 
     const extra = fc.ocr?.datosExtraidos ?? {};
@@ -369,6 +382,10 @@ router.delete("/:id", async (req, res, next) => {
     if (!fc) return res.status(404).json({ error: "Factura no encontrada" });
     if (fc.estado === "validada") {
       return res.status(409).json({ error: "Una factura validada no se puede borrar" });
+    }
+    const anoDel = new Date(fc.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(anoDel)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(anoDel) });
     }
     if (fc.albaranes?.length > 0) {
       await AlbaranCompra.updateMany(

@@ -119,6 +119,11 @@ const empresaSchema = new Schema(
       },
     },
     agendaSeparadaMigrada: { type: Boolean, default: false },
+    // Numeración por ejercicio: con el cambio de año las series se renumeran
+    // desde 1 con el año en el propio identificador (A-2027-1, T-2027-1…),
+    // lo que mantiene la unicidad exigida por VeriFactu sin romper la
+    // cadena de huella (que continúa entre años).
+    renumerarAnual: { type: Boolean, default: true },
     modulos: { type: [String], default: [] }, // módulos activados (licencia): taller, logistica...
     contadores: {
       presupuesto: { type: Number, default: 1 },

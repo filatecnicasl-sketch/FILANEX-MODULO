@@ -67,6 +67,7 @@ import TpvTerminalPage from "./pages/tpv/TpvTerminalPage.jsx";
 import TpvTicketsPage from "./pages/tpv/TpvTicketsPage.jsx";
 import TpvCajaPage from "./pages/tpv/TpvCajaPage.jsx";
 import TpvConfigPage from "./pages/tpv/TpvConfigPage.jsx";
+import CierreEjercicioPage from "./pages/CierreEjercicioPage.jsx";
 import { obtenerInicioDispositivo } from "./lib/preferenciaInicio.js";
 
 // Cada clave de inicio corresponde a una ruta real de la aplicación.
@@ -175,6 +176,7 @@ export default function App() {
           <Route path="copias" element={<CopiasSeguridadPage />} />
           <Route path="whatsapp" element={<WhatsAppPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
+          <Route path="cierre-ejercicio" element={<CierreEjercicioPage />} />
           <Route path="actividad" element={<ActividadPage />} />
           <Route path="inicio" element={<PreferenciasPage />} />
           <Route path="preferencias" element={<Navigate to="/inicio" replace />} />

@@ -28,6 +28,7 @@ import auditoria from "./auditoria.js";
 import asesoria from "./asesoria.js";
 import miAsesoria from "./mi-asesoria.js";
 import tpv from "./tpv.js";
+import cierres from "./cierres.js";
 import auth from "./auth.js";
 import adminTenants from "./admin/tenants.js";
 import whatsapp from "./whatsapp.js";
@@ -70,6 +71,7 @@ router.use("/presupuestos", presupuestos);
 router.use("/albaranes-venta", albaranesVenta);
 router.use("/remesas", remesas);
 router.use("/recurrencias", recurrencias);
+router.use("/empresa/cierres", cierres); // antes de /empresa para que no la capture
 router.use("/empresa", empresa);
 router.use("/resumen", resumen);
 router.use("/verifactu", verifactu);

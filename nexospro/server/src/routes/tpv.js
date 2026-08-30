@@ -17,6 +17,7 @@ import FacturaVenta from "../models/FacturaVenta.js";
 import RegistroFacturacion from "../models/RegistroFacturacion.js";
 import { calcularTotales } from "../services/totales.js";
 import { tomarNumeroFacturaVentaAtomico } from "../services/numeracion.js";
+import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 import {
   huellaAlta,
   contenidoQr,
@@ -467,6 +468,9 @@ router.post("/cobrar", serializarRegistro, async (req, res, next) => {
     }
 
     const [empresa, mostrador] = await Promise.all([Empresa.findOne(), clienteMostrador()]);
+    if (await ejercicioCerrado(new Date().getFullYear())) {
+      return res.status(409).json({ error: errorEjercicioCerrado(new Date().getFullYear()) });
+    }
     const numeracion = await tomarNumeroFacturaVentaAtomico(empresa, { serieNombre: "T" });
 
     const ticket = await FacturaVenta.create({
