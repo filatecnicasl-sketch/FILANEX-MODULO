@@ -8,7 +8,7 @@ import {
   IconPlanning, IconOperarios,
   IconNotificaciones, IconCertificado, IconUsuarios, IconCobros, IconPagos, IconModulos,
   IconTelefono, IconAseguradora, IconAyuda, IconServicio, IconAparato, IconLibro, IconCorreo,
-  IconCopias, IconCaja,
+  IconCopias, IconCaja, IconImprimir,
   LogoFX,
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
@@ -159,6 +159,7 @@ const gruposModulos = {
       { to: "/tpv", etiqueta: "Terminal", fin: true, Icono: IconCaja, tono: "emerald" },
       { to: "/tpv/tickets", etiqueta: "Tickets", Icono: IconTicket, tono: "amber" },
       { to: "/tpv/caja", etiqueta: "Caja", Icono: IconTesoreria, tono: "violet" },
+      { to: "/tpv/perifericos", etiqueta: "Periféricos", Icono: IconImprimir, tono: "sky" },
     ],
   },
 };

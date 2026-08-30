@@ -66,6 +66,7 @@ import CopiasSeguridadPage from "./pages/CopiasSeguridadPage.jsx";
 import TpvTerminalPage from "./pages/tpv/TpvTerminalPage.jsx";
 import TpvTicketsPage from "./pages/tpv/TpvTicketsPage.jsx";
 import TpvCajaPage from "./pages/tpv/TpvCajaPage.jsx";
+import TpvConfigPage from "./pages/tpv/TpvConfigPage.jsx";
 import { obtenerInicioDispositivo } from "./lib/preferenciaInicio.js";
 
 // Cada clave de inicio corresponde a una ruta real de la aplicación.
@@ -142,6 +143,7 @@ export default function App() {
           <Route index element={<InicioRedirect />} />
           <Route path="tpv/tickets" element={<TpvTicketsPage />} />
           <Route path="tpv/caja" element={<TpvCajaPage />} />
+          <Route path="tpv/perifericos" element={<TpvConfigPage />} />
           <Route path="ventas" element={<VentasPage />} />
           <Route path="presupuestos" element={<PresupuestosPage />} />
           <Route path="albaranes" element={<AlbaranesPage />} />

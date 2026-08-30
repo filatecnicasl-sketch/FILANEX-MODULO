@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import CobroModal from "./CobroModal.jsx";
+import { cargarConfigHardware, imprimirTicketSegunConfig } from "../../lib/tpvHardware.js";
 import { euros } from "../../components/ui.jsx";
 import { IconTicket, IconCaja, IconCerrar } from "../../components/icons.jsx";
 
@@ -36,9 +37,11 @@ export default function TpvTerminalPage() {
   const [espera, setEspera] = useState([]);
   const [mostrarEspera, setMostrarEspera] = useState(false);
   const [descuentoTotal, setDescuentoTotal] = useState(0);
+  const cfgHw = cargarConfigHardware();
 
   // Pitido corto al añadir (feedback táctil/sonoro del escáner o el toque).
   const pitido = useCallback((frecuencia = 880, duracion = 0.07) => {
+    if (!cargarConfigHardware().escaner.sonido) return;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
@@ -252,10 +255,26 @@ export default function TpvTerminalPage() {
     setMostrarCobro(false);
     setLineas([]);
     setDescuentoTotal(0);
-    if (datos?.imprimirUrl) {
-      const url = datos.conRegalo ? `${datos.imprimirUrl}&copiaRegalo=1` : datos.imprimirUrl;
-      const w = window.open(url, "_blank", "width=400,height=600");
-      if (w) w.focus();
+    if (datos?.imprimirUrl && cfgHw.impresion.autoImprimir) {
+      if (datos.conRegalo && cfgHw.impresion.modo !== "escpos") {
+        // Navegador: ticket y regalo salen juntos en la misma impresión.
+        const w = window.open(`${datos.imprimirUrl}&copiaRegalo=1`, "_blank", "width=400,height=600");
+        if (w) w.focus();
+      } else {
+        imprimirTicketSegunConfig(cfgHw, {
+          ticket: datos.ticket,
+          empresa: estado?.empresa,
+          imprimirUrl: datos.imprimirUrl,
+        });
+        if (datos.conRegalo) {
+          imprimirTicketSegunConfig(cfgHw, {
+            ticket: datos.ticket,
+            empresa: estado?.empresa,
+            imprimirUrl: datos.imprimirUrl,
+            regalo: true,
+          });
+        }
+      }
     }
     cargarEstado();
   }
