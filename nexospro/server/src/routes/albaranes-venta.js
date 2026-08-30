@@ -17,7 +17,7 @@ router.get("/", async (req, res, next) => {
     const filtro = req.query.estado ? { estado: req.query.estado } : {};
     const lista = await AlbaranVenta.find(filtro)
       .populate("cliente", "nombre nif telefono comunicaciones")
-      .sort({ createdAt: -1 })
+      .sort({ numero: 1 })
       .limit(200);
     res.json(lista);
   } catch (err) {
@@ -66,6 +66,7 @@ router.put("/:id", async (req, res, next) => {
     }
     albaran.cliente = cliente;
     albaran.lineas = lineas;
+    if (req.body.fecha) albaran.fecha = new Date(req.body.fecha);
     if (req.body.direccionEntrega !== undefined) albaran.direccionEntrega = req.body.direccionEntrega;
     if (req.body.notas !== undefined) albaran.notas = req.body.notas;
     await albaran.save();

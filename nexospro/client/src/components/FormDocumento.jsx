@@ -26,6 +26,13 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
     ciudad: inicial?.direccionEntrega?.ciudad ?? "",
     cp: inicial?.direccionEntrega?.cp ?? "",
   });
+  // Fecha del documento: editable tanto al crear como al editar (p. ej. un
+  // albarán entregado ayer se asienta con su fecha real).
+  const [fecha, setFecha] = useState(
+    inicial?.fecha
+      ? new Date(inicial.fecha).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10)
+  );
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -65,6 +72,7 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cliente: clienteId,
+          fecha,
           direccionEntrega: otraEntrega && entrega.calle.trim()
             ? { calle: entrega.calle.trim(), ciudad: entrega.ciudad.trim(), cp: entrega.cp.trim() }
             : undefined,
@@ -104,14 +112,27 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
             <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
               Datos del documento
             </p>
-            <label className="text-sm text-slate-300">Cliente</label>
-            <SelectorContacto
-              tipo="cliente"
-              contactos={clientes}
-              valor={clienteId}
-              onChange={elegirCliente}
-              onCreado={(c) => setClientes((cs) => [...cs, c])}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_170px] gap-3 items-end">
+              <div>
+                <label className="text-sm text-slate-300">Cliente</label>
+                <SelectorContacto
+                  tipo="cliente"
+                  contactos={clientes}
+                  valor={clienteId}
+                  onChange={elegirCliente}
+                  onCreado={(c) => setClientes((cs) => [...cs, c])}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-slate-300">Fecha</label>
+                <input
+                  type="date"
+                  value={fecha}
+                  onChange={(e) => setFecha(e.target.value)}
+                  className="mt-1 w-full input"
+                />
+              </div>
+            </div>
           </div>
 
           <div>

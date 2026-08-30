@@ -36,7 +36,7 @@ router.get("/", async (req, res, next) => {
     const lista = await FacturaVenta.find(filtro)
       .populate("cliente", "nombre nif iban telefono comunicaciones")
       .populate("rectifica", "serieNumero")
-      .sort({ createdAt: -1 })
+      .sort({ serie: 1, numero: 1 })
       .limit(200);
     let resultado = lista.map(conTesoreria);
     if (req.query.pendientesCobro === "1") {
