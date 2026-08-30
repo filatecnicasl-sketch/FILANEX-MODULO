@@ -15,6 +15,7 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
   const [entregado, setEntregado] = useState(total.toFixed(2));
   const [error, setError] = useState(null);
   const [cobrando, setCobrando] = useState(false);
+  const [conRegalo, setConRegalo] = useState(false);
   const inputRef = useRef(null);
   const { sincronizar } = useSync();
 
@@ -54,7 +55,7 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo cobrar");
       sincronizar();
-      onCobrado(datos);
+      onCobrado({ ...datos, conRegalo });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -144,6 +145,16 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
           )}
 
           {error && <p className="text-sm text-red-400 mb-3 text-center">{error}</p>}
+
+          <label className="flex items-center justify-center gap-2 mb-3 text-sm text-slate-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={conRegalo}
+              onChange={(e) => setConRegalo(e.target.checked)}
+              className="w-5 h-5 accent-indigo-500"
+            />
+            Imprimir también <strong>ticket regalo</strong> (sin precios)
+          </label>
 
           <button
             onClick={cobrar}

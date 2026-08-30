@@ -62,6 +62,10 @@ export default function TpvTicketsPage() {
     window.open(`/api/tpv/tickets/${t._id}/imprimir`, "_blank", "width=400,height=600");
   }
 
+  function imprimirRegalo(t) {
+    window.open(`/api/tpv/tickets/${t._id}/imprimir?regalo=1`, "_blank", "width=400,height=600");
+  }
+
   function confirmarParcial() {
     const lineas = Object.entries(parcial.cantidades)
       .filter(([, cantidad]) => cantidad > 0)
@@ -176,13 +180,22 @@ export default function TpvTicketsPage() {
                         Reimprimir
                       </button>
                       {!esDevolucion && (
-                        <button
-                          onClick={() => setParcial({ ticket: t, cantidades: {} })}
-                          disabled={devolviendo === t._id}
-                          className="inline-flex items-center gap-2 border border-amber-400/25 bg-amber-400/10 text-amber-300 font-semibold text-sm px-4 py-2 rounded-lg transition-colors hover:bg-amber-400/15 disabled:opacity-50"
-                        >
-                          Devolución
-                        </button>
+                        <>
+                          <button
+                            onClick={() => imprimirRegalo(t)}
+                            title="Ticket regalo (sin precios, para cambios)"
+                            className="btn-ghost"
+                          >
+                            Regalo
+                          </button>
+                          <button
+                            onClick={() => setParcial({ ticket: t, cantidades: {} })}
+                            disabled={devolviendo === t._id}
+                            className="inline-flex items-center gap-2 border border-amber-400/25 bg-amber-400/10 text-amber-300 font-semibold text-sm px-4 py-2 rounded-lg transition-colors hover:bg-amber-400/15 disabled:opacity-50"
+                          >
+                            Devolución
+                          </button>
+                        </>
                       )}
                     </>
                   )}

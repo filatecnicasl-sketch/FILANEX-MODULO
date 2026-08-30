@@ -753,31 +753,77 @@ router.get("/tickets/:id/imprimir", async (req, res, next) => {
     ]);
     if (!ticket) return res.status(404).json({ error: "Ticket no encontrado" });
 
+    // Ticket regalo: sin precios ni totales; sirve para cambios en tienda.
+    // copiaRegalo=1 imprime el ticket normal y el regalo en el mismo documento.
+    const esRegalo = req.query.regalo === "1";
+    const conCopiaRegalo = !esRegalo && req.query.copiaRegalo === "1";
+
     const esc = (s) =>
       String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const euros = (n) => `${redondear(n).toFixed(2).replace(".", ",")} €`;
     const fecha = new Date(ticket.fechaExpedicion);
     const fechaTxt = `${fecha.toLocaleDateString("es-ES")} ${fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
 
-    const filas = (ticket.lineas ?? [])
-      .map((l) => {
-        const totalLinea = redondear(l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100));
-        return `<tr>
+    const filasPara = (regalo) =>
+      (ticket.lineas ?? [])
+        .map((l) => {
+          if (regalo) {
+            return `<tr>
+          <td>${esc(l.descripcion)}</td>
+          <td class="num">${l.cantidad}</td>
+        </tr>`;
+          }
+          const totalLinea = redondear(l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100));
+          return `<tr>
           <td>${esc(l.descripcion)}</td>
           <td class="num">${l.cantidad}</td>
           <td class="num">${euros(l.precioUnitario)}</td>
           <td class="num">${euros(totalLinea)}</td>
         </tr>`;
-      })
-      .join("");
+        })
+        .join("");
 
     const qr = ticket.verifactu?.qrContenido
       ? `<div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticket.verifactu.qrContenido)}" alt="QR VeriFactu"><br><small>Verificado en Veri*factu · AEAT</small></div>`
       : "";
 
+    const cuerpo = (regalo) => {
+      const cabeceraDoc = regalo
+        ? `<div class="centro"><strong class="total">TICKET REGALO</strong></div>
+<div class="sep"></div>
+<div>Nº <strong>${esc(ticket.serieNumero)}</strong><br>${fechaTxt}</div>`
+        : `<div>FACTURA SIMPLIFICADA<br>Nº <strong>${esc(ticket.serieNumero)}</strong><br>${fechaTxt}</div>`;
+
+      const pieDoc = regalo
+        ? `<div class="centro">Documento válido para cambios.<br>Sin valor fiscal: los importes figuran<br>en la factura simplificada ${esc(ticket.serieNumero)}.</div>
+<div class="sep"></div>
+<div class="centro">Gracias por su compra</div>`
+        : `<table>
+  <tr><td>Base imponible</td><td class="num">${euros(ticket.baseImponible)}</td></tr>
+  <tr><td>IVA</td><td class="num">${euros(ticket.cuotaIva)}</td></tr>
+  <tr class="total"><td>TOTAL</td><td class="num">${euros(ticket.total)}</td></tr>
+  <tr><td>Pago: ${esc(ticket.cobros?.[0]?.metodo ?? "efectivo")}</td><td class="num"></td></tr>
+</table>
+${qr}
+<div class="sep"></div>
+<div class="centro">Gracias por su compra</div>`;
+
+      return `<div class="centro"><strong>${esc(empresa?.nombre)}</strong><br>${regalo ? "" : `NIF ${esc(empresa?.nif)}`}</div>
+<div class="sep"></div>
+${cabeceraDoc}
+<div class="sep"></div>
+<table>${filasPara(regalo)}</table>
+<div class="sep"></div>
+${pieDoc}`;
+    };
+
+    const corte = conCopiaRegalo
+      ? `<div style="page-break-before: always; border-top: 1px dashed #000; margin: 8px 0;"></div>`
+      : "";
+
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.send(`<!doctype html><html lang="es"><head><meta charset="utf-8">
-<title>Ticket ${esc(ticket.serieNumero)}</title>
+<title>${esRegalo ? "Ticket regalo" : "Ticket"} ${esc(ticket.serieNumero)}</title>
 <style>
   @page { size: 80mm auto; margin: 0; }
   body { width: 72mm; margin: 4mm auto; font-family: 'Courier New', monospace; font-size: 11px; color: #000; }
@@ -791,22 +837,10 @@ router.get("/tickets/:id/imprimir", async (req, res, next) => {
   .qr img { width: 34mm; }
   @media print { .noprint { display: none; } }
 </style></head><body>
-<button class="noprint" onclick="window.print()" style="width:100%;padding:8px;font-size:14px;margin-bottom:8px;">Imprimir ticket</button>
-<div class="centro"><strong>${esc(empresa?.nombre)}</strong><br>NIF ${esc(empresa?.nif)}</div>
-<div class="sep"></div>
-<div>FACTURA SIMPLIFICADA<br>Nº <strong>${esc(ticket.serieNumero)}</strong><br>${fechaTxt}</div>
-<div class="sep"></div>
-<table>${filas}</table>
-<div class="sep"></div>
-<table>
-  <tr><td>Base imponible</td><td class="num">${euros(ticket.baseImponible)}</td></tr>
-  <tr><td>IVA</td><td class="num">${euros(ticket.cuotaIva)}</td></tr>
-  <tr class="total"><td>TOTAL</td><td class="num">${euros(ticket.total)}</td></tr>
-  <tr><td>Pago: ${esc(ticket.cobros?.[0]?.metodo ?? "efectivo")}</td><td class="num"></td></tr>
-</table>
-${qr}
-<div class="sep"></div>
-<div class="centro">Gracias por su compra</div>
+<button class="noprint" onclick="window.print()" style="width:100%;padding:8px;font-size:14px;margin-bottom:8px;">Imprimir ${esRegalo ? "ticket regalo" : "ticket"}</button>
+${cuerpo(esRegalo)}
+${corte}
+${conCopiaRegalo ? cuerpo(true) : ""}
 </body></html>`);
   } catch (err) {
     next(err);

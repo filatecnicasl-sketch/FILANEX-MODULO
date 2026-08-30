@@ -253,7 +253,8 @@ export default function TpvTerminalPage() {
     setLineas([]);
     setDescuentoTotal(0);
     if (datos?.imprimirUrl) {
-      const w = window.open(datos.imprimirUrl, "_blank", "width=400,height=600");
+      const url = datos.conRegalo ? `${datos.imprimirUrl}&copiaRegalo=1` : datos.imprimirUrl;
+      const w = window.open(url, "_blank", "width=400,height=600");
       if (w) w.focus();
     }
     cargarEstado();
