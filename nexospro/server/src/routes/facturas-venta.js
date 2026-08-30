@@ -16,27 +16,9 @@ import {
   timestampRegistro,
 } from "../services/verifactu.js";
 import { certificadoActual } from "../services/certificadoEmpresa.js";
+import { serializarRegistro } from "../services/registro-cola.js";
 
 const router = Router();
-let colaRegistros = Promise.resolve();
-
-async function serializarRegistro(req, res, next) {
-  const anterior = colaRegistros;
-  let liberar;
-  colaRegistros = new Promise((resolve) => {
-    liberar = resolve;
-  });
-  await anterior.catch(() => {});
-  let liberado = false;
-  const finalizar = () => {
-    if (liberado) return;
-    liberado = true;
-    liberar();
-  };
-  res.once("finish", finalizar);
-  res.once("close", finalizar);
-  next();
-}
 
 // Añade información de tesorería derivada (no persistida) a cada factura.
 function conTesoreria(f) {

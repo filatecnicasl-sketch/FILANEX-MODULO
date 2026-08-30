@@ -186,6 +186,15 @@ export function xmlRegistroAlta({
 }) {
   const fecha = fechaDDMMYYYY(factura.fechaExpedicion);
   const cliente = factura.cliente ?? {};
+  // Las facturas simplificadas (F2) y sus rectificativas (R5) no llevan
+  // destinatario: son ventas de mostrador sin identificación del cliente.
+  const sinDestinatario = tipoFactura === "F2" || tipoFactura === "R5";
+  const bloqueDestinatarios = sinDestinatario
+    ? ""
+    : `<sf:Destinatarios><sf:IDDestinatario>` +
+      `<sf:NombreRazon>${escaparXml(cliente.nombre ?? "")}</sf:NombreRazon>` +
+      `<sf:NIF>${escaparXml(cliente.nif ?? "")}</sf:NIF>` +
+      `</sf:IDDestinatario></sf:Destinatarios>`;
   const bloqueRectificada =
     tipoFactura.startsWith("R") && facturaRectificada
       ? `<sf:FacturasRectificadas><sf:IDFacturaRectificada>` +
@@ -206,10 +215,7 @@ export function xmlRegistroAlta({
     `<sf:TipoFactura>${tipoFactura}</sf:TipoFactura>` +
     `<sf:DescripcionOperacion>${escaparXml(factura.descripcion || "Prestación de servicios / venta de bienes")}</sf:DescripcionOperacion>` +
     bloqueRectificada +
-    `<sf:Destinatarios><sf:IDDestinatario>` +
-    `<sf:NombreRazon>${escaparXml(cliente.nombre ?? "")}</sf:NombreRazon>` +
-    `<sf:NIF>${escaparXml(cliente.nif ?? "")}</sf:NIF>` +
-    `</sf:IDDestinatario></sf:Destinatarios>` +
+    bloqueDestinatarios +
     desgloseXml(factura.lineas ?? []) +
     `<sf:CuotaTotal>${formatoImporte(factura.cuotaIva)}</sf:CuotaTotal>` +
     `<sf:ImporteTotal>${formatoImporte(factura.total)}</sf:ImporteTotal>` +

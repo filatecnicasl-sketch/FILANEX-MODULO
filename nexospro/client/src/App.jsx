@@ -63,6 +63,9 @@ import PreferenciasPage from "./pages/PreferenciasPage.jsx";
 import WhatsAppPage from "./pages/WhatsAppPage.jsx";
 import CorreoPage from "./pages/CorreoPage.jsx";
 import CopiasSeguridadPage from "./pages/CopiasSeguridadPage.jsx";
+import TpvTerminalPage from "./pages/tpv/TpvTerminalPage.jsx";
+import TpvTicketsPage from "./pages/tpv/TpvTicketsPage.jsx";
+import TpvCajaPage from "./pages/tpv/TpvCajaPage.jsx";
 import { obtenerInicioDispositivo } from "./lib/preferenciaInicio.js";
 
 // Cada clave de inicio corresponde a una ruta real de la aplicación.
@@ -133,8 +136,12 @@ export default function App() {
     <GuardSetup>
       <BrowserRouter>
       <Routes>
+        {/* Terminal TPV a pantalla completa, fuera del Layout con menú */}
+        <Route path="tpv" element={<TpvTerminalPage />} />
         <Route element={<Layout />}>
           <Route index element={<InicioRedirect />} />
+          <Route path="tpv/tickets" element={<TpvTicketsPage />} />
+          <Route path="tpv/caja" element={<TpvCajaPage />} />
           <Route path="ventas" element={<VentasPage />} />
           <Route path="presupuestos" element={<PresupuestosPage />} />
           <Route path="albaranes" element={<AlbaranesPage />} />

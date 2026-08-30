@@ -27,6 +27,9 @@ const clienteSchema = new Schema(
       cp: String,
     },
     esAdministracionPublica: { type: Boolean, default: false }, // factura electrónica FACe
+    // Cliente genérico del TPV ("Consumidor final"): lo crea el módulo TPV
+    // automáticamente y no aparece en los listados de clientes.
+    mostrador: { type: Boolean, default: false, index: true },
     comunicaciones: {
       whatsapp: {
         autorizado: { type: Boolean, default: false },

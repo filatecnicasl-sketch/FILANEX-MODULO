@@ -36,6 +36,8 @@ const ENCOLABLES = [
   { metodo: "PUT", patron: /^\/api\/albaranes-venta\/[^/]+$/, etiqueta: "Cambio en albarán" },
   { metodo: "POST", patron: /^\/api\/agenda\/citas$/, etiqueta: "Cita de agenda" },
   { metodo: "PUT", patron: /^\/api\/agenda\/citas\/[^/]+$/, etiqueta: "Cambio en cita" },
+  // TPV
+  { metodo: "POST", patron: /^\/api\/tpv\/cobrar$/, etiqueta: "Cobro TPV" },
 ];
 
 // Devuelve la regla si esa llamada se puede guardar para más tarde.

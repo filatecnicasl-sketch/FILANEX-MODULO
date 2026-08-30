@@ -30,6 +30,11 @@ const facturaVentaSchema = new Schema(
     serie: { type: String, default: "A" },
     numero: Number,
     serieNumero: { type: String, index: true, sparse: true }, // número completo emitido: prefijo + número (p.ej. "A-1")
+    // F1 = factura completa (con destinatario) · F2 = factura simplificada
+    // (ticket TPV de mostrador, sin destinatario en el registro VeriFactu).
+    tipoFactura: { type: String, enum: ["F1", "F2"], default: "F1", index: true },
+    // Sesión de caja del TPV en la que se cobró (solo tickets F2).
+    cajaSesion: { type: Schema.Types.ObjectId, ref: "CajaSesion", index: true, sparse: true },
     fechaExpedicion: { type: Date, default: Date.now, index: true },
     cliente: { type: Schema.Types.ObjectId, ref: "Cliente", required: true, index: true },
     // Entrega distinta de la dirección fiscal (viene del presupuesto/albarán).

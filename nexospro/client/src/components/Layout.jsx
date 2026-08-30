@@ -8,7 +8,7 @@ import {
   IconPlanning, IconOperarios,
   IconNotificaciones, IconCertificado, IconUsuarios, IconCobros, IconPagos, IconModulos,
   IconTelefono, IconAseguradora, IconAyuda, IconServicio, IconAparato, IconLibro, IconCorreo,
-  IconCopias,
+  IconCopias, IconCaja,
   LogoFX,
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
@@ -150,6 +150,15 @@ const gruposModulos = {
       { to: "/asesoria/fiscalidad", etiqueta: "Fiscalidad", Icono: IconAgenda, tono: "rose" },
       { to: "/asesoria/solicitudes", etiqueta: "Solicitudes", Icono: IconNotificaciones, tono: "orange" },
       { to: "/asesoria/cierres", etiqueta: "Cierres", Icono: IconPlanning, tono: "cyan" },
+    ],
+  },
+  tpv: {
+    titulo: "TPV",
+    Icono: IconCaja,
+    items: [
+      { to: "/tpv", etiqueta: "Terminal", fin: true, Icono: IconCaja, tono: "emerald" },
+      { to: "/tpv/tickets", etiqueta: "Tickets", Icono: IconTicket, tono: "amber" },
+      { to: "/tpv/caja", etiqueta: "Caja", Icono: IconTesoreria, tono: "violet" },
     ],
   },
 };

@@ -24,6 +24,11 @@ export const MODULOS = {
     descripcion: "Despacho profesional: cartera de clientes, documentación con OCR, bandeja de revisión, libros de IVA y calendario fiscal.",
     disponible: true,
   },
+  tpv: {
+    nombre: "TPV",
+    descripcion: "Terminal punto de venta táctil: tickets con VeriFactu, caja con arqueo y devoluciones.",
+    disponible: true,
+  },
   logistica: {
     nombre: "Logística",
     descripcion: "Rutas, portes y seguimiento de envíos.",

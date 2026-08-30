@@ -7,20 +7,20 @@ function extraerNumero(cadena) {
 }
 
 // Busca el máximo número usado en una colección, parseando el campo dado.
-async function maximoNumero(modelo, campo) {
-  const docs = await modelo.find({ [campo]: { $exists: true } }).select(campo).lean();
+async function maximoNumero(modelo, campo, filtro = {}) {
+  const docs = await modelo.find({ [campo]: { $exists: true }, ...filtro }).select(campo).lean();
   return docs.reduce((max, d) => Math.max(max, extraerNumero(d[campo])), 0);
 }
 
-// Inicializa un contador al máximo valor usado + 1 para que el primer
-// número asignado sea siempre el siguiente disponible y nunca duplicado.
-async function inicializarSiEsNuevo(clave, modelo, campo) {
+// Inicializa un contador al máximo valor ya usado, de modo que el $inc
+// siguiente asigne exactamente max + 1 (ni duplicados ni huecos).
+async function inicializarSiEsNuevo(clave, modelo, campo, filtro = {}) {
   const existe = await Contador.findOne({ clave }).lean();
   if (existe) return;
-  const maximo = await maximoNumero(modelo, campo);
+  const maximo = await maximoNumero(modelo, campo, filtro);
   await Contador.findOneAndUpdate(
     { clave },
-    { $setOnInsert: { valor: maximo + 1 } },
+    { $setOnInsert: { valor: maximo } },
     { upsert: true }
   );
 }
@@ -103,14 +103,40 @@ export function tomarNumero(empresa, tipo) {
 // Versión atómica y libre de contención para facturas de venta.
 // Usa una colección separada de contadores y $inc, por lo que no hay
 // riesgo de duplicados ni bloqueos sobre el documento Empresa.
-export async function tomarNumeroFacturaVentaAtomico(empresa) {
+// Con { serieNombre } numera en una serie concreta (p.ej. la "T" del TPV),
+// creándola si no existe; sin opciones usa la serie por defecto.
+export async function tomarNumeroFacturaVentaAtomico(empresa, { serieNombre } = {}) {
   asegurarSeries(empresa);
   const lista = empresa.seriesVenta;
-  const serie = lista.find((s) => s.defecto) ?? lista[0];
+  let serie;
+  if (serieNombre) {
+    serie = lista.find((s) => s.nombre === serieNombre);
+    if (!serie) {
+      // Serie nueva (no por defecto): hereda los contadores de presupuesto
+      // y albarán de la serie por defecto para no descuadrar esos documentos.
+      const base = lista.find((s) => s.defecto) ?? lista[0];
+      serie = {
+        nombre: serieNombre,
+        defecto: false,
+        proxPresupuesto: base.proxPresupuesto ?? 1,
+        proxAlbaran: base.proxAlbaran ?? 1,
+        proxFactura: 1,
+      };
+      lista.push(serie);
+      empresa.markModified?.("seriesVenta");
+      await empresa.save();
+    }
+  } else {
+    serie = lista.find((s) => s.defecto) ?? lista[0];
+  }
   const clave = `facturaVenta:${serie.nombre}`;
 
   const { default: FacturaVenta } = await import("../models/FacturaVenta.js");
-  await inicializarSiEsNuevo(clave, FacturaVenta, "serieNumero");
+  // El máximo se calcula solo dentro de ESTA serie (T-1, T-2…), para que la
+  // serie nueva del TPV empiece en 1 aunque ya existan facturas A-…
+  await inicializarSiEsNuevo(clave, FacturaVenta, "serieNumero", {
+    serieNumero: new RegExp(`^${serie.nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-`),
+  });
 
   const contador = await Contador.findOneAndUpdate(
     { clave },

@@ -253,6 +253,21 @@ export const IconTicket = () => (
   </Svg>
 );
 
+// Caja registradora / TPV.
+export const IconCaja = () => (
+  <Svg>
+    <rect x="3" y="6" width="18" height="12" rx="2" />
+    <path d="M3 10h18M8 14h8" />
+  </Svg>
+);
+
+// Flecha atrás / volver.
+export const IconCerrar = () => (
+  <Svg>
+    <path d="M19 12H5M12 19l-7-7 7-7" />
+  </Svg>
+);
+
 export const IconEditar = () => (
   <Svg size={15}>
     <path d="M12 20h9" />

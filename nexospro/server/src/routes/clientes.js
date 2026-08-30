@@ -40,7 +40,7 @@ function limpiar(body) {
 router.get("/", async (req, res, next) => {
   try {
     const q = (req.query.q ?? "").trim();
-    const filtro = q
+    const busqueda = q
       ? {
           $or: [
             { nombre: { $regex: q, $options: "i" } },
@@ -50,6 +50,8 @@ router.get("/", async (req, res, next) => {
           ],
         }
       : {};
+    // El cliente genérico del TPV ("Consumidor final") no aparece aquí.
+    const filtro = { $and: [busqueda, { mostrador: { $ne: true } }] };
     const lista = await Cliente.find(filtro).sort({ nombre: 1 }).limit(1000);
     res.json(lista);
   } catch (err) {
