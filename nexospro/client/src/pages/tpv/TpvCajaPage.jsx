@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { euros } from "../../components/ui.jsx";
 
+// Denominaciones de euros para el conteo del cajón en el arqueo.
+const BILLETES = [500, 200, 100, 50, 20, 10, 5];
+const MONEDAS = [2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+const etiquetaDen = (d) => (d >= 1 ? `${d} €` : `${Math.round(d * 100)} ct`);
+
 export default function TpvCajaPage() {
   const navigate = useNavigate();
   const [estado, setEstado] = useState(null);
@@ -18,6 +23,22 @@ export default function TpvCajaPage() {
   const [movImporte, setMovImporte] = useState("");
   const [movConcepto, setMovConcepto] = useState("");
   const [guardandoMov, setGuardandoMov] = useState(false);
+  // Conteo por denominaciones: { [denominacion]: unidades }
+  const [desglose, setDesglose] = useState({});
+  const [modoConteo, setModoConteo] = useState("directo"); // directo | desglose
+
+  const totalDesglose = [...BILLETES, ...MONEDAS].reduce(
+    (s, d) => s + d * (Number(desglose[d]) || 0),
+    0
+  );
+
+  function cambiarDen(den, uds) {
+    const n = Math.max(0, Math.floor(Number(uds) || 0));
+    const nuevo = { ...desglose, [den]: n };
+    setDesglose(nuevo);
+    const total = [...BILLETES, ...MONEDAS].reduce((s, d) => s + d * (Number(nuevo[d]) || 0), 0);
+    setConteo(total > 0 ? String(Math.round(total * 100) / 100) : "");
+  }
 
   async function registrarMovimiento() {
     setGuardandoMov(true);
@@ -84,21 +105,39 @@ export default function TpvCajaPage() {
     setCerrando(true);
     setError(null);
     try {
+      const desgloseLimpio = Object.fromEntries(
+        Object.entries(desglose).filter(([, uds]) => Number(uds) > 0)
+      );
       const r = await fetch("/api/tpv/caja/cerrar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conteoEfectivo: Number(conteo) || 0, notas }),
+        body: JSON.stringify({
+          conteoEfectivo: Number(conteo) || 0,
+          notas,
+          ...(Object.keys(desgloseLimpio).length ? { desgloseConteo: desgloseLimpio } : {}),
+        }),
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo cerrar caja");
       setConteo("");
       setNotas("");
+      setDesglose({});
       await cargar();
+      // Imprime automáticamente el cierre Z recién hecho
+      const rSes = await fetch("/api/tpv/caja/sesiones");
+      const lista = await rSes.json();
+      if (rSes.ok && lista?.[0]?._id) {
+        window.open(`/api/tpv/caja/sesiones/${lista[0]._id}/imprimir`, "_blank", "width=400,height=640");
+      }
     } catch (e) {
       setError(e.message);
     } finally {
       setCerrando(false);
     }
+  }
+
+  function imprimirCierre(s) {
+    window.open(`/api/tpv/caja/sesiones/${s._id}/imprimir`, "_blank", "width=400,height=640");
   }
 
   const abierta = estado?.caja;
@@ -142,13 +181,36 @@ export default function TpvCajaPage() {
                   </div>
                   <div className="bg-slate-800 rounded-xl p-4">
                     <p className="text-sm text-slate-400">Ventas efectivo</p>
-                    <p className="text-2xl font-bold text-emerald-400">{euros(estado?.totalesSesion?.efectivo)}</p>
+                    <p className={`text-2xl font-bold ${(estado?.totalesSesion?.efectivo ?? 0) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                      {euros(estado?.totalesSesion?.efectivo)}
+                    </p>
                   </div>
                   <div className="bg-slate-800 rounded-xl p-4">
                     <p className="text-sm text-slate-400">Ventas tarjeta</p>
-                    <p className="text-2xl font-bold text-sky-400">{euros(estado?.totalesSesion?.tarjeta)}</p>
+                    <p className={`text-2xl font-bold ${(estado?.totalesSesion?.tarjeta ?? 0) < 0 ? "text-rose-400" : "text-sky-400"}`}>
+                      {euros(estado?.totalesSesion?.tarjeta)}
+                    </p>
                   </div>
                 </div>
+                <p className="text-sm text-slate-400">
+                  {estado?.totalesSesion?.numTickets ?? 0} tickets
+                  {(estado?.totalesSesion?.numDevoluciones ?? 0) > 0 && (
+                    <span className="text-rose-300">
+                      {" · "}{estado.totalesSesion.numDevoluciones} devoluciones ({euros(estado.totalesSesion.devoluciones)})
+                    </span>
+                  )}
+                  {(estado?.totalesSesion?.entradas ?? 0) > 0 && ` · Entradas ${euros(estado.totalesSesion.entradas)}`}
+                  {(estado?.totalesSesion?.salidas ?? 0) > 0 && ` · Salidas −${euros(estado.totalesSesion.salidas)}`}
+                  {" · Esperado en cajón: "}
+                  <strong className="text-slate-200">
+                    {euros(
+                      (abierta.apertura?.fondo ?? 0) +
+                        (estado?.totalesSesion?.efectivo ?? 0) +
+                        (estado?.totalesSesion?.entradas ?? 0) -
+                        (estado?.totalesSesion?.salidas ?? 0)
+                    )}
+                  </strong>
+                </p>
 
                 {/* Movimientos manuales de efectivo */}
                 <div className="border-t border-slate-800 pt-4">
@@ -216,7 +278,57 @@ export default function TpvCajaPage() {
                 </div>
 
                 <div className="border-t border-slate-800 pt-4">
-                  <h3 className="font-semibold mb-3">Arqueo y cierre</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold">Arqueo y cierre</h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setModoConteo("directo")}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
+                          modoConteo === "directo" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }`}
+                      >
+                        Importe directo
+                      </button>
+                      <button
+                        onClick={() => setModoConteo("desglose")}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
+                          modoConteo === "desglose" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        }`}
+                      >
+                        Contar billetes y monedas
+                      </button>
+                    </div>
+                  </div>
+
+                  {modoConteo === "desglose" && (
+                    <div className="bg-slate-800/60 rounded-xl p-4 mb-4">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                        {[...BILLETES, ...MONEDAS].map((d) => (
+                          <div key={d} className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
+                            <span className="w-14 text-sm font-semibold text-slate-300">{etiquetaDen(d)}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              inputMode="numeric"
+                              value={desglose[d] ?? ""}
+                              onChange={(e) => cambiarDen(d, e.target.value)}
+                              placeholder="0"
+                              className="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-600 text-right font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <span className="text-xs text-slate-400 w-16 text-right">
+                              {(Number(desglose[d]) || 0) > 0 ? euros(d * Number(desglose[d])) : ""}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-700">
+                        <span className="font-semibold">Total contado</span>
+                        <span className="text-xl font-bold text-emerald-400">{euros(totalDesglose)}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-slate-400 mb-1">Efectivo contado</label>
@@ -224,9 +336,30 @@ export default function TpvCajaPage() {
                         type="number"
                         step="0.01"
                         value={conteo}
-                        onChange={(e) => setConteo(e.target.value)}
+                        onChange={(e) => { setConteo(e.target.value); if (modoConteo === "desglose") setDesglose({}); }}
                         className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       />
+                      {conteo !== "" && (
+                        <p className={`mt-1 text-sm font-semibold ${
+                          Math.abs(
+                            (Number(conteo) || 0) -
+                              ((abierta.apertura?.fondo ?? 0) +
+                                (estado?.totalesSesion?.efectivo ?? 0) +
+                                (estado?.totalesSesion?.entradas ?? 0) -
+                                (estado?.totalesSesion?.salidas ?? 0))
+                          ) < 0.005
+                            ? "text-emerald-400"
+                            : "text-amber-400"
+                        }`}>
+                          Diferencia: {euros(
+                            (Number(conteo) || 0) -
+                              ((abierta.apertura?.fondo ?? 0) +
+                                (estado?.totalesSesion?.efectivo ?? 0) +
+                                (estado?.totalesSesion?.entradas ?? 0) -
+                                (estado?.totalesSesion?.salidas ?? 0))
+                          )}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm text-slate-400 mb-1">Notas</label>
@@ -243,7 +376,7 @@ export default function TpvCajaPage() {
                     disabled={cerrando || conteo === ""}
                     className="mt-4 w-full py-4 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 disabled:text-slate-500 text-xl font-bold transition"
                   >
-                    {cerrando ? "Cerrando…" : "Cerrar caja"}
+                    {cerrando ? "Cerrando…" : "Cerrar caja e imprimir cierre Z"}
                   </button>
                 </div>
               </div>
@@ -291,38 +424,54 @@ export default function TpvCajaPage() {
                           minute: "2-digit",
                         })}
                         {" — "}
-                        {new Date(s.cierre?.fecha).toLocaleTimeString("es-ES", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {s.cierre?.fecha
+                          ? new Date(s.cierre.fecha).toLocaleTimeString("es-ES", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
                       </p>
                       <p className="text-sm text-slate-400">
-                        {s.cierre?.ventas ?? 0} ventas · Fondo {euros(s.apertura?.fondo)}
+                        {s.cierre?.numeroTickets ?? 0} tickets
+                        {(s.cierre?.numeroDevoluciones ?? 0) > 0 &&
+                          ` · ${s.cierre.numeroDevoluciones} devoluciones`}
+                        {" · "}Fondo {euros(s.apertura?.fondo)}
+                        {" · "}Efectivo {euros(s.cierre?.totalEfectivo)}
+                        {" · "}Tarjeta {euros(s.cierre?.totalTarjeta)}
                       </p>
                     </div>
-                    <div className="flex gap-4 text-right">
-                      <div>
-                        <p className="text-sm text-slate-400">Esperado</p>
-                        <p className="font-bold">{euros(s.cierre?.esperadoEfectivo)}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="flex gap-4 text-right">
+                        <div>
+                          <p className="text-sm text-slate-400">Esperado</p>
+                          <p className="font-bold">{euros(s.cierre?.esperadoEfectivo)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-400">Contado</p>
+                          <p className="font-bold">{euros(s.cierre?.conteoEfectivo)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-slate-400">Diferencia</p>
+                          <p
+                            className={`font-bold ${
+                              (s.cierre?.diferencia ?? 0) === 0
+                                ? "text-emerald-400"
+                                : (s.cierre?.diferencia ?? 0) > 0
+                                  ? "text-amber-400"
+                                  : "text-rose-400"
+                            }`}
+                          >
+                            {euros(s.cierre?.diferencia)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm text-slate-400">Contado</p>
-                        <p className="font-bold">{euros(s.cierre?.conteoEfectivo)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-slate-400">Diferencia</p>
-                        <p
-                          className={`font-bold ${
-                            (s.cierre?.diferencia ?? 0) === 0
-                              ? "text-emerald-400"
-                              : (s.cierre?.diferencia ?? 0) > 0
-                                ? "text-amber-400"
-                                : "text-rose-400"
-                          }`}
-                        >
-                          {euros(s.cierre?.diferencia)}
-                        </p>
-                      </div>
+                      <button
+                        onClick={() => imprimirCierre(s)}
+                        title="Imprimir cierre Z"
+                        className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-semibold"
+                      >
+                        Imprimir Z
+                      </button>
                     </div>
                   </div>
                 ))}

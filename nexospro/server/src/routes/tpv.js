@@ -187,10 +187,16 @@ router.get("/estado", async (req, res, next) => {
         cajaSesion: sesion._id,
         estado: { $in: ["emitida", "rectificada"] },
       }).lean();
-      totalesSesion = { efectivo: 0, tarjeta: 0, otro: 0, entradas: 0, salidas: 0 };
+      totalesSesion = { efectivo: 0, tarjeta: 0, otro: 0, entradas: 0, salidas: 0, numTickets: 0, numDevoluciones: 0, devoluciones: 0 };
       for (const t of tickets) {
         const metodo = METODOS.includes(t.cobros?.[0]?.metodo) ? t.cobros[0].metodo : "otro";
         totalesSesion[metodo] = redondear(totalesSesion[metodo] + t.total);
+        if (t.total < 0) {
+          totalesSesion.numDevoluciones += 1;
+          totalesSesion.devoluciones = redondear(totalesSesion.devoluciones + t.total);
+        } else {
+          totalesSesion.numTickets += 1;
+        }
       }
       for (const m of movimientos) {
         totalesSesion[m.tipo === "entrada" ? "entradas" : "salidas"] = redondear(
@@ -299,7 +305,14 @@ router.post("/caja/cerrar", async (req, res, next) => {
       totalEntradas: entradas,
       totalSalidas: salidas,
       totalVentas: redondear(totales.efectivo + totales.tarjeta + totales.otro),
-      numeroTickets: tickets.length,
+      numeroTickets: tickets.filter((t) => t.total >= 0).length,
+      numeroDevoluciones: tickets.filter((t) => t.total < 0).length,
+      devoluciones: redondear(
+        tickets.filter((t) => t.total < 0).reduce((s, t) => s + t.total, 0)
+      ),
+      desgloseConteo: req.body?.desgloseConteo && typeof req.body.desgloseConteo === "object"
+        ? req.body.desgloseConteo
+        : undefined,
       diferencia: redondear(conteo - esperado),
       notas: String(req.body?.notas ?? ""),
     };
@@ -344,8 +357,83 @@ router.get("/caja/movimientos", async (req, res, next) => {
 
 router.get("/caja/sesiones", async (req, res, next) => {
   try {
-    const sesiones = await CajaSesion.find().sort({ createdAt: -1 }).limit(50).lean();
+    const sesiones = await CajaSesion.find({ estado: "cerrada" }).sort({ "cierre.fecha": -1 }).limit(50).lean();
     res.json(sesiones);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Impresión del cierre de caja (ticket Z) en formato 80 mm.
+router.get("/caja/sesiones/:id/imprimir", async (req, res, next) => {
+  try {
+    const [sesion, empresa] = await Promise.all([
+      CajaSesion.findOne({ _id: req.params.id, estado: "cerrada" }).lean(),
+      Empresa.findOne().lean(),
+    ]);
+    if (!sesion?.cierre?.fecha) return res.status(404).json({ error: "Cierre no encontrado" });
+
+    const esc = (s) =>
+      String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const euros = (n) => `${redondear(n).toFixed(2).replace(".", ",")} €`;
+    const fHora = (d) =>
+      `${new Date(d).toLocaleDateString("es-ES")} ${new Date(d).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+
+    const c = sesion.cierre;
+    const fila = (txt, val, cls = "") =>
+      `<tr class="${cls}"><td>${esc(txt)}</td><td class="num">${euros(val)}</td></tr>`;
+
+    const desglose = c.desgloseConteo
+      ? Object.entries(c.desgloseConteo)
+          .filter(([, uds]) => Number(uds) > 0)
+          .sort((a, b) => Number(b[0]) - Number(a[0]))
+          .map(([den, uds]) => `<tr><td>${esc(den.replace(".", ","))} € × ${uds}</td><td class="num">${euros(Number(den) * Number(uds))}</td></tr>`)
+          .join("")
+      : "";
+
+    const dif = redondear(c.diferencia ?? 0);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Cierre de caja</title>
+<style>
+  @page { size: 80mm auto; margin: 0; }
+  body { width: 72mm; margin: 4mm auto; font-family: 'Courier New', monospace; font-size: 11px; color: #000; }
+  .centro { text-align: center; }
+  .sep { border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 1px 0; vertical-align: top; }
+  .num { text-align: right; white-space: nowrap; }
+  .total { font-size: 14px; font-weight: bold; }
+  @media print { .noprint { display: none; } }
+</style></head><body>
+<button class="noprint" onclick="window.print()" style="width:100%;padding:8px;font-size:14px;margin-bottom:8px;">Imprimir cierre</button>
+<div class="centro"><strong>${esc(empresa?.nombre)}</strong><br>NIF ${esc(empresa?.nif)}</div>
+<div class="sep"></div>
+<div class="centro"><strong>CIERRE DE CAJA (Z)</strong></div>
+<div class="sep"></div>
+<div>Apertura: ${fHora(sesion.apertura?.fecha)}<br>Cierre: ${fHora(c.fecha)}<br>Cajero: ${esc(c.usuario ?? "—")}</div>
+<div class="sep"></div>
+<table>
+  ${fila("Fondo de caja", sesion.apertura?.fondo)}
+  ${fila("Ventas efectivo", c.totalEfectivo)}
+  ${fila("Ventas tarjeta", c.totalTarjeta)}
+  ${(c.totalOtro ?? 0) !== 0 ? fila("Ventas otros", c.totalOtro) : ""}
+  ${(c.totalEntradas ?? 0) !== 0 ? fila("Entradas manuales", c.totalEntradas) : ""}
+  ${(c.totalSalidas ?? 0) !== 0 ? fila("Salidas manuales", -c.totalSalidas) : ""}
+</table>
+<div class="sep"></div>
+<div>Tickets: ${c.numeroTickets ?? 0}${(c.numeroDevoluciones ?? 0) > 0 ? ` · Devoluciones: ${c.numeroDevoluciones} (${euros(c.devoluciones)})` : ""}</div>
+<div class="sep"></div>
+${desglose ? `<table>${desglose}</table><div class="sep"></div>` : ""}
+<table>
+  ${fila("Efectivo esperado", c.esperadoEfectivo)}
+  ${fila("Efectivo contado", c.conteoEfectivo)}
+  <tr class="total"><td>DIFERENCIA</td><td class="num">${dif > 0 ? "+" : ""}${euros(dif)}</td></tr>
+</table>
+${c.notas ? `<div class="sep"></div><div>Notas: ${esc(c.notas)}</div>` : ""}
+<div class="sep"></div>
+<div class="centro">Total ventas del día<br><span class="total">${euros(c.totalVentas)}</span></div>
+</body></html>`);
   } catch (err) {
     next(err);
   }

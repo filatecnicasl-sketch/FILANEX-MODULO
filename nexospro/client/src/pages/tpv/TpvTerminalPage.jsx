@@ -37,6 +37,23 @@ export default function TpvTerminalPage() {
   const [mostrarEspera, setMostrarEspera] = useState(false);
   const [descuentoTotal, setDescuentoTotal] = useState(0);
 
+  // Pitido corto al añadir (feedback táctil/sonoro del escáner o el toque).
+  const pitido = useCallback((frecuencia = 880, duracion = 0.07) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const vol = ctx.createGain();
+      osc.frequency.value = frecuencia;
+      osc.type = "sine";
+      vol.gain.value = 0.08;
+      osc.connect(vol);
+      vol.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duracion);
+      osc.onended = () => ctx.close();
+    } catch { /* sin audio disponible */ }
+  }, []);
+
   const cargarEstado = useCallback(async () => {
     try {
       const [rEstado, rEspera] = await Promise.all([
@@ -90,6 +107,7 @@ export default function TpvTerminalPage() {
   );
 
   function agregarArticulo(a) {
+    pitido();
     setLineas((prev) => {
       const i = prev.findIndex((l) => l.articulo === a._id && (l.descuento ?? 0) === 0);
       if (i >= 0) {
@@ -109,6 +127,41 @@ export default function TpvTerminalPage() {
         },
       ];
     });
+  }
+
+  function onEnterBusqueda(e) {
+    if (e.key !== "Enter") return;
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return;
+    // Escáner de código de barras: coincidencia exacta → añade directo.
+    const exacto = estado?.articulos?.find(
+      (a) =>
+        (a.codigoBarras && a.codigoBarras.toLowerCase() === q) ||
+        (a.codigo && a.codigo.toLowerCase() === q)
+    );
+    const destino = exacto ?? (articulosFiltrados.length === 1 ? articulosFiltrados[0] : null);
+    if (destino) {
+      agregarArticulo(destino);
+      setBusqueda("");
+    } else {
+      pitido(220, 0.12); // tono grave: no encontrado
+    }
+  }
+
+  async function reimprimirUltimo() {
+    try {
+      const r = await fetch("/api/tpv/tickets");
+      const lista = await r.json();
+      if (!r.ok) throw new Error(lista.error || "Error al buscar tickets");
+      const ultimo = lista?.find((t) => t.total >= 0);
+      if (!ultimo) {
+        setError("Todavía no hay tickets para reimprimir");
+        return;
+      }
+      window.open(`/api/tpv/tickets/${ultimo._id}/imprimir`, "_blank", "width=400,height=600");
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   function cambiarCantidad(i, delta) {
@@ -291,6 +344,13 @@ export default function TpvTerminalPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={reimprimirUltimo}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
+            title="Reimprimir el último ticket"
+          >
+            Reimprimir
+          </button>
+          <button
             onClick={() => setMostrarEspera(true)}
             className="relative flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
           >
@@ -324,6 +384,7 @@ export default function TpvTerminalPage() {
             placeholder="Buscar artículo o código…"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
+            onKeyDown={onEnterBusqueda}
             className="w-full mb-2 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-lg placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           {/* Pestañas de familias */}

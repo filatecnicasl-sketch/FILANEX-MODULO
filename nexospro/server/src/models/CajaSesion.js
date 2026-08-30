@@ -19,8 +19,14 @@ const cajaSesionSchema = new Schema(
       totalEfectivo: Number, // ventas en efectivo de la sesión
       totalTarjeta: Number,
       totalOtro: Number,
+      totalEntradas: Number, // movimientos manuales de entrada
+      totalSalidas: Number, // movimientos manuales de salida
       totalVentas: Number,
       numeroTickets: Number,
+      numeroDevoluciones: Number,
+      devoluciones: Number, // importe (negativo) de las R5 de la sesión
+      // Conteo del cajón por denominación: { "50": 2, "0.5": 4, ... } (€ → uds)
+      desgloseConteo: Schema.Types.Mixed,
       diferencia: Number, // conteo − esperado
       notas: String,
     },
