@@ -241,6 +241,16 @@ export default function Layout() {
   const [plegado, setPlegado] = useState(false);
   const [menuMovil, setMenuMovil] = useState(false);
   const [slotTitulo, setSlotTitulo] = useState(null);
+  const [entorno, setEntorno] = useState(null);
+
+  // Aviso de entorno: fuera de producción (local/pruebas) se muestra una
+  // banda fija para que nadie meta datos reales donde no toca.
+  useEffect(() => {
+    fetch("/api/health")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((h) => setEntorno(h?.entorno ?? null))
+      .catch(() => {});
+  }, []);
 
   // En móvil el menú es un cajón: se cierra solo al navegar.
   useEffect(() => {
@@ -496,6 +506,11 @@ export default function Layout() {
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
+        {entorno && entorno !== "produccion" && (
+          <div className="no-print shrink-0 bg-amber-400 text-amber-950 text-center text-xs sm:text-sm font-bold tracking-wide py-1.5 px-3">
+            ENTORNO LOCAL — PRUEBAS · los datos de aquí NO son los reales (los reales están en app.filanex.es)
+          </div>
+        )}
         {!amplia && (
           <header className="no-print sticky top-0 z-20 flex items-center flex-wrap content-center gap-x-3 sm:gap-x-6 gap-y-2 px-3 sm:px-6 py-3 min-h-[64px] lg:min-h-[104px] shrink-0 bg-[#0B1220] border-b border-white/[0.07]">
             {/* Abrir menú (solo móvil) */}

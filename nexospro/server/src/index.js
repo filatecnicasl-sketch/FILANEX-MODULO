@@ -75,8 +75,15 @@ const limitadorApi = rateLimit({
 app.use(uploadsRouter);
 
 // Health check: debe responder incluso cuando se sirve el frontend compilado.
+// `entorno` permite al cliente avisar cuando no está en producción (local o
+// pruebas), para que nadie trabaje por error sobre datos que no son reales.
 const responderHealth = (req, res) => {
-  res.json({ ok: true, servicio: "nexospro-api", version: "0.1.0" });
+  res.json({
+    ok: true,
+    servicio: "nexospro-api",
+    version: "0.1.0",
+    entorno: process.env.ENTORNO || "local",
+  });
 };
 app.get("/health", responderHealth);
 app.get("/api/health", responderHealth);
