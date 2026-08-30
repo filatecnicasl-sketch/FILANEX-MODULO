@@ -32,6 +32,18 @@ function migrarElemento(el) {
     el.y = 74; // separador por debajo de la dirección
     return true;
   }
+  // Título de factura: se desplaza a la izquierda para dejar libre la
+  // esquina superior derecha, donde va el QR tributario VeriFactu.
+  if (
+    el.type === "text" &&
+    el.x === 130 &&
+    el.w === 60 &&
+    [16, 27, 34].includes(el.y) &&
+    /^(FACTURA|\{\{documento\.numero\}\}|Fecha: \{\{documento\.fecha\}\})$/.test(el.text ?? "")
+  ) {
+    el.x = 102;
+    return true;
+  }
   return false;
 }
 

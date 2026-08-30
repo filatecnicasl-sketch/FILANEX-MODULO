@@ -27,16 +27,15 @@ async function plantillaPorTipo(tipo) {
   );
 }
 
-// Bloque de QR tributario VeriFactu. Se añade al HTML de la plantilla para
-// que la factura entregada al cliente lleve siempre el QR obligatorio,
-// aunque el usuario haya personalizado el diseño.
+// Bloque de QR tributario VeriFactu, arriba a la derecha. Se añade al HTML
+// de la plantilla para que la factura entregada al cliente lleve siempre el
+// QR obligatorio, aunque el usuario haya personalizado el diseño.
 async function bloqueQrVerifactu(qrContenido) {
   const dataUri = await QRCode.toDataURL(qrContenido, { errorCorrectionLevel: "M", width: 300, margin: 0 });
-  return `<div style="position:absolute;left:20mm;bottom:14mm;display:flex;align-items:center;gap:3mm;">
+  return `<div style="position:absolute;right:20mm;top:8mm;width:26mm;text-align:center;">
     <img src="${dataUri}" style="width:24mm;height:24mm;" alt="QR VeriFactu" />
-    <div style="font-size:6.5pt;color:#444;max-width:80mm;line-height:1.3;">
-      <strong>VERI*FACTU</strong><br>
-      Factura verificable en la sede electrónica de la AEAT
+    <div style="font-size:6pt;color:#444;line-height:1.25;margin-top:1mm;">
+      <strong>VERI*FACTU</strong><br>Verificable en sede electrónica AEAT
     </div>
   </div>`;
 }
@@ -99,21 +98,23 @@ router.get("/:tipo/:id/formato", async (req, res, next) => {
 
     const resuelta = resolverPlantillaParaImpresion(plantilla, formData, logoUrl);
     if (qr) {
-      // El QR tributario debe salir también en la impresión rápida.
-      const { h } = pageDimensions(resuelta.page);
+      // El QR tributario debe salir también en la impresión rápida,
+      // arriba a la derecha (esquina superior derecha de la zona útil).
+      const { w } = pageDimensions(resuelta.page);
+      const xQr = w - 20 - 24;
       resuelta.elements = [
         ...resuelta.elements,
-        { id: "qr-verifactu", type: "image", x: 20, y: h - 38, w: 24, h: 24, src: qr },
+        { id: "qr-verifactu", type: "image", x: xQr, y: 8, w: 24, h: 24, src: qr },
         {
           id: "qr-verifactu-txt",
           type: "text",
-          x: 46,
-          y: h - 32,
-          w: 80,
-          h: 10,
-          text: "VERI*FACTU\nFactura verificable en la sede electrónica de la AEAT",
-          fontSize: 6.5,
-          align: "left",
+          x: xQr - 2,
+          y: 33,
+          w: 28,
+          h: 7,
+          text: "VERI*FACTU\nVerificable en sede electrónica AEAT",
+          fontSize: 6,
+          align: "center",
           color: "#444444",
         },
       ];

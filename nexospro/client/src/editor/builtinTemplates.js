@@ -69,9 +69,11 @@ export function buildFacturaVenta() {
     page: { size: "A4", orientation: "portrait" },
     elements: [
       logo(20, 14, 45, 22),
-      tx("FACTURA", 130, 16, 60, 10, 18, true, "right", "#111827"),
-      tx("{{documento.numero}}", 130, 27, 60, 6, 11, false, "right", "#4b5563"),
-      tx("Fecha: {{documento.fecha}}", 130, 34, 60, 5, 9, false, "right", "#6b7280"),
+      // El bloque de título termina en x=162: la esquina superior derecha
+      // queda reservada para el QR tributario VeriFactu.
+      tx("FACTURA", 102, 16, 60, 10, 18, true, "right", "#111827"),
+      tx("{{documento.numero}}", 102, 27, 60, 6, 11, false, "right", "#4b5563"),
+      tx("Fecha: {{documento.fecha}}", 102, 34, 60, 5, 9, false, "right", "#6b7280"),
 
       box(20, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
