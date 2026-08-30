@@ -141,6 +141,11 @@ export default function TpvCajaPage() {
   }
 
   const abierta = estado?.caja;
+  const esperadoCajon =
+    (abierta?.apertura?.fondo ?? 0) +
+    (estado?.totalesSesion?.efectivo ?? 0) +
+    (estado?.totalesSesion?.entradas ?? 0) -
+    (estado?.totalesSesion?.salidas ?? 0);
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -148,90 +153,80 @@ export default function TpvCajaPage() {
         titulo="Caja TPV"
         subtitulo="Apertura, arqueo y cierre de sesiones"
         acciones={
-          <button
-            onClick={() => navigate("/tpv")}
-            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
-          >
+          <button onClick={() => navigate("/tpv")} className="btn-primary">
             Volver al terminal
           </button>
         }
       />
 
-      {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+      {error && <p className="text-sm text-rose-400 mb-4">{error}</p>}
 
       {cargando ? (
         <p className="text-slate-400">Cargando…</p>
       ) : (
         <div className="space-y-6">
           {/* Sesión actual */}
-          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-            <h2 className="text-lg font-bold mb-4">Sesión actual</h2>
+          <div className="panel p-6">
+            <h2 className="text-lg font-bold text-slate-200 mb-4">Sesión actual</h2>
             {abierta ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-800 rounded-xl p-4">
-                    <p className="text-sm text-slate-400">Fondo</p>
-                    <p className="text-2xl font-bold">{euros(abierta.apertura?.fondo)}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Fondo</p>
+                    <p className="num text-2xl font-bold text-slate-200">{euros(abierta.apertura?.fondo)}</p>
                   </div>
-                  <div className="bg-slate-800 rounded-xl p-4">
-                    <p className="text-sm text-slate-400">Apertura</p>
-                    <p className="text-lg font-semibold">
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Apertura</p>
+                    <p className="text-base font-semibold text-slate-200">
                       {new Date(abierta.apertura?.fecha).toLocaleString("es-ES")}
                     </p>
                   </div>
-                  <div className="bg-slate-800 rounded-xl p-4">
-                    <p className="text-sm text-slate-400">Ventas efectivo</p>
-                    <p className={`text-2xl font-bold ${(estado?.totalesSesion?.efectivo ?? 0) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Ventas efectivo</p>
+                    <p className={`num text-2xl font-bold ${(estado?.totalesSesion?.efectivo ?? 0) < 0 ? "text-rose-400" : "text-emerald-300"}`}>
                       {euros(estado?.totalesSesion?.efectivo)}
                     </p>
                   </div>
-                  <div className="bg-slate-800 rounded-xl p-4">
-                    <p className="text-sm text-slate-400">Ventas tarjeta</p>
-                    <p className={`text-2xl font-bold ${(estado?.totalesSesion?.tarjeta ?? 0) < 0 ? "text-rose-400" : "text-sky-400"}`}>
+                  <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-1">Ventas tarjeta</p>
+                    <p className={`num text-2xl font-bold ${(estado?.totalesSesion?.tarjeta ?? 0) < 0 ? "text-rose-400" : "text-cyan-300"}`}>
                       {euros(estado?.totalesSesion?.tarjeta)}
                     </p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-slate-500">
                   {estado?.totalesSesion?.numTickets ?? 0} tickets
                   {(estado?.totalesSesion?.numDevoluciones ?? 0) > 0 && (
-                    <span className="text-rose-300">
+                    <span className="text-rose-400">
                       {" · "}{estado.totalesSesion.numDevoluciones} devoluciones ({euros(estado.totalesSesion.devoluciones)})
                     </span>
                   )}
                   {(estado?.totalesSesion?.entradas ?? 0) > 0 && ` · Entradas ${euros(estado.totalesSesion.entradas)}`}
                   {(estado?.totalesSesion?.salidas ?? 0) > 0 && ` · Salidas −${euros(estado.totalesSesion.salidas)}`}
                   {" · Esperado en cajón: "}
-                  <strong className="text-slate-200">
-                    {euros(
-                      (abierta.apertura?.fondo ?? 0) +
-                        (estado?.totalesSesion?.efectivo ?? 0) +
-                        (estado?.totalesSesion?.entradas ?? 0) -
-                        (estado?.totalesSesion?.salidas ?? 0)
-                    )}
-                  </strong>
+                  <strong className="num text-slate-200">{euros(esperadoCajon)}</strong>
                 </p>
 
                 {/* Movimientos manuales de efectivo */}
-                <div className="border-t border-slate-800 pt-4">
-                  <h3 className="font-semibold mb-3">Entradas y salidas de efectivo</h3>
+                <div className="border-t border-white/10 pt-4">
+                  <h3 className="font-semibold text-slate-200 mb-3">Entradas y salidas de efectivo</h3>
                   <div className="flex flex-wrap gap-2 mb-3">
                     <button
                       onClick={() => setMovTipo("entrada")}
-                      className={`px-4 py-2 rounded-lg font-semibold ${
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
                         movTipo === "entrada"
-                          ? "bg-emerald-600 text-white"
-                          : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          ? "bg-emerald-400/15 border border-emerald-400/25 text-emerald-300"
+                          : "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10"
                       }`}
                     >
                       Entrada
                     </button>
                     <button
                       onClick={() => setMovTipo("salida")}
-                      className={`px-4 py-2 rounded-lg font-semibold ${
+                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
                         movTipo === "salida"
-                          ? "bg-rose-600 text-white"
-                          : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                          ? "bg-rose-400/15 border border-rose-400/25 text-rose-400"
+                          : "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10"
                       }`}
                     >
                       Salida
@@ -242,19 +237,19 @@ export default function TpvCajaPage() {
                       placeholder="Importe"
                       value={movImporte}
                       onChange={(e) => setMovImporte(e.target.value)}
-                      className="w-28 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="input w-28"
                     />
                     <input
                       type="text"
                       placeholder="Concepto (p. ej. pago proveedor, cambio)"
                       value={movConcepto}
                       onChange={(e) => setMovConcepto(e.target.value)}
-                      className="flex-1 min-w-40 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="input flex-1 min-w-40"
                     />
                     <button
                       onClick={registrarMovimiento}
                       disabled={guardandoMov || !(Number(movImporte) > 0)}
-                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold disabled:bg-slate-700 disabled:text-slate-500"
+                      className="btn-primary"
                     >
                       {guardandoMov ? "…" : "Registrar"}
                     </button>
@@ -262,13 +257,13 @@ export default function TpvCajaPage() {
                   {(estado?.movimientos ?? []).length > 0 && (
                     <div className="space-y-1">
                       {estado.movimientos.map((m) => (
-                        <div key={m._id} className="flex justify-between text-sm bg-slate-800 rounded-lg px-3 py-2">
-                          <span>
+                        <div key={m._id} className="flex justify-between text-sm rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+                          <span className="text-slate-400">
                             {new Date(m.fecha).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
                             {" · "}
-                            {m.concepto || (m.tipo === "entrada" ? "Entrada" : "Salida")}
+                            <span className="text-slate-300">{m.concepto || (m.tipo === "entrada" ? "Entrada" : "Salida")}</span>
                           </span>
-                          <span className={`font-bold ${m.tipo === "entrada" ? "text-emerald-400" : "text-rose-400"}`}>
+                          <span className={`num font-bold ${m.tipo === "entrada" ? "text-emerald-300" : "text-rose-400"}`}>
                             {m.tipo === "entrada" ? "+" : "−"}{euros(m.importe)}
                           </span>
                         </div>
@@ -277,22 +272,22 @@ export default function TpvCajaPage() {
                   )}
                 </div>
 
-                <div className="border-t border-slate-800 pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold">Arqueo y cierre</h3>
+                <div className="border-t border-white/10 pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <h3 className="font-semibold text-slate-200">Arqueo y cierre</h3>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setModoConteo("directo")}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                          modoConteo === "directo" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                          modoConteo === "directo" ? "seg-activo" : "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10"
                         }`}
                       >
                         Importe directo
                       </button>
                       <button
                         onClick={() => setModoConteo("desglose")}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                          modoConteo === "desglose" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                          modoConteo === "desglose" ? "seg-activo" : "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10"
                         }`}
                       >
                         Contar billetes y monedas
@@ -301,11 +296,11 @@ export default function TpvCajaPage() {
                   </div>
 
                   {modoConteo === "desglose" && (
-                    <div className="bg-slate-800/60 rounded-xl p-4 mb-4">
+                    <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-4">
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {[...BILLETES, ...MONEDAS].map((d) => (
-                          <div key={d} className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-                            <span className="w-14 text-sm font-semibold text-slate-300">{etiquetaDen(d)}</span>
+                          <div key={d} className="flex items-center gap-2 rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+                            <span className="w-12 text-sm font-semibold text-slate-300">{etiquetaDen(d)}</span>
                             <input
                               type="number"
                               min="0"
@@ -314,67 +309,55 @@ export default function TpvCajaPage() {
                               value={desglose[d] ?? ""}
                               onChange={(e) => cambiarDen(d, e.target.value)}
                               placeholder="0"
-                              className="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-600 text-right font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              className="input w-16 px-2 py-1 text-right font-bold"
                             />
-                            <span className="text-xs text-slate-400 w-16 text-right">
+                            <span className="num text-xs text-slate-500 w-16 text-right">
                               {(Number(desglose[d]) || 0) > 0 ? euros(d * Number(desglose[d])) : ""}
                             </span>
                           </div>
                         ))}
                       </div>
-                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-700">
-                        <span className="font-semibold">Total contado</span>
-                        <span className="text-xl font-bold text-emerald-400">{euros(totalDesglose)}</span>
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/10">
+                        <span className="font-semibold text-slate-300">Total contado</span>
+                        <span className="num text-xl font-bold text-emerald-300">{euros(totalDesglose)}</span>
                       </div>
                     </div>
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Efectivo contado</label>
+                      <label className="block text-sm text-slate-500 mb-1">Efectivo contado</label>
                       <input
                         type="number"
                         step="0.01"
                         value={conteo}
                         onChange={(e) => { setConteo(e.target.value); if (modoConteo === "desglose") setDesglose({}); }}
-                        className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="input text-xl font-bold"
                       />
                       {conteo !== "" && (
-                        <p className={`mt-1 text-sm font-semibold ${
-                          Math.abs(
-                            (Number(conteo) || 0) -
-                              ((abierta.apertura?.fondo ?? 0) +
-                                (estado?.totalesSesion?.efectivo ?? 0) +
-                                (estado?.totalesSesion?.entradas ?? 0) -
-                                (estado?.totalesSesion?.salidas ?? 0))
-                          ) < 0.005
-                            ? "text-emerald-400"
-                            : "text-amber-400"
+                        <p className={`num mt-1 text-sm font-semibold ${
+                          Math.abs((Number(conteo) || 0) - esperadoCajon) < 0.005
+                            ? "text-emerald-300"
+                            : "text-amber-300"
                         }`}>
-                          Diferencia: {euros(
-                            (Number(conteo) || 0) -
-                              ((abierta.apertura?.fondo ?? 0) +
-                                (estado?.totalesSesion?.efectivo ?? 0) +
-                                (estado?.totalesSesion?.entradas ?? 0) -
-                                (estado?.totalesSesion?.salidas ?? 0))
-                          )}
+                          Diferencia: {euros((Number(conteo) || 0) - esperadoCajon)}
                         </p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Notas</label>
+                      <label className="block text-sm text-slate-500 mb-1">Notas</label>
                       <input
                         type="text"
                         value={notas}
                         onChange={(e) => setNotas(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="input"
                       />
                     </div>
                   </div>
                   <button
                     onClick={cerrarCaja}
                     disabled={cerrando || conteo === ""}
-                    className="mt-4 w-full py-4 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 disabled:text-slate-500 text-xl font-bold transition"
+                    className="btn-peligro mt-4 w-full py-4 text-xl"
                   >
                     {cerrando ? "Cerrando…" : "Cerrar caja e imprimir cierre Z"}
                   </button>
@@ -382,20 +365,20 @@ export default function TpvCajaPage() {
               </div>
             ) : (
               <div className="text-center py-6">
-                <p className="text-slate-400 mb-4">No hay ninguna sesión abierta.</p>
+                <p className="text-slate-500 mb-4">No hay ninguna sesión abierta.</p>
                 <div className="max-w-xs mx-auto">
-                  <label className="block text-sm text-slate-400 mb-1">Fondo inicial</label>
+                  <label className="block text-sm text-slate-500 mb-1">Fondo inicial</label>
                   <input
                     type="number"
                     step="0.01"
                     value={fondo}
                     onChange={(e) => setFondo(e.target.value)}
-                    className="w-full text-center text-2xl font-bold bg-slate-800 border border-slate-600 rounded-xl py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input text-center text-2xl font-bold mb-3"
                   />
                   <button
                     onClick={abrirCaja}
                     disabled={abriendo}
-                    className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-xl font-bold transition"
+                    className="btn-primary w-full py-4 text-xl justify-center"
                   >
                     {abriendo ? "Abriendo…" : "Abrir caja"}
                   </button>
@@ -405,19 +388,19 @@ export default function TpvCajaPage() {
           </div>
 
           {/* Historial */}
-          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-            <h2 className="text-lg font-bold mb-4">Historial de cierres</h2>
+          <div className="panel p-6">
+            <h2 className="text-lg font-bold text-slate-200 mb-4">Historial de cierres</h2>
             {!sesiones.length ? (
               <p className="text-slate-500">No hay sesiones cerradas.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {sesiones.map((s) => (
                   <div
                     key={s._id}
-                    className="flex flex-wrap items-center justify-between gap-3 bg-slate-800 rounded-xl p-4"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 border border-white/10 p-4"
                   >
-                    <div>
-                      <p className="font-semibold">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-200">
                         {new Date(s.apertura?.fecha).toLocaleDateString("es-ES")} ·{" "}
                         {new Date(s.apertura?.fecha).toLocaleTimeString("es-ES", {
                           hour: "2-digit",
@@ -431,7 +414,7 @@ export default function TpvCajaPage() {
                             })
                           : "—"}
                       </p>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-slate-500">
                         {s.cierre?.numeroTickets ?? 0} tickets
                         {(s.cierre?.numeroDevoluciones ?? 0) > 0 &&
                           ` · ${s.cierre.numeroDevoluciones} devoluciones`}
@@ -443,21 +426,21 @@ export default function TpvCajaPage() {
                     <div className="flex items-center gap-4">
                       <div className="flex gap-4 text-right">
                         <div>
-                          <p className="text-sm text-slate-400">Esperado</p>
-                          <p className="font-bold">{euros(s.cierre?.esperadoEfectivo)}</p>
+                          <p className="text-xs text-slate-500">Esperado</p>
+                          <p className="num font-bold text-slate-200">{euros(s.cierre?.esperadoEfectivo)}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-slate-400">Contado</p>
-                          <p className="font-bold">{euros(s.cierre?.conteoEfectivo)}</p>
+                          <p className="text-xs text-slate-500">Contado</p>
+                          <p className="num font-bold text-slate-200">{euros(s.cierre?.conteoEfectivo)}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-slate-400">Diferencia</p>
+                          <p className="text-xs text-slate-500">Diferencia</p>
                           <p
-                            className={`font-bold ${
+                            className={`num font-bold ${
                               (s.cierre?.diferencia ?? 0) === 0
-                                ? "text-emerald-400"
+                                ? "text-emerald-300"
                                 : (s.cierre?.diferencia ?? 0) > 0
-                                  ? "text-amber-400"
+                                  ? "text-amber-300"
                                   : "text-rose-400"
                             }`}
                           >
@@ -468,7 +451,7 @@ export default function TpvCajaPage() {
                       <button
                         onClick={() => imprimirCierre(s)}
                         title="Imprimir cierre Z"
-                        className="px-3 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-semibold"
+                        className="btn-ghost"
                       >
                         Imprimir Z
                       </button>

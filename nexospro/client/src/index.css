@@ -79,6 +79,14 @@ body {
     @apply inline-flex items-center gap-2 border border-accent/30 text-accent font-semibold text-sm px-4 py-2 rounded-lg transition-all duration-150 hover:bg-accent/10 hover:border-accent/50 disabled:opacity-50 disabled:pointer-events-none;
   }
 
+  .btn-peligro {
+    @apply inline-flex items-center justify-center gap-2 text-white font-semibold text-sm px-4 py-2 rounded-lg transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none;
+    background: linear-gradient(180deg, #f87171, #e11d48);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 10px 24px -10px rgba(225, 29, 72, 0.55);
+  }
+
   .input {
     @apply w-full border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-slate-600 transition-colors focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/20;
     background: rgba(2, 6, 16, 0.65);
@@ -260,6 +268,12 @@ body {
   background: rgba(3, 105, 161, 0.07);
   border-color: rgba(3, 105, 161, 0.6);
 }
+.tema-claro .btn-peligro {
+  background: #e11d48;
+  color: #ffffff;
+  box-shadow: 0 10px 22px -12px rgba(225, 29, 72, 0.55);
+}
+.tema-claro .btn-peligro:hover { background: #be123c; }
 .tema-claro .tabla th { color: #64748b; border-color: #e8edf4; font-size: 0.6875rem; }
 .tema-claro .tabla tbody tr:hover { background: rgba(3, 105, 161, 0.035); }
 
