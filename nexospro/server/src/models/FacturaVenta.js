@@ -13,6 +13,10 @@ export const lineaSchema = new Schema(
     // de compra: "dto 10 %"). Viaja con la línea entre documentos.
     descuento: { type: Number, default: 0 },
     iva: { type: Number, default: 21 },
+    // TPV: cantidad ya devuelta de esta línea mediante rectificativas R5
+    // (devoluciones parciales). La línea queda agotada cuando
+    // devuelto === cantidad.
+    devuelto: { type: Number, default: 0 },
     // Taller: distingue mano de obra de materiales para aplicar los
     // descuentos negociados con la aseguradora al facturar la OT.
     tipo: { type: String, enum: ["mano_obra", "material"] },

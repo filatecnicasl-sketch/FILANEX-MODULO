@@ -14,6 +14,31 @@ export default function TpvCajaPage() {
   const [cerrando, setCerrando] = useState(false);
   const [fondo, setFondo] = useState("100");
   const [abriendo, setAbriendo] = useState(false);
+  const [movTipo, setMovTipo] = useState("entrada");
+  const [movImporte, setMovImporte] = useState("");
+  const [movConcepto, setMovConcepto] = useState("");
+  const [guardandoMov, setGuardandoMov] = useState(false);
+
+  async function registrarMovimiento() {
+    setGuardandoMov(true);
+    setError(null);
+    try {
+      const r = await fetch("/api/tpv/caja/movimientos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: movTipo, importe: Number(movImporte) || 0, concepto: movConcepto }),
+      });
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "No se pudo registrar");
+      setMovImporte("");
+      setMovConcepto("");
+      await cargar();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGuardandoMov(false);
+    }
+  }
 
   const cargar = useCallback(async () => {
     try {
@@ -123,6 +148,71 @@ export default function TpvCajaPage() {
                     <p className="text-sm text-slate-400">Ventas tarjeta</p>
                     <p className="text-2xl font-bold text-sky-400">{euros(estado?.totalesSesion?.tarjeta)}</p>
                   </div>
+                </div>
+
+                {/* Movimientos manuales de efectivo */}
+                <div className="border-t border-slate-800 pt-4">
+                  <h3 className="font-semibold mb-3">Entradas y salidas de efectivo</h3>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <button
+                      onClick={() => setMovTipo("entrada")}
+                      className={`px-4 py-2 rounded-lg font-semibold ${
+                        movTipo === "entrada"
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      }`}
+                    >
+                      Entrada
+                    </button>
+                    <button
+                      onClick={() => setMovTipo("salida")}
+                      className={`px-4 py-2 rounded-lg font-semibold ${
+                        movTipo === "salida"
+                          ? "bg-rose-600 text-white"
+                          : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      }`}
+                    >
+                      Salida
+                    </button>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Importe"
+                      value={movImporte}
+                      onChange={(e) => setMovImporte(e.target.value)}
+                      className="w-28 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Concepto (p. ej. pago proveedor, cambio)"
+                      value={movConcepto}
+                      onChange={(e) => setMovConcepto(e.target.value)}
+                      className="flex-1 min-w-40 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      onClick={registrarMovimiento}
+                      disabled={guardandoMov || !(Number(movImporte) > 0)}
+                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold disabled:bg-slate-700 disabled:text-slate-500"
+                    >
+                      {guardandoMov ? "…" : "Registrar"}
+                    </button>
+                  </div>
+                  {(estado?.movimientos ?? []).length > 0 && (
+                    <div className="space-y-1">
+                      {estado.movimientos.map((m) => (
+                        <div key={m._id} className="flex justify-between text-sm bg-slate-800 rounded-lg px-3 py-2">
+                          <span>
+                            {new Date(m.fecha).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}
+                            {" · "}
+                            {m.concepto || (m.tipo === "entrada" ? "Entrada" : "Salida")}
+                          </span>
+                          <span className={`font-bold ${m.tipo === "entrada" ? "text-emerald-400" : "text-rose-400"}`}>
+                            {m.tipo === "entrada" ? "+" : "−"}{euros(m.importe)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-slate-800 pt-4">

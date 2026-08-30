@@ -156,6 +156,72 @@ async function main() {
   const lista = Array.isArray(r.datos) ? r.datos : (r.datos?.clientes ?? []);
   check(!lista.some((c) => c.mostrador), "Cliente mostrador oculto en /clientes");
 
+  // 11. Familias y favoritos en el estado
+  r = await api("/tpv/estado");
+  check(r.status === 200, "Estado TPV responde");
+  check(Array.isArray(r.datos?.familias), "Devuelve familias");
+  check(Array.isArray(r.datos?.favoritos), "Devuelve favoritos");
+  check(r.datos?.articulos?.some((a) => "familia" in a), "Artículos llevan familia");
+
+  // 12. Tickets en espera: aparcar, listar, recuperar (borrar)
+  r = await api("/tpv/espera", {
+    method: "POST",
+    body: { nombre: "Prueba E2E", lineas: [{ descripcion: "Aparcado", cantidad: 2, precioUnitario: 1, iva: 21 }] },
+  });
+  check(r.status === 201, "Aparcar ticket", r.datos?.error ?? "");
+  const esperaId = r.datos?._id;
+  r = await api("/tpv/espera");
+  check(r.status === 200 && r.datos.some((t) => t._id === esperaId), "Listar tickets en espera");
+  r = await fetch(`${API}/api/tpv/espera/${esperaId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  check(r.status === 200, "Recuperar/borrar ticket en espera");
+
+  // 13. Movimientos de caja: entrada y salida
+  r = await api("/tpv/caja/movimientos", {
+    method: "POST",
+    body: { tipo: "entrada", importe: 20, concepto: "Cambio" },
+  });
+  check(r.status === 201, "Entrada de efectivo", r.datos?.error ?? "");
+  r = await api("/tpv/caja/movimientos", {
+    method: "POST",
+    body: { tipo: "salida", importe: 5, concepto: "Pago proveedor" },
+  });
+  check(r.status === 201, "Salida de efectivo", r.datos?.error ?? "");
+  r = await api("/tpv/caja/movimientos");
+  check(r.status === 200 && r.datos.length >= 2, "Listar movimientos");
+
+  // 14. Devolución parcial: cobrar 3 uds y devolver solo 1
+  r = await api("/tpv/cobrar", {
+    method: "POST",
+    body: { lineas: [{ descripcion: "Parcial", cantidad: 3, precioUnitario: 2, iva: 21 }], metodoCobro: "efectivo" },
+  });
+  const t3 = r.datos?.ticket ?? {};
+  check(r.status === 201, "Cobro para devolución parcial", r.datos?.error ?? "");
+  r = await api(`/tpv/tickets/${t3._id}/devolucion`, {
+    method: "POST",
+    body: { lineas: [{ indice: 0, cantidad: 1 }] },
+  });
+  check(r.status === 201, "Devolución parcial", r.datos?.error ?? "");
+  check(r.datos?.completa === false, "Original NO queda rectificada (queda pendiente)");
+  const esperadoParcial = -Math.abs(1 * 2 * 1.21);
+  check(
+    Math.abs((r.datos?.devolucion?.total ?? 0) - esperadoParcial) < 0.02,
+    "Importe parcial correcto (1 ud)",
+    `total=${r.datos?.devolucion?.total}`
+  );
+  // Devolver el resto (2 uds) → ahora sí queda rectificada
+  r = await api(`/tpv/tickets/${t3._id}/devolucion`, { method: "POST" });
+  check(r.status === 201 && r.datos?.completa === true, "Devolver el resto → rectificada completa");
+
+  // 15. Resumen del día
+  r = await api(`/tpv/resumen?fecha=${new Date().toISOString().slice(0, 10)}`);
+  check(r.status === 200, "Resumen del día responde");
+  check(typeof r.datos?.ventas === "number" && r.datos.ventas > 0, "Resumen con ventas", `ventas=${r.datos?.ventas}`);
+  check(r.datos?.numeroDevoluciones >= 1, "Resumen cuenta devoluciones", `${r.datos?.numeroDevoluciones}`);
+  check(Array.isArray(r.datos?.topArticulos), "Resumen con top artículos");
+
   console.log(`\nResumen: ${ok} OK, ${fail} fallos`);
   process.exit(fail ? 1 : 0);
 }

@@ -14,10 +14,13 @@ const COLORES_TARJETA = [
   "bg-teal-600 hover:bg-teal-500",
   "bg-orange-600 hover:bg-orange-500",
 ];
+const COLORES_FAMILIA = [
+  "bg-indigo-600", "bg-emerald-600", "bg-amber-600", "bg-sky-600",
+  "bg-violet-600", "bg-rose-600", "bg-teal-600", "bg-orange-600",
+];
 
-function colorPorIndice(i) {
-  return COLORES_TARJETA[i % COLORES_TARJETA.length];
-}
+const colorTarjeta = (i) => COLORES_TARJETA[i % COLORES_TARJETA.length];
+const colorFamilia = (i) => COLORES_FAMILIA[i % COLORES_FAMILIA.length];
 
 export default function TpvTerminalPage() {
   const navigate = useNavigate();
@@ -25,17 +28,25 @@ export default function TpvTerminalPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState("");
+  const [familiaActiva, setFamiliaActiva] = useState("favoritos");
   const [lineas, setLineas] = useState([]);
   const [mostrarCobro, setMostrarCobro] = useState(false);
   const [fondo, setFondo] = useState("100");
   const [abriendoCaja, setAbriendoCaja] = useState(false);
+  const [espera, setEspera] = useState([]);
+  const [mostrarEspera, setMostrarEspera] = useState(false);
+  const [descuentoTotal, setDescuentoTotal] = useState(0);
 
   const cargarEstado = useCallback(async () => {
     try {
-      const r = await fetch("/api/tpv/estado");
-      const datos = await r.json();
-      if (!r.ok) throw new Error(datos.error || "Error al cargar TPV");
+      const [rEstado, rEspera] = await Promise.all([
+        fetch("/api/tpv/estado"),
+        fetch("/api/tpv/espera"),
+      ]);
+      const datos = await rEstado.json();
+      if (!rEstado.ok) throw new Error(datos.error || "Error al cargar TPV");
       setEstado(datos);
+      setEspera(rEspera.ok ? await rEspera.json() : []);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -48,23 +59,39 @@ export default function TpvTerminalPage() {
   const articulosFiltrados = useMemo(() => {
     if (!estado?.articulos) return [];
     const q = busqueda.trim().toLowerCase();
-    if (!q) return estado.articulos;
-    return estado.articulos.filter(
-      (a) =>
-        a.descripcion.toLowerCase().includes(q) ||
-        (a.codigo && a.codigo.toLowerCase().includes(q)) ||
-        (a.codigoBarras && a.codigoBarras.includes(q))
-    );
-  }, [estado, busqueda]);
+    let lista = estado.articulos;
+    if (q) {
+      return lista.filter(
+        (a) =>
+          a.descripcion.toLowerCase().includes(q) ||
+          (a.codigo && a.codigo.toLowerCase().includes(q)) ||
+          (a.codigoBarras && a.codigoBarras.includes(q))
+      );
+    }
+    if (familiaActiva === "favoritos") {
+      const fav = new Set((estado.favoritos ?? []).map(String));
+      const enFav = lista.filter((a) => fav.has(String(a._id)));
+      return enFav.length ? enFav : lista;
+    }
+    if (familiaActiva === "todos") return lista;
+    if (familiaActiva === "sin") return lista.filter((a) => !a.familia);
+    return lista.filter((a) => a.familia === familiaActiva);
+  }, [estado, busqueda, familiaActiva]);
 
   const total = useMemo(
-    () => lineas.reduce((acc, l) => acc + l.cantidad * l.precioUnitario, 0),
+    () =>
+      lineas.reduce(
+        (acc, l) =>
+          acc +
+          l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100),
+        0
+      ),
     [lineas]
   );
 
   function agregarArticulo(a) {
     setLineas((prev) => {
-      const i = prev.findIndex((l) => l.articulo === a._id);
+      const i = prev.findIndex((l) => l.articulo === a._id && (l.descuento ?? 0) === 0);
       if (i >= 0) {
         const copia = [...prev];
         copia[i] = { ...copia[i], cantidad: copia[i].cantidad + 1 };
@@ -78,6 +105,7 @@ export default function TpvTerminalPage() {
           cantidad: 1,
           precioUnitario: a.precioVenta,
           iva: a.iva ?? 21,
+          descuento: 0,
         },
       ];
     });
@@ -91,6 +119,20 @@ export default function TpvTerminalPage() {
     });
   }
 
+  function cambiarDescuento(i, valor) {
+    setLineas((prev) => {
+      const copia = [...prev];
+      copia[i] = { ...copia[i], descuento: Math.min(100, Math.max(0, valor)) };
+      return copia;
+    });
+  }
+
+  function aplicarDescuentoTotal(pct) {
+    const d = Math.min(100, Math.max(0, pct));
+    setDescuentoTotal(d);
+    setLineas((prev) => prev.map((l) => ({ ...l, descuento: d })));
+  }
+
   function quitarLinea(i) {
     setLineas((prev) => prev.filter((_, idx) => idx !== i));
   }
@@ -99,6 +141,39 @@ export default function TpvTerminalPage() {
     if (!lineas.length) return;
     window.__tpvLineas = lineas;
     setMostrarCobro(true);
+  }
+
+  async function aparcarTicket() {
+    if (!lineas.length) return;
+    const nombre = window.prompt("Referencia del ticket en espera (opcional):", "");
+    if (nombre === null) return;
+    try {
+      const r = await fetch("/api/tpv/espera", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, lineas }),
+      });
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "No se pudo aparcar");
+      setLineas([]);
+      setDescuentoTotal(0);
+      await cargarEstado();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function recuperarTicket(t) {
+    setLineas(t.lineas.map((l) => ({ ...l })));
+    setDescuentoTotal(0);
+    setMostrarEspera(false);
+    await fetch(`/api/tpv/espera/${t._id}`, { method: "DELETE" });
+    setEspera((prev) => prev.filter((x) => x._id !== t._id));
+  }
+
+  async function borrarEspera(t) {
+    await fetch(`/api/tpv/espera/${t._id}`, { method: "DELETE" });
+    setEspera((prev) => prev.filter((x) => x._id !== t._id));
   }
 
   async function abrirCaja() {
@@ -123,6 +198,7 @@ export default function TpvTerminalPage() {
   function onCobrado(datos) {
     setMostrarCobro(false);
     setLineas([]);
+    setDescuentoTotal(0);
     if (datos?.imprimirUrl) {
       const w = window.open(datos.imprimirUrl, "_blank", "width=400,height=600");
       if (w) w.focus();
@@ -189,6 +265,13 @@ export default function TpvTerminalPage() {
     );
   }
 
+  const pestañas = [
+    { id: "favoritos", etiqueta: "★ Favoritos" },
+    { id: "todos", etiqueta: "Todos" },
+    ...(estado?.familias ?? []).map((f) => ({ id: f, etiqueta: f })),
+    ...(estado?.articulos?.some((a) => !a.familia) ? [{ id: "sin", etiqueta: "Sin familia" }] : []),
+  ];
+
   return (
     <div className="h-screen flex flex-col bg-slate-950 text-slate-100 select-none overflow-hidden">
       {/* Cabecera */}
@@ -207,6 +290,17 @@ export default function TpvTerminalPage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMostrarEspera(true)}
+            className="relative flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
+          >
+            En espera
+            {espera.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold flex items-center justify-center">
+                {espera.length}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => navigate("/tpv/tickets")}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
@@ -230,14 +324,30 @@ export default function TpvTerminalPage() {
             placeholder="Buscar artículo o código…"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full mb-3 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-lg placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full mb-2 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-lg placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          {/* Pestañas de familias */}
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+            {pestañas.map((p, i) => (
+              <button
+                key={p.id}
+                onClick={() => setFamiliaActiva(p.id)}
+                className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition ${
+                  familiaActiva === p.id
+                    ? `${colorFamilia(i)} text-white shadow-lg`
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                {p.etiqueta}
+              </button>
+            ))}
+          </div>
           <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 content-start">
             {articulosFiltrados.map((a, i) => (
               <button
                 key={a._id}
                 onClick={() => agregarArticulo(a)}
-                className={`${colorPorIndice(i)} rounded-xl p-4 text-left shadow-lg transition active:scale-95`}
+                className={`${colorTarjeta(i)} rounded-xl p-4 text-left shadow-lg transition active:scale-95`}
               >
                 <p className="font-semibold text-white leading-tight line-clamp-2">{a.descripcion}</p>
                 <p className="mt-2 text-xl font-extrabold text-white/95">{euros(a.precioVenta)}</p>
@@ -251,38 +361,71 @@ export default function TpvTerminalPage() {
 
         {/* Derecha: ticket */}
         <div className="w-96 flex flex-col bg-slate-900 border-l border-slate-800">
-          <div className="p-3 border-b border-slate-800">
+          <div className="p-3 border-b border-slate-800 flex items-center justify-between">
             <h2 className="font-bold text-slate-300">Ticket actual</h2>
+            {lineas.length > 0 && (
+              <button
+                onClick={aparcarTicket}
+                className="px-3 py-1.5 rounded-lg bg-amber-600/20 text-amber-400 hover:bg-amber-600/40 text-sm font-semibold"
+              >
+                Aparcar
+              </button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {lineas.map((l, i) => (
-              <div key={i} className="flex items-center gap-2 bg-slate-800 rounded-xl p-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{l.descripcion}</p>
-                  <p className="text-sm text-slate-400">{euros(l.precioUnitario)}</p>
-                </div>
+              <div key={i} className="bg-slate-800 rounded-xl p-3">
                 <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{l.descripcion}</p>
+                    <p className="text-sm text-slate-400">
+                      {euros(l.precioUnitario)}
+                      {l.descuento > 0 && (
+                        <span className="ml-2 text-amber-400 font-semibold">−{l.descuento}%</span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => cambiarCantidad(i, -1)}
+                      className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-slate-600 text-xl font-bold"
+                    >
+                      −
+                    </button>
+                    <span className="w-8 text-center font-bold text-lg">{l.cantidad}</span>
+                    <button
+                      onClick={() => cambiarCantidad(i, 1)}
+                      className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-slate-600 text-xl font-bold"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <p className="w-20 text-right font-bold">
+                    {euros(l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100))}
+                  </p>
                   <button
-                    onClick={() => cambiarCantidad(i, -1)}
-                    className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-slate-600 text-xl font-bold"
+                    onClick={() => quitarLinea(i)}
+                    className="w-9 h-9 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600/40"
                   >
-                    −
-                  </button>
-                  <span className="w-8 text-center font-bold text-lg">{l.cantidad}</span>
-                  <button
-                    onClick={() => cambiarCantidad(i, 1)}
-                    className="w-9 h-9 rounded-lg bg-slate-700 hover:bg-slate-600 text-xl font-bold"
-                  >
-                    +
+                    ×
                   </button>
                 </div>
-                <p className="w-20 text-right font-bold">{euros(l.cantidad * l.precioUnitario)}</p>
-                <button
-                  onClick={() => quitarLinea(i)}
-                  className="w-9 h-9 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600/40"
-                >
-                  ×
-                </button>
+                {/* Descuento por línea */}
+                <div className="flex gap-1 mt-2">
+                  {[0, 5, 10, 20].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => cambiarDescuento(i, d)}
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        (l.descuento ?? 0) === d
+                          ? "bg-amber-500 text-slate-900"
+                          : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                      }`}
+                    >
+                      {d === 0 ? "Sin dto" : `−${d}%`}
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
             {!lineas.length && (
@@ -290,6 +433,25 @@ export default function TpvTerminalPage() {
             )}
           </div>
           <div className="p-4 border-t border-slate-800">
+            {/* Descuento sobre el total */}
+            {lineas.length > 0 && (
+              <div className="flex gap-2 mb-3">
+                <span className="text-sm text-slate-400 self-center">Dto. ticket:</span>
+                {[0, 5, 10, 20].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => aplicarDescuentoTotal(d)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-bold ${
+                      descuentoTotal === d
+                        ? "bg-amber-500 text-slate-900"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    }`}
+                  >
+                    {d === 0 ? "Quitar" : `−${d}%`}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex justify-between items-end mb-4">
               <span className="text-slate-400">Total</span>
               <span className="text-4xl font-extrabold text-emerald-400">{euros(total)}</span>
@@ -304,6 +466,49 @@ export default function TpvTerminalPage() {
           </div>
         </div>
       </div>
+
+      {/* Tickets en espera */}
+      {mostrarEspera && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Tickets en espera</h3>
+              <button onClick={() => setMostrarEspera(false)} className="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            {!espera.length ? (
+              <p className="text-slate-500 text-center py-6">No hay tickets aparcados.</p>
+            ) : (
+              <div className="space-y-2">
+                {espera.map((t) => (
+                  <div key={t._id} className="flex items-center gap-3 bg-slate-800 rounded-xl p-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">
+                        {t.nombre || `Ticket ${new Date(t.fecha).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`}
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        {t.lineas.length} líneas ·{" "}
+                        {euros(t.lineas.reduce((a, l) => a + l.cantidad * l.precioUnitario * (1 + l.iva / 100), 0))}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => recuperarTicket(t)}
+                      className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-bold"
+                    >
+                      Recuperar
+                    </button>
+                    <button
+                      onClick={() => borrarEspera(t)}
+                      className="px-3 py-2 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600/40 text-sm"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {mostrarCobro && (
         <CobroModal

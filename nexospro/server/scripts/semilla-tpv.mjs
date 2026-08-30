@@ -35,21 +35,21 @@ import "../src/models/Usuario.js";
 const slug = process.argv[2] || "demo";
 
 const ARTICULOS = [
-  { codigo: "AGUA", descripcion: "Agua mineral 1,5 L", precioVenta: 0.90, iva: 10 },
-  { codigo: "COCA", descripcion: "Coca-Cola 33 cl", precioVenta: 1.50, iva: 21 },
-  { codigo: "CAFE", descripcion: "Café solo", precioVenta: 1.20, iva: 10 },
-  { codigo: "CROI", descripcion: "Croissant", precioVenta: 1.40, iva: 10 },
-  { codigo: "PAN", descripcion: "Barra de pan", precioVenta: 0.80, iva: 4 },
-  { codigo: "LECHE", descripcion: "Leche entera 1 L", precioVenta: 1.10, iva: 4 },
-  { codigo: "HUEV", descripcion: "Docena de huevos", precioVenta: 2.60, iva: 4 },
-  { codigo: "QUES", descripcion: "Queso semicurado 250 g", precioVenta: 3.90, iva: 4 },
-  { codigo: "JAMON", descripcion: "Jamón serrano 100 g", precioVenta: 2.80, iva: 10 },
-  { codigo: "VINO", descripcion: "Vino tinto crianza", precioVenta: 6.50, iva: 21 },
-  { codigo: "CERV", descripcion: "Cerveza lata 33 cl", precioVenta: 1.10, iva: 21 },
-  { codigo: "CHOC", descripcion: "Chocolate con leche 100 g", precioVenta: 1.60, iva: 10 },
-  { codigo: "PATA", descripcion: "Patatas fritas 150 g", precioVenta: 1.30, iva: 10 },
-  { codigo: "GALL", descripcion: "Galletas maría 400 g", precioVenta: 1.50, iva: 10 },
-  { codigo: "ARRO", descripcion: "Arroz redondo 1 kg", precioVenta: 1.80, iva: 4 },
+  { codigo: "AGUA", descripcion: "Agua mineral 1,5 L", precioVenta: 0.90, iva: 10, familia: "Bebidas" },
+  { codigo: "COCA", descripcion: "Coca-Cola 33 cl", precioVenta: 1.50, iva: 21, familia: "Bebidas" },
+  { codigo: "CAFE", descripcion: "Café solo", precioVenta: 1.20, iva: 10, familia: "Bebidas" },
+  { codigo: "CERV", descripcion: "Cerveza lata 33 cl", precioVenta: 1.10, iva: 21, familia: "Bebidas" },
+  { codigo: "VINO", descripcion: "Vino tinto crianza", precioVenta: 6.50, iva: 21, familia: "Bebidas" },
+  { codigo: "CROI", descripcion: "Croissant", precioVenta: 1.40, iva: 10, familia: "Panadería" },
+  { codigo: "PAN", descripcion: "Barra de pan", precioVenta: 0.80, iva: 4, familia: "Panadería" },
+  { codigo: "GALL", descripcion: "Galletas maría 400 g", precioVenta: 1.50, iva: 10, familia: "Panadería" },
+  { codigo: "LECHE", descripcion: "Leche entera 1 L", precioVenta: 1.10, iva: 4, familia: "Alimentación" },
+  { codigo: "HUEV", descripcion: "Docena de huevos", precioVenta: 2.60, iva: 4, familia: "Alimentación" },
+  { codigo: "QUES", descripcion: "Queso semicurado 250 g", precioVenta: 3.90, iva: 4, familia: "Alimentación" },
+  { codigo: "JAMON", descripcion: "Jamón serrano 100 g", precioVenta: 2.80, iva: 10, familia: "Alimentación" },
+  { codigo: "ARRO", descripcion: "Arroz redondo 1 kg", precioVenta: 1.80, iva: 4, familia: "Alimentación" },
+  { codigo: "CHOC", descripcion: "Chocolate con leche 100 g", precioVenta: 1.60, iva: 10, familia: "Dulces" },
+  { codigo: "PATA", descripcion: "Patatas fritas 150 g", precioVenta: 1.30, iva: 10, familia: "Dulces" },
 ];
 
 async function main() {
@@ -110,11 +110,19 @@ async function main() {
           precioCompra: +(a.precioVenta * 0.6).toFixed(2),
           precioVenta: a.precioVenta,
           iva: a.iva,
+          familia: a.familia,
         }))
       );
       console.log(`${ARTICULOS.length} artículos creados`);
     } else {
-      console.log("Artículos ya existen, se saltan");
+      // Poner familia a los que no la tengan (semillas anteriores).
+      for (const a of ARTICULOS) {
+        await Articulo.updateOne( // eslint-disable-line no-await-in-loop
+          { codigo: a.codigo, $or: [{ familia: { $exists: false } }, { familia: "" }] },
+          { $set: { familia: a.familia } }
+        );
+      }
+      console.log("Artículos ya existen, familias actualizadas");
     }
 
     // Caja abierta

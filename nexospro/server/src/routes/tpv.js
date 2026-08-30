@@ -10,6 +10,8 @@ import { Router } from "express";
 import Articulo from "../models/Articulo.js";
 import Cliente from "../models/Cliente.js";
 import CajaSesion from "../models/CajaSesion.js";
+import CajaMovimiento from "../models/CajaMovimiento.js";
+import TpvTicketEspera from "../models/TpvTicketEspera.js";
 import Empresa from "../models/Empresa.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import RegistroFacturacion from "../models/RegistroFacturacion.js";
@@ -60,6 +62,8 @@ function vistaTicket(f) {
     lineas: (obj.lineas ?? []).map((l) => ({
       descripcion: l.descripcion,
       cantidad: l.cantidad,
+      devuelto: l.devuelto ?? 0,
+      pendiente: Math.max(0, (l.cantidad ?? 0) - (l.devuelto ?? 0)),
       precio: l.precioUnitario,
       iva: l.iva,
       descuento: l.descuento ?? 0,
@@ -171,32 +175,63 @@ router.get("/estado", async (req, res, next) => {
       clienteMostrador(),
     ]);
     // Totales de la sesión abierta por método de cobro (para el arqueo).
+    // Incluye los movimientos manuales de efectivo (entradas/salidas).
     let totalesSesion = null;
+    let movimientos = [];
     if (sesion) {
+      [movimientos] = await Promise.all([
+        CajaMovimiento.find({ cajaSesion: sesion._id }).sort({ fecha: 1 }).lean(),
+      ]);
       const tickets = await FacturaVenta.find({
         tipoFactura: "F2",
         cajaSesion: sesion._id,
         estado: { $in: ["emitida", "rectificada"] },
       }).lean();
-      totalesSesion = { efectivo: 0, tarjeta: 0, otro: 0 };
+      totalesSesion = { efectivo: 0, tarjeta: 0, otro: 0, entradas: 0, salidas: 0 };
       for (const t of tickets) {
         const metodo = METODOS.includes(t.cobros?.[0]?.metodo) ? t.cobros[0].metodo : "otro";
         totalesSesion[metodo] = redondear(totalesSesion[metodo] + t.total);
       }
+      for (const m of movimientos) {
+        totalesSesion[m.tipo === "entrada" ? "entradas" : "salidas"] = redondear(
+          totalesSesion[m.tipo === "entrada" ? "entradas" : "salidas"] + m.importe
+        );
+      }
     }
+    // Favoritos: los más vendidos en tickets de los últimos 30 días.
+    const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recientes = await FacturaVenta.aggregate([
+      { $match: { tipoFactura: "F2", estado: { $in: ["emitida", "rectificada"] }, fechaExpedicion: { $gte: hace30 } } },
+      { $unwind: "$lineas" },
+      { $group: { _id: "$lineas.descripcion", cantidad: { $sum: "$lineas.cantidad" } } },
+      { $sort: { cantidad: -1 } },
+      { $limit: 12 },
+    ]);
+    const ranking = new Map(recientes.map((r, i) => [r._id, i]));
+    const favoritos = articulos
+      .filter((a) => ranking.has(a.descripcion))
+      .sort((a, b) => ranking.get(a.descripcion) - ranking.get(b.descripcion))
+      .map((a) => a._id);
+
+    const familias = [...new Set(articulos.map((a) => a.familia).filter(Boolean))].sort();
+
     res.json({
       caja: sesion
         ? { id: sesion._id, apertura: sesion.apertura, estado: sesion.estado }
         : null,
       totalesSesion,
+      movimientos,
       articulos: articulos.map((a) => ({
         _id: a._id,
         codigo: a.codigo,
         codigoBarras: a.codigoBarras,
         descripcion: a.descripcion,
+        familia: a.familia ?? "",
         precioVenta: a.precioVenta,
         iva: a.iva ?? 21,
       })),
+      familias,
+      favoritos,
       clienteMostradorId: mostrador._id,
       empresa: { nombre: empresa?.nombre ?? "", nif: empresa?.nif ?? "" },
     });
@@ -240,8 +275,16 @@ router.post("/caja/cerrar", async (req, res, next) => {
       const metodo = METODOS.includes(t.cobros?.[0]?.metodo) ? t.cobros[0].metodo : "otro";
       totales[metodo] = redondear(totales[metodo] + t.total);
     }
+    // Movimientos manuales de efectivo de la sesión.
+    const movimientos = await CajaMovimiento.find({ cajaSesion: sesion._id }).lean();
+    let entradas = 0;
+    let salidas = 0;
+    for (const m of movimientos) {
+      if (m.tipo === "entrada") entradas = redondear(entradas + m.importe);
+      else salidas = redondear(salidas + m.importe);
+    }
     const fondo = sesion.apertura.fondo ?? 0;
-    const esperado = redondear(fondo + totales.efectivo);
+    const esperado = redondear(fondo + totales.efectivo + entradas - salidas);
     const conteo = redondear(req.body?.conteoEfectivo);
 
     sesion.estado = "cerrada";
@@ -253,6 +296,8 @@ router.post("/caja/cerrar", async (req, res, next) => {
       totalEfectivo: totales.efectivo,
       totalTarjeta: totales.tarjeta,
       totalOtro: totales.otro,
+      totalEntradas: entradas,
+      totalSalidas: salidas,
       totalVentas: redondear(totales.efectivo + totales.tarjeta + totales.otro),
       numeroTickets: tickets.length,
       diferencia: redondear(conteo - esperado),
@@ -260,6 +305,38 @@ router.post("/caja/cerrar", async (req, res, next) => {
     };
     await sesion.save();
     res.json({ ok: true, cierre: sesion.cierre });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Movimientos manuales de efectivo (entrada/salida) de la sesión abierta.
+router.post("/caja/movimientos", async (req, res, next) => {
+  try {
+    const sesion = await CajaSesion.findOne({ estado: "abierta" }).lean();
+    if (!sesion) return res.status(409).json({ error: "No hay caja abierta" });
+    const tipo = req.body?.tipo === "salida" ? "salida" : "entrada";
+    const importe = redondear(req.body?.importe);
+    if (!(importe > 0)) return res.status(400).json({ error: "El importe debe ser mayor que cero" });
+    const mov = await CajaMovimiento.create({
+      cajaSesion: sesion._id,
+      tipo,
+      importe,
+      concepto: String(req.body?.concepto ?? "").trim(),
+      usuario: req.usuario.email,
+    });
+    res.status(201).json(mov);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/caja/movimientos", async (req, res, next) => {
+  try {
+    const sesion = await CajaSesion.findOne({ estado: "abierta" }).lean();
+    if (!sesion) return res.json([]);
+    const movimientos = await CajaMovimiento.find({ cajaSesion: sesion._id }).sort({ fecha: 1 }).lean();
+    res.json(movimientos);
   } catch (err) {
     next(err);
   }
@@ -370,6 +447,9 @@ router.get("/tickets", async (req, res, next) => {
 });
 
 // Devolución: rectificativa simplificada R5 con importes negativos.
+// Sin body → devolución íntegra. Con { lineas: [{ indice, cantidad }] } →
+// devolución parcial: solo esas cantidades; el original pasa a "rectificada"
+// cuando todas sus líneas quedan completamente devueltas.
 router.post("/tickets/:id/devolucion", serializarRegistro, async (req, res, next) => {
   try {
     const original = await FacturaVenta.findOne({ _id: req.params.id, tipoFactura: "F2" });
@@ -377,17 +457,44 @@ router.post("/tickets/:id/devolucion", serializarRegistro, async (req, res, next
     if (original.estado !== "emitida") {
       return res.status(409).json({ error: "Este ticket ya está devuelto o no se puede devolver" });
     }
+
+    const pedidas = Array.isArray(req.body?.lineas) ? req.body.lineas : null;
+    const seleccion = [];
+    if (pedidas) {
+      for (const p of pedidas) {
+        const indice = Number(p?.indice);
+        const cantidad = Number(p?.cantidad);
+        const linea = original.lineas[indice];
+        if (!linea || !(cantidad > 0)) continue;
+        const pendiente = linea.cantidad - (linea.devuelto ?? 0);
+        const aDevolver = Math.min(cantidad, pendiente);
+        if (aDevolver > 0) seleccion.push({ indice, cantidad: aDevolver });
+      }
+      if (!seleccion.length) {
+        return res.status(400).json({ error: "No hay cantidades pendientes de devolver en esas líneas" });
+      }
+    } else {
+      // Íntegra: todo lo que quede pendiente en cada línea.
+      original.lineas.forEach((linea, indice) => {
+        const pendiente = linea.cantidad - (linea.devuelto ?? 0);
+        if (pendiente > 0) seleccion.push({ indice, cantidad: pendiente });
+      });
+    }
+
     const empresa = await Empresa.findOne();
     const numeracion = await tomarNumeroFacturaVentaAtomico(empresa, { serieNombre: "T" });
 
-    // Rectificación íntegra por sustitución: mismas líneas con precio negativo.
-    const lineas = original.lineas.map((l) => ({
-      descripcion: l.descripcion,
-      cantidad: l.cantidad,
-      precioUnitario: -Math.abs(l.precioUnitario),
-      iva: l.iva,
-      descuento: l.descuento ?? 0,
-    }));
+    // Rectificación por sustitución de las líneas seleccionadas (negativas).
+    const lineas = seleccion.map(({ indice, cantidad }) => {
+      const l = original.lineas[indice];
+      return {
+        descripcion: l.descripcion,
+        cantidad,
+        precioUnitario: -Math.abs(l.precioUnitario),
+        iva: l.iva,
+        descuento: l.descuento ?? 0,
+      };
+    });
     const totales = calcularTotales(lineas);
 
     const sesion = await CajaSesion.findOne({ estado: "abierta" });
@@ -430,10 +537,119 @@ router.post("/tickets/:id/devolucion", serializarRegistro, async (req, res, next
     });
     await devolucion.save();
 
-    original.estado = "rectificada";
+    // Marcar lo devuelto en el original; "rectificada" solo cuando no quede
+    // nada pendiente en ninguna línea.
+    for (const { indice, cantidad } of seleccion) {
+      original.lineas[indice].devuelto = (original.lineas[indice].devuelto ?? 0) + cantidad;
+    }
+    const agotado = original.lineas.every((l) => (l.devuelto ?? 0) >= l.cantidad);
+    if (agotado) original.estado = "rectificada";
     await original.save();
 
-    res.status(201).json({ devolucion: vistaTicket(devolucion) });
+    res.status(201).json({ devolucion: vistaTicket(devolucion), completa: agotado });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ------------------------------------------------------ tickets en espera ---
+
+router.get("/espera", async (req, res, next) => {
+  try {
+    const sesion = await CajaSesion.findOne({ estado: "abierta" }).lean();
+    if (!sesion) return res.json([]);
+    const pendientes = await TpvTicketEspera.find({ cajaSesion: sesion._id }).sort({ fecha: 1 }).lean();
+    res.json(pendientes);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/espera", async (req, res, next) => {
+  try {
+    const sesion = await CajaSesion.findOne({ estado: "abierta" }).lean();
+    if (!sesion) return res.status(409).json({ error: "No hay caja abierta" });
+    const lineas = (Array.isArray(req.body?.lineas) ? req.body.lineas : []).map((l) => ({
+      articulo: l.articulo || undefined,
+      descripcion: String(l.descripcion ?? "").trim() || "Artículo",
+      cantidad: Number(l.cantidad) > 0 ? Number(l.cantidad) : 1,
+      precioUnitario: Number(l.precioUnitario ?? l.precio) || 0,
+      iva: Number(l.iva) || 0,
+      descuento: Number(l.descuento) || 0,
+    }));
+    if (!lineas.length) return res.status(400).json({ error: "El ticket no tiene líneas" });
+    const espera = await TpvTicketEspera.create({
+      cajaSesion: sesion._id,
+      nombre: String(req.body?.nombre ?? "").trim(),
+      lineas,
+      usuario: req.usuario.email,
+    });
+    res.status(201).json(espera);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/espera/:id", async (req, res, next) => {
+  try {
+    await TpvTicketEspera.findByIdAndDelete(req.params.id);
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ------------------------------------------------------------ resumen día ---
+
+router.get("/resumen", async (req, res, next) => {
+  try {
+    const fecha = req.query.fecha ? new Date(req.query.fecha) : new Date();
+    const desde = new Date(fecha); desde.setHours(0, 0, 0, 0);
+    const hasta = new Date(fecha); hasta.setHours(23, 59, 59, 999);
+
+    const tickets = await FacturaVenta.find({
+      tipoFactura: "F2",
+      estado: { $in: ["emitida", "rectificada"] },
+      fechaExpedicion: { $gte: desde, $lte: hasta },
+    }).lean();
+
+    const porMetodo = { efectivo: 0, tarjeta: 0, otro: 0 };
+    const porHora = {};
+    const porArticulo = new Map();
+    let ventas = 0;
+    let devoluciones = 0;
+    for (const t of tickets) {
+      const esDevolucion = t.total < 0;
+      const metodo = METODOS.includes(t.cobros?.[0]?.metodo) ? t.cobros[0].metodo : "otro";
+      porMetodo[metodo] = redondear(porMetodo[metodo] + t.total);
+      if (esDevolucion) devoluciones = redondear(devoluciones + t.total);
+      else ventas = redondear(ventas + t.total);
+      const hora = new Date(t.fechaExpedicion).getHours();
+      porHora[hora] = redondear((porHora[hora] ?? 0) + t.total);
+      for (const l of t.lineas ?? []) {
+        const actual = porArticulo.get(l.descripcion) ?? 0;
+        const signo = l.precioUnitario < 0 ? -1 : 1;
+        porArticulo.set(l.descripcion, actual + l.cantidad * signo);
+      }
+    }
+    const topArticulos = [...porArticulo.entries()]
+      .map(([descripcion, cantidad]) => ({ descripcion, cantidad }))
+      .sort((a, b) => b.cantidad - a.cantidad)
+      .slice(0, 10);
+
+    res.json({
+      fecha: desde.toISOString().slice(0, 10),
+      numeroTickets: tickets.filter((t) => t.total >= 0).length,
+      numeroDevoluciones: tickets.filter((t) => t.total < 0).length,
+      ventas,
+      devoluciones,
+      total: redondear(ventas + devoluciones),
+      porMetodo,
+      porHora: Object.entries(porHora)
+        .map(([hora, importe]) => ({ hora: Number(hora), importe }))
+        .sort((a, b) => a.hora - b.hora),
+      topArticulos,
+    });
   } catch (err) {
     next(err);
   }

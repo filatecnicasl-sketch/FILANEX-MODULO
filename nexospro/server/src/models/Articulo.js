@@ -15,6 +15,9 @@ const articuloSchema = new Schema(
     proveedor: { type: Schema.Types.ObjectId, ref: "Proveedor" }, // proveedor habitual
     referenciaProveedor: String, // código del proveedor
     codigoBarras: String, // EAN / QR
+    // Familia del artículo (Bebidas, Panadería…). En el TPV agrupa la
+    // rejilla en pestañas de colores para vender más rápido.
+    familia: { type: String, default: "", index: true },
     origen: { type: String, enum: ["manual", "ocr"], default: "manual" }, // badge AUTO
   },
   { timestamps: true }
