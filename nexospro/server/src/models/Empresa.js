@@ -61,6 +61,15 @@ const empresaSchema = new Schema(
     verifactu: {
       modalidad: { type: String, enum: ["VERIFACTU", "NO_VERIFACTU"], default: "VERIFACTU" },
       certificadoRef: String,
+      // Interruptor explícito de remisión a la AEAT. Mientras esté apagado,
+      // las facturas se registran y encadenan con normalidad (huella + QR)
+      // pero NO se envían, ni siquiera aunque haya certificado instalado.
+      // Evita que al instalar el certificado se remita de golpe todo lo
+      // acumulado de meses anteriores.
+      envioActivo: { type: Boolean, default: false },
+      // Fecha a partir de la cual se remiten registros. Los anteriores
+      // quedan como pendientes y nunca se envían automáticamente.
+      enviarDesde: Date,
     },
     // Certificado electrónico VeriFactu de ESTA empresa (multiempresa: cada
     // una guarda el suyo). El archivo vive en certificados/<slug>-aeat.pfx y

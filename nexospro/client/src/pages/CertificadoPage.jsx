@@ -17,6 +17,8 @@ const fechaCorta = (iso) =>
 
 export default function CertificadoPage() {
   const [estado, setEstado] = useState(null);
+  const [envio, setEnvio] = useState(null);
+  const [guardandoEnvio, setGuardandoEnvio] = useState(false);
   const [archivo, setArchivo] = useState(null);
   const [pass, setPass] = useState("");
   const [subiendo, setSubiendo] = useState(false);
@@ -28,7 +30,46 @@ export default function CertificadoPage() {
   const cargar = () =>
     fetch("/api/certificado").then((r) => r.json()).then(setEstado).catch(() => setError("No se pudo conectar con la API."));
 
-  useEffect(() => { cargar(); }, []);
+  const cargarEnvio = () =>
+    fetch("/api/verifactu/estado")
+      .then((r) => r.json())
+      .then((v) =>
+        setEnvio({
+          activo: Boolean(v.envioActivo),
+          desde: v.enviarDesde ? String(v.enviarDesde).slice(0, 10) : "",
+          pendientes: v.registrosPendientesEnvio ?? 0,
+        })
+      )
+      .catch(() => {});
+
+  useEffect(() => {
+    cargar();
+    cargarEnvio();
+  }, []);
+
+  async function guardarEnvio(activo, desde) {
+    setAviso(null);
+    setError(null);
+    if (activo && !window.confirm(
+      "Vas a ACTIVAR el envío a la AEAT.\n\nA partir de ahora las facturas emitidas se remitirán automáticamente y el envío no se puede deshacer. ¿Continuar?"
+    )) return;
+    setGuardandoEnvio(true);
+    try {
+      const r = await fetch("/api/verifactu/envio", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ envioActivo: activo, enviarDesde: desde || null }),
+      });
+      const resp = await r.json();
+      if (!r.ok) throw new Error(resp.error || "No se pudo guardar");
+      setEnvio((e) => ({ ...e, activo, desde }));
+      setAviso(activo ? "Envío a la AEAT ACTIVADO." : "Envío a la AEAT desactivado: las facturas se registran pero no se remiten.");
+    } catch (e2) {
+      setError(e2.message);
+    } finally {
+      setGuardandoEnvio(false);
+    }
+  }
 
   async function subir(e) {
     e.preventDefault();
@@ -116,6 +157,57 @@ export default function CertificadoPage() {
 
       {!estado ? null : (
         <>
+          {envio && (
+            <div className={`panel p-5 mb-5 max-w-3xl border-l-4 ${envio.activo ? "border-l-emerald-500" : "border-l-amber-500"}`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div>
+                  <h2 className="text-white font-semibold leading-tight">Envío a la AEAT</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Las facturas se registran siempre con su huella y su QR. Esto controla si además se remiten a Hacienda.
+                  </p>
+                </div>
+                <span className="ml-auto">
+                  {envio.activo ? <Badge tono="green">Activado</Badge> : <Badge tono="amber">Desactivado</Badge>}
+                </span>
+              </div>
+
+              {!envio.activo && (
+                <p className="text-xs text-amber-500 mb-3">
+                  Ahora mismo NO se envía nada a la AEAT, ni aunque haya certificado.
+                  {envio.pendientes > 0 && ` Hay ${envio.pendientes} factura(s) registradas en espera.`}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Enviar solo facturas a partir de</label>
+                  <input
+                    type="date"
+                    value={envio.desde}
+                    onChange={(e) => setEnvio((v) => ({ ...v, desde: e.target.value }))}
+                    className="input"
+                  />
+                  <p className="text-[0.6875rem] text-slate-500 mt-1">
+                    Las anteriores a esta fecha nunca se remiten automáticamente.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={guardandoEnvio}
+                  onClick={() => guardarEnvio(!envio.activo, envio.desde)}
+                  className={envio.activo ? "btn-ghost text-rose-400 hover:text-rose-300" : "btn-primary"}
+                >
+                  {guardandoEnvio ? "Guardando…" : envio.activo ? "Desactivar envío" : "Activar envío a la AEAT"}
+                </button>
+                {envio.activo && (
+                  <button type="button" disabled={guardandoEnvio} onClick={() => guardarEnvio(true, envio.desde)} className="btn-ghost">
+                    Guardar fecha
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="panel p-5 mb-5 max-w-3xl">
             <div className="flex items-center gap-3 mb-4">
               <span className="flex items-center justify-center w-9 h-9 rounded-lg bg-teal-100 text-teal-600 shrink-0">

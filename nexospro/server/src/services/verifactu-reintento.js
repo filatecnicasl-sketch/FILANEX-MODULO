@@ -12,14 +12,24 @@ import Tenant from "../models/plataforma/Tenant.js";
 import { alsEmpresa, conexionTenant } from "../models/tenant.js";
 import { remitirAeat } from "./verifactu.js";
 import { certificadoActual } from "./certificadoEmpresa.js";
+import { politicaEnvio, permiteEnviar } from "./verifactu-envio.js";
 
 export async function reenviarPendientes(cert) {
   if (!cert) {
     return { procesados: 0, resultados: [], sinCertificado: true };
   }
-  const pendientes = await RegistroFacturacion.find({
+  // Salvaguarda: sin envío activado no se remite nada, aunque haya
+  // certificado. Evita que al instalarlo se manden de golpe a la AEAT todas
+  // las facturas pendientes acumuladas de meses anteriores.
+  const politica = await politicaEnvio();
+  if (!politica.activo) {
+    return { procesados: 0, resultados: [], envioDesactivado: true };
+  }
+
+  const todas = await RegistroFacturacion.find({
     estadoEnvio: { $in: ["pendiente", "rechazado"] },
   }).sort({ _id: 1 });
+  const pendientes = todas.filter((r) => permiteEnviar(politica, r.fechaExpedicionFactura));
 
   const resultados = [];
   for (const registro of pendientes) {

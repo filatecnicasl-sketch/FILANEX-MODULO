@@ -28,6 +28,7 @@ import {
   timestampRegistro,
 } from "../services/verifactu.js";
 import { certificadoActual } from "../services/certificadoEmpresa.js";
+import { envioPermitido } from "../services/verifactu-envio.js";
 import { requiereModulo } from "../config/modulos.js";
 import { serializarRegistro } from "../services/registro-cola.js";
 
@@ -139,8 +140,10 @@ async function registrarVerifactu({ empresa, facturaDoc, facturaDatos, tipoFactu
     fechaRegistro: new Date(),
   };
 
-  // Remisión asíncrona; el reintento automático cubre los fallos.
-  certificadoActual()
+  // Remisión asíncrona; el reintento automático cubre los fallos. Solo si el
+  // envío a la AEAT está activado en Sistema → VeriFactu.
+  envioPermitido(fechaExpedicion)
+    .then((ok) => (ok ? certificadoActual() : null))
     .then(async (cert) => {
       if (!cert) return;
       try {
