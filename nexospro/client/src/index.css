@@ -117,7 +117,12 @@ body {
 
 /* ---- Editor de formatos: impresión a tamaño real ---- */
 .print-sheet {
-  display: none;
+  /* Fuera de la vista, pero SÍ maquetada: con display:none el navegador
+     devuelve altura 0 y el auto-ajuste de textos no puede medir si un
+     nombre o una dirección se sale de su caja. */
+  position: fixed;
+  top: 0;
+  left: -99999px;
   /* La app usa tema oscuro: sin este color base, los textos de la hoja que
      heredan (celdas de tablas) saldrían gris clarito sobre el papel. */
   color: #0f172a;
@@ -313,6 +318,9 @@ body {
   }
   .print-sheet {
     display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
   }
   html,
   body,
