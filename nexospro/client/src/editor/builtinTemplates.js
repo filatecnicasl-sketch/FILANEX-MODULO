@@ -73,17 +73,17 @@ export function buildFacturaVenta() {
       tx("{{documento.numero}}", 130, 27, 60, 6, 11, false, "right", "#4b5563"),
       tx("Fecha: {{documento.fecha}}", 130, 34, 60, 5, 9, false, "right", "#6b7280"),
 
-      box(20, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(20, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{empresa.nombre}}", 23, 51, 74, 6, 10, true),
-      tx("{{empresa.nif}}", 23, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{empresa.direccion}}", 23, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.nombre}}", 23, 51, 74, 8, 10, true),
+      tx("{{empresa.nif}}", 23, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.direccion}}", 23, 65, 74, 7, 8, false, "left", "#374151"),
 
-      box(110, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(110, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("CLIENTE", 113, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{cliente.nombre}}", 113, 51, 74, 6, 10, true),
-      tx("{{cliente.nif}}", 113, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{cliente.direccion}}", 113, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.nombre}}", 113, 51, 74, 8, 10, true),
+      tx("{{cliente.nif}}", 113, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.direccion}}", 113, 65, 74, 7, 8, false, "left", "#374151"),
 
       t,
 
@@ -129,17 +129,17 @@ export function buildPresupuestoVenta() {
       tx("Fecha: {{documento.fecha}}", 120, 34, 70, 5, 9, false, "right", "#6b7280"),
       tx("Validez: {{documento.validez}}", 120, 40, 70, 5, 9, false, "right", "#6b7280"),
 
-      box(20, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(20, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{empresa.nombre}}", 23, 51, 74, 6, 10, true),
-      tx("{{empresa.nif}}", 23, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{empresa.direccion}}", 23, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.nombre}}", 23, 51, 74, 8, 10, true),
+      tx("{{empresa.nif}}", 23, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.direccion}}", 23, 65, 74, 7, 8, false, "left", "#374151"),
 
-      box(110, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(110, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("CLIENTE", 113, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{cliente.nombre}}", 113, 51, 74, 6, 10, true),
-      tx("{{cliente.nif}}", 113, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{cliente.direccion}}", 113, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.nombre}}", 113, 51, 74, 8, 10, true),
+      tx("{{cliente.nif}}", 113, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.direccion}}", 113, 65, 74, 7, 8, false, "left", "#374151"),
 
       t,
 
@@ -178,17 +178,17 @@ export function buildAlbaranVenta() {
       tx("{{documento.numero}}", 130, 27, 60, 6, 11, false, "right", "#4b5563"),
       tx("Fecha: {{documento.fecha}}", 130, 34, 60, 5, 9, false, "right", "#6b7280"),
 
-      box(20, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(20, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{empresa.nombre}}", 23, 51, 74, 6, 10, true),
-      tx("{{empresa.nif}}", 23, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{empresa.direccion}}", 23, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.nombre}}", 23, 51, 74, 8, 10, true),
+      tx("{{empresa.nif}}", 23, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.direccion}}", 23, 65, 74, 7, 8, false, "left", "#374151"),
 
-      box(110, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(110, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("CLIENTE", 113, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{cliente.nombre}}", 113, 51, 74, 6, 10, true),
-      tx("{{cliente.nif}}", 113, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{cliente.direccion}}", 113, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.nombre}}", 113, 51, 74, 8, 10, true),
+      tx("{{cliente.nif}}", 113, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.direccion}}", 113, 65, 74, 7, 8, false, "left", "#374151"),
 
       t,
 
@@ -222,17 +222,17 @@ export function buildPedidoCliente() {
       tx("{{documento.numero}}", 130, 27, 60, 6, 11, false, "right", "#4b5563"),
       tx("Fecha: {{documento.fecha}}", 130, 34, 60, 5, 9, false, "right", "#6b7280"),
 
-      box(20, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(20, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{empresa.nombre}}", 23, 51, 74, 6, 10, true),
-      tx("{{empresa.nif}}", 23, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{empresa.direccion}}", 23, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.nombre}}", 23, 51, 74, 8, 10, true),
+      tx("{{empresa.nif}}", 23, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.direccion}}", 23, 65, 74, 7, 8, false, "left", "#374151"),
 
-      box(110, 42, 80, 28, 0.4, "#e5e7eb"),
+      box(110, 42, 80, 32, 0.4, "#e5e7eb"),
       tx("CLIENTE", 113, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{cliente.nombre}}", 113, 51, 74, 6, 10, true),
-      tx("{{cliente.nif}}", 113, 58, 74, 5, 8, false, "left", "#374151"),
-      tx("{{cliente.direccion}}", 113, 63, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.nombre}}", 113, 51, 74, 8, 10, true),
+      tx("{{cliente.nif}}", 113, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.direccion}}", 113, 65, 74, 7, 8, false, "left", "#374151"),
 
       t,
 

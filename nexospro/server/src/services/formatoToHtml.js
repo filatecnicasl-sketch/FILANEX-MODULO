@@ -57,7 +57,9 @@ function renderElement(el, formData, signatures, opts) {
 
   switch (el.type) {
     case "text":
-      return `<div style="${style}${common}${el.bold ? "font-weight:700;" : ""}line-height:1.15;white-space:pre-wrap;">${esc(sustituir(el.text, formData))}</div>`;
+      // data-fit: un script de la página reduce la fuente si el texto no cabe
+      // en su caja, para que no se solape con el elemento de debajo.
+      return `<div data-fit="1" style="${style}${common}${el.bold ? "font-weight:700;" : ""}line-height:1.15;white-space:pre-wrap;overflow:hidden;">${esc(sustituir(el.text, formData))}</div>`;
 
     case "field": {
       const val = formData[el.fieldKey] ?? "";

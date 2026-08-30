@@ -118,6 +118,9 @@ body {
 /* ---- Editor de formatos: impresión a tamaño real ---- */
 .print-sheet {
   display: none;
+  /* La app usa tema oscuro: sin este color base, los textos de la hoja que
+     heredan (celdas de tablas) saldrían gris clarito sobre el papel. */
+  color: #0f172a;
 }
 
 /* ============ TEMA CLARO "AZUL HIELO" (zona de contenido) ============

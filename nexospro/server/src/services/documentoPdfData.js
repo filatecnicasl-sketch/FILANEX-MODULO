@@ -8,7 +8,11 @@ import Empresa from "../models/Empresa.js";
 
 const euros = (n) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(n) || 0);
 const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
-const dirTexto = (d) => [d?.calle, d?.cp, d?.ciudad, d?.provincia].filter(Boolean).join(", ");
+const dirTexto = (d) =>
+  [d?.calle, d?.cp, d?.ciudad, d?.provincia]
+    .map((p) => String(p ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
 
 function netoLinea(l) {
   return (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0) * (1 - (Number(l.descuento) || 0) / 100);

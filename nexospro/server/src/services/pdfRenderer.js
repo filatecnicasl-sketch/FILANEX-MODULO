@@ -50,6 +50,20 @@ export async function renderPdf({ html, css = "", pageSize = "A4", pageOrientati
   </style>
 </head>
 <body>${html}</body>
+<script>
+  // Auto-ajuste: si un texto no cabe en su caja, reduce la fuente hasta que
+  // quepa en vez de solaparse con el elemento de debajo (nombres y
+  // direcciones largas en la cabecera de los documentos).
+  document.querySelectorAll("[data-fit]").forEach((n) => {
+    const base = parseFloat(n.style.fontSize);
+    if (!base) return;
+    let f = 1;
+    while (f > 0.55 && n.scrollHeight > n.clientHeight + 1) {
+      f -= 0.05;
+      n.style.fontSize = (base * f).toFixed(2) + "pt";
+    }
+  });
+</script>
 </html>`;
 
     await page.setContent(fullHtml, { waitUntil: "networkidle" });

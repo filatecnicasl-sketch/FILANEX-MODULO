@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { PX_PER_MM } from "./editorUtils.js";
 import { resolveImageSrc, BUILTIN_IMAGES } from "./assets.js";
 import { SignatureField } from "./SignatureField.jsx";
@@ -27,7 +28,7 @@ export function ElementContent(props) {
 
   switch (el.type) {
     case "text":
-      return <TextView el={el} fs={fs} />;
+      return <TextView el={el} fs={fs} print={print} />;
     case "field":
       return <FieldView el={el} {...sub} />;
     case "textarea":
@@ -50,12 +51,30 @@ export function ElementContent(props) {
 }
 
 // ---------- Texto ----------
-function TextView({ el, fs }) {
+function TextView({ el, fs, print }) {
+  const ref = useRef(null);
+  const [factor, setFactor] = useState(1);
+
+  // En impresión, si el texto no cabe en su caja, reduce la fuente hasta que
+  // quepa en vez de cortarlo (nombres de cliente largos, direcciones de 2 líneas).
+  useLayoutEffect(() => {
+    if (!print || !ref.current) return;
+    const node = ref.current;
+    let f = 1;
+    node.style.fontSize = fs(el.fontSize);
+    while (f > 0.55 && node.scrollHeight > node.clientHeight + 1) {
+      f -= 0.05;
+      node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
+    }
+    setFactor(f);
+  }, [print, el.text, el.fontSize, el.w, el.h]);
+
   return (
     <div
+      ref={ref}
       className="h-full w-full overflow-hidden"
       style={{
-        fontSize: fs(el.fontSize),
+        fontSize: print ? `${(el.fontSize * factor).toFixed(2)}pt` : fs(el.fontSize),
         fontWeight: el.bold ? 700 : 400,
         textAlign: el.align,
         color: el.color,
@@ -282,11 +301,9 @@ function TableView({ el, variant, formData, onFormValue, fs, mm }) {
           ))}
         </tr>
         {Array.from({ length: el.rows }, (_, r) => (
-          // min-height en vez de height fija: la fila crece si la línea lleva
-          // texto detalle multilínea, para que no se corte al imprimir.
-          <tr key={r} style={{ minHeight: mm(rowH) }}>
+          <tr key={r}>
             {el.showRowNumbers && (
-              <td style={{ border, textAlign: "center", fontSize: fs(el.headerFontSize), padding: 0 }}>{r + 1}</td>
+              <td style={{ border, textAlign: "center", fontSize: fs(el.headerFontSize), padding: 0, height: mm(rowH) }}>{r + 1}</td>
             )}
             {el.columns.map((_, c) => (
               <td
@@ -296,6 +313,10 @@ function TableView({ el, variant, formData, onFormValue, fs, mm }) {
                   borderBottom: limpia ? (filaConDatos(r) ? "0.5px solid #ddd" : "none") : border,
                   verticalAlign: "top",
                   padding: 0,
+                  // La altura va en la celda: en HTML actúa como mínimo, así las
+                  // filas vacías ocupan su hueco en la cuadrícula pero una línea
+                  // con detalle largo puede crecer sin desplazar a las demás.
+                  height: mm(rowH),
                 }}
               >
                 {variant === "fill" ? (
