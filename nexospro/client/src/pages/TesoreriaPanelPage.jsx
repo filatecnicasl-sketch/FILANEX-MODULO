@@ -152,31 +152,49 @@ export default function TesoreriaPanelPage() {
         <TarjetaGrande
           titulo="Facturado"
           valor={resumen ? euros(resumen.facturado.total) : "—"}
-          detalle={`${resumen?.facturado.count ?? "…"} facturas emitidas`}
+          detalle={`${resumen?.facturado.count ?? "…"} facturas emitidas (incluye tickets TPV)`}
           tono="sky"
           to="/ventas"
           Icono={IconVentas}
         />
         <TarjetaGrande
+          titulo="Cobrado hoy"
+          valor={resumen ? euros(resumen.cobradoHoy?.total ?? 0) : "—"}
+          detalle={
+            resumen
+              ? `Efectivo ${euros(resumen.cobradoHoy?.efectivo ?? 0)} · Tarjeta ${euros(resumen.cobradoHoy?.tarjeta ?? 0)}${
+                  (resumen.cobradoHoy?.otros ?? 0) !== 0 ? ` · Otros ${euros(resumen.cobradoHoy.otros)}` : ""
+                }${(resumen.cobradoHoy?.tpv ?? 0) !== 0 ? ` — TPV ${euros(resumen.cobradoHoy.tpv)} (${resumen.ticketsHoy} tickets)` : ""}`
+              : "…"
+          }
+          tono="emerald"
+          to="/tpv/tickets"
+          Icono={IconCobros}
+        />
+        <TarjetaGrande
           titulo="Pendiente de cobro"
           valor={euros(pendCobro)}
           detalle={`${cobros.length} factura(s) de clientes`}
-          tono="emerald"
+          tono="amber"
           to="/tesoreria/cobros"
           Icono={IconCobros}
         />
         <TarjetaGrande
           titulo="Pendiente de pago"
           valor={euros(pendPago)}
-          detalle={`${pagos.length} factura(s) de proveedores`}
+          detalle={`${pagos.length} factura(s) de proveedores · cobrado este mes ${euros(resumen?.cobradoMes?.total ?? 0)}`}
           tono="rose"
           to="/tesoreria/pagos"
           Icono={IconPagos}
         />
+      </div>
+
+      {/* Neto previsto en una franja propia */}
+      <div className="grid grid-cols-1 mb-6">
         <TarjetaGrande
           titulo="Neto previsto"
           valor={euros(netoPrevisto)}
-          detalle={`Cobros − pagos · ${remesas.length} remesa(s) SEPA`}
+          detalle={`Cobros pendientes − pagos pendientes · ${remesas.length} remesa(s) SEPA`}
           tono={netoPrevisto >= 0 ? "indigo" : "amber"}
           to="/tesoreria/cobros"
           Icono={IconTesoreria}

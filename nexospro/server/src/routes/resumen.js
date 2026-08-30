@@ -67,11 +67,42 @@ router.get("/", async (req, res, next) => {
         estadoCobro: f.estadoCobro(),
       }));
 
+    // Dinero realmente cobrado hoy y este mes (facturas y tickets TPV).
+    // Los cobros se leen de cada documento: en el TPV se registran al cobrar
+    // y las devoluciones (R5) llevan importe negativo, así que restan solas.
+    const inicioHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const vacio = () => ({ total: 0, efectivo: 0, tarjeta: 0, otros: 0, tpv: 0 });
+    const cobradoHoy = vacio();
+    const cobradoMes = vacio();
+    let ticketsHoy = 0;
+    for (const f of emitidas) {
+      const esTpv = f.tipoFactura === "F2";
+      for (const c of f.cobros ?? []) {
+        const fecha = c.fecha ? new Date(c.fecha) : null;
+        if (!fecha || !(c.importe ?? 0)) continue;
+        const destinos = [];
+        if (fecha >= inicioHoy) destinos.push(cobradoHoy);
+        if (fecha >= inicioMes) destinos.push(cobradoMes);
+        for (const d of destinos) {
+          d.total = redondear(d.total + c.importe);
+          if (c.metodo === "efectivo") d.efectivo = redondear(d.efectivo + c.importe);
+          else if (c.metodo === "tarjeta") d.tarjeta = redondear(d.tarjeta + c.importe);
+          else d.otros = redondear(d.otros + c.importe);
+          if (esTpv) d.tpv = redondear(d.tpv + c.importe);
+        }
+        if (esTpv && fecha >= inicioHoy && c.importe > 0) ticketsHoy += 1;
+      }
+    }
+
     res.json({
       facturado: { total: redondear(facturado), count: emitidas.length },
       pendienteCobro: redondear(pendienteCobro),
       gastos: { total: redondear(gastos), count: compras.length },
       pendientePago: redondear(pendientePago),
+      cobradoHoy,
+      cobradoMes,
+      ticketsHoy,
       contadores: { clientes, proveedores, articulos, pedidos, albaranes },
       mensual: meses,
       ultimasFacturas,
