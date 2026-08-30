@@ -159,7 +159,7 @@ export default function RecurrenciasPage() {
               className="input"
             />
           </div>
-          <EditorLineas lineas={lineas} setLineas={setLineas} />
+          <EditorLineas lineas={lineas} setLineas={setLineas} conDescuento />
           <div className="flex justify-end pt-2 border-t border-white/5">
             <button
               onClick={guardar}

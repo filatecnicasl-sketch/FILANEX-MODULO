@@ -224,7 +224,7 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
           </div>
 
           <div>
-            <EditorLineas lineas={lineas} setLineas={setLineas} />
+            <EditorLineas lineas={lineas} setLineas={setLineas} conDescuento />
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
