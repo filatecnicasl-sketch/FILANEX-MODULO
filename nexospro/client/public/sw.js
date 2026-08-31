@@ -106,26 +106,56 @@ async function marcarCache(respuesta) {
   });
 }
 
+// Si la red no contesta en este tiempo al abrir la aplicación, se abre con la
+// copia guardada en lugar de dejar al usuario mirando la pantalla de arranque.
+// Pasa con cobertura mala, con un túnel 5G que no cierra la conexión, y sobre
+// todo si el servidor está caído: el navegador puede esperar más de un minuto.
+const ESPERA_MAXIMA_ARRANQUE = 5000;
+const ESPERA_MAXIMA_DATOS = 12000;
+
+function paginaSinConexion() {
+  return new Response(
+    "<!doctype html><meta charset=utf-8><title>FILANEX</title>" +
+      "<body style='font-family:sans-serif;background:#0A0A0A;color:#fff;padding:2rem'>" +
+      "<h1>Sin conexión</h1><p>Abre la aplicación una vez con internet para poder usarla sin conexión.</p>",
+    { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
 async function navegacion(evento) {
-  try {
+  const cache = await caches.open(SHELL);
+
+  const desdeRed = (async () => {
     const precargada = await evento.preloadResponse;
     const respuesta = precargada || (await fetch(evento.request));
-    const cache = await caches.open(SHELL);
-    cache.put("/index.html", respuesta.clone()).catch(() => {});
+    if (respuesta?.ok) cache.put("/index.html", respuesta.clone()).catch(() => {});
     return respuesta;
-  } catch {
-    const cache = await caches.open(SHELL);
-    const guardada = (await cache.match("/index.html")) || (await cache.match("/"));
-    if (guardada) {
-      avisar({ tipo: "filanex:sin-conexion" });
-      return marcarCache(guardada);
+  })();
+
+  const guardada = (await cache.match("/index.html")) || (await cache.match("/"));
+
+  // Primera vez (aún no hay copia): no queda otra que esperar a la red.
+  if (!guardada) {
+    try {
+      return await desdeRed;
+    } catch {
+      return paginaSinConexion();
     }
-    return new Response(
-      "<!doctype html><meta charset=utf-8><title>FILANEX</title>" +
-        "<body style='font-family:sans-serif;background:#0A0A0A;color:#fff;padding:2rem'>" +
-        "<h1>Sin conexión</h1><p>Abre la aplicación una vez con internet para poder usarla sin conexión.</p>",
-      { status: 503, headers: { "Content-Type": "text/html; charset=utf-8" } },
-    );
+  }
+
+  try {
+    return await Promise.race([
+      desdeRed,
+      new Promise((_, rechazar) =>
+        setTimeout(() => rechazar(new Error("red lenta")), ESPERA_MAXIMA_ARRANQUE),
+      ),
+    ]);
+  } catch {
+    // La petición sigue viva en segundo plano: si acaba llegando, deja la
+    // copia actualizada para la próxima vez que se abra.
+    evento.waitUntil(desdeRed.catch(() => {}));
+    avisar({ tipo: "filanex:sin-conexion" });
+    return marcarCache(guardada);
   }
 }
 
@@ -146,12 +176,22 @@ async function estatico(peticion) {
 
 async function datos(peticion) {
   const cache = await caches.open(DATOS);
+  const guardada = await cache.match(peticion);
   try {
-    const respuesta = await fetch(peticion);
+    // Con una copia guardada no se espera indefinidamente: si el servidor no
+    // contesta, es mejor enseñar el último dato conocido que dejar la pantalla
+    // girando. Sin copia se espera lo que haga falta (informes pesados).
+    const respuesta = guardada
+      ? await Promise.race([
+          fetch(peticion),
+          new Promise((_, rechazar) =>
+            setTimeout(() => rechazar(new Error("red lenta")), ESPERA_MAXIMA_DATOS),
+          ),
+        ])
+      : await fetch(peticion);
     if (respuesta.ok) cache.put(peticion, respuesta.clone()).catch(() => {});
     return respuesta;
   } catch {
-    const guardada = await cache.match(peticion);
     if (guardada) {
       avisar({ tipo: "filanex:sin-conexion" });
       return marcarCache(guardada);
