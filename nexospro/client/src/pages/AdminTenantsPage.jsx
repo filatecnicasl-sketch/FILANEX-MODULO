@@ -293,6 +293,8 @@ function ModalUsuarios({ tenant, onCerrar, onAviso }) {
   const [trabajando, setTrabajando] = useState("");
   const [nueva, setNueva] = useState(null); // { email, password }
   const [copiado, setCopiado] = useState(false);
+  const [cambiando, setCambiando] = useState(null); // usuario al que se le pone contraseña
+  const [texto, setTexto] = useState("");
 
   const cargar = () =>
     fetch(`/api/admin/tenants/${tenant._id}/usuarios`)
@@ -305,22 +307,24 @@ function ModalUsuarios({ tenant, onCerrar, onAviso }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant._id]);
 
-  async function restablecer(u) {
-    if (!window.confirm(
-      `Se va a generar una contraseña nueva para ${u.email}.\n\nLa anterior dejará de valer y se cerrará su sesión. La nueva se muestra una sola vez.\n\n¿Continuar?`
-    )) return;
+  // Pone la contraseña que se escriba; si se deja en blanco, el servidor
+  // genera una segura y la devuelve para poder dictarla.
+  async function guardarPassword(u, password) {
+    if (password && password.length < 6) return setError("La contraseña debe tener al menos 6 caracteres");
     setTrabajando(u._id);
     setError("");
     try {
       const r = await fetch(`/api/admin/tenants/${tenant._id}/usuarios/${u._id}/password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(password ? { password } : {}),
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error");
-      setNueva({ email: d.email, password: d.password });
+      setNueva({ email: d.email, password: d.password, generada: d.generada });
       setCopiado(false);
+      setCambiando(null);
+      setTexto("");
       cargar();
     } catch (e) {
       setError(e.message);
@@ -354,10 +358,60 @@ function ModalUsuarios({ tenant, onCerrar, onAviso }) {
 
         {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
 
+        {cambiando && (
+          <form
+            className="mb-4 rounded-lg border border-white/10 bg-white/5 p-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              guardarPassword(cambiando, texto.trim());
+            }}
+          >
+            <p className="text-xs text-slate-300 mb-3">
+              Contraseña para <strong className="text-white">{cambiando.email}</strong>. Escribe la que quieras
+              (mínimo 6 caracteres) o deja el hueco vacío y pulsa Generar para que salga una segura.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                placeholder="Escribe la contraseña"
+                className="input flex-1 min-w-[14rem] font-mono"
+                autoFocus
+              />
+              <button type="submit" disabled={trabajando === cambiando._id} className="btn-primary text-xs">
+                Guardar
+              </button>
+              <button
+                type="button"
+                disabled={trabajando === cambiando._id}
+                onClick={() => guardarPassword(cambiando, "")}
+                className="btn-ghost text-xs"
+              >
+                Generar una segura
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCambiando(null);
+                  setTexto("");
+                }}
+                className="btn-ghost text-xs"
+              >
+                Cancelar
+              </button>
+            </div>
+            <p className="mt-2 text-[0.6875rem] text-amber-300/80">
+              La contraseña anterior dejará de valer y se cerrará la sesión que tenga abierta.
+            </p>
+          </form>
+        )}
+
         {nueva && (
           <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4">
             <p className="text-xs text-emerald-300 mb-2">
-              Contraseña nueva de <strong>{nueva.email}</strong>. Anótala ahora: al cerrar esta ventana no se puede volver a ver.
+              Contraseña de <strong>{nueva.email}</strong> cambiada.
+              {nueva.generada ? " Anótala ahora: al cerrar esta ventana no se puede volver a ver." : ""}
             </p>
             <div className="flex items-center gap-3">
               <code className="flex-1 rounded bg-slate-900 px-3 py-2 text-lg font-mono tracking-wider text-emerald-300">
@@ -409,10 +463,15 @@ function ModalUsuarios({ tenant, onCerrar, onAviso }) {
                   <td className="py-2 text-right whitespace-nowrap">
                     <button
                       disabled={trabajando === u._id}
-                      onClick={() => restablecer(u)}
+                      onClick={() => {
+                        setCambiando(u);
+                        setTexto("");
+                        setNueva(null);
+                        setError("");
+                      }}
                       className="text-xs text-accent hover:underline mr-3"
                     >
-                      Nueva contraseña
+                      Cambiar contraseña
                     </button>
                     <button
                       disabled={trabajando === u._id}
@@ -429,9 +488,9 @@ function ModalUsuarios({ tenant, onCerrar, onAviso }) {
         )}
 
         <p className="mt-4 text-[0.6875rem] leading-relaxed text-slate-500">
-          Las contraseñas se guardan cifradas y no se pueden consultar, ni por ti ni por nadie. Si un usuario pierde
-          el acceso, genera una nueva y dictásela: es la forma de que el registro de actividad siga sirviendo para
-          saber quién hizo cada cosa.
+          Las contraseñas se guardan cifradas y no se pueden consultar una vez puestas, ni por ti ni por nadie. Sí
+          puedes ponerle a cada usuario la contraseña que quieras cuando lo necesite, pero que sea suya y solo suya:
+          es lo que hace que el registro de actividad sirva para saber quién hizo cada cosa.
         </p>
 
         <div className="mt-4 flex justify-end">
