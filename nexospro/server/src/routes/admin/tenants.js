@@ -273,6 +273,85 @@ router.post("/:id/reset-password", async (req, res, next) => {
   }
 });
 
+// Usuarios de un cliente: quién tiene acceso, con qué rol y cuándo entró por
+// última vez. Las contraseñas no se muestran porque se guardan cifradas en un
+// solo sentido (scrypt con sal); si un usuario pierde el acceso se le
+// restablece con el endpoint de abajo.
+router.get("/:id/usuarios", async (req, res, next) => {
+  try {
+    const tenant = await Tenant.findById(req.params.id).lean();
+    if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+    const cuentas = await Cuenta.find({ tenant: tenant._id })
+      .select("nombre email rol activa ultimoAcceso createdAt sesion")
+      .sort({ rol: 1, nombre: 1 })
+      .lean();
+    res.json(
+      cuentas.map((c) => ({
+        _id: c._id,
+        nombre: c.nombre,
+        email: c.email,
+        rol: c.rol,
+        activa: c.activa !== false,
+        conectado: Boolean(c.sesion),
+        ultimoAcceso: c.ultimoAcceso ?? null,
+        creado: c.createdAt ?? null,
+      }))
+    );
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Restablece la contraseña de un usuario concreto del cliente. Si no se envía
+// contraseña, se genera una segura y se devuelve UNA sola vez para poder
+// dictársela; después ya no se puede volver a consultar.
+router.post("/:id/usuarios/:cuentaId/password", async (req, res, next) => {
+  try {
+    const tenant = await Tenant.findById(req.params.id);
+    if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+    const cuenta = await Cuenta.findOne({ _id: req.params.cuentaId, tenant: tenant._id });
+    if (!cuenta) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    let password = req.body?.password ? String(req.body.password) : "";
+    const generada = !password;
+    if (generada) {
+      const { randomInt } = await import("node:crypto");
+      const letras = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+      const minus = "abcdefghijkmnopqrstuvwxyz";
+      const nums = "23456789";
+      const saca = (juego, n) => Array.from({ length: n }, () => juego[randomInt(juego.length)]).join("");
+      password = `${saca(letras, 2)}${saca(minus, 5)}-${saca(nums, 4)}`;
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres" });
+    }
+
+    const { hashContrasena } = await import("../usuarios.js");
+    cuenta.passwordHash = hashContrasena(password);
+    cuenta.sesion = ""; // cierra las sesiones abiertas de ese usuario
+    await cuenta.save();
+    res.json({ ok: true, email: cuenta.email, password, generada });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Activa o desactiva el acceso de un usuario del cliente.
+router.put("/:id/usuarios/:cuentaId/activa", async (req, res, next) => {
+  try {
+    const tenant = await Tenant.findById(req.params.id);
+    if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+    const cuenta = await Cuenta.findOne({ _id: req.params.cuentaId, tenant: tenant._id });
+    if (!cuenta) return res.status(404).json({ error: "Usuario no encontrado" });
+    cuenta.activa = Boolean(req.body?.activa);
+    if (!cuenta.activa) cuenta.sesion = "";
+    await cuenta.save();
+    res.json({ ok: true, activa: cuenta.activa });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete("/:id", async (req, res, next) => {
   try {
     const tenant = await Tenant.findById(req.params.id);

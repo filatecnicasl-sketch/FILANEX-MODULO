@@ -284,53 +284,159 @@ function ModalTenant({ inicial, editando, onCerrar, onGuardado, alerta }) {
   );
 }
 
-function ModalReset({ tenant, onCerrar, onGuardado }) {
-  const [password, setPassword] = useState("");
+// Usuarios con acceso de un cliente. Las contraseñas no se pueden mostrar
+// (se guardan cifradas en un solo sentido); lo que sí se puede es
+// restablecerlas y ver la nueva una única vez para dictársela al cliente.
+function ModalUsuarios({ tenant, onCerrar, onAviso }) {
+  const [usuarios, setUsuarios] = useState(null);
   const [error, setError] = useState("");
-  const [guardando, setGuardando] = useState(false);
+  const [trabajando, setTrabajando] = useState("");
+  const [nueva, setNueva] = useState(null); // { email, password }
+  const [copiado, setCopiado] = useState(false);
 
-  const guardar = async (e) => {
-    e.preventDefault();
-    if (password.length < 6) return setError("Mínimo 6 caracteres");
+  const cargar = () =>
+    fetch(`/api/admin/tenants/${tenant._id}/usuarios`)
+      .then((r) => r.json())
+      .then((d) => setUsuarios(Array.isArray(d) ? d : []))
+      .catch(() => setError("No se pudieron cargar los usuarios"));
+
+  useEffect(() => {
+    cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant._id]);
+
+  async function restablecer(u) {
+    if (!window.confirm(
+      `Se va a generar una contraseña nueva para ${u.email}.\n\nLa anterior dejará de valer y se cerrará su sesión. La nueva se muestra una sola vez.\n\n¿Continuar?`
+    )) return;
+    setTrabajando(u._id);
     setError("");
-    setGuardando(true);
     try {
-      const r = await fetch(`/api/admin/tenants/${tenant._id}/reset-password`, {
+      const r = await fetch(`/api/admin/tenants/${tenant._id}/usuarios/${u._id}/password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({}),
       });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(data.error || "Error");
-      onGuardado();
-    } catch (err) {
-      setError(err.message);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Error");
+      setNueva({ email: d.email, password: d.password });
+      setCopiado(false);
+      cargar();
+    } catch (e) {
+      setError(e.message);
     } finally {
-      setGuardando(false);
+      setTrabajando("");
     }
-  };
+  }
+
+  async function alternarActiva(u) {
+    setTrabajando(u._id);
+    try {
+      await fetch(`/api/admin/tenants/${tenant._id}/usuarios/${u._id}/activa`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activa: !u.activa }),
+      });
+      cargar();
+      onAviso(u.activa ? `Acceso bloqueado a ${u.email}` : `Acceso restaurado a ${u.email}`);
+    } catch {
+      setError("No se pudo cambiar el acceso");
+    } finally {
+      setTrabajando("");
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-        <h2 className="text-lg font-bold text-white mb-4">Resetear contraseña admin</h2>
-        <p className="text-sm text-slate-400 mb-4">{tenant.nombre} — {tenant.adminEmail}</p>
-        {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
-        <form onSubmit={guardar} className="space-y-4">
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Nueva contraseña admin"
-            minLength={6}
-            className="input"
-            autoFocus
-          />
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
-            <button type="submit" disabled={guardando} className="btn-primary">{guardando ? "Guardando…" : "Guardar"}</button>
+      <div className="modal-panel w-full max-w-3xl p-6" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-white">Usuarios con acceso</h2>
+        <p className="text-sm text-slate-400 mb-4">{tenant.nombre}</p>
+
+        {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
+
+        {nueva && (
+          <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4">
+            <p className="text-xs text-emerald-300 mb-2">
+              Contraseña nueva de <strong>{nueva.email}</strong>. Anótala ahora: al cerrar esta ventana no se puede volver a ver.
+            </p>
+            <div className="flex items-center gap-3">
+              <code className="flex-1 rounded bg-slate-900 px-3 py-2 text-lg font-mono tracking-wider text-emerald-300">
+                {nueva.password}
+              </code>
+              <button
+                type="button"
+                className="btn-ghost text-xs"
+                onClick={() => {
+                  navigator.clipboard?.writeText(nueva.password);
+                  setCopiado(true);
+                }}
+              >
+                {copiado ? "Copiado" : "Copiar"}
+              </button>
+            </div>
           </div>
-        </form>
+        )}
+
+        {!usuarios ? (
+          <p className="text-sm text-slate-500">Cargando…</p>
+        ) : usuarios.length === 0 ? (
+          <p className="text-sm text-slate-500">Este cliente no tiene usuarios.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-[0.6875rem] uppercase tracking-wide text-slate-500">
+                <th className="text-left pb-2">Usuario</th>
+                <th className="text-left pb-2">Rol</th>
+                <th className="text-left pb-2">Último acceso</th>
+                <th className="text-right pb-2">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u) => (
+                <tr key={u._id} className="border-t border-white/5">
+                  <td className="py-2">
+                    <div className="text-white">{u.nombre}</div>
+                    <div className="text-xs text-slate-500">{u.email}</div>
+                  </td>
+                  <td className="py-2">
+                    <Badge tono={u.rol === "admin" ? "cyan" : "slate"}>{u.rol}</Badge>
+                    {!u.activa && <Badge tono="red">bloqueado</Badge>}
+                    {u.conectado && u.activa && <Badge tono="green">conectado</Badge>}
+                  </td>
+                  <td className="py-2 text-xs text-slate-400">
+                    {u.ultimoAcceso ? formatearFecha(u.ultimoAcceso) : "nunca ha entrado"}
+                  </td>
+                  <td className="py-2 text-right whitespace-nowrap">
+                    <button
+                      disabled={trabajando === u._id}
+                      onClick={() => restablecer(u)}
+                      className="text-xs text-accent hover:underline mr-3"
+                    >
+                      Nueva contraseña
+                    </button>
+                    <button
+                      disabled={trabajando === u._id}
+                      onClick={() => alternarActiva(u)}
+                      className={`text-xs hover:underline ${u.activa ? "text-rose-400" : "text-emerald-400"}`}
+                    >
+                      {u.activa ? "Bloquear" : "Desbloquear"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <p className="mt-4 text-[0.6875rem] leading-relaxed text-slate-500">
+          Las contraseñas se guardan cifradas y no se pueden consultar, ni por ti ni por nadie. Si un usuario pierde
+          el acceso, genera una nueva y dictásela: es la forma de que el registro de actividad siga sirviendo para
+          saber quién hizo cada cosa.
+        </p>
+
+        <div className="mt-4 flex justify-end">
+          <button type="button" onClick={onCerrar} className="btn-primary">Cerrar</button>
+        </div>
       </div>
     </div>
   );
@@ -561,7 +667,7 @@ export default function AdminTenantsPage() {
                   </td>
                   <td className="text-right whitespace-nowrap">
                     <button onClick={() => abrirEditar(t)} className="text-xs text-accent hover:underline mr-3">Editar</button>
-                    <button onClick={() => setReset(t)} className="text-xs text-slate-400 hover:text-white hover:underline mr-3">Clave</button>
+                    <button onClick={() => setReset(t)} className="text-xs text-slate-400 hover:text-white hover:underline mr-3">Usuarios</button>
                     <button onClick={() => confirmarBorrar(t)} className="text-xs text-rose-400 hover:text-rose-300 hover:underline">Eliminar</button>
                   </td>
                 </tr>
@@ -585,13 +691,10 @@ export default function AdminTenantsPage() {
       )}
 
       {reset && (
-        <ModalReset
+        <ModalUsuarios
           tenant={reset}
           onCerrar={() => setReset(null)}
-          onGuardado={() => {
-            setReset(null);
-            setMensaje("Contraseña del administrador actualizada.");
-          }}
+          onAviso={(texto) => setMensaje(texto)}
         />
       )}
     </div>
