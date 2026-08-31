@@ -115,6 +115,11 @@ async function registrarVerifactu({ empresa, facturaDoc, facturaDatos, tipoFactu
   });
   const xml = sobreSoap(empresa, xmlRegistro);
 
+  // Si el envío a la AEAT aún no está activado, el ticket se registra con su
+  // huella y su QR pero nace "no remitido": no se enviará al activarlo.
+  const puedeEnviar = await envioPermitido();
+  const estadoInicial = puedeEnviar ? "pendiente" : "no_remitido";
+
   const registro = await RegistroFacturacion.create({
     empresa: empresa._id,
     facturaVenta: facturaDoc._id,
@@ -124,6 +129,7 @@ async function registrarVerifactu({ empresa, facturaDoc, facturaDatos, tipoFactu
     huella,
     huellaAnterior,
     xml,
+    estadoEnvio: estadoInicial,
   });
 
   const verifactu = {
@@ -136,13 +142,12 @@ async function registrarVerifactu({ empresa, facturaDoc, facturaDatos, tipoFactu
       total: facturaDatos.total,
     }),
     enviada: false,
-    estadoEnvio: "pendiente",
+    estadoEnvio: estadoInicial,
     fechaRegistro: new Date(),
   };
 
-  // Remisión asíncrona; el reintento automático cubre los fallos. Solo si el
-  // envío a la AEAT está activado en Ajustes → Certificado.
-  envioPermitido()
+  // Remisión asíncrona; el reintento automático cubre los fallos.
+  Promise.resolve(puedeEnviar)
     .then((ok) => (ok ? certificadoActual() : null))
     .then(async (cert) => {
       if (!cert) return;

@@ -20,7 +20,21 @@ const TONO_AEAT = {
   aceptado: "green",
   aceptado_con_errores: "amber",
   rechazado: "red",
+  no_remitido: "slate",
+  historica: "slate",
 };
+// Texto legible del estado frente a la AEAT. "no remitida" son las emitidas
+// antes de activar el envío: quedan registradas con huella y QR pero no se
+// mandan. "histórica" son las importadas de otro programa.
+const ETIQUETA_AEAT = {
+  pendiente: "pendiente de envío",
+  aceptado: "aceptada",
+  aceptado_con_errores: "aceptada con avisos",
+  rechazado: "rechazada",
+  no_remitido: "no remitida",
+  historica: "histórica",
+};
+const textoAeat = (e) => ETIQUETA_AEAT[e] ?? e ?? "pendiente de envío";
 
 function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, onCerrar }) {
   const [clientes, setClientes] = useState(clientesProp);
@@ -287,7 +301,7 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar }) {
               )}
               {f.estado === "emitida" && (
                 <Badge tono={TONO_AEAT[vf.estadoEnvio ?? "pendiente"]}>
-                  AEAT {vf.estadoEnvio ?? "pendiente"}
+                  AEAT {textoAeat(vf.estadoEnvio)}
                 </Badge>
               )}
             </div>
@@ -693,7 +707,7 @@ export default function VentasPage() {
                       )}
                       {f.estado === "emitida" && (
                         <Badge tono={TONO_AEAT[f.verifactu?.estadoEnvio ?? "pendiente"]}>
-                          {f.verifactu?.estadoEnvio ?? "pendiente"}
+                          {textoAeat(f.verifactu?.estadoEnvio)}
                         </Badge>
                       )}
                     </span>

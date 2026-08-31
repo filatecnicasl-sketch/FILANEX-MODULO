@@ -205,6 +205,13 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
     });
     const xml = sobreSoap(empresa, xmlRegistro);
 
+    // Si el envío a la AEAT todavía no está activado, la factura se registra
+    // con su huella y su QR pero nace marcada como "no remitida": no entra en
+    // la cola de envío y no se mandará el día que se active. Solo se remite lo
+    // emitido a partir de la activación.
+    const puedeEnviar = await envioPermitido();
+    const estadoInicial = puedeEnviar ? "pendiente" : "no_remitido";
+
     const registro = await RegistroFacturacion.create({
       empresa: empresa._id,
       facturaVenta: factura._id,
@@ -214,6 +221,7 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
       huella,
       huellaAnterior,
       xml,
+      estadoEnvio: estadoInicial,
     });
 
     factura.serie = nombreSerie;
@@ -230,17 +238,15 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
         total: factura.total,
       }),
       enviada: false,
-      estadoEnvio: "pendiente",
+      estadoEnvio: estadoInicial,
       fechaRegistro: new Date(),
     };
     await factura.save();
 
     // Remisión a la AEAT: se hace en segundo plano para no bloquear al
-    // usuario. El registro ya está guardado como pendiente; el reintento
-    // automático o manual lo terminará si falla. Si no hay certificado o el
-    // envío no está activado en Ajustes → Certificado, simplemente queda
-    // pendiente (la factura es válida igualmente: tiene huella y QR).
-    const certAeat = (await envioPermitido()) ? await certificadoActual() : null;
+    // usuario. El registro ya está guardado; el reintento automático o manual
+    // lo terminará si falla. La factura es válida igualmente: tiene huella y QR.
+    const certAeat = puedeEnviar ? await certificadoActual() : null;
     if (certAeat) {
       // Lanzamos sin await: la respuesta HTTP se envía antes de contactar con AEAT.
       (async () => {
@@ -344,6 +350,10 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
     });
     const xml = sobreSoap(empresa, xmlRegistro);
 
+    // Igual que en la emisión: si el envío no está activado, nace "no remitida".
+    const puedeEnviarRect = await envioPermitido();
+    const estadoRect = puedeEnviarRect ? "pendiente" : "no_remitido";
+
     const rectificativa = await FacturaVenta.create({
       empresa: empresa._id,
       cliente: original.cliente._id,
@@ -366,7 +376,7 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
           total: totales.total,
         }),
         enviada: false,
-        estadoEnvio: "pendiente",
+        estadoEnvio: estadoRect,
         fechaRegistro: new Date(),
       },
     });
@@ -380,12 +390,13 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
       huella,
       huellaAnterior,
       xml,
+      estadoEnvio: estadoRect,
     });
 
     original.estado = "rectificada";
     await original.save();
 
-    const certRect = (await envioPermitido()) ? await certificadoActual() : null;
+    const certRect = puedeEnviarRect ? await certificadoActual() : null;
     if (certRect) {
       try {
         const resp = await remitirAeat(xml, certRect);

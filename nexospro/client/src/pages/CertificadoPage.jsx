@@ -197,9 +197,9 @@ export default function CertificadoPage() {
 
               {!envio.activo ? (
                 <p className="text-xs text-amber-500 mb-3">
-                  Ahora mismo NO se envía nada a la AEAT, ni aunque haya certificado.
-                  {envio.pendientes > 0 &&
-                    ` Hay ${envio.pendientes} factura(s) registradas en espera; al activar NO se enviarán.`}
+                  Ahora mismo NO se envía nada a la AEAT, ni aunque haya certificado. Las facturas que emitas quedan
+                  marcadas como <strong>no remitidas</strong> y no se mandarán el día que actives el envío.
+                  {envio.noRemitidos > 0 && ` Llevas ${envio.noRemitidos} así.`}
                 </p>
               ) : (
                 <p className="text-xs text-emerald-500 mb-3">
@@ -210,8 +210,8 @@ export default function CertificadoPage() {
               )}
 
               <p className="text-[0.6875rem] text-slate-500 mb-3 leading-relaxed">
-                Al activarlo, las facturas que estén en espera en ese momento se marcan como <strong>no remitidas</strong> y
-                nunca se envían. Solo se remite lo que emitas a partir de la activación, que es lo que exige la norma.
+                Solo se remite lo que emitas <strong>a partir de la activación</strong>. Todo lo anterior queda
+                registrado con su huella y su QR, pero fuera de la cola de envío de forma permanente.
               </p>
 
               <button
