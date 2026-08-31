@@ -475,7 +475,16 @@ export default function VentasPage() {
   const [buscar, setBuscar] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todas");
   const [soloVencidas, setSoloVencidas] = useState(false);
+  const [envioAeat, setEnvioAeat] = useState(null);
   const [params, setParams] = useSearchParams();
+
+  // Para el aviso de cabecera: saber si el envío a la AEAT está activado.
+  useEffect(() => {
+    fetch("/api/verifactu/estado")
+      .then((r) => r.json())
+      .then((v) => setEnvioAeat(Boolean(v.envioActivo)))
+      .catch(() => {});
+  }, []);
 
   // Abre directamente una factura cuando llega ?abrir=<id> (p. ej. desde el historial del vehículo).
   useEffect(() => {
@@ -581,8 +590,11 @@ export default function VentasPage() {
         </svg>
         <p className="text-[0.78125rem] leading-relaxed text-amber-800">
           <span className="font-semibold">VeriFactu:</span> al emitir una factura se genera su
-          registro con huella encadenada y código QR, y se remite a la AEAT. Las facturas emitidas
-          no se pueden modificar ni eliminar: solo rectificar.
+          registro con huella encadenada y código QR
+          {envioAeat === false
+            ? ", pero todavía NO se remite a la AEAT: el envío está desactivado en Ajustes → Certificado y estas facturas quedan como «no remitidas»."
+            : ", y se remite a la AEAT."}{" "}
+          Las facturas emitidas no se pueden modificar ni eliminar: solo rectificar.
         </p>
       </div>
 
