@@ -12,7 +12,7 @@ import Tenant from "../models/plataforma/Tenant.js";
 import { alsEmpresa, conexionTenant } from "../models/tenant.js";
 import { remitirAeat } from "./verifactu.js";
 import { certificadoActual } from "./certificadoEmpresa.js";
-import { politicaEnvio, permiteEnviar } from "./verifactu-envio.js";
+import { politicaEnvio, permiteEnviarRegistro } from "./verifactu-envio.js";
 
 export async function reenviarPendientes(cert) {
   if (!cert) {
@@ -29,7 +29,9 @@ export async function reenviarPendientes(cert) {
   const todas = await RegistroFacturacion.find({
     estadoEnvio: { $in: ["pendiente", "rechazado"] },
   }).sort({ _id: 1 });
-  const pendientes = todas.filter((r) => permiteEnviar(politica, r.fechaExpedicionFactura));
+  // Solo lo generado a partir de la activación: lo anterior quedó marcado
+  // como "no_remitido" y nunca se envía.
+  const pendientes = todas.filter((r) => permiteEnviarRegistro(politica, r));
 
   const resultados = [];
   for (const registro of pendientes) {

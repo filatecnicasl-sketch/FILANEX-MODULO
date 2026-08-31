@@ -141,8 +141,8 @@ async function registrarVerifactu({ empresa, facturaDoc, facturaDatos, tipoFactu
   };
 
   // Remisión asíncrona; el reintento automático cubre los fallos. Solo si el
-  // envío a la AEAT está activado en Sistema → VeriFactu.
-  envioPermitido(fechaExpedicion)
+  // envío a la AEAT está activado en Ajustes → Certificado.
+  envioPermitido()
     .then((ok) => (ok ? certificadoActual() : null))
     .then(async (cert) => {
       if (!cert) return;

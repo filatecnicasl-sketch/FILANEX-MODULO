@@ -238,9 +238,9 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
     // Remisión a la AEAT: se hace en segundo plano para no bloquear al
     // usuario. El registro ya está guardado como pendiente; el reintento
     // automático o manual lo terminará si falla. Si no hay certificado o el
-    // envío no está activado en Sistema → VeriFactu, simplemente queda
+    // envío no está activado en Ajustes → Certificado, simplemente queda
     // pendiente (la factura es válida igualmente: tiene huella y QR).
-    const certAeat = (await envioPermitido(fechaExpedicion)) ? await certificadoActual() : null;
+    const certAeat = (await envioPermitido()) ? await certificadoActual() : null;
     if (certAeat) {
       // Lanzamos sin await: la respuesta HTTP se envía antes de contactar con AEAT.
       (async () => {
@@ -385,7 +385,7 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
     original.estado = "rectificada";
     await original.save();
 
-    const certRect = (await envioPermitido(fechaExpedicion)) ? await certificadoActual() : null;
+    const certRect = (await envioPermitido()) ? await certificadoActual() : null;
     if (certRect) {
       try {
         const resp = await remitirAeat(xml, certRect);

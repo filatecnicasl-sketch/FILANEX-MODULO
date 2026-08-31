@@ -16,7 +16,9 @@ const registroFacturacionSchema = new Schema(
     xml: String,             // XML remitido a la AEAT
     estadoEnvio: {
       type: String,
-      enum: ["pendiente", "aceptado", "aceptado_con_errores", "rechazado"],
+      // "no_remitido": registrado antes de activar el envío a la AEAT; queda
+      // fuera de la cola de remisión de forma permanente.
+      enum: ["pendiente", "aceptado", "aceptado_con_errores", "rechazado", "no_remitido"],
       default: "pendiente",
     },
     respuestaAeat: Schema.Types.Mixed,

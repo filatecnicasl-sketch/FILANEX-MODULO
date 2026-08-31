@@ -1,9 +1,13 @@
-// Decide si una factura puede remitirse a la AEAT.
+// Decide si un registro VeriFactu puede remitirse a la AEAT.
 //
 // La remisión está apagada por defecto: una factura se registra siempre
 // (huella encadenada + QR), pero solo se envía cuando la empresa activa el
-// envío de forma explícita en Sistema → VeriFactu. Así, instalar el
-// certificado no dispara el envío retroactivo de todo lo acumulado.
+// envío de forma explícita en Ajustes → Certificado.
+//
+// Al activarlo, lo pendiente acumulado NO se manda: se marca como
+// "no_remitido" (ver routes/verifactu.js) y además se filtra aquí por la
+// fecha y hora de activación. A partir de ese momento cada factura nueva se
+// remite en el acto, como exige la norma.
 import Empresa from "../models/Empresa.js";
 
 export async function politicaEnvio() {
@@ -14,14 +18,19 @@ export async function politicaEnvio() {
   };
 }
 
-// `fecha` es la fecha de expedición de la factura del registro.
-export function permiteEnviar(politica, fecha) {
+// Para los registros que se reintentan: se compara con `fechaHoraGeneracion`,
+// que es una fecha real. La de expedición es un texto DD-MM-AAAA y no sirve
+// para comparar (new Date("30-08-2026") es una fecha inválida).
+export function permiteEnviarRegistro(politica, registro) {
   if (!politica?.activo) return false;
   if (!politica.desde) return true;
-  return new Date(fecha) >= politica.desde;
+  const generado = registro?.fechaHoraGeneracion ? new Date(registro.fechaHoraGeneracion) : null;
+  if (!generado || Number.isNaN(generado.getTime())) return false;
+  return generado >= politica.desde;
 }
 
-// Atajo para los puntos de emisión (una sola factura).
-export async function envioPermitido(fecha) {
-  return permiteEnviar(await politicaEnvio(), fecha);
+// Para los puntos de emisión: la factura se está generando ahora mismo, así
+// que basta con saber si el envío está activado.
+export async function envioPermitido() {
+  return (await politicaEnvio()).activo;
 }

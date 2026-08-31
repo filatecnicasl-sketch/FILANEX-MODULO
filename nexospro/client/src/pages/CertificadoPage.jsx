@@ -15,6 +15,17 @@ function IconoEscudo() {
 const fechaCorta = (iso) =>
   iso ? new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" }) : "—";
 
+const fechaHora = (iso) =>
+  iso
+    ? new Date(iso).toLocaleString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+
 export default function CertificadoPage() {
   const [estado, setEstado] = useState(null);
   const [envio, setEnvio] = useState(null);
@@ -36,8 +47,9 @@ export default function CertificadoPage() {
       .then((v) =>
         setEnvio({
           activo: Boolean(v.envioActivo),
-          desde: v.enviarDesde ? String(v.enviarDesde).slice(0, 10) : "",
+          desde: v.enviarDesde ?? null,
           pendientes: v.registrosPendientesEnvio ?? 0,
+          noRemitidos: v.registrosNoRemitidos ?? 0,
         })
       )
       .catch(() => {});
@@ -47,23 +59,35 @@ export default function CertificadoPage() {
     cargarEnvio();
   }, []);
 
-  async function guardarEnvio(activo, desde) {
+  async function guardarEnvio(activo) {
     setAviso(null);
     setError(null);
-    if (activo && !window.confirm(
-      "Vas a ACTIVAR el envío a la AEAT.\n\nA partir de ahora las facturas emitidas se remitirán automáticamente y el envío no se puede deshacer. ¿Continuar?"
-    )) return;
+    if (activo) {
+      const pend = envio?.pendientes ?? 0;
+      const aviso1 = pend
+        ? `Las ${pend} factura(s) que hay ahora en espera NO se enviarán: quedan marcadas como no remitidas.\n\n`
+        : "";
+      if (!window.confirm(
+        `Vas a ACTIVAR el envío a la AEAT.\n\n${aviso1}A partir de este momento, cada factura que emitas se remitirá a Hacienda en el acto. El envío no se puede deshacer.\n\n¿Continuar?`
+      )) return;
+    }
     setGuardandoEnvio(true);
     try {
       const r = await fetch("/api/verifactu/envio", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ envioActivo: activo, enviarDesde: desde || null }),
+        body: JSON.stringify({ envioActivo: activo }),
       });
       const resp = await r.json();
       if (!r.ok) throw new Error(resp.error || "No se pudo guardar");
-      setEnvio((e) => ({ ...e, activo, desde }));
-      setAviso(activo ? "Envío a la AEAT ACTIVADO." : "Envío a la AEAT desactivado: las facturas se registran pero no se remiten.");
+      await cargarEnvio();
+      setAviso(
+        activo
+          ? `Envío a la AEAT ACTIVADO. Desde ahora cada factura nueva se remite al emitirla.${
+              resp.excluidos ? ` Las ${resp.excluidos} anteriores quedan como no remitidas.` : ""
+            }`
+          : "Envío a la AEAT desactivado: las facturas se registran con huella y QR, pero no se remiten."
+      );
     } catch (e2) {
       setError(e2.message);
     } finally {
@@ -171,40 +195,33 @@ export default function CertificadoPage() {
                 </span>
               </div>
 
-              {!envio.activo && (
+              {!envio.activo ? (
                 <p className="text-xs text-amber-500 mb-3">
                   Ahora mismo NO se envía nada a la AEAT, ni aunque haya certificado.
-                  {envio.pendientes > 0 && ` Hay ${envio.pendientes} factura(s) registradas en espera.`}
+                  {envio.pendientes > 0 &&
+                    ` Hay ${envio.pendientes} factura(s) registradas en espera; al activar NO se enviarán.`}
+                </p>
+              ) : (
+                <p className="text-xs text-emerald-500 mb-3">
+                  Activado el {fechaHora(envio.desde)}. Cada factura que emitas se remite a Hacienda en el acto.
+                  {envio.noRemitidos > 0 &&
+                    ` Las ${envio.noRemitidos} anteriores a la activación quedaron como no remitidas.`}
                 </p>
               )}
 
-              <div className="flex flex-wrap items-end gap-3">
-                <div>
-                  <label className="text-sm text-slate-400 block mb-1">Enviar solo facturas a partir de</label>
-                  <input
-                    type="date"
-                    value={envio.desde}
-                    onChange={(e) => setEnvio((v) => ({ ...v, desde: e.target.value }))}
-                    className="input"
-                  />
-                  <p className="text-[0.6875rem] text-slate-500 mt-1">
-                    Las anteriores a esta fecha nunca se remiten automáticamente.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={guardandoEnvio}
-                  onClick={() => guardarEnvio(!envio.activo, envio.desde)}
-                  className={envio.activo ? "btn-ghost text-rose-400 hover:text-rose-300" : "btn-primary"}
-                >
-                  {guardandoEnvio ? "Guardando…" : envio.activo ? "Desactivar envío" : "Activar envío a la AEAT"}
-                </button>
-                {envio.activo && (
-                  <button type="button" disabled={guardandoEnvio} onClick={() => guardarEnvio(true, envio.desde)} className="btn-ghost">
-                    Guardar fecha
-                  </button>
-                )}
-              </div>
+              <p className="text-[0.6875rem] text-slate-500 mb-3 leading-relaxed">
+                Al activarlo, las facturas que estén en espera en ese momento se marcan como <strong>no remitidas</strong> y
+                nunca se envían. Solo se remite lo que emitas a partir de la activación, que es lo que exige la norma.
+              </p>
+
+              <button
+                type="button"
+                disabled={guardandoEnvio}
+                onClick={() => guardarEnvio(!envio.activo)}
+                className={envio.activo ? "btn-ghost text-rose-400 hover:text-rose-300" : "btn-primary"}
+              >
+                {guardandoEnvio ? "Guardando…" : envio.activo ? "Desactivar envío" : "Activar envío a la AEAT"}
+              </button>
             </div>
           )}
 
