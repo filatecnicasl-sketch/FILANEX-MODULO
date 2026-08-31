@@ -89,6 +89,14 @@ flowchart TB
 - **Production runs on one port**: `npm run build` in `client/` produces `client/dist`; the server serves it and the API together from `PORT`.
 - **Context can be lost across async boundaries** (especially after multer/file uploads). Capture `req.contextoEmpresa` and restore with `conContexto(...)` when calling tenant-model code after an external async call.
 
+## Recordatorio permanente en cada sesión
+
+Al empezar cada conversación, leer `nexospro/PENDIENTES.md` y recordarle al
+usuario en una o dos líneas los puntos que sigan sin hacer, destacando los que
+tengan plazo cercano (los marcados "antes de enero"). Hacerlo sin interrumpir
+lo que esté pidiendo en ese momento. Cuando un punto se complete, quitarlo del
+archivo; cuando se acuerde algo nuevo que quede para más adelante, añadirlo.
+
 ## Development Hints
 
 - **Adding a new API endpoint**: add the route file under `server/src/routes/`, import it in `server/src/routes/index.js`, and mount it after `requiereAuth`/`middlewareEmpresa` unless it must be public. Use tenant models via `modeloTenant` if you add a new collection.
