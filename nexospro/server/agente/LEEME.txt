@@ -1,0 +1,74 @@
+========================================
+ FILANEX - Agente de copia en el PC
+========================================
+
+Que hace: cada dia baja UNA COPIA la copia de seguridad
+mas reciente de tu empresa desde la nube a este ordenador,
+a la carpeta C:\backup\filanex. Tus datos, en tu poder.
+
+Se instala UNA VEZ por ordenador. Son 4 pasos, 2 minutos.
+
+
+PASO 1 - COPIAR LA CARPETA
+--------------------------
+Copia esta carpeta entera (la que contiene este archivo)
+a C:\filanex-agente
+
+Tiene que quedar asi: C:\filanex-agente\agente-copia.ps1
+
+
+PASO 2 - OBTENER TU CLAVE (solo la primera vez)
+-----------------------------------------------
+En el navegador, entra en FILANEX con tu usuario y ve a:
+
+    Ajustes -> Copias -> Copia local automatica
+
+Ahi hay una CLAVE que empieza por fbk_ . Copiala.
+(Si no la ves, pulsa el boton de generar una nueva).
+
+
+PASO 3 - PONER LA CLAVE
+-----------------------
+Abre el archivo  agente-copia.config  con el Bloc de
+notas (clic derecho -> Abrir con -> Bloc de notas) y
+sustituye PEGUE_AQUI_SU_TOKEN por tu clave, sin espacios:
+
+    TOKEN=fbk_laclavequehascopiado
+
+Guarda y cierra.
+
+
+PASO 4 - INSTALAR
+-----------------
+Haz DOBLE CLIC en  instalar-agente-copia.cmd
+
+Se abre una ventana negra, dice "Instalado correctamente"
+y prueba la primera descarga. Ya esta.
+
+
+DESDE ENTONCES
+--------------
+- Todos los dias a las 09:00 baja la copia el solo,
+  sin que nadie tenga que hacer nada. Si el ordenador
+  estaba apagado a esa hora, la hace al encenderlo.
+- Las copias quedan en  C:\backup\filanex
+- Se conservan las 14 ultimas; las viejas se borran solas.
+
+
+PARA COMPROBAR QUE FUNCIONA
+---------------------------
+Mira dentro de  C:\backup\filanex\tuempresa : tiene que
+haber archivos  backup-auto-XXXXXXXX-XXXXXX.zip  con la
+fecha de hoy o de los ultimos dias.
+
+
+SI ALGO FALLA
+-------------
+Lo mas habitual es que falte la clave o este mal pegada
+en agente-copia.config (Paso 3). Abre el archivo y
+comprueba que pone TOKEN=fbk_... con tu clave completa.
+
+
+========================================
+Soporte: FILANEX / Filatecnica
+========================================
