@@ -91,6 +91,17 @@ app.get("/api/health", responderHealth);
 // API protegida por rate limiting general.
 app.use("/api", limitadorApi, apiRouter);
 
+// Descarga pública del agente de copia local: el instalador que se le lleva
+// al cliente. Solo es un ZIP con un script, sin datos ni claves dentro.
+const agenteZip = path.resolve(__dirname, "../agente/filanex-agente-copia.zip");
+if (fs.existsSync(agenteZip)) {
+  app.get("/agente/filanex-agente-copia.zip", (req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Content-Disposition", "attachment; filename=\"filanex-agente-copia.zip\"");
+    res.sendFile(agenteZip);
+  });
+}
+
 // Producción: la API sirve también el cliente compilado (client/dist).
 // Así todo NEXOSPRO corre en un único puerto y un único proceso.
 const distDir = path.resolve(__dirname, "../../client/dist");
