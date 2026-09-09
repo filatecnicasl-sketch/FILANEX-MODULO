@@ -145,19 +145,6 @@ router.put("/", async (req, res, next) => {
     if (email !== undefined) empresa.email = email;
     if (direccion !== undefined) empresa.direccion = direccion;
     if (logoUrl !== undefined) empresa.logoUrl = logoUrl;
-    if (moduloInicio !== undefined) {
-      const validos = ["panel", "agenda", ...(empresa.modulos ?? [])];
-      if (!validos.includes(moduloInicio)) {
-        return res.status(400).json({ error: "El sistema de inicio debe ser el panel, la agenda o un sistema activo" });
-      }
-      empresa.moduloInicio = moduloInicio;
-    }
-    if (sepa !== undefined) {
-      empresa.sepa = {
-        iban: sepa.iban?.replace(/\s/g, "").toUpperCase() || undefined,
-        idAcreedor: sepa.idAcreedor?.replace(/\s/g, "").toUpperCase() || undefined,
-      };
-    }
     if (modulos !== undefined) {
       if (!Array.isArray(modulos)) {
         return res.status(400).json({ error: "modulos debe ser una lista" });
@@ -193,6 +180,21 @@ router.put("/", async (req, res, next) => {
       }
 
       empresa.modulos = modulos.filter((m) => MODULOS_ACTIVABLES.includes(m));
+    }
+    if (sepa !== undefined) {
+      empresa.sepa = {
+        iban: sepa.iban?.replace(/\s/g, "").toUpperCase() || undefined,
+        idAcreedor: sepa.idAcreedor?.replace(/\s/g, "").toUpperCase() || undefined,
+      };
+    }
+    // Se valida después de aplicar "modulos": permite activar un sistema y
+    // ponerlo como inicio en la misma petición.
+    if (moduloInicio !== undefined) {
+      const validos = ["panel", "agenda", ...(empresa.modulos ?? [])];
+      if (!validos.includes(moduloInicio)) {
+        return res.status(400).json({ error: "El sistema de inicio debe ser el panel, la agenda o un sistema activo" });
+      }
+      empresa.moduloInicio = moduloInicio;
     }
     await empresa.save();
     res.json(empresa);

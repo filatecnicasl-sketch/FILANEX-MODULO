@@ -6,8 +6,13 @@ import FacturaVenta from "../models/FacturaVenta.js";
 import OrdenTrabajo from "../models/OrdenTrabajo.js";
 import Tenant from "../models/plataforma/Tenant.js";
 import { alsEmpresa, conexionTenant, slugActual } from "../models/tenant.js";
+import { requiereModulo } from "../config/modulos.js";
 
 const router = Router();
+
+// Las rutas del router principal requieren el sistema de telefonía activado.
+// El webhook público vive en su propio router (webhookTelefonia).
+router.use(requiereModulo("telefonia"));
 
 // Token que debe presentar la centralita al llamar al webhook
 // (configurable por TELEFONIA_TOKEN en el .env del servidor).
