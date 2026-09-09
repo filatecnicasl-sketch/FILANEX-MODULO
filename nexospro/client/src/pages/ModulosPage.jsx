@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 
-const tarjetaModulo = (activo, disponible) =>
+const tarjetaModulo = (activo, disponible, contratado) =>
   `text-left rounded-xl border p-4 transition ${
-    !disponible
+    !disponible || !contratado
       ? "border-slate-200 opacity-50 cursor-not-allowed"
       : activo
         ? "border-accent/50 bg-accent/[0.06] shadow-sm"
@@ -27,7 +27,8 @@ export default function ModulosPage() {
       .catch(() => {});
   }, []);
 
-  function alternarModulo(clave) {
+  function alternarModulo(clave, contratado) {
+    if (!contratado) return;
     const actuales = empresa.modulos ?? [];
     const modulos = actuales.includes(clave)
       ? actuales.filter((modulo) => modulo !== clave)
@@ -85,29 +86,34 @@ export default function ModulosPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {catalogo.map((m) => {
             const activo = activos.includes(m.clave);
+            const contratado = m.contratado !== false;
             return (
               <button
                 key={m.clave}
                 type="button"
-                disabled={!m.disponible}
-                onClick={() => alternarModulo(m.clave)}
-                className={tarjetaModulo(activo, m.disponible)}
+                disabled={!m.disponible || !contratado}
+                onClick={() => alternarModulo(m.clave, contratado)}
+                className={tarjetaModulo(activo, m.disponible, contratado)}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-white text-sm">
                     FILANEX {m.nombre.toUpperCase()}
                   </span>
-                  {m.disponible ? (
+                  {!m.disponible ? (
+                    <span className="text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
+                      Próximamente
+                    </span>
+                  ) : !contratado ? (
+                    <span className="text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
+                      No contratado
+                    </span>
+                  ) : (
                     <span
                       className={`text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full ${
                         activo ? "bg-accent/15 text-accent" : "bg-slate-100 text-slate-500"
                       }`}
                     >
                       {activo ? "Activo" : "Desactivado"}
-                    </span>
-                  ) : (
-                    <span className="text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-                      Próximamente
                     </span>
                   )}
                 </div>

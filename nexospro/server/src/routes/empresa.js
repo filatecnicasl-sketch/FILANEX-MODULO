@@ -1,5 +1,6 @@
 import { Router } from "express";
 import Empresa from "../models/Empresa.js";
+import Tenant from "../models/plataforma/Tenant.js";
 import { MODULOS, MODULOS_ACTIVABLES } from "../config/modulos.js";
 import { asegurarSeries } from "../services/numeracion.js";
 import { METODOS_PAGO_DEFECTO } from "../services/metodos-pago.js";
@@ -171,6 +172,26 @@ router.put("/", async (req, res, next) => {
           error: `Sistemas todavía no disponibles: ${noDisponibles.join(", ")}`,
         });
       }
+
+      // Solo se pueden activar módulos contratados en el tenant.
+      // El superadmin y la instalación local (bootstrap) pueden configurar libremente.
+      const esLocal = req.contextoEmpresa?.slug === "local";
+      const esSuperAdmin = !!req.usuario?.superadmin;
+      if (!esLocal && !esSuperAdmin) {
+        const tenant = await Tenant.findOne({ slug: req.contextoEmpresa.slug }).lean();
+        const contratados = tenant?.modulos ?? [];
+        const activados = modulos.filter((m) => !empresa.modulos?.includes(m));
+        const noContratados = activados.filter((m) => !contratados.includes(m));
+        if (noContratados.length > 0) {
+          const nombres = noContratados
+            .map((m) => MODULOS[m]?.nombre ?? m)
+            .join(", ");
+          return res.status(403).json({
+            error: `No están contratados: ${nombres}. Contacta con FILANEX para ampliar la licencia.`,
+          });
+        }
+      }
+
       empresa.modulos = modulos.filter((m) => MODULOS_ACTIVABLES.includes(m));
     }
     await empresa.save();
@@ -181,9 +202,20 @@ router.put("/", async (req, res, next) => {
 });
 
 // Catálogo de sistemas (para la pantalla de configuración).
-router.get("/modulos", (req, res) => {
+router.get("/modulos", async (req, res) => {
+  const esLocal = req.contextoEmpresa?.slug === "local";
+  const esSuperAdmin = !!req.usuario?.superadmin;
+  let contratados = [];
+  if (!esLocal && !esSuperAdmin) {
+    const tenant = await Tenant.findOne({ slug: req.contextoEmpresa?.slug }).lean();
+    contratados = tenant?.modulos ?? [];
+  }
   res.json(
-    Object.entries(MODULOS).map(([clave, m]) => ({ clave, ...m }))
+    Object.entries(MODULOS).map(([clave, m]) => ({
+      clave,
+      ...m,
+      contratado: esLocal || esSuperAdmin || contratados.includes(clave),
+    }))
   );
 });
 
