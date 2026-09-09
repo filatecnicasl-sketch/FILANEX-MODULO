@@ -4,6 +4,7 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
+import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 
 const campo = "input w-full";
 
@@ -121,6 +122,33 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     }
   }
 
+  async function imprimirEntrada() {
+    if (!cita) return;
+    const cliente = clientes.find((c) => String(c._id) === String(cita.cliente?._id ?? cita.cliente)) || cita.cliente;
+    const vehiculo = vehiculos.find((v) => v.matricula?.toUpperCase() === (cita.matricula ?? "").toUpperCase());
+
+    // Fecha de entrega prevista: el día siguiente a la cita por defecto.
+    const manana = new Date(cita.fecha);
+    manana.setDate(manana.getDate() + 1);
+
+    await imprimirHojaEntrada({
+      numero: `CITA-${cita._id.slice(-6).toUpperCase()}`,
+      fechaEntrada: cita.fecha,
+      fechaEntregaPrevista: manana.toISOString().slice(0, 10),
+      matricula: cita.matricula ?? "",
+      km: vehiculo?.km ?? "",
+      motivo: [cita.motivo, cita.notas].filter(Boolean).join(". ") || "Recepción desde cita",
+      aseguradora: vehiculo?.aseguradora?.nombre ?? "",
+      cliente: cliente || undefined,
+      clienteNombre: cita.clienteNombre || cliente?.nombre || "",
+      telefono: cita.telefono || cliente?.telefono || "",
+      vehiculo: vehiculo
+        ? { marca: vehiculo.marca, modelo: vehiculo.modelo }
+        : undefined,
+      lineas: [],
+    });
+  }
+
   async function borrar() {
     if (!window.confirm("¿Borrar esta cita?")) return;
     const r = await fetch(`/api/taller/citas/${cita._id}`, { method: "DELETE" });
@@ -148,11 +176,23 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           <button
             type="button"
             onClick={() => onRecepcionar(cita)}
-            className="w-full mb-4 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:bg-accent/90 transition"
+            className="w-full mb-3 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:bg-accent/90 transition"
           >
             Recepcionar ahora
             <span className="block text-[0.6875rem] font-normal text-white/80 mt-0.5">
               Ha llegado el cliente: abrir la recepción rápida con esta cita
+            </span>
+          </button>
+        )}
+        {cita && cita.matricula && (
+          <button
+            type="button"
+            onClick={imprimirEntrada}
+            className="w-full mb-4 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-bold text-white hover:bg-slate-700 transition"
+          >
+            Imprimir hoja de entrada
+            <span className="block text-[0.6875rem] font-normal text-slate-400 mt-0.5">
+              Documento oficial de entrada en taller, sin crear aún la orden
             </span>
           </button>
         )}
