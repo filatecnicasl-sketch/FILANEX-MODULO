@@ -51,7 +51,7 @@ export default function PreferenciasPage() {
   return (
     <>
       <CabeceraPagina
-        titulo="Módulo de inicio"
+        titulo="Sistema de inicio"
         descripcion="Elige dónde quieres entrar al abrir FILANEX en este dispositivo."
       />
 

@@ -1,7 +1,7 @@
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
-// Manual de usuario del módulo de facturación (núcleo FILANEX).
+// Manual de usuario del sistema de facturación (núcleo FILANEX).
 export default function AyudaFacturacionPage() {
   return (
     <>
@@ -104,7 +104,7 @@ export default function AyudaFacturacionPage() {
 
         <Seccion titulo="Sistema: configuración avanzada">
           <p>
-            <K>Módulos</K> activa o desactiva Taller y Telefonía y elige en qué pantalla arranca el
+            <K>Sistemas</K> activa o desactiva Taller y Telefonía y elige en qué pantalla arranca el
             programa. <K>Usuarios</K> gestiona quién entra. <K>Notificaciones</K> centraliza avisos
             (documentos por vencer, errores de envío VeriFactu…). <K>Agenda</K> es el calendario general
             de la empresa, distinto de las citas del taller.

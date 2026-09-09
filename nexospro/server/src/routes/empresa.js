@@ -147,7 +147,7 @@ router.put("/", async (req, res, next) => {
     if (moduloInicio !== undefined) {
       const validos = ["panel", "agenda", ...(empresa.modulos ?? [])];
       if (!validos.includes(moduloInicio)) {
-        return res.status(400).json({ error: "El módulo de inicio debe ser el panel, la agenda o un módulo activo" });
+        return res.status(400).json({ error: "El sistema de inicio debe ser el panel, la agenda o un sistema activo" });
       }
       empresa.moduloInicio = moduloInicio;
     }
@@ -164,11 +164,11 @@ router.put("/", async (req, res, next) => {
       const desconocidos = modulos.filter((m) => !MODULOS[m]);
       const noDisponibles = modulos.filter((m) => MODULOS[m] && !MODULOS[m].disponible);
       if (desconocidos.length > 0) {
-        return res.status(400).json({ error: `Módulos desconocidos: ${desconocidos.join(", ")}` });
+        return res.status(400).json({ error: `Sistemas desconocidos: ${desconocidos.join(", ")}` });
       }
       if (noDisponibles.length > 0) {
         return res.status(400).json({
-          error: `Módulos todavía no disponibles: ${noDisponibles.join(", ")}`,
+          error: `Sistemas todavía no disponibles: ${noDisponibles.join(", ")}`,
         });
       }
       empresa.modulos = modulos.filter((m) => MODULOS_ACTIVABLES.includes(m));
@@ -180,7 +180,7 @@ router.put("/", async (req, res, next) => {
   }
 });
 
-// Catálogo de módulos (para la pantalla de configuración).
+// Catálogo de sistemas (para la pantalla de configuración).
 router.get("/modulos", (req, res) => {
   res.json(
     Object.entries(MODULOS).map(([clave, m]) => ({ clave, ...m }))

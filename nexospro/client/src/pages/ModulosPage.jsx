@@ -48,14 +48,14 @@ export default function ModulosPage() {
     const datos = await r.json();
     if (r.ok) {
       setEmpresa(datos);
-      setAviso("Módulos guardados. Se aplican al cambiar de página.");
+      setAviso("Sistemas guardados. Se aplican al cambiar de página.");
     } else setError(datos.error || "Error al guardar");
   }
 
   if (!empresa) {
     return (
       <>
-        <CabeceraPagina titulo="Módulos" descripcion="Módulos activos de la instalación y pantalla de inicio." />
+        <CabeceraPagina titulo="Sistemas" descripcion="Sistemas activos de la instalación y pantalla de inicio." />
         {error && <p className="text-sm text-red-400">{error}</p>}
       </>
     );
@@ -65,8 +65,8 @@ export default function ModulosPage() {
   return (
     <>
       <CabeceraPagina
-        titulo="Módulos"
-        descripcion="Activa los módulos contratados para esta empresa."
+        titulo="Sistemas"
+        descripcion="Activa los sistemas contratados para esta empresa."
       >
         <button onClick={guardar} className="btn-primary">
           Guardar
@@ -77,10 +77,10 @@ export default function ModulosPage() {
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
       <div className="panel p-6">
-        <h2 className="text-white font-semibold">Módulos de la instalación</h2>
+        <h2 className="text-white font-semibold">Sistemas de la instalación</h2>
         <p className="text-xs text-slate-500 mt-0.5 mb-5">
-          FILANEX es el núcleo de facturación. Cada módulo se activa según la licencia contratada
-          por el cliente; solo aparecen en el menú los módulos activos.
+          FILANEX es el núcleo de facturación. Cada sistema se activa según la licencia contratada
+          por el cliente; solo aparecen en el menú los sistemas activos.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {catalogo.map((m) => {

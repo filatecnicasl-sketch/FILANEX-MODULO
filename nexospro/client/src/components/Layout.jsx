@@ -79,7 +79,7 @@ const gruposBase = [
     Icono: IconConfig,
     items: [
       { to: "/configuracion", etiqueta: "Configuración", Icono: IconConfig, tono: "slate" },
-      { to: "/modulos", etiqueta: "Módulos", Icono: IconModulos, tono: "cyan" },
+      { to: "/modulos", etiqueta: "Sistemas", Icono: IconModulos, tono: "cyan" },
       { to: "/series", etiqueta: "Series", Icono: IconSeries, tono: "indigo" },
       { to: "/notificaciones", etiqueta: "Notificaciones", Icono: IconNotificaciones, tono: "amber" },
       { to: "/correo", etiqueta: "Correo", Icono: IconCorreo, tono: "sky" },

@@ -1,7 +1,7 @@
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
-// Manual de usuario del módulo de telefonía (centralita IP).
+// Manual de usuario del sistema de telefonía (centralita IP).
 export default function AyudaTelefoniaPage() {
   return (
     <>
@@ -10,7 +10,7 @@ export default function AyudaTelefoniaPage() {
         descripcion="Centralita IP integrada: aviso de llamada y ficha del cliente al sonar."
       />
       <div className="space-y-4 max-w-4xl">
-        <Seccion titulo="Qué hace el módulo">
+        <Seccion titulo="Qué hace el sistema">
           <p>
             Conecta FILANEX con tu centralita IP: cuando entra una llamada, el programa
             <b> reconoce el número</b> y te muestra quién llama antes de descolgar, con su situación
@@ -79,7 +79,7 @@ export default function AyudaTelefoniaPage() {
             cumplimentados.
           </p>
           <Nota titulo="Activar o desactivar">
-            El módulo se enciende y se apaga en <K>Sistema → Módulos</K>. Si no usas telefonía IP,
+            El sistema se enciende y se apaga en <K>Sistema → Sistemas</K>. Si no usas telefonía IP,
             desactívalo y desaparece del menú.
           </Nota>
         </Seccion>

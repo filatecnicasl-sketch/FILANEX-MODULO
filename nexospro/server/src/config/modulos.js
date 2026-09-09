@@ -1,6 +1,6 @@
 /**
- * Catálogo de módulos de NEXOSPRO.
- * El núcleo de facturación siempre está activo; cada módulo se activa por
+ * Catálogo de sistemas de FILANEX.
+ * El núcleo de facturación siempre está activo; cada sistema se activa por
  * empresa (licencia). Los no disponibles se muestran como "próximamente".
  */
 export const MODULOS = {
@@ -50,7 +50,7 @@ export const MODULOS_ACTIVABLES = Object.entries(MODULOS)
   .filter(([, m]) => m.disponible)
   .map(([k]) => k);
 
-/** Middleware: exige que la empresa tenga el módulo activo. */
+/** Middleware: exige que la empresa tenga el sistema activo. */
 export function requiereModulo(clave) {
   return async (req, res, next) => {
     try {
@@ -59,7 +59,7 @@ export function requiereModulo(clave) {
       if (!empresa) return res.status(500).json({ error: "No hay empresa configurada" });
       if (!(empresa.modulos ?? []).includes(clave)) {
         return res.status(403).json({
-          error: `El módulo "${MODULOS[clave]?.nombre ?? clave}" no está activado en esta instalación`,
+          error: `El sistema "${MODULOS[clave]?.nombre ?? clave}" no está activado en esta instalación`,
         });
       }
       next();

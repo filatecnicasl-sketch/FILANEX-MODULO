@@ -1,7 +1,7 @@
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
-// Manual de usuario del módulo de Servicio Técnico (SAT).
+// Manual de usuario del sistema de Servicio Técnico (SAT).
 export default function AyudaServicioPage() {
   return (
     <>

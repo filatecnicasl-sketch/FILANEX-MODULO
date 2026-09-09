@@ -226,7 +226,7 @@ function ModalTenant({ inicial, editando, onCerrar, onGuardado, alerta }) {
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-slate-400">Módulos contratados</label>
+            <label className="text-sm text-slate-400">Sistemas contratados</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {catalogoModulos.filter((m) => m.disponible).map((m) => (
                 <label

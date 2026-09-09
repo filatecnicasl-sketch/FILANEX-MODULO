@@ -1,7 +1,7 @@
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
-// Manual de usuario del módulo de taller.
+// Manual de usuario del sistema de taller.
 export default function AyudaTallerPage() {
   return (
     <>

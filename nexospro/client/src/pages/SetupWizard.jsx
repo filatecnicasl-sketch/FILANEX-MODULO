@@ -3,11 +3,11 @@ import { LogoFX } from "../components/icons.jsx";
 
 // Asistente de primera configuración: aparece cuando la instalación aún no
 // tiene empresa configurada (alta de un cliente nuevo). Guía paso a paso:
-// datos fiscales → series → módulos → certificado VeriFactu → importación.
+// datos fiscales → series → sistemas → certificado VeriFactu → importación.
 const PASOS = [
   { clave: "fiscal", titulo: "Datos de la empresa" },
   { clave: "series", titulo: "Series de facturación" },
-  { clave: "modulos", titulo: "Módulos" },
+  { clave: "modulos", titulo: "Sistemas" },
   { clave: "certificado", titulo: "Certificado VeriFactu" },
   { clave: "importar", titulo: "Datos iniciales" },
 ];
@@ -292,7 +292,7 @@ export default function SetupWizard() {
             <>
               <p className="text-sm text-slate-300">
                 Activa solo lo que este negocio va a usar. Se puede cambiar después en
-                Sistema → Módulos.
+                Sistema → Sistemas.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {catalogo.filter((m) => m.disponible).map((m) => (
