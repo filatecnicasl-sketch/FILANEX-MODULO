@@ -20,7 +20,7 @@ function aHora(minutos) {
   return `${hh}:${mm}`;
 }
 
-export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) {
+export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, onRecepcionar }) {
   const [clientes, setClientes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [form, setForm] = useState({
@@ -144,6 +144,18 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada }) 
             />
           )}
         </h2>
+        {cita && onRecepcionar && !["realizada", "cancelada"].includes(cita.estado) && (
+          <button
+            type="button"
+            onClick={() => onRecepcionar(cita)}
+            className="w-full mb-4 rounded-xl bg-accent px-4 py-3 text-sm font-bold text-white hover:bg-accent/90 transition"
+          >
+            Recepcionar ahora
+            <span className="block text-[0.6875rem] font-normal text-white/80 mt-0.5">
+              Ha llegado el cliente: abrir la recepción rápida con esta cita
+            </span>
+          </button>
+        )}
         <form onSubmit={guardar} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>

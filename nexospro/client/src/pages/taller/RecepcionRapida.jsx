@@ -11,11 +11,13 @@ const normalizar = (s) => (s ?? "").toString().trim().toLowerCase();
  * Recepción exprés: alta del vehículo (si no existe) y apertura de la OT
  * en un solo paso. Si el vehículo viene con cita, se busca arriba y la
  * recepción se rellena sola; al crearla, la cita queda realizada.
+ * Con `citaInicial` (desde la agenda de citas) nace ya enlazada a esa cita.
  */
-export default function RecepcionRapida({ onCerrar, onCreada }) {
+export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null }) {
   const [clientes, setClientes] = useState([]);
   const [citas, setCitas] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
+  const [listo, setListo] = useState(false);
   const [buscaCita, setBuscaCita] = useState("");
   const [citaElegida, setCitaElegida] = useState(null);
   const [form, setForm] = useState({
@@ -35,19 +37,31 @@ export default function RecepcionRapida({ onCerrar, onCreada }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => r.json())
-      .then(setClientes)
-      .catch(() => setClientes([]));
-    fetch("/api/taller/citas")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setCitas)
-      .catch(() => setCitas([]));
-    fetch("/api/taller/vehiculos")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setVehiculos)
-      .catch(() => setVehiculos([]));
+    let vivo = true;
+    (async () => {
+      const [cl, ci, ve] = await Promise.all([
+        fetch("/api/clientes").then((r) => r.json()).catch(() => []),
+        fetch("/api/taller/citas").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        fetch("/api/taller/vehiculos").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      ]);
+      if (!vivo) return;
+      setClientes(Array.isArray(cl) ? cl : []);
+      setCitas(Array.isArray(ci) ? ci : []);
+      setVehiculos(Array.isArray(ve) ? ve : []);
+      setListo(true);
+    })();
+    return () => {
+      vivo = false;
+    };
   }, []);
+
+  // Recepción lanzada desde una cita concreta (agenda): se enlaza y se
+  // rellena sola en cuanto llegan los datos de la cartera.
+  useEffect(() => {
+    if (!listo || !citaInicial) return;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    elegirCita(citaInicial);
+  }, [listo]);
 
   // Al cambiar el cliente se buscan sus presupuestos abiertos (borrador,
   // enviado o aceptado y sin OT vinculada) para incluir uno en la orden.

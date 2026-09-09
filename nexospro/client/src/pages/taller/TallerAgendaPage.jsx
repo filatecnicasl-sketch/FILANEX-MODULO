@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import Calendario, { aFechaInput } from "../../components/Calendario.jsx";
 import CitaModal from "./CitaModal.jsx";
+import RecepcionRapida from "./RecepcionRapida.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { ESTADOS_CITA } from "./datos.js";
 
@@ -12,6 +13,8 @@ export default function TallerAgendaPage() {
   const [citas, setCitas] = useState(null);
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(null); // { cita?, fecha }
+  const [recepcion, setRecepcion] = useState(null); // cita pendiente a recepcionar
+  const [aviso, setAviso] = useState(null); // confirmación de recepción creada
   const [q, setQ] = useState("");
 
   // Búsqueda por cualquier campo visible de la cita.
@@ -76,6 +79,15 @@ export default function TallerAgendaPage() {
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
       )}
 
+      {aviso && (
+        <div className="mb-4 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 flex items-center justify-between gap-3">
+          <span>{aviso}</span>
+          <button type="button" onClick={() => setAviso(null)} className="text-emerald-600 hover:text-emerald-900 font-bold">
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="mb-3 max-w-md no-print">
         <InputBusqueda value={q} onChange={setQ} placeholder="Buscar por matrícula, cliente, teléfono, motivo…" />
       </div>
@@ -116,7 +128,21 @@ export default function TallerAgendaPage() {
                     <td>
                       <span className="text-xs" style={{ color: est?.color ?? "#64748b" }}>{est?.nombre ?? c.estado}</span>
                     </td>
-                    <td className="text-right text-xs text-accent">Abrir</td>
+                    <td className="text-right text-xs whitespace-nowrap">
+                      {!["realizada", "cancelada"].includes(c.estado) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRecepcion(c);
+                          }}
+                          className="font-semibold text-emerald-600 hover:text-emerald-800 hover:underline mr-2"
+                        >
+                          Recepcionar
+                        </button>
+                      )}
+                      <span className="text-accent">Abrir</span>
+                    </td>
                   </tr>
                 );
               })}
@@ -149,6 +175,25 @@ export default function TallerAgendaPage() {
           onGuardada={() => {
             setModal(null);
             cargar();
+          }}
+          onRecepcionar={(c) => {
+            setModal(null);
+            setRecepcion(c);
+          }}
+        />
+      )}
+
+      {recepcion && (
+        <RecepcionRapida
+          citaInicial={recepcion}
+          onCerrar={() => setRecepcion(null)}
+          onCreada={(datos) => {
+            setRecepcion(null);
+            cargar();
+            const numero = datos?.orden?.numero ?? "";
+            setAviso(
+              `Recepción creada${numero ? ` (orden ${numero})` : ""}. La cita quedó realizada; sigue en Taller → Órdenes.`
+            );
           }}
         />
       )}
