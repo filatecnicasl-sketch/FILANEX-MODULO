@@ -24,7 +24,6 @@ import ClientesPage from "./pages/ClientesPage.jsx";
 import ProveedoresPage from "./pages/ProveedoresPage.jsx";
 import ArticulosPage from "./pages/ArticulosPage.jsx";
 import ConfigPage from "./pages/ConfigPage.jsx";
-import ModulosPage from "./pages/ModulosPage.jsx";
 import SeriesPage from "./pages/SeriesPage.jsx";
 import CertificadoPage from "./pages/CertificadoPage.jsx";
 import NotificacionesPage from "./pages/NotificacionesPage.jsx";
@@ -168,7 +167,6 @@ export default function App() {
           <Route path="articulos" element={<ArticulosPage />} />
           <Route path="agenda" element={<AgendaPage />} />
           <Route path="configuracion" element={<ConfigPage />} />
-          <Route path="modulos" element={<ModulosPage />} />
           <Route path="series" element={<SeriesPage />} />
           <Route path="certificado" element={<CertificadoPage />} />
           <Route path="notificaciones" element={<NotificacionesPage />} />
