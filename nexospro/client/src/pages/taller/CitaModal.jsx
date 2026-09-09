@@ -4,9 +4,104 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
-import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 
 const campo = "input w-full";
+const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
+const dirTexto = (d) => [d?.calle, d?.cp, d?.ciudad, d?.provincia].filter(Boolean).join(", ");
+
+function hojaEntradaHtml(emp, cita, cliente, vehiculo) {
+  const hoy = fechaEs(cita.fecha);
+  const manana = new Date(cita.fecha);
+  manana.setDate(manana.getDate() + 1);
+  return `
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Hoja de entrada en taller</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #111; margin: 0; }
+  .caja { border: 1px solid #333; border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+  .titulo { font-weight: bold; font-size: 13pt; text-align: center; margin-bottom: 6px; }
+  .fila { display: flex; gap: 10px; margin-bottom: 5px; }
+  .col { flex: 1; }
+  .label { font-size: 9pt; color: #555; text-transform: uppercase; }
+  .dato { font-weight: bold; }
+  .motivo { min-height: 60px; border: 1px solid #333; border-radius: 4px; padding: 8px; margin-top: 4px; }
+  .firmas { display: flex; gap: 20px; margin-top: 30px; }
+  .firma { flex: 1; border-top: 1px solid #333; padding-top: 4px; text-align: center; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th, td { border: 1px solid #333; padding: 6px; font-size: 10pt; text-align: left; }
+  th { background: #eee; }
+</style>
+</head>
+<body>
+  <div class="caja">
+    <div class="titulo">HOJA DE ENTRADA EN TALLER</div>
+    <div class="fila">
+      <div class="col"><span class="label">Taller</span><div class="dato">${emp.nombre ?? ""}</div></div>
+      <div class="col"><span class="label">CIF</span><div>${emp.nif ?? ""}</div></div>
+      <div class="col"><span class="label">Fecha</span><div class="dato">${hoy}</div></div>
+    </div>
+    <div class="fila"><div class="col"><span class="label">Dirección</span><div>${dirTexto(emp.direccion)}</div></div></div>
+    <div class="fila">
+      <div class="col"><span class="label">Teléfono</span><div>${emp.telefono ?? ""}</div></div>
+      <div class="col"><span class="label">Email</span><div>${emp.email ?? ""}</div></div>
+    </div>
+  </div>
+
+  <div class="caja">
+    <div class="fila">
+      <div class="col"><span class="label">Cliente</span><div class="dato">${cliente?.nombre ?? cita.clienteNombre ?? ""}</div></div>
+      <div class="col"><span class="label">Teléfono</span><div>${cita.telefono || cliente?.telefono || ""}</div></div>
+      <div class="col"><span class="label">CIF/NIF</span><div>${cliente?.nif ?? ""}</div></div>
+    </div>
+    <div class="fila"><div class="col"><span class="label">Dirección</span><div>${dirTexto(cliente?.direccion)}</div></div></div>
+  </div>
+
+  <div class="caja">
+    <div class="fila">
+      <div class="col"><span class="label">Matrícula</span><div class="dato">${cita.matricula ?? ""}</div></div>
+      <div class="col"><span class="label">Marca</span><div>${vehiculo?.marca ?? ""}</div></div>
+      <div class="col"><span class="label">Modelo</span><div>${vehiculo?.modelo ?? ""}</div></div>
+    </div>
+    <div class="fila">
+      <div class="col"><span class="label">Bastidor</span><div>${vehiculo?.bastidor ?? ""}</div></div>
+      <div class="col"><span class="label">KM</span><div>${vehiculo?.km != null ? Number(vehiculo.km).toLocaleString("es-ES") : ""}</div></div>
+      <div class="col"><span class="label">Combustible</span><div>${vehiculo?.combustible ?? ""}</div></div>
+    </div>
+  </div>
+
+  <div class="caja">
+    <span class="label">Trabajos solicitados / motivo</span>
+    <div class="motivo">${[cita.motivo, cita.notas].filter(Boolean).join(". ") || "—"}</div>
+  </div>
+
+  <div class="caja">
+    <div class="fila">
+      <div class="col"><span class="label">Fecha de entrada</span><div class="dato">${hoy}</div></div>
+      <div class="col"><span class="label">Fecha prevista de entrega</span><div class="dato">${fechaEs(manana)}</div></div>
+      <div class="col"><span class="label">Cita</span><div>${cita.de ? cita.de.slice(0,5) : ""} - ${cita.a ? cita.a.slice(0,5) : ""}</div></div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Descripción</th><th style="width:80px">Sí</th><th style="width:80px">No</th></tr></thead>
+    <tbody>
+      <tr><td>El vehículo se entrega con llaves y documentación</td><td></td><td></td></tr>
+      <tr><td>Objetos de valor personales retirados</td><td></td><td></td></tr>
+      <tr><td>Estado general del vehículo revisado</td><td></td><td></td></tr>
+    </tbody>
+  </table>
+
+  <div class="firmas">
+    <div class="firma">Firma del cliente</div>
+    <div class="firma">Firma del taller</div>
+  </div>
+</body>
+</html>`;
+}
 
 /** Convierte "HH:MM" a minutos desde medianoche. */
 function aMinutos(h) {
@@ -124,29 +219,16 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
 
   async function imprimirEntrada() {
     if (!cita) return;
+    const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
     const cliente = clientes.find((c) => String(c._id) === String(cita.cliente?._id ?? cita.cliente)) || cita.cliente;
     const vehiculo = vehiculos.find((v) => v.matricula?.toUpperCase() === (cita.matricula ?? "").toUpperCase());
-
-    // Fecha de entrega prevista: el día siguiente a la cita por defecto.
-    const manana = new Date(cita.fecha);
-    manana.setDate(manana.getDate() + 1);
-
-    await imprimirHojaEntrada({
-      numero: `CITA-${cita._id.slice(-6).toUpperCase()}`,
-      fechaEntrada: cita.fecha,
-      fechaEntregaPrevista: manana.toISOString().slice(0, 10),
-      matricula: cita.matricula ?? "",
-      km: vehiculo?.km ?? "",
-      motivo: [cita.motivo, cita.notas].filter(Boolean).join(". ") || "Recepción desde cita",
-      aseguradora: vehiculo?.aseguradora?.nombre ?? "",
-      cliente: cliente || undefined,
-      clienteNombre: cita.clienteNombre || cliente?.nombre || "",
-      telefono: cita.telefono || cliente?.telefono || "",
-      vehiculo: vehiculo
-        ? { marca: vehiculo.marca, modelo: vehiculo.modelo }
-        : undefined,
-      lineas: [],
-    });
+    const html = hojaEntradaHtml(emp, cita, cliente, vehiculo);
+    const ventana = window.open("", "_blank", "width=900,height=700");
+    if (!ventana) return alert("Permite las ventanas emergentes para imprimir");
+    ventana.document.write(html);
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => ventana.print(), 250);
   }
 
   async function borrar() {
@@ -188,10 +270,10 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           <button
             type="button"
             onClick={imprimirEntrada}
-            className="w-full mb-4 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-sm font-bold text-white hover:bg-slate-700 transition"
+            className="w-full mb-4 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-900 hover:bg-white transition border border-slate-300"
           >
             Imprimir hoja de entrada
-            <span className="block text-[0.6875rem] font-normal text-slate-400 mt-0.5">
+            <span className="block text-[0.6875rem] font-normal text-slate-600 mt-0.5">
               Documento oficial de entrada en taller, sin crear aún la orden
             </span>
           </button>
