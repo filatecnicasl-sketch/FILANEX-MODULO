@@ -2,6 +2,29 @@
 
 Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
+## Estado del equipo y del repo (10/09/2026)
+
+- El ordenador anterior se estropeó. El proyecto vive ahora en
+  **`C:\FILANEX-MODULO`** del equipo nuevo (copia completa del disco D:,
+  que queda solo como respaldo). Abrir siempre esta carpeta en Verdent.
+- Repo GitHub: `filatecnicasl-sketch/FILANEX-MODULO`. Git ya está instalado
+  en este equipo y la identidad del repo configurada; commit y push funcionan.
+- **Ojo:** hay una copia ANTIGUA del proyecto en
+  `C:\Users\fbmagp\.verdent\verdent-projects\calculadora-de-iprem\nexospro`
+  (anterior al sistema de licencias por tenant). No trabajar ahí.
+- Último commit subido: `2e7a282` (10/09) con dos correcciones:
+  1. `PUT /api/empresa` ahora aplica `modulos` antes de validar
+     `moduloInicio` (antes fallaba al activar un sistema y ponerlo de
+     inicio en la misma petición).
+  2. `telefonia.js`: las rutas privadas (stream, llamadas, simular) ya
+     exigen `requiereModulo("telefonia")`; el webhook `/evento` sigue público.
+- [ ] **Verificar que app.filanex.es ha aplicado el commit `2e7a282`**
+      (la vez anterior se desplegó solo ~30 s después del push). Si no,
+      entrar al servidor y hacer `git pull` + rebuild/restart.
+- [ ] **Guarda de rutas en el frontend** (acordado, sin hacer): redirigir a
+      `/` si se entra por URL a un sistema no activado (hoy el menú los
+      oculta pero la ruta existe y la página falla al cargar datos).
+
 ## Cuanto antes (a raíz de la caída del 31/08)
 
 Esa noche el servidor estuvo caído desde ~22:00 hasta las 00:51 y nos enteramos
