@@ -4,6 +4,7 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
+import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 
 const campo = "input w-full";
 const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
@@ -219,16 +220,39 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
 
   async function imprimirEntrada() {
     if (!cita) return;
-    const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
     const cliente = clientes.find((c) => String(c._id) === String(cita.cliente?._id ?? cita.cliente)) || cita.cliente;
     const vehiculo = vehiculos.find((v) => v.matricula?.toUpperCase() === (cita.matricula ?? "").toUpperCase());
-    const html = hojaEntradaHtml(emp, cita, cliente, vehiculo);
-    const ventana = window.open("", "_blank", "width=900,height=700");
-    if (!ventana) return alert("Permite las ventanas emergentes para imprimir");
-    ventana.document.write(html);
-    ventana.document.close();
-    ventana.focus();
-    setTimeout(() => ventana.print(), 250);
+
+    const manana = new Date(cita.fecha);
+    manana.setDate(manana.getDate() + 1);
+
+    const ok = await imprimirHojaEntrada({
+      numero: `CITA-${cita._id.slice(-6).toUpperCase()}`,
+      fechaEntrada: cita.fecha,
+      fechaEntregaPrevista: manana.toISOString().slice(0, 10),
+      matricula: cita.matricula ?? "",
+      km: vehiculo?.km ?? "",
+      motivo: [cita.motivo, cita.notas].filter(Boolean).join(". ") || "Recepción desde cita",
+      aseguradora: vehiculo?.aseguradora?.nombre ?? "",
+      cliente: cliente || undefined,
+      clienteNombre: cita.clienteNombre || cliente?.nombre || "",
+      telefono: cita.telefono || cliente?.telefono || "",
+      vehiculo: vehiculo ? { marca: vehiculo.marca, modelo: vehiculo.modelo } : undefined,
+      lineas: [],
+    });
+
+    // Si no hay plantilla configurada, se imprime un resguardo básico para que
+    // nunca se quede sin documento.
+    if (!ok) {
+      const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+      const html = hojaEntradaHtml(emp, cita, cliente, vehiculo);
+      const ventana = window.open("", "_blank", "width=900,height=700");
+      if (!ventana) return alert("Permite las ventanas emergentes para imprimir");
+      ventana.document.write(html);
+      ventana.document.close();
+      ventana.focus();
+      setTimeout(() => ventana.print(), 250);
+    }
   }
 
   async function borrar() {

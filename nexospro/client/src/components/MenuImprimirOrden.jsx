@@ -18,7 +18,7 @@ async function cargarPlantillaEntrada() {
 
 export async function imprimirHojaEntrada(o) {
   const plantilla = await cargarPlantillaEntrada();
-  if (!plantilla) return;
+  if (!plantilla) return false;
   const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
 
   const formData = {
@@ -70,6 +70,7 @@ export async function imprimirHojaEntrada(o) {
   ];
 
   imprimirFormato(paginas, formData, signatures);
+  return true;
 }
 
 export default function MenuImprimirOrden({ orden, pequeno = false }) {
