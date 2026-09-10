@@ -1052,15 +1052,33 @@ router.post("/cortesia", async (req, res, next) => {
       clienteNombre,
       clienteNIF: req.body.clienteNIF?.trim() || undefined,
       clienteDireccion: req.body.clienteDireccion?.trim() || undefined,
+      clienteFechaNacimiento: req.body.clienteFechaNacimiento || undefined,
+      clienteLugarNacimiento: req.body.clienteLugarNacimiento?.trim() || undefined,
       telefono: req.body.telefono || undefined,
+      telefonoTrabajo: req.body.telefonoTrabajo || undefined,
+      permisoConducirNumero: req.body.permisoConducirNumero?.trim() || undefined,
+      permisoConducirExpedicion: req.body.permisoConducirExpedicion || undefined,
+      permisoConducirLugar: req.body.permisoConducirLugar?.trim() || undefined,
+      otroConductor: req.body.otroConductor?.trim() || undefined,
       orden: req.body.ordenId || undefined,
       numeroOrden: req.body.numeroOrden || orden?.numero || undefined,
       cita: req.body.citaId || undefined,
       vehiculoReparacionMatricula,
       vehiculoReparacionMarcaModelo,
+      vehiculoReparacionVIN: req.body.vehiculoReparacionVIN?.trim() || undefined,
       fechaPrevista: prevista,
       kmSalida: req.body.kmSalida ? Number(req.body.kmSalida) : undefined,
       combustibleSalida: req.body.combustibleSalida != null ? Number(req.body.combustibleSalida) : undefined,
+      vinCortesia: req.body.vinCortesia?.trim() || undefined,
+      aseguradora: req.body.aseguradora?.trim() || undefined,
+      numeroContratoSeguro: req.body.numeroContratoSeguro?.trim() || undefined,
+      franquiciaTerceros: req.body.franquiciaTerceros ? Number(req.body.franquiciaTerceros) : undefined,
+      franquiciaVehiculo: req.body.franquiciaVehiculo ? Number(req.body.franquiciaVehiculo) : undefined,
+      franquiciaRobo: req.body.franquiciaRobo ? Number(req.body.franquiciaRobo) : undefined,
+      rescateFranquicia: req.body.rescateFranquicia ?? undefined,
+      transferenciaSeguro: req.body.transferenciaSeguro ?? undefined,
+      rescatePorDia: req.body.rescatePorDia ? Number(req.body.rescatePorDia) : undefined,
+      participacionForfaitDiaria: req.body.participacionForfaitDiaria ? Number(req.body.participacionForfaitDiaria) : undefined,
       kmMaximoDia: req.body.kmMaximoDia ? Number(req.body.kmMaximoDia) : undefined,
       kmMaximoTotal: req.body.kmMaximoTotal ? Number(req.body.kmMaximoTotal) : undefined,
       importeExcesoKm: req.body.importeExcesoKm ? Number(req.body.importeExcesoKm) : undefined,
@@ -1082,24 +1100,43 @@ router.post("/cortesia", async (req, res, next) => {
 router.put("/cortesia/:id", async (req, res, next) => {
   try {
     const {
-      clienteNombre, clienteNIF, clienteDireccion, telefono, fechaPrevista, notas,
-      vehiculoReparacionMatricula, vehiculoReparacionMarcaModelo,
+      clienteNombre, clienteNIF, clienteDireccion, clienteFechaNacimiento, clienteLugarNacimiento,
+      telefono, telefonoTrabajo,
+      permisoConducirNumero, permisoConducirExpedicion, permisoConducirLugar, otroConductor,
+      fechaPrevista, notas,
+      vehiculoReparacionMatricula, vehiculoReparacionMarcaModelo, vehiculoReparacionVIN,
       kmSalida, combustibleSalida, kmMaximoDia, kmMaximoTotal, importeExcesoKm,
+      vinCortesia, aseguradora, numeroContratoSeguro,
+      franquiciaTerceros, franquiciaVehiculo, franquiciaRobo,
+      rescateFranquicia, transferenciaSeguro, rescatePorDia, participacionForfaitDiaria,
     } = req.body;
     const cambios = {
-      clienteNombre, clienteNIF, clienteDireccion, telefono, notas,
-      vehiculoReparacionMarcaModelo,
+      clienteNombre, clienteNIF, clienteDireccion, clienteLugarNacimiento,
+      telefono, telefonoTrabajo,
+      permisoConducirNumero, permisoConducirLugar, otroConductor,
+      notas, vehiculoReparacionMarcaModelo, aseguradora, numeroContratoSeguro,
     };
+    if (clienteFechaNacimiento !== undefined) cambios.clienteFechaNacimiento = clienteFechaNacimiento || null;
+    if (permisoConducirExpedicion !== undefined) cambios.permisoConducirExpedicion = permisoConducirExpedicion || null;
     if (vehiculoReparacionMatricula !== undefined) {
       cambios.vehiculoReparacionMatricula = vehiculoReparacionMatricula
         ? normalizarMatricula(vehiculoReparacionMatricula)
         : null;
     }
+    if (vehiculoReparacionVIN !== undefined) cambios.vehiculoReparacionVIN = vehiculoReparacionVIN || null;
+    if (vinCortesia !== undefined) cambios.vinCortesia = vinCortesia || null;
     if (kmSalida !== undefined) cambios.kmSalida = kmSalida === "" ? null : Number(kmSalida);
     if (combustibleSalida !== undefined) cambios.combustibleSalida = combustibleSalida === "" ? null : Number(combustibleSalida);
     if (kmMaximoDia !== undefined) cambios.kmMaximoDia = kmMaximoDia === "" ? null : Number(kmMaximoDia);
     if (kmMaximoTotal !== undefined) cambios.kmMaximoTotal = kmMaximoTotal === "" ? null : Number(kmMaximoTotal);
     if (importeExcesoKm !== undefined) cambios.importeExcesoKm = importeExcesoKm === "" ? null : Number(importeExcesoKm);
+    if (franquiciaTerceros !== undefined) cambios.franquiciaTerceros = franquiciaTerceros === "" ? null : Number(franquiciaTerceros);
+    if (franquiciaVehiculo !== undefined) cambios.franquiciaVehiculo = franquiciaVehiculo === "" ? null : Number(franquiciaVehiculo);
+    if (franquiciaRobo !== undefined) cambios.franquiciaRobo = franquiciaRobo === "" ? null : Number(franquiciaRobo);
+    if (rescateFranquicia !== undefined) cambios.rescateFranquicia = Boolean(rescateFranquicia);
+    if (transferenciaSeguro !== undefined) cambios.transferenciaSeguro = Boolean(transferenciaSeguro);
+    if (rescatePorDia !== undefined) cambios.rescatePorDia = rescatePorDia === "" ? null : Number(rescatePorDia);
+    if (participacionForfaitDiaria !== undefined) cambios.participacionForfaitDiaria = participacionForfaitDiaria === "" ? null : Number(participacionForfaitDiaria);
     if (fechaPrevista) {
       const prevista = diaLocal(fechaPrevista);
       if (!prevista) return res.status(400).json({ error: "Fecha prevista no válida" });

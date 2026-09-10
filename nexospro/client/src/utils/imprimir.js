@@ -47,30 +47,39 @@ const ESTILOS = `
   .ficha td { border-bottom:1px solid #e3e3e3; padding:8px 10px; }
   .ficha td.eti { width:220px; color:#555; font-size:11px; text-transform:uppercase; letter-spacing:.6px; }
   /* Contrato de cesión de vehículo de cortesía */
-  .contrato { font-size:12px; line-height:1.45; }
-  .contrato h1 { text-align:center; font-size:18px; letter-spacing:1px; margin-bottom:6px; }
-  .contrato .subtitulo { text-align:center; font-size:10px; color:#444; margin-bottom:14px; }
-  .contrato .fila-enc { display:flex; justify-content:space-between; margin-bottom:12px; font-size:12px; }
-  .contrato .seccion { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; border-bottom:1px solid #333; padding-bottom:2px; }
-  .contrato .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .contrato .campo { margin-bottom:6px; }
-  .contrato .campo .et { font-size:9.5px; text-transform:uppercase; letter-spacing:.5px; color:#555; }
-  .contrato .campo .va { font-weight:600; min-height:16px; border-bottom:1px solid #bbb; padding:2px 0; }
-  .contrato .campo .va.vacio { color:#888; font-weight:400; }
-  .contrato .checks { display:flex; gap:18px; flex-wrap:wrap; font-size:11px; margin:6px 0; }
-  .contrato .combustible { display:flex; gap:6px; font-size:11px; margin:4px 0; }
-  .contrato .combustible span { width:22px; text-align:center; }
-  .contrato .condiciones { font-size:10.5px; line-height:1.5; text-align:justify; }
-  .contrato .condiciones ol { padding-left:18px; margin:0; }
-  .contrato .condiciones li { margin-bottom:5px; }
-  .contrato .firmas { display:flex; gap:32px; margin-top:28px; }
-  .contrato .firma { flex:1; text-align:center; }
-  .contrato .firma .linea { border-top:1px solid #333; margin-top:50px; padding-top:4px; font-size:11px; }
-  .contrato .firma .datos { font-size:10px; color:#555; margin-top:6px; }
-  .contrato .pie-ejemplar { margin-top:14px; font-size:9px; color:#555; text-align:center; border-top:1px dashed #bbb; padding-top:6px; }
-  .contrato .croquis { border:1px solid #999; height:120px; border-radius:4px; margin:8px 0; }
-  .salto-pagina { page-break-after:always; }
-  @media print { body { padding:0; } .salto-pagina { page-break-after:always; } }
+  .contrato { font-size:11px; line-height:1.35; }
+  .contrato .enc-emp { text-align:center; border-bottom:1px solid #333; padding-bottom:8px; margin-bottom:8px; }
+  .contrato .enc-emp .nom { font-size:16px; font-weight:700; letter-spacing:1px; }
+  .contrato .enc-emp .dir { font-size:9.5px; color:#333; }
+  .contrato h1 { text-align:center; font-size:16px; font-weight:700; margin:4px 0 2px; }
+  .contrato h2 { text-align:center; font-size:10px; font-weight:400; margin:0 0 8px; }
+  .contrato .ncontrato { display:flex; justify-content:flex-end; align-items:center; gap:6px; margin-bottom:8px; font-size:11px; }
+  .contrato .ncontrato input { width:90px; border:1px solid #333; height:18px; }
+  .contrato .seccion { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; background:#e9e9e9; border:1px solid #333; padding:3px 6px; margin:8px 0 4px; }
+  .contrato .aviso { font-size:9px; text-align:justify; margin-bottom:6px; }
+  .contrato .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; }
+  .contrato .campo { display:flex; align-items:baseline; gap:4px; margin-bottom:3px; font-size:10px; }
+  .contrato .campo .et { white-space:nowrap; color:#333; }
+  .contrato .campo .lin { flex:1; border-bottom:1px solid #555; min-width:40px; height:14px; }
+  .contrato .campo .val { font-weight:600; border-bottom:1px solid #555; padding:0 4px; }
+  .contrato .table-km { width:100%; border-collapse:collapse; margin:6px 0; font-size:9.5px; }
+  .contrato .table-km th, .contrato .table-km td { border:1px solid #333; padding:4px 6px; text-align:center; }
+  .contrato .table-km th { background:#e9e9e9; }
+  .contrato .fuel-gauge { display:flex; justify-content:center; gap:8px; margin:4px 0; }
+  .contrato .fuel-gauge .g { width:60px; height:30px; border:1px solid #333; border-radius:4px; position:relative; }
+  .contrato .fuel-gauge .g .bar { position:absolute; bottom:0; left:0; right:0; background:#ddd; }
+  .contrato .fuel-gauge .g .tick { position:absolute; top:-10px; font-size:8px; width:100%; text-align:center; }
+  .contrato .fuel-gauge .g .label { position:absolute; bottom:-14px; font-size:8px; width:100%; text-align:center; }
+  .contrato .cars { display:flex; justify-content:space-around; align-items:center; gap:12px; margin:8px 0; }
+  .contrato .car { border:1px solid #333; width:90px; height:50px; display:flex; align-items:center; justify-content:center; font-size:8px; color:#777; }
+  .contrato .checks { display:flex; gap:16px; flex-wrap:wrap; font-size:10px; margin:4px 0; }
+  .contrato .box { border:1px solid #333; padding:4px; margin:4px 0; }
+  .contrato .firmas-row { display:flex; gap:16px; margin-top:12px; }
+  .contrato .firma-montiel { flex:1; border:1px solid #333; padding:6px; text-align:center; min-height:70px; }
+  .contrato .firma-montiel .tit { font-size:9px; font-weight:700; margin-bottom:30px; }
+  .contrato .firma-montiel .lin { border-top:1px solid #333; margin-top:8px; padding-top:2px; font-size:8px; }
+  .contrato .nota-pie { font-size:8px; text-align:center; margin-top:8px; font-weight:700; }
+  @media print { body { padding:0; } }
 `;
 
 function abrirVentana(titulo, cuerpo) {
@@ -108,177 +117,220 @@ function bloqueContraparte(quien, c) {
     </div>`;
 }
 
-// Contrato de préstamo / cesión de un vehículo de cortesía. Formato
-// «parte de cesión» con cara A (entrega) y cara B (devolución), listo para
-// firmar. Se imprime en dos páginas: ejemplar del cliente y del taller.
+// Contrato de préstamo / cesión de un vehículo de cortesía. Formato tipo
+// «Talleres J. Montiel»: usuario, vehículo de sustitución, seguro, vehículo en
+// reparación, estado del vehículo y firmas, en una sola hoja A4.
 export async function imprimirContratoCortesia(p) {
   const emp = await empresa();
-  const fmtFecha = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "—");
+  const fmtFecha = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "__/__/____");
   const fmtFechaHora = (f) =>
     f
       ? `${new Date(f).toLocaleDateString("es-ES")} ${new Date(f).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
-      : "—";
-  const n = (v) => (v != null && v !== "" ? Number(v).toLocaleString("es-ES") : null);
-  const eur = (v) => (v != null && v !== "" ? `${Number(v).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : null);
+      : "__/__/____ __:__";
+  const n = (v) => (v != null && v !== "" ? Number(v).toLocaleString("es-ES") : "");
+  const eur = (v) => {
+    if (v == null || v === "") return "";
+    return `${Number(v).toLocaleString("es-ES", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+  };
+  const v = (val) => (val != null && String(val).trim() !== "" ? esc(String(val)) : "");
 
   const dirEmp = [emp.direccion?.calle, emp.direccion?.ciudad, emp.direccion?.cp, emp.direccion?.provincia]
     .filter(Boolean)
-    .join(", ");
-  const dirCli = p.clienteDireccion || "—";
+    .join(" - ");
+  const telsEmp = [emp.telefono, emp.telefono2, emp.email].filter(Boolean).join(" - ");
 
-  const campo = (etiqueta, valor) => {
-    const v = valor != null && String(valor).trim() !== "" ? String(valor) : null;
-    return `<div class="campo">
-      <div class="et">${esc(etiqueta)}</div>
-      <div class="va ${v ? "" : "vacio"}">${esc(v ?? "________________________________")}</div>
-    </div>`;
-  };
-
-  const combustible = (nivel) => {
-    return `<div class="combustible">${[1, 2, 3, 4, 5, 6, 7, 8]
-      .map((i) => `<span>${i}/8${nivel === i ? " ●" : ""}</span>`)
-      .join("")}</div>`;
-  };
-
-  const firma = (quien) => `<div class="firma">
-    <div class="linea">${esc(quien)}</div>
-    <div class="datos">Nombre: _______________________ · DNI/NIE: _______________________<br>Fecha: ____/____/________  Hora: ____ : ____</div>
-  </div>`;
-
-  const firmaDevolucion = (quien, extra) => `<div class="firma">
-    <div class="linea">${esc(quien)}</div>
-    <div class="datos">Fecha: ____/____/________  Hora: ____ : ____${extra ? `<br>${esc(extra)}` : ""}</div>
-  </div>`;
-
-  const vehiculoCortesiaMarcaModelo = p.vehiculo
-    ? [p.vehiculo.marca, p.vehiculo.modelo].filter(Boolean).join(" ")
-    : "—";
-
+  const vehiculoCortesiaMarca = p.vehiculo?.marca || "";
+  const vehiculoCortesiaModelo = p.vehiculo?.modelo || "";
   const parteNumero = p.numeroOrden
     ? `OT ${p.numeroOrden}`
     : p._id
       ? String(p._id).slice(-6).toUpperCase()
-      : "—";
+      : "";
 
-  const caraA = `
+  const campo = (etiqueta, valor) => {
+    const val = v(valor);
+    return `<div class="campo">
+      <span class="et">${esc(etiqueta)}${etiqueta.endsWith(":") ? "" : ":"}</span>
+      ${val ? `<span class="val">${val}</span>` : `<span class="lin"></span>`}
+    </div>`;
+  };
+
+  const fuelGauge = (nivel, label) => {
+    const pct = Math.min(Math.max((Number(nivel) || 0) / 8, 0), 1) * 100;
+    return `<div class="fuel-gauge">
+      <div class="g">
+        <div class="bar" style="height:${pct}%"></div>
+        <div class="tick">${pct > 0 ? "●" : "○"}</div>
+        <div class="label">${esc(label)}</div>
+      </div>
+    </div>`;
+  };
+
+  const cocheSvg = (orientacion) => {
+    const ancho = orientacion === "lateral" ? 100 : 60;
+    const alto = orientacion === "lateral" ? 35 : 45;
+    return `<svg width="${ancho}" height="${alto}" viewBox="0 0 ${ancho} ${alto}" style="stroke:#333;fill:none;stroke-width:1.2">
+      ${orientacion === "lateral"
+        ? `<rect x="5" y="10" width="90" height="18" rx="4" />
+           <circle cx="22" cy="28" r="5" />
+           <circle cx="78" cy="28" r="5" />
+           <rect x="28" y="12" width="34" height="10" rx="2" fill="#f4f4f4" />`
+        : orientacion === "frontal"
+          ? `<rect x="10" y="8" width="40" height="28" rx="4" />
+             <circle cx="18" cy="33" r="4" />
+             <circle cx="42" cy="33" r="4" />
+             <rect x="18" y="12" width="24" height="10" rx="2" fill="#f4f4f4" />`
+          : `<rect x="10" y="8" width="40" height="28" rx="4" />
+             <circle cx="18" cy="33" r="4" />
+             <circle cx="42" cy="33" r="4" />
+             <rect x="14" y="18" width="32" height="8" rx="2" fill="#f4f4f4" />`}
+    </svg>`;
+  };
+
+  const cuerpo = `
     <div class="contrato">
-      <h1>PARTE DE CESIÓN DE VEHÍCULO DE CORTESÍA</h1>
-      <div class="subtitulo">Documento acreditativo de la cesión temporal del vehículo de cortesía.<br>El cliente firma y conserva este parte, que debe permanecer en el vehículo durante toda la cesión.</div>
-      <div class="fila-enc">
-        <div><b>N.º de parte:</b> ${esc(parteNumero)}</div>
-        <div><b>Fecha:</b> ${fmtFecha(p.fechaSalida)}</div>
+      <div class="enc-emp">
+        <div class="nom">${esc(emp.nombre ?? "TALLERES")}</div>
+        <div class="dir">${esc(dirEmp)}${telsEmp ? ` · ${esc(telsEmp)}` : ""}</div>
+      </div>
+      <h1>VEHÍCULOS DE SUSTITUCIÓN</h1>
+      <h2>Contrato de prestación con participación forfait Nº</h2>
+      <div class="ncontrato">
+        <span>${esc(parteNumero)}</span>
       </div>
 
-      <div class="seccion">Datos del taller (cedente) y del cliente (cesionario)</div>
-      <div class="grid2">
-        ${campo("Taller / CIF", `${emp.nombre ?? ""}${emp.nif ? " / " + emp.nif : ""}`)}
-        ${campo("Cliente / DNI", `${p.clienteNombre ?? ""}${p.clienteNIF ? " / " + p.clienteNIF : ""}`)}
+      <div class="seccion">Usuario</div>
+      <div class="aviso">
+        Atención: Toda persona que conduzca el vehículo prestado, debe ser mayor de edad y poseer un permiso
+        o licencia de conducir desde hace más de 1 año, y no estar en suspeso o anulado.
       </div>
       <div class="grid2">
-        ${campo("Dirección", dirEmp || "—")}
-        ${campo("Dirección cliente", dirCli)}
+        ${campo("Apellidos", p.clienteNombre?.split(" ").slice(1).join(" "))}
+        ${campo("Nombre", p.clienteNombre?.split(" ")[0])}
       </div>
       <div class="grid2">
-        ${campo("Teléfono 24 h", emp.telefono || "—")}
-        ${campo("Teléfono cliente", p.telefono || "—")}
+        ${campo("Fecha de nacimiento", fmtFecha(p.clienteFechaNacimiento))}
+        ${campo("Lugar de nacimiento", p.clienteLugarNacimiento)}
       </div>
-      ${campo("Vehículo en reparación", p.vehiculoReparacionMatricula ? `${p.vehiculoReparacionMarcaModelo || ""} · ${p.vehiculoReparacionMatricula}` : "—")}
+      <div class="grid2">
+        ${campo("Dirección", p.clienteDireccion)}
+        ${campo("DNI/NIE", p.clienteNIF)}
+      </div>
+      <div class="grid2">
+        ${campo("Tlf. Particular", p.telefono)}
+        ${campo("Móvil", p.telefono)}
+        ${campo("Trabajo", p.telefonoTrabajo)}
+      </div>
+      <div class="grid2">
+        ${campo("Permiso de conducir nº", p.permisoConducirNumero)}
+        ${campo("Expedido el", fmtFecha(p.permisoConducirExpedicion))}
+        ${campo("en", p.permisoConducirLugar)}
+      </div>
+      ${campo("Eventualmente, otros conductores admitidos", p.otroConductor)}
 
-      <div class="seccion">Vehículo de cortesía entregado</div>
+      <div class="seccion">Vehículo puesto a disposición</div>
       <div class="grid2">
-        ${campo("Marca / modelo", vehiculoCortesiaMarcaModelo)}
-        ${campo("Matrícula", p.matricula)}
+        ${campo("Nº", vehiculoCortesiaMarca)}
+        ${campo("Modelo", vehiculoCortesiaModelo)}
+        ${campo("Nº Matrícula", p.matricula)}
+        ${campo("V.I.N.", p.vinCortesia)}
       </div>
+      ${campo("Participación forfait diaria", eur(p.participacionForfaitDiaria))}
+
+      <table class="table-km">
+        <thead>
+          <tr>
+            <th style="width:20%"></th>
+            <th>SALIDA</th>
+            <th>RETORNO PREVISTO</th>
+            <th>RETORNO REAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:left;font-weight:700">Fecha y hora</td>
+            <td>${fmtFechaHora(p.fechaSalida)}</td>
+            <td>${fmtFecha(p.fechaPrevista)} __:__</td>
+            <td>__/__/____ __:__</td>
+          </tr>
+          <tr>
+            <td style="text-align:left;font-weight:700">Km. En el contador</td>
+            <td>${n(p.kmSalida)}</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td style="text-align:left;font-weight:700">Nivel de carburante</td>
+            <td>${fuelGauge(p.combustibleSalida, "SALIDA")}</td>
+            <td>${fuelGauge(null, "PREVISTO")}</td>
+            <td>${fuelGauge(null, "REAL")}</td>
+          </tr>
+        </tbody>
+      </table>
+
       <div class="grid2">
-        ${campo("Fecha y hora", fmtFechaHora(p.fechaSalida))}
-        ${campo("Kilómetros de salida", n(p.kmSalida) != null ? `${n(p.kmSalida)} km` : null)}
-      </div>
-      <div class="campo">
-        <div class="et">Combustible</div>
-        ${combustible(p.combustibleSalida)}
-      </div>
-      ${campo("ITV / seguro vigente", "Sí / póliza ____________________")}
-      <div class="campo">
-        <div class="et">Documentación entregada</div>
-        <div class="checks">
-          <span>(  ) Llaves</span>
-          <span>(  ) Permiso de circulación</span>
-          <span>(  ) Ficha técnica</span>
-          <span>(  ) Tarjeta ITV</span>
-          <span>(  ) Tarjeta seguro</span>
+        <div class="box">
+          <div style="text-align:center;font-weight:700;margin-bottom:4px">ESTADO DEL VEHÍCULO</div>
+          <div class="cars">
+            <div>${cocheSvg("frontal")}</div>
+            <div>${cocheSvg("lateral")}</div>
+            <div>${cocheSvg("trasera")}</div>
+          </div>
+        </div>
+        <div class="box">
+          <div style="text-align:center;font-weight:700;margin-bottom:4px">OBSERVACIONES</div>
+          <div style="min-height:60px;font-size:9px;white-space:pre-wrap">${esc(p.notas || "")}</div>
         </div>
       </div>
 
-      <div class="seccion">Condiciones de la cesión — conforme al contrato de cesión del taller</div>
-      <div class="condiciones">
-        <ol>
-          <li>Uso particular y exclusivo del cliente y conductores autorizados por escrito, dentro del territorio nacional. Prohibida toda actividad lucrativa, competición, remolque y circulación por pistas no asfaltadas.</li>
-          <li>Prohibido conducir bajo los efectos de alcohol, drogas o medicación que altere las capacidades. El incumplimiento faculta al taller para recuperar el vehículo de inmediato.</li>
-          <li>El cliente devuelve el vehículo con el mismo nivel de combustible, limpio y con toda la documentación. Peajes, aparcamientos, multas y sanciones durante la cesión son de su cuenta.</li>
-          <li>Kilometraje máximo: ${p.kmMaximoDia ? `${n(p.kmMaximoDia)} km/día` : "____ km/día"} y ${p.kmMaximoTotal ? `${n(p.kmMaximoTotal)} km` : "____ km"} en total. El exceso se repercutirá a ${p.importeExcesoKm ? eur(p.importeExcesoKm) : "____ €"}/km.</li>
-          <li>En caso de accidente, robo, avería o rotura de lunas, el cliente avisará al taller en un máximo de 24 horas y presentará denuncia ante las Fuerzas y Cuerpos de Seguridad si procede.</li>
-          <li>Los daños nuevos no consignados como preexistentes, así como la franquicia del seguro, serán repercutidos al cliente según la valoración del taller.</li>
-          <li>Protección de datos: los datos del cliente se tratan con la única finalidad de gestionar esta cesión y la reparación, conforme al RGPD (UE) 2016/679. Derechos: ${esc(emp.email || dirEmp || "—")}.</li>
-          <li>La cesión finaliza al completarse la reparación o en la fecha acordada, con devolución en el taller. Con su firma, el cliente declara recibir el vehículo conforme y acepta el contrato de cesión completo, disponible en el taller.</li>
-        </ol>
-      </div>
-
-      <div class="seccion">Firmas — con la firma, el cliente acepta las condiciones anteriores</div>
-      <div class="firmas">
-        ${firma("EL CLIENTE (Cesionario)")}
-        ${firma("POR EL TALLER (Cedente)")}
-      </div>
-      ${p.notas ? `<div class="campo" style="margin-top:12px"><div class="et">Observaciones / daños preexistentes</div><div class="va">${esc(p.notas)}</div></div>` : ""}
-      <div class="pie-ejemplar">Ejemplar del CLIENTE — debe permanecer en el vehículo. Reverso: devolución del vehículo.</div>
-    </div>`;
-
-  const caraB = `
-    <div class="contrato">
-      <h1>DEVOLUCIÓN DEL VEHÍCULO DE CORTESÍA</h1>
-      <div class="subtitulo">Este reverso lo cumplimenta el taller al recibir el vehículo. Debe coincidir con la cara A (mismo n.º de parte).</div>
-      <div class="fila-enc">
-        <div><b>N.º de parte:</b> ${esc(parteNumero)}</div>
-        <div><b>Cara A del:</b> ${fmtFecha(p.fechaSalida)}</div>
-      </div>
-
-      <div class="seccion">Datos de la devolución</div>
+      <div class="seccion">Seguro</div>
       <div class="grid2">
-        ${campo("Fecha y hora de devolución", null)}
-        ${campo("Kilómetros de llegada", null)}
+        ${campo("Asegurador", p.aseguradora)}
+        ${campo("Nº de Contrato", p.numeroContratoSeguro)}
       </div>
-      <div class="campo">
-        <div class="et">Combustible</div>
-        ${combustible(null)}
+      <div class="grid2">
+        ${campo("Montante de las franquicias - Daños causados a terceros", eur(p.franquiciaTerceros))}
+        ${campo("Daños causados al vehículo", eur(p.franquiciaVehiculo))}
+        ${campo("Robo/Vandalismo", eur(p.franquiciaRobo))}
       </div>
-      ${campo("Kilómetros totales", null)}
-      <div class="campo">
-        <div class="et">Daños nuevos</div>
-        <div class="checks">
-          <span>(  ) Ninguno</span>
-          <span>(  ) Sí → describir y señalar en el croquis</span>
+      <div class="checks">
+        <span>Rescate de franquicias: ${p.rescateFranquicia ? "☑ SI" : "☐ SI"} ${!p.rescateFranquicia ? "☑ NO" : "☐ NO"}</span>
+        <span>Transferencia de seguro: ${p.transferenciaSeguro ? "☑ SI" : "☐ SI"} ${!p.transferenciaSeguro ? "☑ NO" : "☐ NO"}</span>
+      </div>
+      ${campo("Montante del rescate por día", eur(p.rescatePorDia))}
+
+      <div class="seccion">Vehículo en reparación</div>
+      <div class="grid2">
+        ${campo("Modelo", p.vehiculoReparacionMarcaModelo)}
+        ${campo("Nº de matrícula", p.vehiculoReparacionMatricula)}
+        ${campo("V.I.N.", p.vehiculoReparacionVIN)}
+      </div>
+      <div class="grid2">
+        ${campo("Nº de O.R.", p.numeroOrden)}
+        ${campo("Entrega prevista", fmtFecha(p.fechaPrevista))}
+      </div>
+
+      <div class="firmas-row">
+        <div class="firma-montiel">
+          <div class="tit">Declaro haber tenido conocimiento de las condiciones generales de protección indicadas al dorso del presente Contrato.</div>
+          <div class="lin">Realizado en _______ a ____/____/________ · Firma del cliente</div>
+        </div>
+        <div class="firma-montiel">
+          <div class="tit">El cliente (firma) · El concesionario (nombre y firma)</div>
+          <div class="lin">Fecha: ____/____/________</div>
+        </div>
+        <div class="firma-montiel">
+          <div class="tit">Al retorno, el cliente (firma)</div>
+          <div class="lin">Fecha: ____/____/________</div>
         </div>
       </div>
-      ${campo("Repercusión al cliente (daños / exceso km / combustible / limpieza)", null)}
 
-      <div class="seccion">Croquis del vehículo — señale los daños existentes en la entrega (E) y los nuevos en la devolución (N)</div>
-      <div class="croquis"></div>
-      <div style="font-size:9.5px;color:#555;margin-bottom:8px">Leyenda: E = existente en la entrega · N = nuevo en la devolución · (señalar con E1, E2… / N1, N2… junto a cada marca)</div>
-
-      <div class="seccion">Observaciones</div>
-      <div class="croquis" style="height:50px"></div>
-
-      <div class="seccion">Firmas de la devolución</div>
-      <div class="firmas">
-        ${firmaDevolucion("EL CLIENTE", "El cliente se hace de nuevo con su vehículo reparado.")}
-        ${firmaDevolucion("POR EL TALLER", "Conforme con el estado y kilometraje registrados.")}
+      <div class="nota-pie">
+        ATENCIÓN: Este contrato debe ir acompañado al vehículo durante toda la duración de la prestación.
       </div>
-      <div class="pie-ejemplar">Ejemplar del taller — archivo. Documento vinculante conforme al contrato de cesión.</div>
     </div>`;
 
-  abrirVentana(
-    `Parte cesión ${p.matricula ?? ""}`,
-    `<div class="contrato">${caraA}</div><div class="salto-pagina"></div><div class="contrato">${caraB}</div>`
-  );
+  abrirVentana(`Contrato cortesía ${p.matricula ?? ""}`, cuerpo);
 }
 
 // Documento comercial: factura/albarán/presupuesto/pedido (venta o compra).

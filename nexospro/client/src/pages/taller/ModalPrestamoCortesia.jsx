@@ -17,13 +17,31 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
     clienteNombre: inicial?.clienteNombre ?? "",
     clienteNIF: "",
     clienteDireccion: "",
+    clienteFechaNacimiento: "",
+    clienteLugarNacimiento: "",
     telefono: inicial?.telefono ?? "",
+    telefonoTrabajo: "",
+    permisoConducirNumero: "",
+    permisoConducirExpedicion: "",
+    permisoConducirLugar: "",
+    otroConductor: "",
     ordenId: "",
     vehiculoReparacionMatricula: "",
     vehiculoReparacionMarcaModelo: "",
+    vehiculoReparacionVIN: "",
     fechaPrevista: inicial?.fechaPrevista ?? "",
     kmSalida: "",
     combustibleSalida: "",
+    vinCortesia: "",
+    aseguradora: "",
+    numeroContratoSeguro: "",
+    franquiciaTerceros: "",
+    franquiciaVehiculo: "",
+    franquiciaRobo: "",
+    rescateFranquicia: false,
+    transferenciaSeguro: false,
+    rescatePorDia: "",
+    participacionForfaitDiaria: "",
     kmMaximoDia: "",
     kmMaximoTotal: "",
     importeExcesoKm: "",
@@ -100,15 +118,33 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
           clienteNombre: form.clienteNombre,
           clienteNIF: form.clienteNIF || undefined,
           clienteDireccion: form.clienteDireccion || undefined,
+          clienteFechaNacimiento: form.clienteFechaNacimiento || undefined,
+          clienteLugarNacimiento: form.clienteLugarNacimiento || undefined,
           telefono: form.telefono || undefined,
+          telefonoTrabajo: form.telefonoTrabajo || undefined,
+          permisoConducirNumero: form.permisoConducirNumero || undefined,
+          permisoConducirExpedicion: form.permisoConducirExpedicion || undefined,
+          permisoConducirLugar: form.permisoConducirLugar || undefined,
+          otroConductor: form.otroConductor || undefined,
           ordenId: form.ordenId || undefined,
           numeroOrden: orden?.numero,
           citaId: inicial?.citaId || undefined,
           vehiculoReparacionMatricula: form.vehiculoReparacionMatricula || undefined,
           vehiculoReparacionMarcaModelo: form.vehiculoReparacionMarcaModelo || undefined,
+          vehiculoReparacionVIN: form.vehiculoReparacionVIN || undefined,
           fechaPrevista: form.fechaPrevista,
           kmSalida: form.kmSalida || undefined,
           combustibleSalida: form.combustibleSalida || undefined,
+          vinCortesia: form.vinCortesia || undefined,
+          aseguradora: form.aseguradora || undefined,
+          numeroContratoSeguro: form.numeroContratoSeguro || undefined,
+          franquiciaTerceros: form.franquiciaTerceros || undefined,
+          franquiciaVehiculo: form.franquiciaVehiculo || undefined,
+          franquiciaRobo: form.franquiciaRobo || undefined,
+          rescateFranquicia: form.rescateFranquicia || undefined,
+          transferenciaSeguro: form.transferenciaSeguro || undefined,
+          rescatePorDia: form.rescatePorDia || undefined,
+          participacionForfaitDiaria: form.participacionForfaitDiaria || undefined,
           kmMaximoDia: form.kmMaximoDia || undefined,
           kmMaximoTotal: form.kmMaximoTotal || undefined,
           importeExcesoKm: form.importeExcesoKm || undefined,
@@ -127,9 +163,9 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">Nuevo préstamo de cortesía</h2>
-        <form onSubmit={guardar} className="space-y-3">
+        <form onSubmit={guardar} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-400 block mb-1">Vehículo de cortesía *</label>
@@ -157,6 +193,10 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
                 ))}
               </select>
             </div>
+          </div>
+
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 pt-1">Usuario / conductor</p>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-400 block mb-1">Cliente *</label>
               <BuscadorEntidad
@@ -180,121 +220,146 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
               />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">DNI/NIF cliente</label>
-              <input
-                className={campo}
-                value={form.clienteNIF}
-                onChange={(e) => actualizar("clienteNIF", e.target.value)}
-                placeholder="12345678A / B12345678"
-              />
+              <label className="text-sm text-slate-400 block mb-1">DNI/NIF</label>
+              <input className={campo} value={form.clienteNIF} onChange={(e) => actualizar("clienteNIF", e.target.value)} placeholder="12345678A / B12345678" />
             </div>
             <div className="col-span-2">
-              <label className="text-sm text-slate-400 block mb-1">Dirección cliente</label>
-              <input
-                className={campo}
-                value={form.clienteDireccion}
-                onChange={(e) => actualizar("clienteDireccion", e.target.value)}
-                placeholder="Calle, ciudad, CP…"
-              />
+              <label className="text-sm text-slate-400 block mb-1">Dirección</label>
+              <input className={campo} value={form.clienteDireccion} onChange={(e) => actualizar("clienteDireccion", e.target.value)} placeholder="Calle, ciudad, CP…" />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
-              <input
-                className={campo}
-                value={form.telefono}
-                onChange={(e) => actualizar("telefono", e.target.value)}
-              />
+              <label className="text-sm text-slate-400 block mb-1">Fecha de nacimiento</label>
+              <input type="date" className={campo} value={form.clienteFechaNacimiento} onChange={(e) => actualizar("clienteFechaNacimiento", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Lugar de nacimiento</label>
+              <input className={campo} value={form.clienteLugarNacimiento} onChange={(e) => actualizar("clienteLugarNacimiento", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Móvil / particular</label>
+              <input className={campo} value={form.telefono} onChange={(e) => actualizar("telefono", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Teléfono trabajo</label>
+              <input className={campo} value={form.telefonoTrabajo} onChange={(e) => actualizar("telefonoTrabajo", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Permiso de conducir nº</label>
+              <input className={campo} value={form.permisoConducirNumero} onChange={(e) => actualizar("permisoConducirNumero", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Expedido en / fecha</label>
+              <div className="flex gap-2">
+                <input type="date" className={campo} value={form.permisoConducirExpedicion} onChange={(e) => actualizar("permisoConducirExpedicion", e.target.value)} />
+                <input className={campo} value={form.permisoConducirLugar} onChange={(e) => actualizar("permisoConducirLugar", e.target.value)} placeholder="Lugar" />
+              </div>
+            </div>
+            <div className="col-span-2">
+              <label className="text-sm text-slate-400 block mb-1">Otros conductores admitidos</label>
+              <input className={campo} value={form.otroConductor} onChange={(e) => actualizar("otroConductor", e.target.value)} placeholder="Nombre y permiso de otros conductores…" />
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 pt-1">Vehículo de cortesía</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Marca</label>
+              <input className={campo} value={form.vehiculoId ? cortesia.find((v) => String(v._id) === String(form.vehiculoId))?.marca || "" : ""} readOnly placeholder="Se rellena al elegir vehículo" />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Modelo</label>
+              <input className={campo} value={form.vehiculoId ? cortesia.find((v) => String(v._id) === String(form.vehiculoId))?.modelo || "" : ""} readOnly placeholder="Se rellena al elegir vehículo" />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Matrícula</label>
+              <input className={campo} value={form.vehiculoId ? cortesia.find((v) => String(v._id) === String(form.vehiculoId))?.matricula || "" : ""} readOnly placeholder="Se rellena al elegir vehículo" />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">V.I.N.</label>
+              <input className={campo} value={form.vinCortesia} onChange={(e) => actualizar("vinCortesia", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Participación forfait diaria (€)</label>
+              <input type="number" min="0" step="0.01" className={campo} value={form.participacionForfaitDiaria} onChange={(e) => actualizar("participacionForfaitDiaria", e.target.value)} />
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Devolución prevista *</label>
-              <input
-                type="date"
-                className={campo}
-                value={form.fechaPrevista}
-                onChange={(e) => actualizar("fechaPrevista", e.target.value)}
-                min={aFechaInput(new Date())}
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Vehículo en reparación (matrícula)</label>
-              <input
-                className={campo}
-                value={form.vehiculoReparacionMatricula}
-                onChange={(e) => actualizar("vehiculoReparacionMatricula", e.target.value)}
-                placeholder="Matrícula del coche del cliente"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Marca / modelo</label>
-              <input
-                className={campo}
-                value={form.vehiculoReparacionMarcaModelo}
-                onChange={(e) => actualizar("vehiculoReparacionMarcaModelo", e.target.value)}
-                placeholder="Ej. Seat Ibiza"
-              />
+              <input type="date" className={campo} value={form.fechaPrevista} onChange={(e) => actualizar("fechaPrevista", e.target.value)} min={aFechaInput(new Date())} required />
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">KM salida</label>
-              <input
-                type="number"
-                min="0"
-                className={campo}
-                value={form.kmSalida}
-                onChange={(e) => actualizar("kmSalida", e.target.value)}
-              />
+              <input type="number" min="0" className={campo} value={form.kmSalida} onChange={(e) => actualizar("kmSalida", e.target.value)} />
             </div>
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Combustible salida (1/8 a 8/8)</label>
-              <input
-                type="number"
-                min="0"
-                max="8"
-                className={campo}
-                value={form.combustibleSalida}
-                onChange={(e) => actualizar("combustibleSalida", e.target.value)}
-                placeholder="8"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">KM máx./día</label>
-              <input
-                type="number"
-                min="0"
-                className={campo}
-                value={form.kmMaximoDia}
-                onChange={(e) => actualizar("kmMaximoDia", e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">KM máx. total</label>
-              <input
-                type="number"
-                min="0"
-                className={campo}
-                value={form.kmMaximoTotal}
-                onChange={(e) => actualizar("kmMaximoTotal", e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Exceso km (€/km)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                className={campo}
-                value={form.importeExcesoKm}
-                onChange={(e) => actualizar("importeExcesoKm", e.target.value)}
-              />
+              <label className="text-sm text-slate-400 block mb-1">Combustible salida (0/8 a 8/8)</label>
+              <input type="range" min="0" max="8" step="1" className="w-full" value={form.combustibleSalida || 0} onChange={(e) => actualizar("combustibleSalida", e.target.value)} />
+              <div className="text-xs text-slate-400 text-center">{form.combustibleSalida || 0}/8</div>
             </div>
           </div>
+
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 pt-1">Seguro del vehículo de cortesía</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Asegurador</label>
+              <input className={campo} value={form.aseguradora} onChange={(e) => actualizar("aseguradora", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Nº de contrato</label>
+              <input className={campo} value={form.numeroContratoSeguro} onChange={(e) => actualizar("numeroContratoSeguro", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Franquicia daños a terceros (€)</label>
+              <input type="number" min="0" step="0.01" className={campo} value={form.franquiciaTerceros} onChange={(e) => actualizar("franquiciaTerceros", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Franquicia daños al vehículo (€)</label>
+              <input type="number" min="0" step="0.01" className={campo} value={form.franquiciaVehiculo} onChange={(e) => actualizar("franquiciaVehiculo", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Franquicia robo/vandalismo (€)</label>
+              <input type="number" min="0" step="0.01" className={campo} value={form.franquiciaRobo} onChange={(e) => actualizar("franquiciaRobo", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Rescate por día (€)</label>
+              <input type="number" min="0" step="0.01" className={campo} value={form.rescatePorDia} onChange={(e) => actualizar("rescatePorDia", e.target.value)} />
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={form.rescateFranquicia} onChange={(e) => actualizar("rescateFranquicia", e.target.checked)} /> Rescate de franquicias
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input type="checkbox" checked={form.transferenciaSeguro} onChange={(e) => actualizar("transferenciaSeguro", e.target.checked)} /> Transferencia de seguro
+              </label>
+            </div>
+          </div>
+
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 pt-1">Vehículo en reparación</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Matrícula</label>
+              <input className={campo} value={form.vehiculoReparacionMatricula} onChange={(e) => actualizar("vehiculoReparacionMatricula", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Modelo</label>
+              <input className={campo} value={form.vehiculoReparacionMarcaModelo} onChange={(e) => actualizar("vehiculoReparacionMarcaModelo", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">V.I.N.</label>
+              <input className={campo} value={form.vehiculoReparacionVIN} onChange={(e) => actualizar("vehiculoReparacionVIN", e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Nº O.R.</label>
+              <input className={campo} value={form.numeroOrden || ""} readOnly placeholder="Se rellena desde la orden" />
+            </div>
+          </div>
+
           <div>
-            <label className="text-sm text-slate-400 block mb-1">Notas / daños preexistentes</label>
+            <label className="text-sm text-slate-400 block mb-1">Observaciones / daños preexistentes</label>
             <input
               className={campo}
               value={form.notas}
               onChange={(e) => actualizar("notas", e.target.value)}
-              placeholder="Depósito lleno, rayón puerta derecha…"
+              placeholder="Depósito, rayones, golpes…"
             />
           </div>
 
