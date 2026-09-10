@@ -84,6 +84,47 @@ function bloqueContraparte(quien, c) {
     </div>`;
 }
 
+// Contrato de préstamo de un coche de cortesía: datos del vehículo y del
+// cliente, condiciones básicas y hueco para la firma de ambas partes. Se
+// imprime en dos copias (una para el taller y otra para el cliente).
+export async function imprimirContratoCortesia(p) {
+  const emp = await empresa();
+  const fmt = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "—");
+  const datos = [
+    ["Vehículo de cortesía", p.matricula],
+    ["Cliente", p.clienteNombre],
+    ["Teléfono", p.telefono],
+    p.numeroOrden ? ["Orden relacionada", p.numeroOrden] : null,
+    ["Fecha de salida", fmt(p.fechaSalida)],
+    ["Devolución prevista", fmt(p.fechaPrevista)],
+    p.kmSalida != null ? ["Kilómetros a la salida", p.kmSalida.toLocaleString("es-ES")] : null,
+  ].filter(Boolean).map(([k, v]) => `<div><b>${esc(k)}:</b> ${esc(v)}</div>`).join("");
+  abrirVentana(
+    `Contrato cortesía ${p.matricula ?? ""}`,
+    `${cabecera(emp, "Contrato de préstamo de vehículo de cortesía", p.matricula, p.fechaSalida)}
+     <div class="bloque">
+       <div class="quien">Datos del préstamo</div>
+       <div class="det" style="line-height:1.7">${datos}</div>
+     </div>
+     <div class="notas" style="font-size:12px;line-height:1.6">
+       <b>Condiciones del préstamo.</b> El cliente recibe el vehículo de cortesía descrito en el estado
+       indicado y se compromete a devolverlo en la fecha prevista, en las mismas condiciones y con el
+       mismo nivel de combustible. Cualquier daño, multa o desperfecto producido durante el préstamo
+       será de su responsabilidad. El vehículo queda asegurado conforme a la póliza del taller; el
+       cliente declara ser mayor de edad y estar en posesión de permiso de conducir vigente.
+       ${p.notas ? `<br><br><b>Observaciones:</b> ${esc(p.notas)}` : ""}
+     </div>
+     <div style="display:flex;justify-content:space-between;gap:32px;margin-top:48px">
+       <div style="flex:1;text-align:center">
+         <div style="border-top:1px solid #333;padding-top:6px">Firma del taller</div>
+       </div>
+       <div style="flex:1;text-align:center">
+         <div style="border-top:1px solid #333;padding-top:6px">Firma del cliente</div>
+       </div>
+     </div>`
+  );
+}
+
 // Documento comercial: factura/albarán/presupuesto/pedido (venta o compra).
 // firma: { nombre, dni, imagen, fecha } → añade el bloque de entrega firmada.
 export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quienContraparte, lineas = [], notas, firma }) {

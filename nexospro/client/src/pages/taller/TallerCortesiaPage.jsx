@@ -3,7 +3,7 @@ import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { IconImprimir } from "../../components/icons.jsx";
-import { imprimirFicha } from "../../utils/imprimir.js";
+import { imprimirContratoCortesia } from "../../utils/imprimir.js";
 
 const campo = "input w-full";
 const fmtFecha = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "—");
@@ -118,24 +118,8 @@ export default function TallerCortesiaPage() {
                       <td><Badge tono={est.tono}>{est.nombre}</Badge></td>
                       <td className="text-right whitespace-nowrap">
                         <button
-                          onClick={() =>
-                            imprimirFicha({
-                              titulo: "Préstamo de cortesía",
-                              subtitulo: p.matricula,
-                              campos: [
-                                ["Vehículo de cortesía", p.matricula],
-                                ["Cliente", p.clienteNombre],
-                                ["Orden relacionada", p.numeroOrden],
-                                ["Fecha de salida", fmtFecha(p.fechaSalida)],
-                                ["Devolución prevista", fmtFecha(p.fechaPrevista)],
-                                ["Devuelto el", fmtFecha(p.fechaDevolucion)],
-                                ["KM salida", p.kmSalida != null ? p.kmSalida.toLocaleString("es-ES") : undefined],
-                                ["KM entrada", p.kmEntrada != null ? p.kmEntrada.toLocaleString("es-ES") : undefined],
-                                ["Estado", est.nombre],
-                              ],
-                            })
-                          }
-                          title="Imprimir contrato de préstamo"
+                          onClick={() => imprimirContratoCortesia(p)}
+                          title="Imprimir contrato de préstamo para firmar"
                           className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors align-middle mr-2"
                         >
                           <IconImprimir />
