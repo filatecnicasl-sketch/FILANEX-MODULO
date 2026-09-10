@@ -70,10 +70,10 @@ y desplegado (commit `1759ab0`, 10/09 ~04:10):
 ## Nuevas peticiones de la clienta (nota manuscrita, 10/09)
 
 - [x] **Cortesía — contrato imprimible**: botón imprimir en Taller → Vehículos
-      de cortesía genera el parte de cesión con cara A (entrega: datos del
-      taller/cliente, vehículo en reparación, vehículo de cortesía, combustible,
-      condiciones y firmas) y cara B (devolución: km, combustible, croquis,
-      daños, firmas). Desplegado (commit `256ef7b`).
+      de cortesía genera el contrato al formato de «Talleres J. Montiel»
+      (usuario, vehículo de sustitución con tabla salida/retorno, seguro,
+      vehículo en reparación, estado del vehículo y firmas). Desplegado
+      (commit `35f0f48`).
 - [ ] **Valoraciones — ver presupuestos/peritaciones aportados**: confirmar
       con la clienta qué quiere exactamente (¿ver líneas del peritaje? ¿o
       adjuntar/ver un presupuesto asociado?). Pendiente de su respuesta.
