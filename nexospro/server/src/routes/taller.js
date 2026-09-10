@@ -889,7 +889,18 @@ router.post("/citas", async (req, res, next) => {
 
     let vehiculoId;
     if (req.body.matricula) {
-      const v = await Vehiculo.findOne({ matricula: req.body.matricula.toUpperCase().trim() }).lean();
+      const mat = req.body.matricula.toUpperCase().trim();
+      let v = await Vehiculo.findOne({ matricula: mat }).lean();
+      // Alta exprés: si no existe y traemos marca/modelo, se da de alta ya.
+      if (!v && (req.body.marca || req.body.modelo)) {
+        v = await Vehiculo.create({
+          matricula: mat,
+          marca: req.body.marca || undefined,
+          modelo: req.body.modelo || undefined,
+          cliente: req.body.cliente || undefined,
+          clienteNombre: req.body.clienteNombre || undefined,
+        });
+      }
       if (v) vehiculoId = v._id;
     }
 

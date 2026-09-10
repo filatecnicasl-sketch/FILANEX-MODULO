@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { ESTADOS_CITA, aFechaInput, tonoEstadoValoracion, nombreEstadoValoracion } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
-import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 
@@ -132,7 +131,6 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
   const [valoraciones, setValoraciones] = useState([]);
   const [prestamos, setPrestamos] = useState([]);
   const [prestamo, setPrestamo] = useState(null); // préstamo activo de cortesía
-  const [altaVehiculo, setAltaVehiculo] = useState(false);
   const [form, setForm] = useState({
     fecha: cita ? aFechaInput(cita.fecha) : fechaInicial,
     hora: cita?.hora ?? "07:00",
@@ -142,6 +140,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     telefono: cita?.telefono ?? "",
     whatsappAutorizado: cita?.whatsappAutorizado ?? false,
     matricula: cita?.matricula ?? "",
+    marca: "",
+    modelo: "",
     motivo: cita?.motivo ?? "",
     presupuesto: cita?.presupuesto ?? true,
     aseguradora: cita?.aseguradora?._id ?? cita?.aseguradora ?? "",
@@ -218,6 +218,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     setForm((f) => ({
       ...f,
       matricula: op.nombre,
+      marca: v?.marca ?? f.marca,
+      modelo: v?.modelo ?? f.modelo,
       cliente: f.cliente || cli?._id || "",
       clienteNombre: f.clienteNombre || v?.clienteNombre || f.clienteNombre,
       telefono: f.telefono || cli?.telefono || f.telefono,
@@ -231,25 +233,6 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
       aseguradora: op?._id ?? "",
       aseguradoraNombre: op?.nombre ?? "",
     }));
-  }
-
-  // Alta rápida del vehículo sin salir de la cita (matrícula ya escrita).
-  async function crearVehiculoRapido(datos) {
-    const r = await fetch("/api/taller/vehiculos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        matricula: form.matricula,
-        marca: datos.marca || undefined,
-        modelo: datos.modelo || undefined,
-        cliente: form.cliente || undefined,
-        clienteNombre: form.clienteNombre || undefined,
-      }),
-    });
-    const creado = await r.json();
-    if (!r.ok) throw new Error(creado.error || "No se pudo crear el vehículo");
-    setVehiculos((l) => [...l, creado]);
-    setAltaVehiculo(false);
   }
 
   const matriculaExiste = vehiculos.some((v) => v.matricula?.toUpperCase() === form.matricula?.toUpperCase());
@@ -279,6 +262,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           duracion,
           horaFin: undefined,
           matricula: form.matricula || undefined,
+          marca: !matriculaExiste ? (form.marca || undefined) : undefined,
+          modelo: !matriculaExiste ? (form.modelo || undefined) : undefined,
           presupuesto: Boolean(form.presupuesto),
           aseguradora: form.aseguradora || null,
           cortesia: Boolean(form.cortesia),
@@ -423,22 +408,9 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
                 onElegir={elegirCliente}
                 placeholder="Buscar en la cartera o escribir…"
               />
-              <div className="mt-1">
-                <AltaRapidaCliente
-                  nombreInicial={form.clienteNombre}
-                  telefonoInicial={form.telefono}
-                  onCreado={(c) => {
-                    setClientes((l) => [c, ...l]);
-                    setForm((f) => ({
-                      ...f,
-                      cliente: c._id,
-                      clienteNombre: c.nombre,
-                      telefono: c.telefono ?? f.telefono,
-                      whatsappAutorizado: c.comunicaciones?.whatsapp?.autorizado ?? false,
-                    }));
-                  }}
-                />
-              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                Cliente nuevo: se da de alta en Clientes o en Recepción rápida (evita duplicados).
+              </p>
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
@@ -455,25 +427,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
                 valorTexto={form.matricula}
                 onTexto={(t) => actualizar("matricula", t.toUpperCase())}
                 onElegir={elegirVehiculo}
-                placeholder="Buscar por matrícula…"
+                placeholder="Buscar por matrícula o escribir nueva…"
               />
-              {form.matricula && !matriculaExiste && !altaVehiculo && (
-                <button
-                  type="button"
-                  onClick={() => setAltaVehiculo(true)}
-                  className="mt-1 text-xs font-semibold text-teal-600 hover:text-teal-500"
-                  title="Dar de alta este vehículo en el taller sin salir de la cita"
-                >
-                  + Alta de vehículo
-                </button>
-              )}
-              {altaVehiculo && (
-                <AltaRapidaVehiculo
-                  matricula={form.matricula}
-                  onCrear={crearVehiculoRapido}
-                  onCancelar={() => setAltaVehiculo(false)}
-                />
-              )}
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Estado</label>
@@ -488,6 +443,28 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
               </select>
             </div>
           </div>
+          {/* Matrícula nueva: marca y modelo para darla de alta al guardar */}
+          {form.matricula && !matriculaExiste && (
+            <div className="rounded-xl border border-teal-300 bg-teal-50 p-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-teal-700">
+                Vehículo nuevo — se dará de alta al guardar
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className={campo}
+                  value={form.marca}
+                  onChange={(e) => actualizar("marca", e.target.value)}
+                  placeholder="Marca"
+                />
+                <input
+                  className={campo}
+                  value={form.modelo}
+                  onChange={(e) => actualizar("modelo", e.target.value)}
+                  placeholder="Modelo"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Compañía de seguros (si la reparación va por aseguradora) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -649,59 +626,5 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
       />
     )}
     </>
-  );
-}
-
-// Alta mínima del vehículo desde la cita: marca y modelo; la matrícula y el
-// cliente ya están en el formulario de la cita. El resto de la ficha (bastidor,
-// combustible…) se completa después desde Taller → Vehículos.
-function AltaRapidaVehiculo({ matricula, onCrear, onCancelar }) {
-  const [marca, setMarca] = useState("");
-  const [modelo, setModelo] = useState("");
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState(null);
-
-  async function crear() {
-    setGuardando(true);
-    setError(null);
-    try {
-      await onCrear({ marca: marca.trim(), modelo: modelo.trim() });
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  return (
-    <div className="mt-2 rounded-lg border border-slate-700 bg-slate-900/60 p-3 space-y-2">
-      <p className="text-xs text-slate-400">
-        Alta rápida de <b className="text-slate-200">{matricula}</b>. Bastidor y demás datos, luego en Vehículos.
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <input
-          className="input w-full"
-          value={marca}
-          onChange={(e) => setMarca(e.target.value)}
-          placeholder="Marca"
-          autoFocus
-        />
-        <input
-          className="input w-full"
-          value={modelo}
-          onChange={(e) => setModelo(e.target.value)}
-          placeholder="Modelo"
-        />
-      </div>
-      {error && <p className="text-xs text-rose-400">{error}</p>}
-      <div className="flex gap-2">
-        <button type="button" onClick={crear} disabled={guardando} className="btn-primary text-xs px-3 py-1.5">
-          {guardando ? "Creando…" : "Crear vehículo"}
-        </button>
-        <button type="button" onClick={onCancelar} className="btn-ghost text-xs px-3 py-1.5">
-          Cancelar
-        </button>
-      </div>
-    </div>
   );
 }
