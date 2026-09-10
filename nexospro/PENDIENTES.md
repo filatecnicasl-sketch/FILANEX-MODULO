@@ -54,8 +54,8 @@ y desplegado (commit `1759ab0`, 10/09 ~04:10):
 
 - [x] **Valoraciones en la cita**: si el vehículo tiene valoraciones, salen
       listadas en el modal de la cita (número, compañía, estado, total).
-- [x] **Alta de vehículo desde la cita**: botón "+ Alta de vehículo" bajo la
-      matrícula cuando no existe; pide solo marca y modelo.
+- [x] **Alta de vehículo desde la cita**: casilla "Vehículo nuevo" con marca
+      y modelo; se da de alta al guardar la cita.
 - [x] **Vehículo de cortesía**: checkbox "Reservar cortesía" en la cita con
       asignación de coche libre, enlace "Registrar préstamo" (queda ligado a
       la cita), y aviso de cortesía activa. En Taller → Vehículos se ve el
@@ -66,6 +66,19 @@ y desplegado (commit `1759ab0`, 10/09 ~04:10):
       vista Agenda del calendario como en la lista de búsqueda.
 - [x] **Selector de aseguradora al crear cita**: campo "Por compañía de
       seguros" con buscador (vacío = particular).
+
+## Nuevas peticiones de la clienta (nota manuscrita, 10/09)
+
+- [x] **Cortesía — contrato imprimible**: botón imprimir en Taller → Vehículos
+      de cortesía genera el contrato con datos, condiciones y hueco de firma
+      (taller y cliente). Desplegado (commit `f370830`).
+- [ ] **Valoraciones — ver presupuestos/peritaciones aportados**: confirmar
+      con la clienta qué quiere exactamente (¿ver líneas del peritaje? ¿o
+      adjuntar/ver un presupuesto asociado?). Pendiente de su respuesta.
+- [ ] **Normalizar matrículas en el resto de empresas**: el script
+      `normalizar-matriculas.mjs` ya se ejecutó en `filanex_demomontiel`.
+      Falta ejecutarlo en `filanex_montiel`, `filanex_gasen` y
+      `filanex_demofilanex` si también tienen datos con espacios.
 
 ## Cuanto antes (a raíz de la caída del 31/08)
 
