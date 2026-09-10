@@ -1,26 +1,32 @@
 import { useState } from "react";
 
-// Alta rápida de cliente desde una cita o evento de agenda.
-// Solo pide nombre y teléfono: el resto de la ficha (NIF, dirección, IBAN…)
-// se completa después desde Clientes. Así apuntar una cita no obliga a
-// rellenar todos los datos fiscales en el momento.
+// Alta de cliente desde una cita o evento, con casilla "Nuevo".
+// El alta solo se hace marcando la casilla, y exige un dato identificativo
+// (CIF/NIF) para no crear fichas vacías o duplicadas. El resto de la ficha
+// (dirección, IBAN…) se completa después desde Clientes.
 export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial = "", onCreado }) {
   const [abierto, setAbierto] = useState(false);
   const [nombre, setNombre] = useState(nombreInicial);
   const [telefono, setTelefono] = useState(telefonoInicial);
+  const [nif, setNif] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
-  function abrir() {
+  function alternar() {
     setNombre(nombreInicial);
     setTelefono(telefonoInicial);
+    setNif("");
     setError(null);
-    setAbierto(true);
+    setAbierto((a) => !a);
   }
 
   async function crear() {
     if (!nombre.trim()) {
-      setError("Escribe al menos el nombre");
+      setError("Escribe el nombre");
+      return;
+    }
+    if (!nif.trim()) {
+      setError("Para dar de alta el cliente hay que indicar el CIF/NIF");
       return;
     }
     setGuardando(true);
@@ -29,7 +35,7 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
       const r = await fetch("/api/clientes/rapido", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: nombre.trim(), telefono: telefono.trim() }),
+        body: JSON.stringify({ nombre: nombre.trim(), telefono: telefono.trim(), nif: nif.trim(), exigirNif: true }),
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo crear el cliente");
@@ -42,46 +48,46 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
     }
   }
 
-  if (!abierto) {
-    return (
-      <button
-        type="button"
-        onClick={abrir}
-        className="text-xs font-semibold text-teal-300 hover:text-teal-200"
-        title="Crear la ficha con solo el nombre y el teléfono; el NIF se completa luego"
-      >
-        + Alta rápida
-      </button>
-    );
-  }
-
   return (
-    <div className="mt-2 rounded-lg border border-slate-700 bg-slate-900/60 p-3 space-y-2">
-      <p className="text-xs text-slate-400">
-        Ficha mínima: nombre y teléfono. El NIF queda pendiente y se completa desde Clientes.
-      </p>
-      <input
-        className="input w-full"
-        value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
-        placeholder="Nombre del cliente *"
-        autoFocus
-      />
-      <input
-        className="input w-full"
-        value={telefono}
-        onChange={(e) => setTelefono(e.target.value)}
-        placeholder="Teléfono"
-      />
-      {error && <p className="text-xs text-rose-400">{error}</p>}
-      <div className="flex gap-2">
-        <button type="button" onClick={crear} disabled={guardando} className="btn-primary text-xs px-3 py-1.5">
-          {guardando ? "Creando…" : "Crear ficha"}
-        </button>
-        <button type="button" onClick={() => setAbierto(false)} className="btn-ghost text-xs px-3 py-1.5">
-          Cancelar
-        </button>
-      </div>
+    <div className="mt-1">
+      <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={abierto}
+          onChange={alternar}
+          className="accent-[#2ec4b6]"
+        />
+        Cliente nuevo (dar de alta ahora)
+      </label>
+      {abierto && (
+        <div className="mt-2 rounded-lg border border-teal-300 bg-teal-50 p-3 space-y-2">
+          <p className="text-xs text-teal-700">
+            El CIF/NIF es obligatorio para el alta. El resto de la ficha se completa desde Clientes.
+          </p>
+          <input
+            className="input w-full"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Nombre del cliente *"
+          />
+          <input
+            className="input w-full"
+            value={nif}
+            onChange={(e) => setNif(e.target.value.toUpperCase())}
+            placeholder="CIF / NIF *"
+          />
+          <input
+            className="input w-full"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+            placeholder="Teléfono"
+          />
+          {error && <p className="text-xs text-rose-600">{error}</p>}
+          <button type="button" onClick={crear} disabled={guardando} className="btn-primary text-xs px-3 py-1.5">
+            {guardando ? "Creando…" : "Dar de alta"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

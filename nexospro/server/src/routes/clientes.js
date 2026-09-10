@@ -88,6 +88,10 @@ router.post("/rapido", async (req, res, next) => {
     const telefono = (req.body?.telefono ?? "").trim() || undefined;
     const email = (req.body?.email ?? "").trim() || undefined;
     const nif = (req.body?.nif ?? "").trim() || undefined;
+    // Cuando el alta nace de una casilla "Nuevo", el NIF es obligatorio.
+    if (req.body?.exigirNif && !nif) {
+      return res.status(400).json({ error: "Para dar de alta el cliente hay que indicar el CIF/NIF" });
+    }
 
     // Si ya existe una ficha con ese NIF se devuelve en vez de duplicar.
     if (nif) {

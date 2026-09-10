@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ESTADOS_CITA, aFechaInput, tonoEstadoValoracion, nombreEstadoValoracion } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
+import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 
@@ -142,6 +143,7 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     matricula: cita?.matricula ?? "",
     marca: "",
     modelo: "",
+    vehiculoNuevo: false,
     motivo: cita?.motivo ?? "",
     presupuesto: cita?.presupuesto ?? true,
     aseguradora: cita?.aseguradora?._id ?? cita?.aseguradora ?? "",
@@ -262,8 +264,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           duracion,
           horaFin: undefined,
           matricula: form.matricula || undefined,
-          marca: !matriculaExiste ? (form.marca || undefined) : undefined,
-          modelo: !matriculaExiste ? (form.modelo || undefined) : undefined,
+          marca: form.vehiculoNuevo && !matriculaExiste ? (form.marca || undefined) : undefined,
+          modelo: form.vehiculoNuevo && !matriculaExiste ? (form.modelo || undefined) : undefined,
           presupuesto: Boolean(form.presupuesto),
           aseguradora: form.aseguradora || null,
           cortesia: Boolean(form.cortesia),
@@ -408,9 +410,20 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
                 onElegir={elegirCliente}
                 placeholder="Buscar en la cartera o escribir…"
               />
-              <p className="mt-1 text-xs text-slate-400">
-                Cliente nuevo: se da de alta en Clientes o en Recepción rápida (evita duplicados).
-              </p>
+              <AltaRapidaCliente
+                nombreInicial={form.clienteNombre}
+                telefonoInicial={form.telefono}
+                onCreado={(c) => {
+                  setClientes((l) => [c, ...l]);
+                  setForm((f) => ({
+                    ...f,
+                    cliente: c._id,
+                    clienteNombre: c.nombre,
+                    telefono: c.telefono ?? f.telefono,
+                    whatsappAutorizado: c.comunicaciones?.whatsapp?.autorizado ?? false,
+                  }));
+                }}
+              />
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
@@ -443,26 +456,39 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
               </select>
             </div>
           </div>
-          {/* Matrícula nueva: marca y modelo para darla de alta al guardar */}
+          {/* Casilla "Nuevo" en vehículo: marca y modelo para darlo de alta */}
           {form.matricula && !matriculaExiste && (
-            <div className="rounded-xl border border-teal-300 bg-teal-50 p-3 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-teal-700">
-                Vehículo nuevo — se dará de alta al guardar
-              </p>
-              <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
                 <input
-                  className={campo}
-                  value={form.marca}
-                  onChange={(e) => actualizar("marca", e.target.value)}
-                  placeholder="Marca"
+                  type="checkbox"
+                  checked={form.vehiculoNuevo}
+                  onChange={(e) => actualizar("vehiculoNuevo", e.target.checked)}
+                  className="accent-[#2ec4b6]"
                 />
-                <input
-                  className={campo}
-                  value={form.modelo}
-                  onChange={(e) => actualizar("modelo", e.target.value)}
-                  placeholder="Modelo"
-                />
-              </div>
+                Vehículo nuevo (dar de alta ahora)
+              </label>
+              {form.vehiculoNuevo && (
+                <div className="mt-2 rounded-xl border border-teal-300 bg-teal-50 p-3 space-y-2">
+                  <p className="text-xs text-teal-700">
+                    Se dará de alta con esta matrícula al guardar la cita.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      className={campo}
+                      value={form.marca}
+                      onChange={(e) => actualizar("marca", e.target.value)}
+                      placeholder="Marca"
+                    />
+                    <input
+                      className={campo}
+                      value={form.modelo}
+                      onChange={(e) => actualizar("modelo", e.target.value)}
+                      placeholder="Modelo"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
