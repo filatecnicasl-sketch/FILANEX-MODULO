@@ -461,7 +461,7 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
                 <button
                   type="button"
                   onClick={() => setAltaVehiculo(true)}
-                  className="mt-1 text-xs font-semibold text-teal-300 hover:text-teal-200"
+                  className="mt-1 text-xs font-semibold text-teal-600 hover:text-teal-500"
                   title="Dar de alta este vehículo en el taller sin salir de la cita"
                 >
                   + Alta de vehículo
