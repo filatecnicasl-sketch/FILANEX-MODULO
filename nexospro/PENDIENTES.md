@@ -2,6 +2,15 @@
 
 Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
+## Recordatorios de estilo (no olvidar)
+
+- **Los modales y bloques de la app son de tema CLARO.** Nunca usar fondos
+  oscuros (`bg-slate-800`, `bg-slate-700`) ni texto oscuro sobre ellos dentro
+  de un modal: no se ve. Usar fondos claros (`bg-slate-50`, `bg-white`) y texto
+  `text-slate-700/800`, y para estados el pill claro tipo
+  `bg-<color>-100 text-<color>-700 border-<color>-200` (igual que en
+  Taller → Valoraciones).
+
 ## Estado del equipo y del repo (10/09/2026)
 
 - El ordenador anterior se estropeó. El proyecto vive ahora en
