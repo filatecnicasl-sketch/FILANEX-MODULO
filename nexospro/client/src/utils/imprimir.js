@@ -63,6 +63,8 @@ const ESTILOS = `
   .contrato .table-km { font-size:8px; }
   .contrato .table-km th { background:#e6e6e6; font-size:7.5px; padding:2px; }
   .contrato .table-km td { height:42px; padding:2px; }
+  .contrato .car-sil { display:inline-block; }
+  .contrato .car-sil svg { display:block; margin:0 auto; }
   .contrato .checks { font-size:8px; }
   .contrato .firma-box { border:1.5px solid #000; height:50px; padding:2px; text-align:center; position:relative; }
   .contrato .firma-box .tit { font-size:7px; font-weight:700; }
@@ -159,20 +161,51 @@ export async function imprimirContratoCortesia(p) {
       </svg>`;
   };
 
-  const cocheSvg = (orientacion) => {
-    if (orientacion === "lateral") {
-      return `<svg width="90" height="30" viewBox="0 0 90 30" style="stroke:#000;fill:none;stroke-width:1">
-        <rect x="4" y="7" width="82" height="14" rx="3" />
-        <circle cx="19" cy="21" r="4" />
-        <circle cx="71" cy="21" r="4" />
-        <rect x="30" y="9" width="30" height="8" rx="1" fill="#fff" />
+  const cocheSvg = (vista) => {
+    if (vista === "lateral") {
+      return `<svg width="105" height="34" viewBox="0 0 105 34" style="stroke:#000;fill:none;stroke-width:1">
+        <path d="M4,20 Q4,14 12,13 L30,12 Q38,5 55,5 Q72,5 80,12 L94,14 Q101,15 101,20 L101,23 Q101,26 97,26 L90,26 Q90,30 82,30 Q74,30 74,26 L33,26 Q33,30 25,30 Q17,30 17,26 L8,26 Q4,26 4,23 Z" />
+        <circle cx="25" cy="26" r="5" />
+        <circle cx="82" cy="26" r="5" />
+        <path d="M12,13 L22,13 L28,18 L4,18 Z" />
+        <path d="M36,12 L68,12 L68,18 L32,18 Z" />
+        <path d="M72,12 L90,15 L90,18 L72,18 Z" />
+        <rect x="45" y="13" width="12" height="5" rx="1" />
+        <line x1="52" y1="5" x2="52" y2="18" />
       </svg>`;
     }
-    return `<svg width="45" height="38" viewBox="0 0 45 38" style="stroke:#000;fill:none;stroke-width:1">
-      <rect x="8" y="6" width="29" height="22" rx="3" />
-      <circle cx="15" cy="28" r="3.5" />
-      <circle cx="30" cy="28" r="3.5" />
-      <rect x="14" y="9" width="17" height="9" rx="1" fill="#fff" />
+    if (vista === "cenital") {
+      return `<svg width="105" height="42" viewBox="0 0 105 42" style="stroke:#000;fill:none;stroke-width:1">
+        <path d="M10,8 Q25,3 52,3 Q79,3 95,8 Q102,12 102,21 Q102,30 95,34 Q79,39 52,39 Q25,39 10,34 Q3,30 3,21 Q3,12 10,8 Z" />
+        <path d="M15,10 Q25,8 40,8 L40,34 Q25,34 15,32 Q10,28 10,21 Q10,14 15,10 Z" />
+        <path d="M65,8 Q80,8 90,10 Q95,14 95,21 Q95,28 90,32 Q80,34 65,34 Z" />
+        <path d="M42,8 L63,8 L63,34 L42,34 Z" />
+        <path d="M30,8 Q38,3 52,3 Q66,3 74,8" />
+        <path d="M30,34 Q38,39 52,39 Q66,39 74,34" />
+        <ellipse cx="18" cy="21" rx="4" ry="6" />
+        <ellipse cx="86" cy="21" rx="4" ry="6" />
+      </svg>`;
+    }
+    if (vista === "frontal") {
+      return `<svg width="48" height="42" viewBox="0 0 48 42" style="stroke:#000;fill:none;stroke-width:1">
+        <path d="M8,16 Q10,5 24,5 Q38,5 40,16 L42,26 Q43,30 40,32 L40,38 L33,38 L33,33 L15,33 L15,38 L8,38 L8,32 Q5,30 6,26 Z" />
+        <path d="M8,16 L40,16 L40,22 L8,22 Z" />
+        <path d="M11,22 L18,22 L18,30 L11,30 Z" />
+        <path d="M30,22 L37,22 L37,30 L30,30 Z" />
+        <path d="M13,10 Q16,8 24,8 Q32,8 35,10" />
+        <ellipse cx="6" cy="21" rx="2" ry="4" />
+        <ellipse cx="42" cy="21" rx="2" ry="4" />
+      </svg>`;
+    }
+    // trasera
+    return `<svg width="48" height="42" viewBox="0 0 48 42" style="stroke:#000;fill:none;stroke-width:1">
+      <path d="M6,18 Q8,5 24,5 Q40,5 42,18 L43,26 Q44,30 41,32 L41,38 L34,38 L34,33 L14,33 L14,38 L7,38 L7,32 Q4,30 5,26 Z" />
+      <path d="M6,18 L42,18 L42,24 L6,24 Z" />
+      <rect x="10" y="24" width="8" height="6" rx="1" />
+      <rect x="30" y="24" width="8" height="6" rx="1" />
+      <rect x="20" y="25" width="8" height="5" rx="1" />
+      <path d="M12,10 Q16,8 24,8 Q32,8 36,10" />
+      <circle cx="24" cy="32" r="3" />
     </svg>`;
   };
 
@@ -274,10 +307,13 @@ export async function imprimirContratoCortesia(p) {
         <tr>
           <td style="width:55%;text-align:center;vertical-align:top">
             <div style="font-weight:700;font-size:8.5px;margin-bottom:4px">ESTADO DEL VEHÍCULO</div>
-            <div style="display:flex;justify-content:space-around;align-items:center">
-              <div>${cocheSvg("frontal")}</div>
-              <div>${cocheSvg("lateral")}</div>
-              <div>${cocheSvg("frontal")}</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div class="car-sil">${cocheSvg("lateral")}</div>
+              <div class="car-sil">${cocheSvg("cenital")}</div>
+              <div style="display:flex;justify-content:center;gap:8px">
+                <div class="car-sil">${cocheSvg("frontal")}</div>
+                <div class="car-sil">${cocheSvg("trasera")}</div>
+              </div>
             </div>
           </td>
           <td style="width:45%;vertical-align:top">
