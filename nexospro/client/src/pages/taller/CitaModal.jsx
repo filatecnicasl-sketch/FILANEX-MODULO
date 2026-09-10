@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
-import { ESTADOS_CITA, aFechaInput } from "./datos.js";
+import { ESTADOS_CITA, aFechaInput, tonoEstadoValoracion, nombreEstadoValoracion } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
+
+const CLASES_PILL_ESTADO = {
+  amber: "bg-amber-100 text-amber-700 border-amber-200",
+  cyan: "bg-sky-100 text-sky-700 border-sky-200",
+  green: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  red: "bg-rose-100 text-rose-700 border-rose-200",
+  slate: "bg-slate-100 text-slate-600 border-slate-200",
+};
 
 const campo = "input w-full";
 const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
@@ -543,20 +551,22 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
             </div>
           )}
 
-          {/* Valoraciones del vehículo */}
+          {/* Valoraciones del vehículo (mismo pill de estado que Taller → Valoraciones) */}
           {valoracionesCita.length > 0 && (
-            <div className="rounded-xl border border-slate-600/40 bg-slate-800/40 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <div className="rounded-xl border border-slate-300 bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
                 Valoraciones de este vehículo
               </p>
               <ul className="space-y-1">
                 {valoracionesCita.map((v) => (
                   <li key={v._id} className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="font-bold text-slate-200 num">{v.numero}</span>
-                    <span className="text-slate-400">{v.compania || "particular"}</span>
-                    <span className="text-xs rounded-full px-2 py-0.5 bg-slate-700 text-slate-300">{String(v.estado).replace(/_/g, " ")}</span>
+                    <span className="font-bold text-slate-800 num">{v.numero}</span>
+                    <span className="text-slate-500">{v.compania || "particular"}</span>
+                    <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${CLASES_PILL_ESTADO[tonoEstadoValoracion(v.estado)] ?? CLASES_PILL_ESTADO.slate}`}>
+                      {nombreEstadoValoracion(v.estado)}
+                    </span>
                     {v.total > 0 && (
-                      <span className="ml-auto font-semibold text-slate-200 num">
+                      <span className="ml-auto font-semibold text-slate-800 num">
                         {new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(v.total)}
                       </span>
                     )}
