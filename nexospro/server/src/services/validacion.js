@@ -47,6 +47,12 @@ export function normalizarNIF(valor) {
   return String(valor ?? "").toUpperCase().replace(/[\s.\-]/g, "");
 }
 
+// Matrícula sin espacios ni guiones, en mayúsculas: «1234 ABC» y «1234-ABC»
+// son el mismo vehículo, así que se guarda siempre como «1234ABC».
+export function normalizarMatricula(valor) {
+  return String(valor ?? "").toUpperCase().replace(/[\s.\-]/g, "");
+}
+
 // Comprueba que las líneas cuadran con los totales del documento.
 // Devuelve una lista de avisos (vacía si todo cuadra).
 export function revisarAritmetica(lineas, doc, tolerancia = 0.05) {

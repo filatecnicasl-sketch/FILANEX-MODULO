@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import multer from "multer";
 import Vehiculo from "../models/Vehiculo.js";
 import OrdenTrabajo, { ESTADOS_OT } from "../models/OrdenTrabajo.js";
@@ -15,7 +15,7 @@ import Presupuesto from "../models/Presupuesto.js";
 import { calcularTotales } from "../services/totales.js";
 import { tomarNumeroOrdenTrabajoAtomico } from "../services/numeracion.js";
 import { requiereModulo } from "../config/modulos.js";
-import { validarNIF, normalizarNIF } from "../services/validacion.js";
+import { validarNIF, normalizarNIF, normalizarMatricula } from "../services/validacion.js";
 import { extraerValoracion } from "../services/ocr-gemini.js";
 import {
   presupuestosAbiertosCliente,
@@ -166,7 +166,7 @@ router.post("/vehiculos", async (req, res, next) => {
   try {
     const { matricula } = req.body;
     if (!matricula) return res.status(400).json({ error: "La matrícula es obligatoria" });
-    const existente = await Vehiculo.findOne({ matricula: matricula.toUpperCase().trim() });
+    const existente = await Vehiculo.findOne({ matricula: normalizarMatricula(matricula) });
     if (existente) return res.status(409).json({ error: "Ya existe un vehículo con esa matrícula" });
     const vehiculo = await Vehiculo.create(req.body);
     res.status(201).json(vehiculo);
@@ -180,7 +180,7 @@ router.put("/vehiculos/:id", async (req, res, next) => {
     const { matricula, marca, modelo, bastidor, color, combustible, anio, km, tipo, cliente, clienteNombre, notas } = req.body;
     const vehiculo = await Vehiculo.findByIdAndUpdate(
       req.params.id,
-      { matricula: matricula?.toUpperCase().trim(), marca, modelo, bastidor, color, combustible, anio, km, tipo, cliente, clienteNombre, notas },
+      { matricula: normalizarMatricula(matricula), marca, modelo, bastidor, color, combustible, anio, km, tipo, cliente, clienteNombre, notas },
       { new: true, omitUndefined: true }
     );
     if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });
@@ -609,7 +609,7 @@ router.post("/recepcion", async (req, res, next) => {
       pto = presupuesto;
     }
 
-    const mat = matricula.toUpperCase().trim();
+    const mat = normalizarMatricula(matricula);
     const vehiculo = await Vehiculo.findOneAndUpdate(
       { matricula: mat },
       { marca, modelo, km, cliente: clienteId || undefined, clienteNombre: nombreFinal },
@@ -889,7 +889,7 @@ router.post("/citas", async (req, res, next) => {
 
     let vehiculoId;
     if (req.body.matricula) {
-      const mat = req.body.matricula.toUpperCase().trim();
+      const mat = normalizarMatricula(req.body.matricula);
       let v = await Vehiculo.findOne({ matricula: mat }).lean();
       // Alta exprés: si no existe y traemos marca/modelo, se da de alta ya.
       if (!v && (req.body.marca || req.body.modelo)) {
@@ -915,14 +915,14 @@ router.post("/citas", async (req, res, next) => {
       whatsappAutorizado: req.body.whatsappAutorizado === true,
       whatsappAutorizadoAt: req.body.whatsappAutorizado === true ? new Date() : undefined,
       vehiculo: vehiculoId,
-      matricula: req.body.matricula?.toUpperCase().trim() || undefined,
+      matricula: normalizarMatricula(req.body.matricula) || undefined,
       motivo: req.body.motivo || undefined,
       presupuesto: Boolean(req.body.presupuesto),
       aseguradora: req.body.aseguradora || undefined,
       aseguradoraNombre: req.body.aseguradoraNombre || undefined,
       cortesia: Boolean(req.body.cortesia),
       cortesiaVehiculo: req.body.cortesia ? (req.body.cortesiaVehiculo || undefined) : undefined,
-      cortesiaMatricula: req.body.cortesia ? (req.body.cortesiaMatricula?.toUpperCase().trim() || undefined) : undefined,
+      cortesiaMatricula: req.body.cortesia ? (normalizarMatricula(req.body.cortesiaMatricula) || undefined) : undefined,
       notas: req.body.notas || undefined,
     });
     await sincronizarWhatsAppCita({ ambito: "taller", documento: cita, usuario: req.usuario })
@@ -950,7 +950,7 @@ router.put("/citas/:id", async (req, res, next) => {
     if (req.body.cortesia !== undefined) {
       cambios.cortesia = Boolean(req.body.cortesia);
       cambios.cortesiaVehiculo = cambios.cortesia ? (req.body.cortesiaVehiculo || null) : null;
-      cambios.cortesiaMatricula = cambios.cortesia ? (req.body.cortesiaMatricula?.toUpperCase().trim() || undefined) : null;
+      cambios.cortesiaMatricula = cambios.cortesia ? (normalizarMatricula(req.body.cortesiaMatricula) || undefined) : null;
     }
     if (whatsappAutorizado !== undefined) {
       cambios.whatsappAutorizado = whatsappAutorizado === true;
@@ -963,7 +963,7 @@ router.put("/citas/:id", async (req, res, next) => {
       cambios.fecha = dia;
     }
     if (matricula !== undefined) {
-      cambios.matricula = matricula?.toUpperCase().trim() || undefined;
+      cambios.matricula = normalizarMatricula(matricula) || undefined;
       if (cambios.matricula) {
         const v = await Vehiculo.findOne({ matricula: cambios.matricula }).lean();
         cambios.vehiculo = v?._id;
@@ -1178,7 +1178,7 @@ router.post("/valoraciones", async (req, res, next) => {
     if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
     const numero = `PER-${String(empresa.contadores.valoracion).padStart(6, "0")}`;
 
-    const mat = matricula.toUpperCase().trim();
+    const mat = normalizarMatricula(matricula);
     const vehiculo = await Vehiculo.findOne({ matricula: mat }).lean();
     const lineas = Array.isArray(req.body.lineas) ? req.body.lineas.filter((l) => l.descripcion) : [];
 
@@ -1227,7 +1227,7 @@ router.put("/valoraciones/:id", async (req, res, next) => {
       }
     }
     if (matricula !== undefined) {
-      cambios.matricula = matricula?.toUpperCase().trim() || undefined;
+      cambios.matricula = normalizarMatricula(matricula) || undefined;
       const v = cambios.matricula ? await Vehiculo.findOne({ matricula: cambios.matricula }).lean() : null;
       cambios.vehiculo = v?._id;
     }
@@ -1309,7 +1309,7 @@ async function crearOrden(datos) {
 
   let vehiculoId = datos.vehiculo;
   if (!vehiculoId && datos.matricula) {
-    const v = await Vehiculo.findOne({ matricula: datos.matricula.toUpperCase().trim() }).lean();
+    const v = await Vehiculo.findOne({ matricula: normalizarMatricula(datos.matricula) }).lean();
     if (v) vehiculoId = v._id;
   }
 
@@ -1317,7 +1317,7 @@ async function crearOrden(datos) {
   return OrdenTrabajo.create({
     numero,
     vehiculo: vehiculoId,
-    matricula: datos.matricula.toUpperCase().trim(),
+    matricula: normalizarMatricula(datos.matricula),
     cliente: datos.cliente,
     clienteNombre: datos.clienteNombre,
     telefono: datos.telefono,

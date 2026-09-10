@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
 import { modeloTenant } from "./tenant.js";
+import { normalizarMatricula } from "../services/validacion.js";
 
 export const ESTADOS_VALORACION = ["pendiente", "valorado", "aprobado", "rechazado"];
 
@@ -17,7 +18,7 @@ const valoracionSchema = new Schema(
   {
     numero: { type: String, required: true, unique: true }, // PER-000001
     vehiculo: { type: Schema.Types.ObjectId, ref: "Vehiculo" },
-    matricula: { type: String, required: true, uppercase: true, trim: true },
+    matricula: { type: String, required: true, uppercase: true, trim: true, set: normalizarMatricula },
     clienteNombre: String,
     telefono: String,
     compania: String, // nombre de la compañía (se rellena solo al elegir aseguradora)

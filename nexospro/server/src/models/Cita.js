@@ -1,5 +1,6 @@
 import { Schema } from "mongoose";
 import { modeloTenant } from "./tenant.js";
+import { normalizarMatricula } from "../services/validacion.js";
 
 export const ESTADOS_CITA = ["pendiente", "confirmada", "realizada", "cancelada"];
 
@@ -17,7 +18,7 @@ const citaSchema = new Schema(
     whatsappAutorizado: { type: Boolean, default: false },
     whatsappAutorizadoAt: Date,
     vehiculo: { type: Schema.Types.ObjectId, ref: "Vehiculo" },
-    matricula: { type: String, uppercase: true, trim: true },
+    matricula: { type: String, uppercase: true, trim: true, set: normalizarMatricula },
     // SAT: aparato y dirección de la intervención (visitas a domicilio).
     aparato: { type: Schema.Types.ObjectId, ref: "Aparato" },
     aparatoDescripcion: String,

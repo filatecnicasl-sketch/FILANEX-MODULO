@@ -1,12 +1,13 @@
 import { Schema } from "mongoose";
 import { modeloTenant } from "./tenant.js";
+import { normalizarMatricula } from "../services/validacion.js";
 
 // Préstamo de un vehículo de cortesía a un cliente (normalmente mientras su
 // coche está en el taller). "Vencido" es derivado: activo con fechaPrevista pasada.
 const prestamoCortesiaSchema = new Schema(
   {
     vehiculo: { type: Schema.Types.ObjectId, ref: "Vehiculo", required: true },
-    matricula: { type: String, required: true, uppercase: true, trim: true },
+    matricula: { type: String, required: true, uppercase: true, trim: true, set: normalizarMatricula },
     clienteNombre: { type: String, required: true },
     telefono: String,
     orden: { type: Schema.Types.ObjectId, ref: "OrdenTrabajo" },

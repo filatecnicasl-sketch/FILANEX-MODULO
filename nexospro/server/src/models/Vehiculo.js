@@ -1,9 +1,16 @@
 import { Schema } from "mongoose";
 import { modeloTenant } from "./tenant.js";
+import { normalizarMatricula } from "../services/validacion.js";
 
 const vehiculoSchema = new Schema(
   {
-    matricula: { type: String, required: true, uppercase: true, trim: true },
+    matricula: {
+      type: String,
+      required: true,
+      uppercase: true,
+      trim: true,
+      set: normalizarMatricula, // siempre sin espacios ni guiones
+    },
     marca: String,
     modelo: String,
     bastidor: String, // VIN
