@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import Cliente from "../models/Cliente.js";
 import { siguienteCodigoFicha } from "../services/codigoFicha.js";
 import { buscarPorNif, errorNifDuplicado } from "../services/nifDuplicado.js";
+import { normalizarNIF } from "../services/validacion.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 
 const router = Router();
@@ -66,6 +67,9 @@ router.post("/", async (req, res, next) => {
       return res.status(400).json({ error: "nombre y nif son obligatorios" });
     }
     const datos = limpiar(req.body);
+    // Normaliza el NIF (mayúsculas, sin espacios/puntos/guiones) para que la
+    // deduplicación funcione aunque se escriba con o sin letra/guiones.
+    if (datos.nif) datos.nif = normalizarNIF(datos.nif) || datos.nif;
     // El NIF/CIF identifica al cliente: no se admiten fichas duplicadas.
     const existente = await buscarPorNif(Cliente, datos.nif, null);
     if (existente) return errorNifDuplicado(res, "un cliente", existente);
@@ -87,7 +91,7 @@ router.post("/rapido", async (req, res, next) => {
     if (!nombre) return res.status(400).json({ error: "El nombre es obligatorio" });
     const telefono = (req.body?.telefono ?? "").trim() || undefined;
     const email = (req.body?.email ?? "").trim() || undefined;
-    const nif = (req.body?.nif ?? "").trim() || undefined;
+    const nif = normalizarNIF(req.body?.nif) || undefined;
     // Cuando el alta nace de una casilla "Nuevo", el NIF es obligatorio.
     if (req.body?.exigirNif && !nif) {
       return res.status(400).json({ error: "Para dar de alta el cliente hay que indicar el CIF/NIF" });
