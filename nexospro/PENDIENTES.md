@@ -18,9 +18,22 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
      inicio en la misma petición).
   2. `telefonia.js`: las rutas privadas (stream, llamadas, simular) ya
      exigen `requiereModulo("telefonia")`; el webhook `/evento` sigue público.
-- [ ] **Verificar que app.filanex.es ha aplicado el commit `2e7a282`**
-      (la vez anterior se desplegó solo ~30 s después del push). Si no,
-      entrar al servidor y hacer `git pull` + rebuild/restart.
+- [x] **Verificar que app.filanex.es ha aplicado el commit `2e7a282`** —
+      HECHO (10/09 ~03:20). No se había desplegado solo: el servidor seguía
+      en `436a52e`. Se ha hecho `git pull` + `npm install` + `pm2 restart`
+      en `/opt/filanex` (UpCloud ES-MAD1, IP 194.62.96.102) y la API responde OK.
+
+## Acceso al servidor (nuevo, 10/09)
+
+- Servidor: UpCloud `ubuntu-2cpu-4gb-es-mad1` (Madrid), IP `194.62.96.102`.
+- Proyecto en `/opt/filanex`; servicio `filanex-api` gestionado con PM2 (root).
+- SSH desde este equipo: la llave recuperada del disco viejo está en
+  `C:\Users\fbmagp\.ssh\id_ed25519_fil` y la nueva en
+  `C:\Users\fbmagp\.ssh\filanex_prod`; ambas autorizadas en el servidor.
+- Conexión: `ssh -i C:\Users\fbmagp\.ssh\id_ed25519_fil root@194.62.96.102`.
+- Para actualizar producción: push a GitHub, luego en el servidor
+  `cd /opt/filanex && git pull && cd nexospro/server && npm install --omit=dev && pm2 restart filanex-api`
+  (si toca frontend, además build del cliente).
 - [ ] **Guarda de rutas en el frontend** (acordado, sin hacer): redirigir a
       `/` si se entra por URL a un sistema no activado (hoy el menú los
       oculta pero la ruta existe y la página falla al cargar datos).
