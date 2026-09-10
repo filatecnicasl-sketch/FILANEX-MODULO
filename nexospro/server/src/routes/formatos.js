@@ -17,6 +17,7 @@ const TIPOS = [
   { id: "parte-sat", etiqueta: "Parte de trabajo (SAT)" },
   { id: "entrada-sat", etiqueta: "Hoja de entrada (SAT)" },
   { id: "ticket-gasto", etiqueta: "Ticket de gasto" },
+  { id: "contrato-cortesia", etiqueta: "Contrato de cortesía" },
   { id: "generico", etiqueta: "Genérico" },
 ];
 

@@ -508,6 +508,161 @@ export function buildRecepcionAparato() {
   };
 }
 
+export function buildContratoCortesia() {
+  const fs = 8; // tamaño base de fuente
+  const fsSec = 9;
+  const fsTitle = 14;
+  const x = 12;
+  const w = 186;
+  const medio = w / 2;
+  const tercio = w / 3;
+
+  const txc = (text, px, py, pw, ph, pfs = fs, bold = false, align = "left", color = "#000") =>
+    tx2(text, px, py, pw, ph, pfs, bold, align, color);
+  const fl = (label, key, px, py, pw, ph = 6, pfs = fs) =>
+    fld2(label, key, px, py, pw, ph, pfs);
+  const sec = (text, px, py, pw) =>
+    box2(px, py, pw, 5.5, 0.8) && txc(text, px, py + 1, pw, 4, fsSec, true, "center", "#000");
+  // box2 devuelve el objeto; usamos rect separado para secciones con fondo
+  const seccion = (text, px, py, pw) => [
+    { id: id(), type: "rect", x: px, y: py, w: pw, h: 5.5, borderWidth: 0.8, borderColor: "#000", background: "#e6e6e6" },
+    txc(text, px, py + 1, pw, 4, fsSec, true, "center", "#000"),
+  ];
+  const lineaPunteada = (px, py, pw) =>
+    linea(px, py + 4, pw, "#000");
+
+  const yUsuario = 42;
+  const yVehDisp = 112;
+  const yKm = 142;
+  const yEstado = 176;
+  const ySeguro = 210;
+  const yRep = 248;
+  const yFirmas = 284;
+
+  return {
+    id: id(),
+    builtin: "contrato-cortesia",
+    name: "Contrato de cortesía",
+    tipoDocumento: "contrato-cortesia",
+    porDefecto: true,
+    page: { size: "A4", orientation: "portrait" },
+    elements: [
+      // Cabecera
+      txc("{{empresa.nombre}}", x, 10, w, 8, fsTitle, true, "center"),
+      txc("{{empresa.direccion}} - {{empresa.telefono}}", x, 18, w, 5, 8, false, "center", "#333"),
+
+      txc("VEHÍCULOS DE SUSTITUCIÓN", x, 26, w, 7, fsTitle, true, "center"),
+      txc("Contrato de prestación con participación forfait Nº", x, 33, w, 5, 9, false, "center"),
+      txc("{{prestamo.numero}}", x + 140, 33, 50, 5, 9, true, "right"),
+
+      // USUARIO
+      ...seccion("USUARIO", x, yUsuario, w),
+      txc("Atención: Toda persona que conduzca el vehículo prestado, debe ser mayor de edad y poseer un permiso o licencia de conducir desde hace más de 1 año, y no estar en suspeso o anulado.", x + 1, yUsuario + 6, w - 2, 6, 6.5, false, "justify"),
+      fl("Apellidos", "cliente.apellidos", x, yUsuario + 13, medio - 2),
+      fl("Nombre", "cliente.nombre", x + medio, yUsuario + 13, medio - 2),
+      fl("Fecha de nacimiento", "cliente.fechaNacimiento", x, yUsuario + 21, medio - 2),
+      fl("Lugar de nacimiento", "cliente.lugarNacimiento", x + medio, yUsuario + 21, medio - 2),
+      fl("Dirección", "cliente.direccion", x, yUsuario + 29, w),
+      fl("Tlf. Particular", "cliente.telefono", x, yUsuario + 37, medio - 2),
+      fl("Móvil", "cliente.movil", x + medio, yUsuario + 37, medio - 2),
+      fl("Trabajo", "cliente.telefonoTrabajo", x, yUsuario + 45, w),
+      fl("Permiso de conducir nº", "cliente.permisoNumero", x, yUsuario + 53, w),
+      fl("Expedido el", "cliente.permisoExpedicion", x, yUsuario + 61, medio - 2),
+      fl("en", "cliente.permisoLugar", x + medio, yUsuario + 61, medio - 2),
+      fl("Apellidos", "cliente2.apellidos", x, yUsuario + 69, medio - 2),
+      fl("Nombre", "cliente2.nombre", x + medio, yUsuario + 69, medio - 2),
+      fl("Permiso de conducir nº", "cliente2.permisoNumero", x, yUsuario + 77, w),
+      fl("Expedido el", "cliente2.permisoExpedicion", x, yUsuario + 85, medio - 2),
+      fl("en", "cliente2.permisoLugar", x + medio, yUsuario + 85, medio - 2),
+      fl("Eventualmente, otros conductores admitidos", "cliente.otrosConductores", x, yUsuario + 93, w),
+
+      // VEHÍCULO PUESTO A DISPOSICIÓN
+      ...seccion("VEHÍCULO PUESTO A DISPOSICIÓN", x, yVehDisp, w),
+      fl("Nº", "vehiculo.marca", x, yVehDisp + 7, tercio - 2),
+      fl("Modelo", "vehiculo.modelo", x + tercio, yVehDisp + 7, tercio - 2),
+      fl("Nº Matrícula", "vehiculo.matricula", x + tercio * 2, yVehDisp + 7, tercio - 2),
+      fl("V.I.N.", "vehiculo.vin", x, yVehDisp + 15, medio - 2),
+      fl("Participación forfait diaria", "vehiculo.forfaitDiario", x + medio, yVehDisp + 15, medio - 2),
+
+      // Tabla salida/retorno
+      {
+        id: id(),
+        type: "table",
+        x,
+        y: yKm,
+        w,
+        h: 30,
+        columns: [
+          { title: "", width: 0.2 },
+          { title: "SALIDA", width: 0.27 },
+          { title: "RETORNO PREVISTO", width: 0.27 },
+          { title: "RETORNO REAL", width: 0.26 },
+        ],
+        rows: 3,
+        headerFontSize: 7,
+        showRowNumbers: false,
+        groupTitle: "",
+        estilo: "rejilla",
+      },
+      txc("Fecha y hora:", x + 1, yKm + 9, 35, 6, 7, true),
+      txc("Km. En el contador:", x + 1, yKm + 18, 35, 6, 7, true),
+      txc("Nivel de carburante:", x + 1, yKm + 26, 35, 6, 7, true),
+      img("coche-lateral", x + 38, yKm + 23, 30, 14),
+      img("coche-lateral", x + 88, yKm + 23, 30, 14),
+      img("coche-lateral", x + 138, yKm + 23, 30, 14),
+
+      // Estado del vehículo
+      ...seccion("ESTADO DEL VEHÍCULO", x, yEstado, medio - 2),
+      img("coche-lateral", x + 5, yEstado + 7, 80, 18),
+      img("coche-superior", x + 5, yEstado + 26, 80, 18),
+      img("coche-frontal", x + 5, yEstado + 45, 38, 16),
+      img("coche-trasera", x + 47, yEstado + 45, 38, 16),
+
+      // Observaciones
+      box2(x + medio, yEstado, medio - 2, 62, 0.8),
+      txc("OBSERVACIONES", x + medio + 1, yEstado + 2, medio - 4, 5, fsSec, true, "center"),
+      { id: id(), type: "textarea", x: x + medio + 2, y: yEstado + 8, w: medio - 6, h: 52, label: "", fieldKey: "vehiculo.observaciones", fontSize: 7.5, boxed: false },
+
+      // SEGURO
+      ...seccion("SEGURO", x, ySeguro, w),
+      fl("Asegurador", "seguro.asegurador", x, ySeguro + 7, medio - 2),
+      fl("Nº de Contrato", "seguro.numeroContrato", x + medio, ySeguro + 7, medio - 2),
+      txc("Montante de las franquicias:", x + 1, ySeguro + 15, w - 2, 5, 7, true),
+      fl("Daños causados a terceros", "seguro.franquiciaTerceros", x, ySeguro + 21, tercio - 2),
+      fl("Daños causados al vehículo", "seguro.franquiciaVehiculo", x + tercio, ySeguro + 21, tercio - 2),
+      fl("Robo/Vandalismo", "seguro.franquiciaRobo", x + tercio * 2, ySeguro + 21, tercio - 2),
+      chk("Rescate SI", "seguro.rescateSi", x + 1, ySeguro + 30, 20, 5, 7),
+      chk("Rescate NO", "seguro.rescateNo", x + 28, ySeguro + 30, 22, 5, 7),
+      chk("Transferencia SI", "seguro.transferenciaSi", x + 90, ySeguro + 30, 28, 5, 7),
+      chk("Transferencia NO", "seguro.transferenciaNo", x + 125, ySeguro + 30, 30, 5, 7),
+      fl("Montante del rescate por día", "seguro.rescatePorDia", x, ySeguro + 37, w),
+
+      // VEHÍCULO EN REPARACIÓN
+      ...seccion("VEHÍCULO EN REPARACIÓN", x, yRep, w),
+      fl("Modelo", "reparacion.modelo", x, yRep + 7, medio - 2),
+      fl("Nº de matrícula", "reparacion.matricula", x + medio, yRep + 7, medio - 2),
+      fl("V.I.N.", "reparacion.vin", x, yRep + 15, w),
+      fl("Nº de O.R.", "reparacion.numeroOrden", x, yRep + 23, medio - 2),
+      fl("Entrega prevista", "reparacion.entregaPrevista", x + medio, yRep + 23, medio - 2),
+
+      // Firmas
+      box2(x, yFirmas, tercio - 2, 32, 0.8),
+      txc("Declaro haber tenido conocimiento de las condiciones generales de protección indicadas al dorso del presente Contrato.", x + 2, yFirmas + 2, tercio - 6, 14, 6, true, "center"),
+      txc("Realizado en _______ a ____/____/________ · Firma del cliente", x + 2, yFirmas + 24, tercio - 6, 6, 6, false, "center"),
+
+      box2(x + tercio, yFirmas, tercio - 2, 32, 0.8),
+      txc("El cliente (firma) · El concesionario (nombre y firma)", x + tercio + 2, yFirmas + 2, tercio - 6, 14, 6, true, "center"),
+      txc("Fecha: ____/____/________", x + tercio + 2, yFirmas + 24, tercio - 6, 6, 6, false, "center"),
+
+      box2(x + tercio * 2, yFirmas, tercio - 2, 32, 0.8),
+      txc("Al retorno, el cliente (firma)", x + tercio * 2 + 2, yFirmas + 2, tercio - 6, 14, 6, true, "center"),
+      txc("Fecha: ____/____/________", x + tercio * 2 + 2, yFirmas + 24, tercio - 6, 6, 6, false, "center"),
+
+      txc("ATENCIÓN: Este contrato debe ir acompañado al vehículo durante toda la duración de la prestación.", x, yFirmas + 35, w, 5, 7, true, "center"),
+    ].flat(),
+  };
+}
+
 export const BUILTIN_TEMPLATES = [
   buildFacturaVenta,
   buildPresupuestoVenta,
@@ -517,4 +672,5 @@ export const BUILTIN_TEMPLATES = [
   buildParteSat,
   buildRecepcionVehiculo,
   buildRecepcionAparato,
+  buildContratoCortesia,
 ];

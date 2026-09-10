@@ -54,6 +54,7 @@ const formatoSchema = new Schema(
         "parte-sat",
         "entrada-sat",
         "ticket-gasto",
+        "contrato-cortesia",
         "generico",
       ],
     },

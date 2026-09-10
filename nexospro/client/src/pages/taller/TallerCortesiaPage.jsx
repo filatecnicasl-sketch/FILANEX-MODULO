@@ -3,7 +3,7 @@ import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { IconImprimir, IconEditar } from "../../components/icons.jsx";
-import { imprimirContratoCortesia } from "../../utils/imprimir.js";
+import { imprimirContratoCortesia } from "../../utils/imprimir-cortesia.js";
 
 const campo = "input w-full";
 const fmtFecha = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "—");
