@@ -131,6 +131,38 @@ export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quie
   );
 }
 
+// Impresión de una valoración/peritaje: las líneas solo llevan descripción e
+// importe (sin cantidad/precio/iva), y el total es la suma directa.
+export async function imprimirValoracion(v) {
+  const emp = await empresa();
+  const lineas = v.lineas ?? [];
+  const filas = lineas
+    .map((l) => `<tr><td>${esc(l.descripcion)}</td><td class="num">${euros(l.importe)}</td></tr>`)
+    .join("");
+  const total = v.total != null ? v.total : lineas.reduce((s, l) => s + (Number(l.importe) || 0), 0);
+  const detContraparte = [
+    v.numeroSiniestro ? `Siniestro ${v.numeroSiniestro}` : null,
+    v.compania,
+    v.fechaSiniestro ? `Siniestro del ${fechaEs(v.fechaSiniestro)}` : null,
+  ].filter(Boolean).join(" · ");
+  abrirVentana(
+    `Valoración ${v.numero ?? ""}`,
+    `${cabecera(emp, "Valoración", v.numero, v.fecha)}
+     ${bloqueContraparte("Cliente / Vehículo", {
+       nombre: `${v.clienteNombre ?? ""} · Vehículo ${v.matricula ?? ""}`,
+       nif: detContraparte,
+     })}
+     <table>
+       <thead><tr><th>Concepto</th><th class="num">Importe</th></tr></thead>
+       <tbody>${filas || `<tr><td colspan="2" style="color:#888">Sin líneas</td></tr>`}</tbody>
+     </table>
+     <div class="tot">
+       <div class="gran"><span>TOTAL VALORACIÓN</span><b>${euros(total)}</b></div>
+     </div>
+     ${v.observaciones ? `<div class="notas">${esc(v.observaciones)}</div>` : ""}`
+  );
+}
+
 // Ficha de maestro: cliente, proveedor, artículo, vehículo…
 export async function imprimirFicha({ titulo, subtitulo, campos }) {
   const emp = await empresa();

@@ -5,7 +5,7 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../../components/ui.jsx";
 import { ESTADOS_VALORACION, tonoEstadoValoracion, nombreEstadoValoracion, aFechaInput } from "./datos.js";
 import { IconImprimir } from "../../components/icons.jsx";
-import { imprimirDocumento } from "../../utils/imprimir.js";
+import { imprimirValoracion } from "../../utils/imprimir.js";
 
 const campo = "input w-full";
 const lineaVacia = () => ({ descripcion: "", importe: 0 });
@@ -289,19 +289,7 @@ export default function TallerValoracionesPage() {
                     </td>
                     <td className="text-right whitespace-nowrap">
                       <button
-                        onClick={() =>
-                          imprimirDocumento({
-                            tipo: "Valoración",
-                            numero: v.numero,
-                            fecha: v.fecha,
-                            contraparte: {
-                              nombre: `${v.clienteNombre ?? ""} · Vehículo ${v.matricula}`,
-                              nif: v.numeroSiniestro ? `Siniestro ${v.numeroSiniestro}${v.compania ? ` (${v.compania})` : ""}` : v.compania,
-                            },
-                            lineas: v.lineas ?? [],
-                            notas: v.notas,
-                          })
-                        }
+                        onClick={() => imprimirValoracion(v)}
                         title="Imprimir valoración"
                         className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors align-middle mr-2"
                       >
