@@ -13,11 +13,11 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Recordatorios de arquitectura / trabajo
 
-- **Usar el editor de formatos** para todos los documentos imprimibles
-  (facturas, presupuestos, albaranes, partes, contratos, etc.). Antes de
-  crear un documento nuevo o modificar uno existente "a mano" en código,
-  valorar si puede hacerse como plantilla del editor para que cada cliente
-  la personalice a su gusto.
+- **Usar el editor de formatos** (`Ajustes → Formatos`) para todos los
+  documentos imprimibles (facturas, presupuestos, albaranes, partes,
+  contratos, etc.). Antes de crear un documento nuevo o modificar uno
+  existente "a mano" en código, valorar si puede hacerse como plantilla del
+  editor para que cada cliente la personalice a su gusto.
 
 ## Estado del equipo y del repo (10/09/2026)
 
@@ -78,7 +78,7 @@ y desplegado (commit `1759ab0`, 10/09 ~04:10):
 ## Nuevas peticiones de la clienta (nota manuscrita, 10/09)
 
 - [x] **Cortesía — contrato imprimible**: creado como plantilla del editor de
-      formatos (Sistema → Formatos → Contrato de cortesía), configurable por
+      formatos (`Ajustes → Formatos → Contrato de cortesía`), configurable por
       cada cliente, con siluetas reales del coche (lateral, superior, frontal,
       trasera). Desplegado (commit `11f445e`).
 - [ ] **Valoraciones — ver presupuestos/peritaciones aportados**: confirmar
