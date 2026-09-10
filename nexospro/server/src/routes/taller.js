@@ -998,7 +998,12 @@ router.delete("/citas/:id", async (req, res, next) => {
 // ---------- Vehículos de cortesía (préstamos) ----------
 router.get("/cortesia", async (req, res, next) => {
   try {
-    const lista = await PrestamoCortesia.find().sort({ estado: 1, fechaPrevista: 1 }).limit(300).lean();
+    const lista = await PrestamoCortesia.find()
+      .populate("vehiculo", "marca modelo")
+      .populate("orden", "matricula vehiculo cliente clienteNombre telefono")
+      .sort({ estado: 1, fechaPrevista: 1 })
+      .limit(300)
+      .lean();
     const hoy = diaLocal();
     res.json(lista.map((p) => ({
       ...p,
@@ -1027,16 +1032,38 @@ router.post("/cortesia", async (req, res, next) => {
       return res.status(409).json({ error: `${vehiculo.matricula} ya está prestado` });
     }
 
+    const orden = req.body.ordenId ? await OrdenTrabajo.findById(req.body.ordenId).lean() : null;
+    const vehiculoReparacionMatricula =
+      req.body.vehiculoReparacionMatricula
+        ? normalizarMatricula(req.body.vehiculoReparacionMatricula)
+        : orden?.matricula
+          ? normalizarMatricula(orden.matricula)
+          : undefined;
+    const vehiculoReparacionMarcaModelo =
+      req.body.vehiculoReparacionMarcaModelo
+      ?? (orden?.vehiculo
+          ? [orden.vehiculo.marca, orden.vehiculo.modelo].filter(Boolean).join(" ")
+          : undefined)
+      ?? undefined;
+
     const prestamo = await PrestamoCortesia.create({
       vehiculo: vehiculoId,
       matricula: vehiculo.matricula,
       clienteNombre,
+      clienteNIF: req.body.clienteNIF?.trim() || undefined,
+      clienteDireccion: req.body.clienteDireccion?.trim() || undefined,
       telefono: req.body.telefono || undefined,
       orden: req.body.ordenId || undefined,
-      numeroOrden: req.body.numeroOrden || undefined,
+      numeroOrden: req.body.numeroOrden || orden?.numero || undefined,
       cita: req.body.citaId || undefined,
+      vehiculoReparacionMatricula,
+      vehiculoReparacionMarcaModelo,
       fechaPrevista: prevista,
       kmSalida: req.body.kmSalida ? Number(req.body.kmSalida) : undefined,
+      combustibleSalida: req.body.combustibleSalida != null ? Number(req.body.combustibleSalida) : undefined,
+      kmMaximoDia: req.body.kmMaximoDia ? Number(req.body.kmMaximoDia) : undefined,
+      kmMaximoTotal: req.body.kmMaximoTotal ? Number(req.body.kmMaximoTotal) : undefined,
+      importeExcesoKm: req.body.importeExcesoKm ? Number(req.body.importeExcesoKm) : undefined,
       notas: req.body.notas || undefined,
     });
     // Si nace de una cita, la cita queda marcada con el coche prestado.
@@ -1054,8 +1081,25 @@ router.post("/cortesia", async (req, res, next) => {
 
 router.put("/cortesia/:id", async (req, res, next) => {
   try {
-    const { clienteNombre, telefono, fechaPrevista, notas } = req.body;
-    const cambios = { clienteNombre, telefono, notas };
+    const {
+      clienteNombre, clienteNIF, clienteDireccion, telefono, fechaPrevista, notas,
+      vehiculoReparacionMatricula, vehiculoReparacionMarcaModelo,
+      kmSalida, combustibleSalida, kmMaximoDia, kmMaximoTotal, importeExcesoKm,
+    } = req.body;
+    const cambios = {
+      clienteNombre, clienteNIF, clienteDireccion, telefono, notas,
+      vehiculoReparacionMarcaModelo,
+    };
+    if (vehiculoReparacionMatricula !== undefined) {
+      cambios.vehiculoReparacionMatricula = vehiculoReparacionMatricula
+        ? normalizarMatricula(vehiculoReparacionMatricula)
+        : null;
+    }
+    if (kmSalida !== undefined) cambios.kmSalida = kmSalida === "" ? null : Number(kmSalida);
+    if (combustibleSalida !== undefined) cambios.combustibleSalida = combustibleSalida === "" ? null : Number(combustibleSalida);
+    if (kmMaximoDia !== undefined) cambios.kmMaximoDia = kmMaximoDia === "" ? null : Number(kmMaximoDia);
+    if (kmMaximoTotal !== undefined) cambios.kmMaximoTotal = kmMaximoTotal === "" ? null : Number(kmMaximoTotal);
+    if (importeExcesoKm !== undefined) cambios.importeExcesoKm = importeExcesoKm === "" ? null : Number(importeExcesoKm);
     if (fechaPrevista) {
       const prevista = diaLocal(fechaPrevista);
       if (!prevista) return res.status(400).json({ error: "Fecha prevista no válida" });

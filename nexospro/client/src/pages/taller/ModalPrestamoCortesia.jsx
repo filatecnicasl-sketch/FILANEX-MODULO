@@ -15,10 +15,18 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
   const [form, setForm] = useState({
     vehiculoId: "",
     clienteNombre: inicial?.clienteNombre ?? "",
+    clienteNIF: "",
+    clienteDireccion: "",
     telefono: inicial?.telefono ?? "",
     ordenId: "",
+    vehiculoReparacionMatricula: "",
+    vehiculoReparacionMarcaModelo: "",
     fechaPrevista: inicial?.fechaPrevista ?? "",
     kmSalida: "",
+    combustibleSalida: "",
+    kmMaximoDia: "",
+    kmMaximoTotal: "",
+    importeExcesoKm: "",
     notas: "",
   });
   const [guardando, setGuardando] = useState(false);
@@ -68,7 +76,13 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
       ...f,
       ordenId: id,
       clienteNombre: f.clienteNombre || o?.clienteNombre || "",
+      clienteNIF: f.clienteNIF || o?.cliente?.nif || "",
       telefono: f.telefono || o?.telefono || "",
+      vehiculoReparacionMatricula: f.vehiculoReparacionMatricula || o?.matricula || "",
+      vehiculoReparacionMarcaModelo:
+        f.vehiculoReparacionMarcaModelo
+        || [o?.vehiculo?.marca, o?.vehiculo?.modelo].filter(Boolean).join(" ")
+        || "",
     }));
   }
 
@@ -84,12 +98,20 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
         body: JSON.stringify({
           vehiculoId: form.vehiculoId,
           clienteNombre: form.clienteNombre,
+          clienteNIF: form.clienteNIF || undefined,
+          clienteDireccion: form.clienteDireccion || undefined,
           telefono: form.telefono || undefined,
           ordenId: form.ordenId || undefined,
           numeroOrden: orden?.numero,
           citaId: inicial?.citaId || undefined,
+          vehiculoReparacionMatricula: form.vehiculoReparacionMatricula || undefined,
+          vehiculoReparacionMarcaModelo: form.vehiculoReparacionMarcaModelo || undefined,
           fechaPrevista: form.fechaPrevista,
           kmSalida: form.kmSalida || undefined,
+          combustibleSalida: form.combustibleSalida || undefined,
+          kmMaximoDia: form.kmMaximoDia || undefined,
+          kmMaximoTotal: form.kmMaximoTotal || undefined,
+          importeExcesoKm: form.importeExcesoKm || undefined,
           notas: form.notas || undefined,
         }),
       });
@@ -141,9 +163,38 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
                 opciones={clientes}
                 valorTexto={form.clienteNombre}
                 onTexto={(t) => actualizar("clienteNombre", t)}
-                onElegir={(op) => op && setForm((f) => ({ ...f, clienteNombre: op.nombre, telefono: f.telefono || op.telefono || "" }))}
+                onElegir={(op) =>
+                  op
+                    && setForm((f) => ({
+                      ...f,
+                      clienteNombre: op.nombre,
+                      clienteNIF: f.clienteNIF || op.nif || "",
+                      telefono: f.telefono || op.telefono || "",
+                      clienteDireccion: f.clienteDireccion
+                        || [op.direccion?.calle, op.direccion?.ciudad, op.direccion?.cp].filter(Boolean).join(", ")
+                        || "",
+                    }))
+                }
                 placeholder="Buscar en la cartera o escribir…"
                 required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">DNI/NIF cliente</label>
+              <input
+                className={campo}
+                value={form.clienteNIF}
+                onChange={(e) => actualizar("clienteNIF", e.target.value)}
+                placeholder="12345678A / B12345678"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="text-sm text-slate-400 block mb-1">Dirección cliente</label>
+              <input
+                className={campo}
+                value={form.clienteDireccion}
+                onChange={(e) => actualizar("clienteDireccion", e.target.value)}
+                placeholder="Calle, ciudad, CP…"
               />
             </div>
             <div>
@@ -166,6 +217,24 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
               />
             </div>
             <div>
+              <label className="text-sm text-slate-400 block mb-1">Vehículo en reparación (matrícula)</label>
+              <input
+                className={campo}
+                value={form.vehiculoReparacionMatricula}
+                onChange={(e) => actualizar("vehiculoReparacionMatricula", e.target.value)}
+                placeholder="Matrícula del coche del cliente"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Marca / modelo</label>
+              <input
+                className={campo}
+                value={form.vehiculoReparacionMarcaModelo}
+                onChange={(e) => actualizar("vehiculoReparacionMarcaModelo", e.target.value)}
+                placeholder="Ej. Seat Ibiza"
+              />
+            </div>
+            <div>
               <label className="text-sm text-slate-400 block mb-1">KM salida</label>
               <input
                 type="number"
@@ -175,9 +244,52 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
                 onChange={(e) => actualizar("kmSalida", e.target.value)}
               />
             </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Combustible salida (1/8 a 8/8)</label>
+              <input
+                type="number"
+                min="0"
+                max="8"
+                className={campo}
+                value={form.combustibleSalida}
+                onChange={(e) => actualizar("combustibleSalida", e.target.value)}
+                placeholder="8"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">KM máx./día</label>
+              <input
+                type="number"
+                min="0"
+                className={campo}
+                value={form.kmMaximoDia}
+                onChange={(e) => actualizar("kmMaximoDia", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">KM máx. total</label>
+              <input
+                type="number"
+                min="0"
+                className={campo}
+                value={form.kmMaximoTotal}
+                onChange={(e) => actualizar("kmMaximoTotal", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Exceso km (€/km)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className={campo}
+                value={form.importeExcesoKm}
+                onChange={(e) => actualizar("importeExcesoKm", e.target.value)}
+              />
+            </div>
           </div>
           <div>
-            <label className="text-sm text-slate-400 block mb-1">Notas</label>
+            <label className="text-sm text-slate-400 block mb-1">Notas / daños preexistentes</label>
             <input
               className={campo}
               value={form.notas}
