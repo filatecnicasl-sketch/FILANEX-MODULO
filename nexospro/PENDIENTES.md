@@ -75,10 +75,10 @@ y desplegado (commit `1759ab0`, 10/09 ~04:10):
 - [ ] **Valoraciones — ver presupuestos/peritaciones aportados**: confirmar
       con la clienta qué quiere exactamente (¿ver líneas del peritaje? ¿o
       adjuntar/ver un presupuesto asociado?). Pendiente de su respuesta.
-- [ ] **Normalizar matrículas en el resto de empresas**: el script
-      `normalizar-matriculas.mjs` ya se ejecutó en `filanex_demomontiel`.
-      Falta ejecutarlo en `filanex_montiel`, `filanex_gasen` y
-      `filanex_demofilanex` si también tienen datos con espacios.
+- [x] **Normalizar matrículas en todas las empresas**: el script
+      `normalizar-matriculas.mjs` se ejecutó en `filanex_demomontiel` y
+      `filanex_demofilanex` (con cambios); `filanex_montiel` ya estaba bien y
+      `filanex_gasen` no tiene datos. Todas las matrículas están sin espacios.
 
 ## Cuanto antes (a raíz de la caída del 31/08)
 
