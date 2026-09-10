@@ -62,6 +62,7 @@ export default function FormatosPage() {
           onRename={ed.renameTemplate}
           onSetType={ed.setTemplateType}
           onSetDefault={ed.setAsDefault}
+          onCreateBuiltin={ed.createBuiltinTemplate}
         />
         <div className="flex min-h-0 flex-1">
           {design && <Palette onAdd={addElement} disabled={!design} />}

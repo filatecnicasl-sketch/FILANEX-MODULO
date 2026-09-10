@@ -3,6 +3,18 @@ import { BUILTIN_TEMPLATES } from "./builtinTemplates.js";
 const LS_KEY = "nexospro-formatos-v1";
 const LS_MIGRATED = "nexospro-formatos-migrated";
 
+const BUILTIN_MAP = Object.fromEntries(
+  BUILTIN_TEMPLATES.map((builder) => {
+    const t = builder();
+    return [t.builtin || t.tipoDocumento, builder];
+  })
+);
+
+export const BUILTIN_LIST = BUILTIN_TEMPLATES.map((builder) => {
+  const t = builder();
+  return { key: t.builtin || t.tipoDocumento, name: t.name, tipoDocumento: t.tipoDocumento };
+});
+
 async function fetchJson(url, options = {}) {
   const r = await fetch(url, {
     headers: { "Content-Type": "application/json", ...options.headers },
@@ -178,15 +190,49 @@ export async function importTemplateRemote(obj) {
     method: "POST",
     body: JSON.stringify(t),
   });
-  return {
-    id: created._id,
-    tipoDocumento: created.tipoDocumento,
-    name: created.nombre,
-    porDefecto: created.porDefecto,
-    page: created.page,
-    elements: created.elements,
-    cssExtra: created.cssExtra,
+  return mapDoc(created);
+}
+
+const mapDoc = (created) => ({
+  id: created._id,
+  tipoDocumento: created.tipoDocumento,
+  name: created.nombre,
+  porDefecto: created.porDefecto,
+  page: created.page,
+  elements: created.elements,
+  cssExtra: created.cssExtra,
+});
+
+export async function createBuiltinTemplateRemote(builtinName) {
+  const builder = BUILTIN_MAP[builtinName];
+  if (!builder) throw new Error(`Plantilla prediseñada no encontrada: ${builtinName}`);
+  const t = builder();
+  const created = await fetchJson("/api/formatos", {
+    method: "POST",
+    body: JSON.stringify({
+      tipoDocumento: t.tipoDocumento,
+      nombre: t.name,
+      page: t.page,
+      elements: t.elements,
+      cssExtra: t.cssExtra,
+    }),
+  });
+  return mapDoc(created);
+}
+
+export async function createFromBuiltinRemote(builtin) {
+  const t = {
+    tipoDocumento: builtin.tipoDocumento,
+    nombre: builtin.name,
+    page: builtin.page,
+    elements: builtin.elements,
+    cssExtra: builtin.cssExtra,
   };
+  const created = await fetchJson("/api/formatos", {
+    method: "POST",
+    body: JSON.stringify(t),
+  });
+  return mapDoc(created);
 }
 
 export async function loadTiposDocumento() {

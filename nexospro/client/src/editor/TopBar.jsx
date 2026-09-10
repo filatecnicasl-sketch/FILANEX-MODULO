@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { exportTemplate, parseImportedTemplate, loadTiposDocumento } from "./storage.js";
+import { BUILTIN_LIST } from "./storage.js";
 import {
   IconPrinter, IconPencil, IconFilePlus, IconCopy, IconTrash, IconDownload,
   IconUpload, IconZoomIn, IconZoomOut, IconMaximize, IconEraser, IconPenLine,
@@ -26,6 +27,7 @@ export function TopBar({
   onRename,
   onSetType,
   onSetDefault,
+  onCreateBuiltin,
   currentType,
   isDefault,
 }) {
@@ -34,6 +36,7 @@ export function TopBar({
   const [editName, setEditName] = useState(false);
   const current = templates.find((t) => t.id === currentId);
   const design = mode === "design";
+  const [builtinSel, setBuiltinSel] = useState("");
 
   useEffect(() => {
     loadTiposDocumento().then(setTipos).catch(() => setTipos([]));
@@ -117,6 +120,26 @@ export function TopBar({
       <button className={iconBtn} title="Nueva plantilla" onClick={() => onCreateTemplate("Nuevo formato")} disabled={!design}>
         <IconFilePlus />
       </button>
+
+      <select
+        className="input max-w-44 !px-2 !py-1.5 text-sm"
+        value={builtinSel}
+        onChange={(e) => {
+          const key = e.target.value;
+          if (key) {
+            onCreateBuiltin(key);
+            setBuiltinSel("");
+          }
+        }}
+        disabled={!design}
+        title="Crear plantilla prediseñada"
+      >
+        <option value="">+ Plantilla prediseñada</option>
+        {BUILTIN_LIST.map((b) => (
+          <option key={b.key} value={b.key}>{b.name}</option>
+        ))}
+      </select>
+
       <button className={iconBtn} title="Duplicar plantilla" onClick={onDuplicateTemplate} disabled={!design || !current}>
         <IconCopy />
       </button>
