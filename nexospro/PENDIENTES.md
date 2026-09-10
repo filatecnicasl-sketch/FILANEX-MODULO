@@ -40,19 +40,23 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Peticiones de la clienta sobre Citas (10/09)
 
-Impresión de citas y adjuntar presupuestos YA ESTÁN. Lo que falta:
+Impresión de citas y adjuntar presupuestos YA ESTABAN. Lo que faltaba, HECHO
+y desplegado (commit `1759ab0`, 10/09 ~04:10):
 
-- [ ] **Valoraciones en la cita**: si el cliente tiene valoraciones, que salgan
-      en la cita (igual que ya salen los presupuestos).
-- [ ] **Alta de vehículo desde la cita**: poder dar de alta el vehículo sin
-      salir de la pantalla de cita.
-- [ ] **Vehículo de cortesía**: agendarlo las veces necesarias, con estado
-      activo/inactivo, ligado a las fechas de la cita y visible en la ficha
-      del coche.
-- [ ] **Pantalla principal de citas — más información**: columnas visibles de
-      cortesía y de si es compañía (aseguradora) o particular.
-- [ ] **Selector de aseguradora al crear cita**: si es por compañía, filtro u
-      opción para elegir la aseguradora.
+- [x] **Valoraciones en la cita**: si el vehículo tiene valoraciones, salen
+      listadas en el modal de la cita (número, compañía, estado, total).
+- [x] **Alta de vehículo desde la cita**: botón "+ Alta de vehículo" bajo la
+      matrícula cuando no existe; pide solo marca y modelo.
+- [x] **Vehículo de cortesía**: checkbox "Reservar cortesía" en la cita con
+      asignación de coche libre, enlace "Registrar préstamo" (queda ligado a
+      la cita), y aviso de cortesía activa. En Taller → Vehículos se ve el
+      badge "Prestado" (coches de cortesía) y "Cortesía MATRÍCULA" (coches de
+      cliente cuyo dueño tiene una).
+- [x] **Pantalla principal de citas — más información**: badges de compañía
+      (nombre de la aseguradora) o "Particular", y de cortesía, tanto en la
+      vista Agenda del calendario como en la lista de búsqueda.
+- [x] **Selector de aseguradora al crear cita**: campo "Por compañía de
+      seguros" con buscador (vacío = particular).
 
 ## Cuanto antes (a raíz de la caída del 31/08)
 
