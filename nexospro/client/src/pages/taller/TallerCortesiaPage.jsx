@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
-import { IconImprimir } from "../../components/icons.jsx";
+import { IconImprimir, IconEditar } from "../../components/icons.jsx";
 import { imprimirContratoCortesia } from "../../utils/imprimir.js";
 
 const campo = "input w-full";
@@ -12,6 +12,7 @@ export default function TallerCortesiaPage() {
   const [prestamos, setPrestamos] = useState(null);
   const [error, setError] = useState(null);
   const [modalNuevo, setModalNuevo] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [devolviendo, setDevolviendo] = useState(null);
   const [q, setQ] = useState("");
 
@@ -124,6 +125,13 @@ export default function TallerCortesiaPage() {
                         >
                           <IconImprimir />
                         </button>
+                        <button
+                          onClick={() => setEditando(p)}
+                          title="Editar préstamo"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors align-middle mr-2"
+                        >
+                          <IconEditar />
+                        </button>
                         {p.estado === "activo" && (
                           <button
                             onClick={() => setDevolviendo(p)}
@@ -157,6 +165,17 @@ export default function TallerCortesiaPage() {
           onCerrar={() => setModalNuevo(false)}
           onCreado={() => {
             setModalNuevo(false);
+            cargar();
+          }}
+        />
+      )}
+
+      {editando && (
+        <ModalPrestamoCortesia
+          prestamo={editando}
+          onCerrar={() => setEditando(null)}
+          onCreado={() => {
+            setEditando(null);
             cargar();
           }}
         />
