@@ -844,8 +844,37 @@ router.get("/citas", async (req, res, next) => {
       if (desde) filtro.fecha.$gte = desde;
       if (hasta) filtro.fecha.$lte = finDia(hasta);
     }
-    const lista = await Cita.find(filtro).sort({ fecha: 1, hora: 1 }).limit(500);
-    res.json(lista);
+    const lista = await Cita.find(filtro).sort({ fecha: 1, hora: 1 }).limit(500).lean();
+
+    // Contexto extra para la vista principal: valoraciones del vehículo y
+    // préstamo de cortesía activo vinculado a la cita o al cliente.
+    const matriculas = [...new Set(lista.map((c) => c.matricula).filter(Boolean))];
+    const valoraciones = matriculas.length
+      ? await Valoracion.find({ matricula: { $in: matriculas } }).select("numero matricula compania estado total").lean()
+      : [];
+    const valPorMatricula = {};
+    for (const v of valoraciones) (valPorMatricula[v.matricula] ??= []).push(v);
+
+    const citaIds = lista.map((c) => c._id);
+    const nombres = [...new Set(lista.map((c) => c.clienteNombre).filter(Boolean))];
+    const prestamos = await PrestamoCortesia.find({
+      estado: "activo",
+      $or: [{ cita: { $in: citaIds } }, ...(nombres.length ? [{ clienteNombre: { $in: nombres } }] : [])],
+    }).lean();
+    const prestamoPorCita = {};
+    const prestamoPorCliente = {};
+    for (const p of prestamos) {
+      if (p.cita) prestamoPorCita[String(p.cita)] = p;
+      if (!prestamoPorCliente[p.clienteNombre] || (p.cita && citaIds.some((id) => String(id) === String(p.cita)))) {
+        prestamoPorCliente[p.clienteNombre] = p;
+      }
+    }
+
+    res.json(lista.map((c) => ({
+      ...c,
+      valoraciones: c.matricula ? (valPorMatricula[c.matricula] ?? []) : [],
+      prestamoCortesia: prestamoPorCita[String(c._id)] ?? (c.clienteNombre ? prestamoPorCliente[c.clienteNombre] : undefined) ?? null,
+    })));
   } catch (err) {
     next(err);
   }
@@ -878,6 +907,11 @@ router.post("/citas", async (req, res, next) => {
       matricula: req.body.matricula?.toUpperCase().trim() || undefined,
       motivo: req.body.motivo || undefined,
       presupuesto: Boolean(req.body.presupuesto),
+      aseguradora: req.body.aseguradora || undefined,
+      aseguradoraNombre: req.body.aseguradoraNombre || undefined,
+      cortesia: Boolean(req.body.cortesia),
+      cortesiaVehiculo: req.body.cortesia ? (req.body.cortesiaVehiculo || undefined) : undefined,
+      cortesiaMatricula: req.body.cortesia ? (req.body.cortesiaMatricula?.toUpperCase().trim() || undefined) : undefined,
       notas: req.body.notas || undefined,
     });
     await sincronizarWhatsAppCita({ ambito: "taller", documento: cita, usuario: req.usuario })
@@ -898,6 +932,15 @@ router.put("/citas/:id", async (req, res, next) => {
     if (!anterior) return res.status(404).json({ error: "Cita no encontrada" });
     const cambios = { hora, duracion, clienteNombre, telefono, motivo, estado, notas };
     if (req.body.cliente !== undefined) cambios.cliente = req.body.cliente || null;
+    if (req.body.aseguradora !== undefined) {
+      cambios.aseguradora = req.body.aseguradora || null;
+      cambios.aseguradoraNombre = req.body.aseguradora ? (req.body.aseguradoraNombre || undefined) : null;
+    }
+    if (req.body.cortesia !== undefined) {
+      cambios.cortesia = Boolean(req.body.cortesia);
+      cambios.cortesiaVehiculo = cambios.cortesia ? (req.body.cortesiaVehiculo || null) : null;
+      cambios.cortesiaMatricula = cambios.cortesia ? (req.body.cortesiaMatricula?.toUpperCase().trim() || undefined) : null;
+    }
     if (whatsappAutorizado !== undefined) {
       cambios.whatsappAutorizado = whatsappAutorizado === true;
       cambios.whatsappAutorizadoAt = whatsappAutorizado === true ? new Date() : null;
@@ -980,10 +1023,18 @@ router.post("/cortesia", async (req, res, next) => {
       telefono: req.body.telefono || undefined,
       orden: req.body.ordenId || undefined,
       numeroOrden: req.body.numeroOrden || undefined,
+      cita: req.body.citaId || undefined,
       fechaPrevista: prevista,
       kmSalida: req.body.kmSalida ? Number(req.body.kmSalida) : undefined,
       notas: req.body.notas || undefined,
     });
+    // Si nace de una cita, la cita queda marcada con el coche prestado.
+    if (req.body.citaId) {
+      await Cita.findOneAndUpdate(
+        { _id: req.body.citaId, ambito: "taller" },
+        { cortesia: true, cortesiaVehiculo: vehiculoId, cortesiaMatricula: vehiculo.matricula }
+      ).catch(() => {});
+    }
     res.status(201).json(prestamo);
   } catch (err) {
     next(err);

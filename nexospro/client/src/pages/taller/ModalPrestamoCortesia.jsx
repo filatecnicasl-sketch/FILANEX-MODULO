@@ -87,6 +87,7 @@ export default function ModalPrestamoCortesia({ inicial, onCerrar, onCreado }) {
           telefono: form.telefono || undefined,
           ordenId: form.ordenId || undefined,
           numeroOrden: orden?.numero,
+          citaId: inicial?.citaId || undefined,
           fechaPrevista: form.fechaPrevista,
           kmSalida: form.kmSalida || undefined,
           notas: form.notas || undefined,

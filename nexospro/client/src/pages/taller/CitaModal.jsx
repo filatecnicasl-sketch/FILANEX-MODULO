@@ -120,6 +120,11 @@ function aHora(minutos) {
 export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, onRecepcionar }) {
   const [clientes, setClientes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
+  const [aseguradoras, setAseguradoras] = useState([]);
+  const [valoraciones, setValoraciones] = useState([]);
+  const [prestamos, setPrestamos] = useState([]);
+  const [prestamo, setPrestamo] = useState(null); // préstamo activo de cortesía
+  const [altaVehiculo, setAltaVehiculo] = useState(false);
   const [form, setForm] = useState({
     fecha: cita ? aFechaInput(cita.fecha) : fechaInicial,
     hora: cita?.hora ?? "07:00",
@@ -131,6 +136,10 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     matricula: cita?.matricula ?? "",
     motivo: cita?.motivo ?? "",
     presupuesto: cita?.presupuesto ?? true,
+    aseguradora: cita?.aseguradora?._id ?? cita?.aseguradora ?? "",
+    aseguradoraNombre: cita?.aseguradoraNombre ?? "",
+    cortesia: cita?.cortesia ?? false,
+    cortesiaVehiculo: cita?.cortesiaVehiculo?._id ?? cita?.cortesiaVehiculo ?? "",
     estado: cita?.estado ?? "pendiente",
     notas: cita?.notas ?? "",
   });
@@ -147,7 +156,28 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
       .then((r) => (r.ok ? r.json() : []))
       .then(setVehiculos)
       .catch(() => setVehiculos([]));
+    fetch("/api/taller/aseguradoras")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setAseguradoras)
+      .catch(() => setAseguradoras([]));
+    fetch("/api/taller/valoraciones")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setValoraciones)
+      .catch(() => setValoraciones([]));
+    fetch("/api/taller/cortesia")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setPrestamos)
+      .catch(() => setPrestamos([]));
   }, []);
+
+  // Préstamo de cortesía activo de esta cita (por vínculo o por cliente).
+  useEffect(() => {
+    if (!prestamos.length) { setPrestamo(null); return; }
+    const activos = prestamos.filter((p) => p.estado === "activo");
+    const deLaCita = cita && activos.find((p) => String(p.cita) === String(cita._id));
+    const delCliente = activos.find((p) => p.clienteNombre && p.clienteNombre === form.clienteNombre);
+    setPrestamo(deLaCita ?? delCliente ?? null);
+  }, [prestamos, cita, form.clienteNombre]);
 
   function actualizar(nombre, valor) {
     setForm((f) => ({ ...f, [nombre]: valor }));
@@ -187,6 +217,41 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     }));
   }
 
+  function elegirAseguradora(op) {
+    setForm((f) => ({
+      ...f,
+      aseguradora: op?._id ?? "",
+      aseguradoraNombre: op?.nombre ?? "",
+    }));
+  }
+
+  // Alta rápida del vehículo sin salir de la cita (matrícula ya escrita).
+  async function crearVehiculoRapido(datos) {
+    const r = await fetch("/api/taller/vehiculos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        matricula: form.matricula,
+        marca: datos.marca || undefined,
+        modelo: datos.modelo || undefined,
+        cliente: form.cliente || undefined,
+        clienteNombre: form.clienteNombre || undefined,
+      }),
+    });
+    const creado = await r.json();
+    if (!r.ok) throw new Error(creado.error || "No se pudo crear el vehículo");
+    setVehiculos((l) => [...l, creado]);
+    setAltaVehiculo(false);
+  }
+
+  const matriculaExiste = vehiculos.some((v) => v.matricula?.toUpperCase() === form.matricula?.toUpperCase());
+  // Valoraciones del vehículo de la cita (o las de la cita ya cargada).
+  const valoracionesCita = (cita?.valoraciones?.length ? cita.valoraciones : valoraciones)
+    .filter((v) => v.matricula?.toUpperCase() === form.matricula?.toUpperCase());
+  // Coches de cortesía libres para la reserva desde la cita.
+  const ocupados = new Set(prestamos.filter((p) => p.estado === "activo").map((p) => String(p.vehiculo)));
+  const cortesiaLibres = vehiculos.filter((v) => v.tipo === "cortesia" && !ocupados.has(String(v._id)));
+
   async function guardar(e) {
     e.preventDefault();
     const duracion = aMinutos(form.horaFin) - aMinutos(form.hora);
@@ -197,6 +262,7 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     setGuardando(true);
     setError(null);
     try {
+      const cortesiaVeh = vehiculos.find((v) => String(v._id) === String(form.cortesiaVehiculo));
       const r = await fetch(`/api/taller/citas${cita ? `/${cita._id}` : ""}`, {
         method: cita ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -206,6 +272,10 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           horaFin: undefined,
           matricula: form.matricula || undefined,
           presupuesto: Boolean(form.presupuesto),
+          aseguradora: form.aseguradora || null,
+          cortesia: Boolean(form.cortesia),
+          cortesiaVehiculo: form.cortesia ? (form.cortesiaVehiculo || null) : null,
+          cortesiaMatricula: form.cortesia ? (cortesiaVeh?.matricula || undefined) : null,
         }),
       });
       const datos = await r.json();
@@ -379,6 +449,23 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
                 onElegir={elegirVehiculo}
                 placeholder="Buscar por matrícula…"
               />
+              {form.matricula && !matriculaExiste && !altaVehiculo && (
+                <button
+                  type="button"
+                  onClick={() => setAltaVehiculo(true)}
+                  className="mt-1 text-xs font-semibold text-teal-300 hover:text-teal-200"
+                  title="Dar de alta este vehículo en el taller sin salir de la cita"
+                >
+                  + Alta de vehículo
+                </button>
+              )}
+              {altaVehiculo && (
+                <AltaRapidaVehiculo
+                  matricula={form.matricula}
+                  onCrear={crearVehiculoRapido}
+                  onCancelar={() => setAltaVehiculo(false)}
+                />
+              )}
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Estado</label>
@@ -393,6 +480,92 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
               </select>
             </div>
           </div>
+
+          {/* Compañía de seguros (si la reparación va por aseguradora) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Por compañía de seguros</label>
+              <BuscadorEntidad
+                opciones={aseguradoras}
+                valorId={form.aseguradora}
+                onElegir={elegirAseguradora}
+                placeholder="Particular (sin compañía)…"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Coche de cortesía</label>
+              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none h-[2.625rem]">
+                <input
+                  type="checkbox"
+                  checked={form.cortesia}
+                  onChange={(e) => actualizar("cortesia", e.target.checked)}
+                  className="accent-[#2ec4b6]"
+                />
+                Reservar cortesía
+              </label>
+            </div>
+          </div>
+          {form.cortesia && (
+            <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex-1 min-w-[12rem]">
+                  <label className="text-xs text-slate-400 block mb-1">Vehículo asignado</label>
+                  <select
+                    className={campo}
+                    value={form.cortesiaVehiculo}
+                    onChange={(e) => actualizar("cortesiaVehiculo", e.target.value)}
+                  >
+                    <option value="">— Sin asignar todavía —</option>
+                    {cortesiaLibres.map((v) => (
+                      <option key={v._id} value={v._id}>
+                        {v.matricula}{[v.marca, v.modelo].filter(Boolean).length ? ` · ${[v.marca, v.modelo].filter(Boolean).join(" ")}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCortesiaAbierta(true)}
+                  className="text-xs font-semibold text-teal-300 hover:underline self-end pb-2"
+                  title="Registrar el préstamo ya (contrato y control de devolución)"
+                >
+                  Registrar préstamo
+                </button>
+              </div>
+              {cortesiaLibres.length === 0 && (
+                <p className="text-xs text-amber-300">No hay coches de cortesía libres ahora mismo.</p>
+              )}
+            </div>
+          )}
+          {prestamo && (
+            <div className="rounded-xl border border-teal-500/30 bg-teal-500/10 px-3 py-2 text-xs text-teal-200">
+              Cortesía activa: <b>{prestamo.matricula}</b> · devolución prevista {fechaEs(prestamo.fechaPrevista)}
+            </div>
+          )}
+
+          {/* Valoraciones del vehículo */}
+          {valoracionesCita.length > 0 && (
+            <div className="rounded-xl border border-slate-600/40 bg-slate-800/40 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Valoraciones de este vehículo
+              </p>
+              <ul className="space-y-1">
+                {valoracionesCita.map((v) => (
+                  <li key={v._id} className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-bold text-slate-200 num">{v.numero}</span>
+                    <span className="text-slate-400">{v.compania || "particular"}</span>
+                    <span className="text-xs rounded-full px-2 py-0.5 bg-slate-700 text-slate-300">{String(v.estado).replace(/_/g, " ")}</span>
+                    {v.total > 0 && (
+                      <span className="ml-auto font-semibold text-slate-200 num">
+                        {new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(v.total)}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div>
             <label className="text-sm text-slate-400 block mb-1">Motivo</label>
             <input
@@ -441,14 +614,6 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
                   Borrar
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setCortesiaAbierta(true)}
-                title="Prestar un coche de cortesía a este cliente"
-                className="text-sm text-teal-300 hover:underline"
-              >
-                Coche de cortesía
-              </button>
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
@@ -467,11 +632,66 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           clienteNombre: form.clienteNombre,
           telefono: form.telefono,
           fechaPrevista: form.fecha,
+          citaId: cita?._id,
         }}
         onCerrar={() => setCortesiaAbierta(false)}
         onCreado={() => setCortesiaAbierta(false)}
       />
     )}
     </>
+  );
+}
+
+// Alta mínima del vehículo desde la cita: marca y modelo; la matrícula y el
+// cliente ya están en el formulario de la cita. El resto de la ficha (bastidor,
+// combustible…) se completa después desde Taller → Vehículos.
+function AltaRapidaVehiculo({ matricula, onCrear, onCancelar }) {
+  const [marca, setMarca] = useState("");
+  const [modelo, setModelo] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function crear() {
+    setGuardando(true);
+    setError(null);
+    try {
+      await onCrear({ marca: marca.trim(), modelo: modelo.trim() });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 rounded-lg border border-slate-700 bg-slate-900/60 p-3 space-y-2">
+      <p className="text-xs text-slate-400">
+        Alta rápida de <b className="text-slate-200">{matricula}</b>. Bastidor y demás datos, luego en Vehículos.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          className="input w-full"
+          value={marca}
+          onChange={(e) => setMarca(e.target.value)}
+          placeholder="Marca"
+          autoFocus
+        />
+        <input
+          className="input w-full"
+          value={modelo}
+          onChange={(e) => setModelo(e.target.value)}
+          placeholder="Modelo"
+        />
+      </div>
+      {error && <p className="text-xs text-rose-400">{error}</p>}
+      <div className="flex gap-2">
+        <button type="button" onClick={crear} disabled={guardando} className="btn-primary text-xs px-3 py-1.5">
+          {guardando ? "Creando…" : "Crear vehículo"}
+        </button>
+        <button type="button" onClick={onCancelar} className="btn-ghost text-xs px-3 py-1.5">
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }

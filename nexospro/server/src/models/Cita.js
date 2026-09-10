@@ -25,6 +25,13 @@ const citaSchema = new Schema(
     motivo: String,
     // Las citas del taller suelen venir de un presupuesto aceptado.
     presupuesto: { type: Boolean, default: false },
+    // Si la reparación va por compañía de seguros.
+    aseguradora: { type: Schema.Types.ObjectId, ref: "Aseguradora" },
+    aseguradoraNombre: String, // desnormalizado para listados rápidos
+    // Coche de cortesía reservado para esta cita.
+    cortesia: { type: Boolean, default: false },
+    cortesiaVehiculo: { type: Schema.Types.ObjectId, ref: "Vehiculo" },
+    cortesiaMatricula: { type: String, uppercase: true, trim: true },
     estado: { type: String, enum: ESTADOS_CITA, default: "pendiente" },
     notas: String,
   },

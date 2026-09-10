@@ -11,6 +11,7 @@ const prestamoCortesiaSchema = new Schema(
     telefono: String,
     orden: { type: Schema.Types.ObjectId, ref: "OrdenTrabajo" },
     numeroOrden: String,
+    cita: { type: Schema.Types.ObjectId, ref: "Cita" }, // cita que originó el préstamo
     fechaSalida: { type: Date, default: Date.now },
     fechaPrevista: { type: Date, required: true }, // devolución acordada
     fechaDevolucion: Date, // real

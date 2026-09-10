@@ -60,12 +60,13 @@ function Chip({ cita, compacto, onClick }) {
         e.stopPropagation();
         onClick(cita);
       }}
-      title={`${cita.hora} · ${textoCita(cita)}${cita.motivo ? ` · ${cita.motivo}` : ""}`}
+      title={`${cita.hora} · ${textoCita(cita)}${cita.motivo ? ` · ${cita.motivo}` : ""}${cita.aseguradoraNombre ? ` · ${cita.aseguradoraNombre}` : ""}${cita.cortesia || cita.prestamoCortesia ? " · cortesía" : ""}`}
       className={`block w-full text-left rounded-md border px-1.5 py-0.5 truncate transition-opacity hover:opacity-75 ${
         cita.estado === "cancelada" ? "opacity-50" : ""
       } ${tono} ${compacto ? "text-[0.65625rem]" : "text-[0.71875rem]"}`}
     >
       <span className="font-bold num">{cita.hora}</span> {textoCita(cita)}
+      {(cita.cortesia || cita.prestamoCortesia) && <span title="Coche de cortesía"> C</span>}
     </button>
   );
 }
@@ -237,6 +238,22 @@ export default function Calendario({
                               className="ml-1.5 rounded-full bg-violet-100 text-violet-700 border border-violet-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
                             >
                               Pto
+                            </span>
+                          )}
+                          {c.aseguradoraNombre && (
+                            <span
+                              title={`Va por compañía: ${c.aseguradoraNombre}`}
+                              className="ml-1.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
+                            >
+                              {c.aseguradoraNombre}
+                            </span>
+                          )}
+                          {(c.cortesia || c.prestamoCortesia) && (
+                            <span
+                              title={`Coche de cortesía${c.prestamoCortesia?.matricula ? `: ${c.prestamoCortesia.matricula}` : c.cortesiaMatricula ? `: ${c.cortesiaMatricula}` : " (reservado)"}`}
+                              className="ml-1.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
+                            >
+                              Cortesía{c.prestamoCortesia?.matricula ? ` ${c.prestamoCortesia.matricula}` : ""}
                             </span>
                           )}
                         </span>

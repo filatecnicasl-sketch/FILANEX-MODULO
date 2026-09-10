@@ -38,6 +38,22 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
       `/` si se entra por URL a un sistema no activado (hoy el menú los
       oculta pero la ruta existe y la página falla al cargar datos).
 
+## Peticiones de la clienta sobre Citas (10/09)
+
+Impresión de citas y adjuntar presupuestos YA ESTÁN. Lo que falta:
+
+- [ ] **Valoraciones en la cita**: si el cliente tiene valoraciones, que salgan
+      en la cita (igual que ya salen los presupuestos).
+- [ ] **Alta de vehículo desde la cita**: poder dar de alta el vehículo sin
+      salir de la pantalla de cita.
+- [ ] **Vehículo de cortesía**: agendarlo las veces necesarias, con estado
+      activo/inactivo, ligado a las fechas de la cita y visible en la ficha
+      del coche.
+- [ ] **Pantalla principal de citas — más información**: columnas visibles de
+      cortesía y de si es compañía (aseguradora) o particular.
+- [ ] **Selector de aseguradora al crear cita**: si es por compañía, filtro u
+      opción para elegir la aseguradora.
+
 ## Cuanto antes (a raíz de la caída del 31/08)
 
 Esa noche el servidor estuvo caído desde ~22:00 hasta las 00:51 y nos enteramos

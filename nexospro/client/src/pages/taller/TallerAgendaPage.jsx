@@ -8,6 +8,37 @@ import { ESTADOS_CITA } from "./datos.js";
 
 const NOMBRE_ESTADO = Object.fromEntries(ESTADOS_CITA.map((e) => [e.clave, e.nombre]));
 
+// Badges de contexto de la cita: compañía de seguros / particular y cortesía.
+function BadgesCita({ cita }) {
+  return (
+    <>
+      {cita.aseguradoraNombre ? (
+        <span
+          title={`Va por compañía: ${cita.aseguradoraNombre}`}
+          className="ml-1.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
+        >
+          {cita.aseguradoraNombre}
+        </span>
+      ) : (
+        <span
+          title="Reparación de particular (sin compañía)"
+          className="ml-1.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
+        >
+          Particular
+        </span>
+      )}
+      {(cita.cortesia || cita.prestamoCortesia) && (
+        <span
+          title={`Coche de cortesía${cita.prestamoCortesia?.matricula ? `: ${cita.prestamoCortesia.matricula}` : cita.cortesiaMatricula ? `: ${cita.cortesiaMatricula}` : " (reservado)"}`}
+          className="ml-1.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
+        >
+          Cortesía{cita.prestamoCortesia?.matricula ? ` ${cita.prestamoCortesia.matricula}` : ""}
+        </span>
+      )}
+    </>
+  );
+}
+
 export default function TallerAgendaPage() {
   const [rango, setRango] = useState(null); // { desde, hasta } visibles en el calendario
   const [citas, setCitas] = useState(null);
@@ -29,7 +60,9 @@ export default function TallerAgendaPage() {
       c.hora,
       new Date(c.fecha).toLocaleDateString("es-ES"),
       NOMBRE_ESTADO[c.estado],
-      c.presupuesto ? "presupuesto" : ""
+      c.presupuesto ? "presupuesto" : "",
+      c.aseguradoraNombre,
+      c.cortesia || c.prestamoCortesia ? "cortesia" : ""
     )
   );
 
@@ -124,6 +157,7 @@ export default function TallerAgendaPage() {
                           Pto
                         </span>
                       )}
+                      <BadgesCita cita={c} />
                     </td>
                     <td>
                       <span className="text-xs" style={{ color: est?.color ?? "#64748b" }}>{est?.nombre ?? c.estado}</span>

@@ -11,12 +11,22 @@ const VACIO = { matricula: "", marca: "", modelo: "", km: "", tipo: "cliente", c
 export default function TallerVehiculosPage() {
   const [lista, setLista] = useState(null);
   const [clientes, setClientes] = useState([]);
+  const [prestamos, setPrestamos] = useState([]);
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState(VACIO);
   const [historialDe, setHistorialDe] = useState(null); // vehículo cuyo historial se muestra
   const [q, setQ] = useState("");
+
+  // Préstamo activo por vehículo (cortesía prestada o coche del cliente con cortesía).
+  const prestamoPorVehiculo = Object.fromEntries(
+    prestamos.filter((p) => p.estado === "activo").map((p) => [String(p.vehiculo), p])
+  );
+  // Para vehículos de cliente: si su dueño tiene un cortesía activo.
+  const cortesiaDelCliente = Object.fromEntries(
+    prestamos.filter((p) => p.estado === "activo" && p.clienteNombre).map((p) => [p.clienteNombre, p])
+  );
 
   // Filtra por todos los campos visibles de la tabla.
   const filtrada = (lista ?? []).filter((v) =>
@@ -49,6 +59,10 @@ export default function TallerVehiculosPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then(setClientes)
       .catch(() => setClientes([]));
+    fetch("/api/taller/cortesia")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setPrestamos)
+      .catch(() => setPrestamos([]));
   }, []);
 
   function abrirNuevo() {
@@ -159,6 +173,22 @@ export default function TallerVehiculosPage() {
                       <Badge tono={v.tipo === "cortesia" ? "amber" : "slate"}>
                         {v.tipo === "cortesia" ? "Cortesía" : "Cliente"}
                       </Badge>
+                      {v.tipo === "cortesia" && prestamoPorVehiculo[String(v._id)] && (
+                        <span
+                          title={`Prestado a ${prestamoPorVehiculo[String(v._id)].clienteNombre}, devolución prevista ${new Date(prestamoPorVehiculo[String(v._id)].fechaPrevista).toLocaleDateString("es-ES")}`}
+                          className="ml-1.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
+                        >
+                          Prestado
+                        </span>
+                      )}
+                      {v.tipo !== "cortesia" && v.clienteNombre && cortesiaDelCliente[v.clienteNombre] && (
+                        <span
+                          title={`El cliente tiene de cortesía ${cortesiaDelCliente[v.clienteNombre].matricula}, devolución prevista ${new Date(cortesiaDelCliente[v.clienteNombre].fechaPrevista).toLocaleDateString("es-ES")}`}
+                          className="ml-1.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
+                        >
+                          Cortesía {cortesiaDelCliente[v.clienteNombre].matricula}
+                        </span>
+                      )}
                     </td>
                     <td className="text-right text-slate-300 num">
                       {v.km != null ? `${v.km.toLocaleString("es-ES")} km` : "—"}
