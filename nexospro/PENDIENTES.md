@@ -11,6 +11,14 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
   `bg-<color>-100 text-<color>-700 border-<color>-200` (igual que en
   Taller → Valoraciones).
 
+## Recordatorios de arquitectura / trabajo
+
+- **Usar el editor de formatos** para todos los documentos imprimibles
+  (facturas, presupuestos, albaranes, partes, contratos, etc.). Antes de
+  crear un documento nuevo o modificar uno existente "a mano" en código,
+  valorar si puede hacerse como plantilla del editor para que cada cliente
+  la personalice a su gusto.
+
 ## Estado del equipo y del repo (10/09/2026)
 
 - El ordenador anterior se estropeó. El proyecto vive ahora en
