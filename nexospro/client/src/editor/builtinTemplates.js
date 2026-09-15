@@ -508,6 +508,61 @@ export function buildRecepcionAparato() {
   };
 }
 
+export function buildCitaTaller() {
+  const x = 10;
+  const w = 128;
+
+  return {
+    id: id(),
+    builtin: "cita-taller",
+    name: "Justificante de cita (taller)",
+    tipoDocumento: "cita-taller",
+    porDefecto: true,
+    page: { size: "A5", orientation: "portrait" },
+    elements: [
+      tx2("JUSTIFICANTE DE CITA", x, 9, w, 8, 16, true, "center"),
+      tx2("CITA DE TALLER REGISTRADA", x, 17, w, 5, 8, true, "center"),
+      fld2("TALLER", "empresa.nombre", x, 27, 88, 10, 11),
+      fld2("NIF", "empresa.nif", 102, 27, 36, 10, 9),
+      fld2("DIRECCIÓN", "empresa.direccion", x, 39, 80, 9, 8),
+      fld2("TELÉFONO", "empresa.telefono", 94, 39, 44, 9, 8),
+      linea(x, 52, w),
+
+      tx2("DATOS DE LA CITA", x, 57, w, 6, 10, true, "center"),
+      fld2("Nº DE CITA", "cita.numero", x, 66, 38, 10, 9),
+      fld2("FECHA", "cita.fecha", 52, 66, 38, 10, 9),
+      fld2("HORARIO", "cita.horario", 94, 66, 44, 10, 9),
+      fld2("ESTADO", "cita.estado", x, 78, 38, 9, 8),
+      fld2("ASEGURADORA / PARTICULAR", "cita.aseguradora", 52, 78, 86, 9, 8),
+
+      tx2("CLIENTE", x, 92, w, 6, 10, true, "center"),
+      fld2("NOMBRE", "cliente.nombre", x, 101, 80, 10, 9),
+      fld2("NIF / CIF", "cliente.nif", 94, 101, 44, 10, 9),
+      fld2("TELÉFONO", "cliente.telefono", x, 113, 56, 9, 8),
+      fld2("CORREO ELECTRÓNICO", "cliente.email", 70, 113, 68, 9, 8),
+
+      tx2("VEHÍCULO", x, 127, w, 6, 10, true, "center"),
+      fld2("MATRÍCULA", "vehiculo.matricula", x, 136, 38, 10, 10),
+      fld2("MARCA", "vehiculo.marca", 52, 136, 38, 10, 9),
+      fld2("MODELO", "vehiculo.modelo", 94, 136, 44, 10, 9),
+      fld2("VEHÍCULO DE CORTESÍA", "cita.cortesia", x, 148, w, 9, 8),
+
+      { id: id(), type: "textarea", x, y: 162, w, h: 19, label: "MOTIVO / TRABAJO SOLICITADO", fieldKey: "cita.motivo", fontSize: 8, boxed: true },
+      tx2(
+        "Este justificante confirma que el taller ha registrado la cita indicada. No supone la aceptación de un presupuesto ni la apertura de una orden de reparación.",
+        x,
+        184,
+        w,
+        10,
+        7,
+        false,
+        "center"
+      ),
+      fld2("DOCUMENTO EMITIDO EL", "documento.fechaEmision", 43, 197, 62, 8, 8),
+    ],
+  };
+}
+
 export function buildContratoCortesia() {
   const fs = 8;
   const fsSec = 9;
@@ -671,5 +726,6 @@ export const BUILTIN_TEMPLATES = [
   buildParteSat,
   buildRecepcionVehiculo,
   buildRecepcionAparato,
+  buildCitaTaller,
   buildContratoCortesia,
 ];

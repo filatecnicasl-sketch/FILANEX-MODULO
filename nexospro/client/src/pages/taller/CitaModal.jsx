@@ -5,6 +5,7 @@ import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
+import { imprimirJustificanteCitaTaller } from "../../utils/imprimir-cita-taller.js";
 
 const CLASES_PILL_ESTADO = {
   amber: "bg-amber-100 text-amber-700 border-amber-200",
@@ -245,12 +246,11 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
   const ocupados = new Set(prestamos.filter((p) => p.estado === "activo").map((p) => String(p.vehiculo)));
   const cortesiaLibres = vehiculos.filter((v) => v.tipo === "cortesia" && !ocupados.has(String(v._id)));
 
-  async function guardar(e) {
-    e.preventDefault();
+  async function guardarCita(imprimirDespues = false) {
     const duracion = aMinutos(form.horaFin) - aMinutos(form.hora);
     if (duracion <= 0) {
       setError("La hora de fin debe ser posterior a la de inicio");
-      return;
+      return false;
     }
     setGuardando(true);
     setError(null);
@@ -275,12 +275,47 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo guardar la cita");
+      if (imprimirDespues) {
+        const cliente =
+          clientes.find((item) => String(item._id) === String(form.cliente)) || undefined;
+        const vehiculo =
+          vehiculos.find(
+            (item) => item.matricula?.toUpperCase() === form.matricula?.toUpperCase()
+          ) || { marca: form.marca, modelo: form.modelo };
+        const aseguradora = aseguradoras.find(
+          (item) => String(item._id) === String(form.aseguradora)
+        );
+        await imprimirJustificanteCitaTaller({
+          ...datos,
+          cliente,
+          vehiculo,
+          clienteNombre: form.clienteNombre,
+          telefono: form.telefono,
+          matricula: form.matricula,
+          motivo: form.motivo,
+          notas: form.notas,
+          aseguradoraNombre: form.aseguradoraNombre || aseguradora?.nombre || "",
+          cortesia: form.cortesia,
+          cortesiaMatricula: cortesiaVeh?.matricula || "",
+        });
+      }
       onGuardada();
+      return true;
     } catch (e2) {
       setError(e2.message);
+      return false;
     } finally {
       setGuardando(false);
     }
+  }
+
+  async function guardar(e) {
+    e.preventDefault();
+    await guardarCita(false);
+  }
+
+  async function guardarEImprimir() {
+    await guardarCita(true);
   }
 
   async function imprimirEntrada() {
@@ -320,6 +355,27 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     }
   }
 
+  async function imprimirJustificante() {
+    if (!cita) return;
+    const cliente =
+      clientes.find((item) => String(item._id) === String(cita.cliente?._id ?? cita.cliente)) ||
+      cita.cliente;
+    const vehiculo =
+      vehiculos.find(
+        (item) => item.matricula?.toUpperCase() === (cita.matricula ?? "").toUpperCase()
+      ) || cita.vehiculo;
+    const aseguradora = aseguradoras.find(
+      (item) => String(item._id) === String(cita.aseguradora?._id ?? cita.aseguradora)
+    );
+
+    await imprimirJustificanteCitaTaller({
+      ...cita,
+      cliente,
+      vehiculo,
+      aseguradoraNombre: cita.aseguradoraNombre || aseguradora?.nombre || "",
+    });
+  }
+
   async function borrar() {
     if (!window.confirm("¿Borrar esta cita?")) return;
     const r = await fetch(`/api/taller/citas/${cita._id}`, { method: "DELETE" });
@@ -352,6 +408,18 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
             Recepcionar ahora
             <span className="block text-[0.6875rem] font-normal text-white/80 mt-0.5">
               Ha llegado el cliente: abrir la recepción rápida con esta cita
+            </span>
+          </button>
+        )}
+        {cita && (
+          <button
+            type="button"
+            onClick={imprimirJustificante}
+            className="w-full mb-3 rounded-xl bg-sky-600 px-4 py-3 text-sm font-bold text-white hover:bg-sky-700 transition"
+          >
+            Imprimir justificante de cita
+            <span className="block text-[0.6875rem] font-normal text-sky-100 mt-0.5">
+              Confirmación para entregar al cliente
             </span>
           </button>
         )}
@@ -630,6 +698,16 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+              {!cita && (
+                <button
+                  type="button"
+                  onClick={guardarEImprimir}
+                  disabled={guardando}
+                  className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-bold text-white hover:bg-sky-700 disabled:opacity-50"
+                >
+                  {guardando ? "Guardando…" : "Guardar e imprimir justificante"}
+                </button>
+              )}
               <button type="submit" disabled={guardando} className="btn-primary disabled:opacity-50">
                 {guardando ? "Guardando…" : "Guardar"}
               </button>

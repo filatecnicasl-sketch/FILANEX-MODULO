@@ -51,6 +51,7 @@ const formatoSchema = new Schema(
         "pedido-proveedor",
         "parte-taller",
         "entrada-taller",
+        "cita-taller",
         "parte-sat",
         "entrada-sat",
         "ticket-gasto",

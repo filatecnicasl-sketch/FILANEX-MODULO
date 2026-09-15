@@ -14,6 +14,7 @@ const TIPOS = [
   { id: "pedido-proveedor", etiqueta: "Pedido a proveedor" },
   { id: "parte-taller", etiqueta: "Parte de trabajo (taller)" },
   { id: "entrada-taller", etiqueta: "Hoja de entrada (taller)" },
+  { id: "cita-taller", etiqueta: "Justificante de cita (taller)" },
   { id: "parte-sat", etiqueta: "Parte de trabajo (SAT)" },
   { id: "entrada-sat", etiqueta: "Hoja de entrada (SAT)" },
   { id: "ticket-gasto", etiqueta: "Ticket de gasto" },
