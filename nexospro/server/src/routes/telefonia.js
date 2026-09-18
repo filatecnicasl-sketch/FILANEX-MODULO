@@ -15,14 +15,15 @@ const router = Router();
 router.use(requiereModulo("telefonia"));
 
 // Token que debe presentar la centralita al llamar al webhook.
-// NUNCA debe tener un valor por defecto: se exige en el .env del servidor.
+// Se configura en el .env del servidor. Si no está configurado, el webhook
+// queda desactivado (devuelve 503) para evitar el token por defecto del repo.
 const TOKEN = process.env.TELEFONIA_TOKEN;
-if (!TOKEN || TOKEN.length < 32) {
-  throw new Error(
-    "Falta TELEFONIA_TOKEN en el entorno o es demasiado corto (mínimo 32 caracteres). " +
-    "Configúralo en el .env del servidor antes de arrancar."
-  );
+if (!TOKEN) {
+  console.error("[telefonia] TELEFONIA_TOKEN no está configurado. El webhook /api/telefonia/evento queda desactivado.");
+} else if (TOKEN.length < 32) {
+  console.error("[telefonia] TELEFONIA_TOKEN es demasiado corto (mínimo 32 caracteres). El webhook queda desactivado.");
 }
+const TOKEN_VALIDO = TOKEN && TOKEN.length >= 32;
 
 // ---- Tiempo real: clientes SSE suscritos a los eventos de llamada ----
 // Cada suscriptor queda etiquetado con su empresa: un evento solo llega a
@@ -171,6 +172,9 @@ export const webhookTelefonia = Router();
 
 webhookTelefonia.post("/evento", async (req, res, next) => {
   try {
+    if (!TOKEN_VALIDO) {
+      return res.status(503).json({ error: "Telefonía no configurada" });
+    }
     if (req.query.token !== TOKEN) {
       return res.status(401).json({ error: "Token de telefonía no válido" });
     }
