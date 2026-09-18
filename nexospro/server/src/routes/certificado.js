@@ -84,7 +84,7 @@ router.post("/", [uploadMemoria.single("certificado"), contextoTrasSubida], asyn
     }
     const remoto = rutaCertificado();
     await guardarArchivo(remoto, req.file.buffer, req.file.mimetype || "application/x-pkcs12");
-    empresa.certificado = { ruta: urlCertificado(), passCifrada: cifrar(pass) };
+    empresa.certificado = { ruta: rutaCertificado(), passCifrada: cifrar(pass) };
     await empresa.save();
     res.json(await estado());
   } catch (e) {

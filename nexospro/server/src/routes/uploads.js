@@ -40,15 +40,9 @@ async function servirArchivo(res, next, prefijo, ruta) {
 }
 
 // Sirve archivos desde S3/R2 o disco local manteniendo las URLs públicas
-// /uploads/<ruta> y /cert/<ruta>. Esto permite que las URLs guardadas en
-// base de datos no cambien entre modo nube y modo local.
+// /uploads/<ruta>. Los certificados PFX nunca se sirven por aquí.
 router.get("/uploads/*", async (req, res, next) => {
   await servirArchivo(res, next, "uploads", req.params[0]);
-});
-
-// Certificados digitales se guardan bajo /cert/<slug>-aeat.pfx.
-router.get("/cert/*", async (req, res, next) => {
-  await servirArchivo(res, next, "certificados", req.params[0]);
 });
 
 export default router;

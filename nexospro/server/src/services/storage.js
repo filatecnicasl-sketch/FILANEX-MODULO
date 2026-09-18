@@ -6,9 +6,8 @@
  * DigitalOcean Spaces, etc.). En modo local, se mantienen en disco bajo la
  * carpeta uploads/ y certificados/.
  *
- * El backend sigue sirviendo todo desde /uploads/... y /cert/..., asi que las
- * URLs guardadas en base de datos no cambian y el service worker puede cachear
- * sin problemas.
+ * El backend sigue sirviendo /uploads/... tras autenticación, pero los
+ * certificados PFX (bajo certificados/) nunca se exponen públicamente.
  */
 import fs from "node:fs";
 import path from "node:path";

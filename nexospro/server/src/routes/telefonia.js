@@ -14,9 +14,15 @@ const router = Router();
 // El webhook público vive en su propio router (webhookTelefonia).
 router.use(requiereModulo("telefonia"));
 
-// Token que debe presentar la centralita al llamar al webhook
-// (configurable por TELEFONIA_TOKEN en el .env del servidor).
-const TOKEN = process.env.TELEFONIA_TOKEN || "filanex-telefonia";
+// Token que debe presentar la centralita al llamar al webhook.
+// NUNCA debe tener un valor por defecto: se exige en el .env del servidor.
+const TOKEN = process.env.TELEFONIA_TOKEN;
+if (!TOKEN || TOKEN.length < 32) {
+  throw new Error(
+    "Falta TELEFONIA_TOKEN en el entorno o es demasiado corto (mínimo 32 caracteres). " +
+    "Configúralo en el .env del servidor antes de arrancar."
+  );
+}
 
 // ---- Tiempo real: clientes SSE suscritos a los eventos de llamada ----
 // Cada suscriptor queda etiquetado con su empresa: un evento solo llega a

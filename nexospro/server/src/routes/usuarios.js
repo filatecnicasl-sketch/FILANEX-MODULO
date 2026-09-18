@@ -4,8 +4,12 @@
 import { Router } from "express";
 import crypto from "node:crypto";
 import Cuenta from "../models/plataforma/Cuenta.js";
+import { requiereRol } from "../middleware/auth.js";
 
 const router = Router();
+
+// Gestión de usuarios de la empresa (Sistema → Usuarios): solo administradores.
+router.use(requiereRol("admin"));
 
 export function hashContrasena(pass) {
   const salt = crypto.randomBytes(16).toString("hex");
