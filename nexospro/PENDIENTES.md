@@ -107,6 +107,10 @@ así que por ese motivo no se repite; falta enterarse antes y recuperar rápido.
       reiniciar el servicio de registro: pendiente de hacerlo con permiso.
 - [ ] **No compilar en producción**: hoy se hace `npm run build` en el propio
       servidor; mejor compilar fuera y subir solo el resultado.
+- [ ] **Configurar `TELEFONIA_TOKEN` en producción** (mínimo 32 caracteres
+      aleatorios) antes de activar el sistema de telefonía. Actualizar la
+      centralita para usar `?token=...`; idealmente mover la autenticación del
+      webhook a una cabecera o a una firma HMAC para no dejar el token en logs.
 
 ## Antes de enero (importante)
 
