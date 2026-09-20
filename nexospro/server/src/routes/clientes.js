@@ -92,9 +92,9 @@ router.post("/rapido", async (req, res, next) => {
     const telefono = (req.body?.telefono ?? "").trim() || undefined;
     const email = (req.body?.email ?? "").trim() || undefined;
     const nif = normalizarNIF(req.body?.nif) || undefined;
-    // Cuando el alta nace de una casilla "Nuevo", el NIF es obligatorio.
-    if (req.body?.exigirNif && !nif) {
-      return res.status(400).json({ error: "Para dar de alta el cliente hay que indicar el CIF/NIF" });
+    // Cuando el alta nace de una casilla "Nuevo", el teléfono es obligatorio.
+    if (req.body?.exigirTelefono && !telefono) {
+      return res.status(400).json({ error: "Para dar de alta el cliente hay que indicar el teléfono" });
     }
 
     // Si ya existe una ficha con ese NIF se devuelve en vez de duplicar.
@@ -102,7 +102,7 @@ router.post("/rapido", async (req, res, next) => {
       const existente = await buscarPorNif(Cliente, nif, null);
       if (existente) return res.status(200).json(existente);
     } else {
-      // Sin NIF: se evita repetir el mismo nombre (mismo teléfono o sin él).
+      // Sin NIF: se evita repetir el mismo nombre y teléfono.
       const repetido = await Cliente.findOne({
         nombre: { $regex: `^${nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
         ...(telefono ? { telefono } : {}),
