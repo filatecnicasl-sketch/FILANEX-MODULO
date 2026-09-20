@@ -24,6 +24,9 @@ export const lineaSchema = new Schema(
     // línea (p.ej. "Chapa aleta derecha"). Permite subtotales por trabajo
     // en la orden y en el parte impreso.
     grupo: String,
+    // TPV: artículo vendido, para descontar/reponer stock al cobrar o
+    // devolver el ticket.
+    articulo: { type: Schema.Types.ObjectId, ref: "Articulo" },
   },
   { _id: false }
 );

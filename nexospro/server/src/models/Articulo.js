@@ -20,6 +20,10 @@ const articuloSchema = new Schema(
     familia: { type: String, default: "", index: true },
     // URL relativa a /uploads/ con la foto del artículo para el TPV táctil.
     imagen: { type: String, default: "" },
+    // Stock de almacén: baja al vender en el TPV y sube con devoluciones.
+    // Se puede ajustar manualmente desde la ficha del artículo.
+    stock: { type: Number, default: 0 },
+    stockMinimo: { type: Number, default: 0 }, // aviso de reposición
     origen: { type: String, enum: ["manual", "ocr"], default: "manual" }, // badge AUTO
   },
   { timestamps: true }

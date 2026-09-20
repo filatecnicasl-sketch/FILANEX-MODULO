@@ -1,4 +1,5 @@
 import { Router as ExpressRouter } from "express";
+import multer from "multer";
 import Articulo from "../models/Articulo.js";
 import FacturaCompra from "../models/FacturaCompra.js";
 import AlbaranCompra from "../models/AlbaranCompra.js";
@@ -6,8 +7,16 @@ import PedidoCompra from "../models/PedidoCompra.js";
 import PresupuestoCompra from "../models/PresupuestoCompra.js";
 import { normalizarNombre } from "../services/matching.js";
 import { siguienteCodigoArticulo } from "../services/codigoArticulo.js";
+import { guardarArchivo, urlPublica } from "../services/storage.js";
+import { slugActual } from "../models/tenant.js";
+import { contextoTrasSubida } from "../middleware/empresa.js";
 
 const router = ExpressRouter();
+
+const subidaImagen = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+});
 
 // Trazabilidad: en qué documentos de compra aparece cada artículo,
 // casando por descripción normalizada (las líneas no guardan el id del artículo).
@@ -45,7 +54,26 @@ const CAMPOS = [
   "tipo", "codigo", "descripcion", "detalle", "unidad",
   "precioCompra", "precioVenta", "iva", "proveedor",
   "referenciaProveedor", "codigoBarras", "familia", "imagen",
+  "stock", "stockMinimo",
 ];
+
+// Subida de imagen de artículo o familia del TPV. Devuelve la ruta pública.
+router.post("/imagen", [subidaImagen.single("imagen"), contextoTrasSubida], async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No se ha recibido ninguna imagen" });
+    if (!req.file.mimetype.startsWith("image/")) {
+      return res.status(400).json({ error: "El archivo debe ser una imagen" });
+    }
+    const ext = req.file.mimetype === "image/png" ? ".png"
+      : req.file.mimetype === "image/webp" ? ".webp" : ".jpg";
+    const archivo = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    const remoto = `uploads/${slugActual()}/tpv/${archivo}`;
+    await guardarArchivo(remoto, req.file.buffer, req.file.mimetype);
+    res.status(201).json({ ruta: urlPublica(remoto) });
+  } catch (err) {
+    next(err);
+  }
+});
 
 function limpiar(body) {
   const datos = {};

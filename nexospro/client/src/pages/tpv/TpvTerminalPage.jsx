@@ -623,17 +623,17 @@ export default function TpvTerminalPage() {
       {/* Cuerpo */}
       <div className="flex-1 flex overflow-hidden">
         {/* Categorías */}
-        <aside className="w-36 sm:w-44 bg-white border-r border-slate-200 overflow-y-auto shrink-0">
+        <aside className="w-36 sm:w-44 bg-neutral-900 border-r border-neutral-800 overflow-y-auto shrink-0">
           {categorias.map((c) => {
             const activa = familiaActiva === c.id;
             return (
               <button
                 key={c.id}
                 onClick={() => setFamiliaActiva(c.id)}
-                className={`w-full flex items-center justify-between gap-2 px-3 py-3 border-b border-slate-100 border-l-4 transition ${
+                className={`w-full flex items-center justify-between gap-2 px-3 py-3 border-b border-neutral-800 border-l-4 transition ${
                   activa
-                    ? "bg-slate-100 font-bold"
-                    : "text-slate-600 hover:bg-slate-50 border-l-transparent"
+                    ? "bg-white/10 font-bold text-white"
+                    : "text-slate-300 hover:bg-white/5 border-l-transparent"
                 }`}
                 style={activa ? { borderLeftColor: c.color } : undefined}
               >
@@ -701,6 +701,13 @@ export default function TpvTerminalPage() {
                   </div>
                   <p className="mt-2 text-sm text-center leading-tight text-slate-700 line-clamp-2">
                     {a.descripcion}
+                  </p>
+                  <p
+                    className={`text-[11px] font-semibold ${
+                      (a.stock ?? 0) <= (a.stockMinimo ?? 0) ? "text-rose-500" : "text-slate-400"
+                    }`}
+                  >
+                    Stock: {a.stock ?? 0}
                   </p>
                 </button>
               );

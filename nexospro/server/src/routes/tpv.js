@@ -175,6 +175,63 @@ async function registrarVerifactu({ empresa, facturaDoc, facturaDatos, tipoFactu
   return verifactu;
 }
 
+// ------------------------------------------------------ familias del TPV ---
+
+router.get("/familias", async (req, res, next) => {
+  try {
+    const familias = await FamiliaTpv.find().sort({ orden: 1, nombre: 1 }).lean();
+    res.json(familias);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/familias", async (req, res, next) => {
+  try {
+    const nombre = String(req.body?.nombre ?? "").trim();
+    if (!nombre) return res.status(400).json({ error: "El nombre es obligatorio" });
+    const existe = await FamiliaTpv.findOne({ nombre }).lean();
+    if (existe) return res.status(409).json({ error: "Ya existe una familia con ese nombre" });
+    const familia = await FamiliaTpv.create({
+      nombre,
+      orden: Number(req.body?.orden) || 0,
+      imagen: String(req.body?.imagen ?? ""),
+      color: String(req.body?.color ?? ""),
+    });
+    res.status(201).json(familia);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/familias/:id", async (req, res, next) => {
+  try {
+    const datos = {};
+    for (const c of ["nombre", "orden", "imagen", "color"]) {
+      if (req.body?.[c] !== undefined) datos[c] = req.body[c];
+    }
+    if (datos.nombre !== undefined) datos.nombre = String(datos.nombre).trim();
+    if (!datos.nombre && datos.nombre !== undefined) {
+      return res.status(400).json({ error: "El nombre es obligatorio" });
+    }
+    const familia = await FamiliaTpv.findByIdAndUpdate(req.params.id, datos, { new: true });
+    if (!familia) return res.status(404).json({ error: "Familia no encontrada" });
+    res.json(familia);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/familias/:id", async (req, res, next) => {
+  try {
+    const familia = await FamiliaTpv.findByIdAndDelete(req.params.id);
+    if (!familia) return res.status(404).json({ error: "Familia no encontrada" });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // -------------------------------------------------------------- estado ---
 
 router.get("/estado", async (req, res, next) => {
@@ -248,6 +305,8 @@ router.get("/estado", async (req, res, next) => {
         imagen: a.imagen ?? "",
         precioVenta: a.precioVenta,
         iva: a.iva ?? 21,
+        stock: a.stock ?? 0,
+        stockMinimo: a.stockMinimo ?? 0,
       })),
       familias,
       familiasTpv: familiasTpv.map((f) => ({
@@ -475,6 +534,7 @@ router.post("/cobrar", serializarRegistro, async (req, res, next) => {
     const metodo = METODOS.includes(req.body?.metodoCobro) ? req.body.metodoCobro : "efectivo";
 
     const lineas = lineasEntrada.map((l) => ({
+      articulo: l.articulo || undefined,
       descripcion: String(l.descripcion ?? "").trim() || "Artículo",
       cantidad: Number(l.cantidad) > 0 ? Number(l.cantidad) : 1,
       precioUnitario: Number(l.precioUnitario ?? l.precio) || 0,
@@ -525,6 +585,15 @@ router.post("/cobrar", serializarRegistro, async (req, res, next) => {
       tipoFactura: "F2",
     });
     await ticket.save();
+
+    // Salida de stock: cada línea con artículo descuenta sus unidades.
+    await Promise.all(
+      lineas
+        .filter((l) => l.articulo)
+        .map((l) =>
+          Articulo.findByIdAndUpdate(l.articulo, { $inc: { stock: -l.cantidad } }).catch(() => null)
+        )
+    );
 
     const entregado = redondear(req.body?.entregado);
     res.status(201).json({
@@ -599,6 +668,7 @@ router.post("/tickets/:id/devolucion", serializarRegistro, async (req, res, next
     const lineas = seleccion.map(({ indice, cantidad }) => {
       const l = original.lineas[indice];
       return {
+        articulo: l.articulo || undefined,
         descripcion: l.descripcion,
         cantidad,
         precioUnitario: -Math.abs(l.precioUnitario),
@@ -656,6 +726,15 @@ router.post("/tickets/:id/devolucion", serializarRegistro, async (req, res, next
     const agotado = original.lineas.every((l) => (l.devuelto ?? 0) >= l.cantidad);
     if (agotado) original.estado = "rectificada";
     await original.save();
+
+    // Entrada de stock: las unidades devueltas vuelven al almacén.
+    await Promise.all(
+      seleccion
+        .filter(({ indice }) => original.lineas[indice]?.articulo)
+        .map(({ indice, cantidad }) =>
+          Articulo.findByIdAndUpdate(original.lineas[indice].articulo, { $inc: { stock: cantidad } }).catch(() => null)
+        )
+    );
 
     res.status(201).json({ devolucion: vistaTicket(devolucion), completa: agotado });
   } catch (err) {
