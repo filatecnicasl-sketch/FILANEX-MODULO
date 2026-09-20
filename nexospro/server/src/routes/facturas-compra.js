@@ -15,6 +15,7 @@ import { contextoTrasSubida } from "../middleware/empresa.js";
 import { uploadMemoria } from "../middleware/upload.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
 import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
+import { moverStock } from "../services/stock.js";
 
 const router = Router();
 
@@ -125,6 +126,8 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
           lineas: lineasDoc,
           ocr: { confianza, ficheroUrl, datosExtraidos: { ...extraccion, avisos } },
         });
+        // Entrada de stock de la mercancía recibida (líneas enlazadas a artículos).
+        await moverStock(lineasDoc, +1);
         return res.status(201).json({
           tipo: "albaran",
           documento: await albaran.populate("proveedor", "nombre nif"),
@@ -268,7 +271,7 @@ router.post("/:id/validar", async (req, res, next) => {
       if (sugerencias[i]?.crear !== false && sugerencias[i]?.articuloId == null) {
         const l = fc.lineas[i];
         const tipo = extra.lineas?.[i]?.tipo === "servicio" ? "servicio" : "articulo";
-        await Articulo.create({
+        const creado = await Articulo.create({
           descripcion: l.descripcion,
           tipo,
           codigo: await siguienteCodigoArticulo(),
@@ -277,11 +280,22 @@ router.post("/:id/validar", async (req, res, next) => {
           proveedor: fc.proveedor ?? undefined,
           origen: "ocr",
         });
+        // La línea queda enlazada con el artículo recién creado: desde ese
+        // momento el stock y el histórico de compras lo siguen.
+        fc.lineas[i].articulo = creado._id;
+      } else if (sugerencias[i]?.articuloId != null && !fc.lineas[i].articulo) {
+        fc.lineas[i].articulo = sugerencias[i].articuloId;
       }
     }
 
     fc.estado = "validada";
     await fc.save();
+
+    // Entrada de stock al validar la compra. Si la factura nació de albaranes
+    // (pasar-a-factura), el stock ya entró con esos albaranes: no se duplica.
+    if (!fc.albaranes?.length) {
+      await moverStock(fc.lineas, +1);
+    }
     // TODO: cruce con albaranes pendientes de facturar del mismo proveedor
     res.json(fc);
   } catch (err) {

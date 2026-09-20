@@ -6,6 +6,7 @@ import Empresa from "../models/Empresa.js";
 import { calcularTotales } from "../services/totales.js";
 import { tomarNumero } from "../services/numeracion.js";
 import { requiereModulo } from "../config/modulos.js";
+import { moverStock } from "../services/stock.js";
 
 const router = Router();
 
@@ -52,6 +53,9 @@ router.post("/", async (req, res, next) => {
       ...totales,
       estado: estado ?? "confirmado",
     });
+    // Entrada de stock: la mercancía del albarán ya está en el almacén.
+    // La factura del proveedor (pasar-a-factura) no lo vuelve a sumar.
+    await moverStock(lineas, +1);
     res.status(201).json(await albaran.populate("proveedor", "nombre nif"));
   } catch (err) {
     next(err);
@@ -75,7 +79,11 @@ router.put("/:id", async (req, res, next) => {
     if (fecha !== undefined) albaran.fecha = fecha ? new Date(fecha) : albaran.fecha;
     if (estado !== undefined) albaran.estado = estado;
     if (Array.isArray(req.body.lineas)) {
-      albaran.lineas = req.body.lineas.filter((l) => l.descripcion);
+      const nuevas = req.body.lineas.filter((l) => l.descripcion);
+      // Ajuste de stock: salen las unidades antiguas y entran las nuevas.
+      await moverStock(albaran.lineas, -1);
+      albaran.lineas = nuevas;
+      await moverStock(nuevas, +1);
       Object.assign(albaran, calcularTotales(albaran.lineas));
     }
     await albaran.save();
