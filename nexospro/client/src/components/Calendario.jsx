@@ -43,6 +43,9 @@ function sumarDias(fecha, n) {
 }
 
 function textoCita(c) {
+  if (c.cortesia || c.prestamoCortesia) {
+    return `${c.matricula ?? ""} V. cortesía ${c.prestamoCortesia?.matricula || c.cortesiaMatricula || ""}`.trim();
+  }
   return c.titulo ?? c.matricula ?? c.clienteNombre ?? c.motivo ?? "—";
 }
 
@@ -66,9 +69,7 @@ function Chip({ cita, compacto, onClick }) {
       } ${tono} ${compacto ? "text-[0.65625rem]" : "text-[0.71875rem]"}`}
     >
       <span className="font-bold num">{cita.hora}</span>{" "}
-      {cita.cortesia || cita.prestamoCortesia
-        ? `V. cortesía ${cita.prestamoCortesia?.matricula || cita.cortesiaMatricula || cita.matricula || ""}`
-        : textoCita(cita)}
+      {textoCita(cita)}
     </button>
   );
 }
