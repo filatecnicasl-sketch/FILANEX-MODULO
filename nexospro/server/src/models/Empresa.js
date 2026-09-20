@@ -82,6 +82,19 @@ const empresaSchema = new Schema(
       iban: String,          // cuenta de cobro de la empresa
       idAcreedor: String,    // identificador de acreedor SEPA (ES + sufijo + NIF)
     },
+    // Modelo de impresión del ticket del TPV (80/58 mm). Es de la empresa,
+    // no del terminal: se edita en TPV → Ajustes → Modelo de ticket.
+    tpvTicket: {
+      mostrarLogo: { type: Boolean, default: true },
+      mostrarNif: { type: Boolean, default: true },
+      mostrarDireccion: { type: Boolean, default: false },
+      mostrarTelefono: { type: Boolean, default: false },
+      cabeceraLibre: { type: String, default: "" }, // línea extra bajo los datos
+      pieLibre: { type: String, default: "Gracias por su compra" },
+      mostrarQr: { type: Boolean, default: true },
+      mostrarDesgloseIva: { type: Boolean, default: true },
+      mostrarMetodoPago: { type: Boolean, default: true },
+    },
     // Cuenta de correo de ESTA empresa. La contraseña se guarda cifrada y
     // nunca se devuelve al navegador.
     correo: {

@@ -370,7 +370,7 @@ export default function TpvTerminalPage() {
   async function reimprimirUltimo() {
     try {
       const ultimo = await ultimoTicket();
-      window.open(`/api/tpv/tickets/${ultimo._id}/imprimir`, "_blank", "width=400,height=600");
+      window.open(`/api/tpv/tickets/${ultimo._id}/imprimir?ancho=${cfgHw.impresion.ancho}`, "_blank", "width=400,height=600");
     } catch (e) {
       setError(e.message);
     }
@@ -379,7 +379,7 @@ export default function TpvTerminalPage() {
   async function imprimirTicketRegalo() {
     try {
       const ultimo = await ultimoTicket();
-      window.open(`/api/tpv/tickets/${ultimo._id}/imprimir?regalo=1`, "_blank", "width=400,height=600");
+      window.open(`/api/tpv/tickets/${ultimo._id}/imprimir?regalo=1&ancho=${cfgHw.impresion.ancho}`, "_blank", "width=400,height=600");
     } catch (e) {
       setError(e.message);
     }
@@ -478,7 +478,7 @@ export default function TpvTerminalPage() {
     vaciarTicket();
     if (datos?.imprimirUrl && cfgHw.impresion.autoImprimir) {
       if (datos.conRegalo && cfgHw.impresion.modo !== "escpos") {
-        const w = window.open(`${datos.imprimirUrl}&copiaRegalo=1`, "_blank", "width=400,height=600");
+        const w = window.open(`${datos.imprimirUrl}?copiaRegalo=1&ancho=${cfgHw.impresion.ancho}`, "_blank", "width=400,height=600");
         if (w) w.focus();
       } else {
         imprimirTicketSegunConfig(cfgHw, {

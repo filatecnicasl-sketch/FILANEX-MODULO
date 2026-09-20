@@ -319,8 +319,67 @@ router.get("/estado", async (req, res, next) => {
       })),
       favoritos,
       clienteMostradorId: mostrador._id,
-      empresa: { nombre: empresa?.nombre ?? "", nif: empresa?.nif ?? "" },
+      empresa: {
+        nombre: empresa?.nombre ?? "",
+        nif: empresa?.nif ?? "",
+        telefono: empresa?.telefono ?? "",
+        direccion: empresa?.direccion ?? {},
+        logoUrl: empresa?.logoUrl ?? "",
+        tpvTicket: configTicketDe(empresa),
+      },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Configuración del modelo de ticket con sus valores por defecto aplicados.
+const TICKET_DEFECTO = {
+  mostrarLogo: true,
+  mostrarNif: true,
+  mostrarDireccion: false,
+  mostrarTelefono: false,
+  cabeceraLibre: "",
+  pieLibre: "Gracias por su compra",
+  mostrarQr: true,
+  mostrarDesgloseIva: true,
+  mostrarMetodoPago: true,
+};
+
+function configTicketDe(empresa) {
+  return { ...TICKET_DEFECTO, ...(empresa?.tpvTicket ?? {}) };
+}
+
+// Modelo de impresión del ticket (TPV → Ajustes → Modelo de ticket).
+router.get("/config-ticket", async (req, res, next) => {
+  try {
+    const empresa = await Empresa.findOne().lean();
+    res.json({
+      config: configTicketDe(empresa),
+      logoUrl: empresa?.logoUrl ?? "",
+      direccion: empresa?.direccion ?? {},
+      telefono: empresa?.telefono ?? "",
+      nombre: empresa?.nombre ?? "",
+      nif: empresa?.nif ?? "",
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/config-ticket", async (req, res, next) => {
+  try {
+    const empresa = await Empresa.findOne();
+    if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
+    const permitidas = Object.keys(TICKET_DEFECTO);
+    const actual = configTicketDe(empresa);
+    for (const k of permitidas) {
+      if (req.body[k] === undefined) continue;
+      actual[k] = typeof TICKET_DEFECTO[k] === "boolean" ? req.body[k] === true : String(req.body[k] ?? "").slice(0, 200);
+    }
+    empresa.tpvTicket = actual;
+    await empresa.save();
+    res.json({ config: actual });
   } catch (err) {
     next(err);
   }
@@ -926,6 +985,151 @@ router.post("/tickets/ultimo/email", async (req, res, next) => {
   }
 });
 
+// Genera el HTML imprimible del ticket (80/58 mm) según el modelo
+// configurado en TPV → Ajustes → Modelo de ticket.
+function renderTicketHtml(ticket, empresa, { esRegalo = false, conCopiaRegalo = false, ancho = 80 } = {}) {
+  const cfg = configTicketDe(empresa);
+  const esc = (s) =>
+    String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const euros = (n) => `${redondear(n).toFixed(2).replace(".", ",")} €`;
+  const fecha = new Date(ticket.fechaExpedicion);
+  const fechaTxt = `${fecha.toLocaleDateString("es-ES")} ${fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+
+  const filasPara = (regalo) =>
+    (ticket.lineas ?? [])
+      .map((l) => {
+        if (regalo) {
+          return `<tr>
+        <td>${esc(l.descripcion)}</td>
+        <td class="num">${l.cantidad}</td>
+      </tr>`;
+        }
+        const totalLinea = redondear(l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100));
+        return `<tr>
+        <td>${esc(l.descripcion)}</td>
+        <td class="num">${l.cantidad}</td>
+        <td class="num">${euros(l.precioUnitario)}</td>
+        <td class="num">${euros(totalLinea)}</td>
+      </tr>`;
+      })
+      .join("");
+
+  const qr = cfg.mostrarQr && ticket.verifactu?.qrContenido
+    ? `<div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticket.verifactu.qrContenido)}" alt="QR VeriFactu"><br><small>Verificado en Veri*factu · AEAT</small></div>`
+    : "";
+
+  // Cabecera configurable: logo, datos fiscales, dirección, teléfono y línea libre.
+  const direccionTxt = [empresa?.direccion?.calle, [empresa?.direccion?.cp, empresa?.direccion?.ciudad].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ");
+  const cabeceraEmpresa = (regalo) => {
+    const partes = [];
+    if (cfg.mostrarLogo && empresa?.logoUrl) {
+      partes.push(`<img class="logo" src="${esc(empresa.logoUrl)}" alt="">`);
+    }
+    partes.push(`<strong>${esc(empresa?.nombre)}</strong>`);
+    if (!regalo && cfg.mostrarNif && empresa?.nif) partes.push(`NIF ${esc(empresa.nif)}`);
+    if (cfg.mostrarDireccion && direccionTxt) partes.push(esc(direccionTxt));
+    if (cfg.mostrarTelefono && empresa?.telefono) partes.push(`Tel. ${esc(empresa.telefono)}`);
+    if (cfg.cabeceraLibre) partes.push(esc(cfg.cabeceraLibre));
+    return `<div class="centro">${partes.join("<br>")}</div>`;
+  };
+
+  const pieTexto = esc(cfg.pieLibre || "Gracias por su compra");
+
+  const cuerpo = (regalo) => {
+    const cabeceraDoc = regalo
+      ? `<div class="centro"><strong class="total">TICKET REGALO</strong></div>
+<div class="sep"></div>
+<div>Nº <strong>${esc(ticket.serieNumero)}</strong><br>${fechaTxt}</div>`
+      : `<div>FACTURA SIMPLIFICADA<br>Nº <strong>${esc(ticket.serieNumero)}</strong><br>${fechaTxt}</div>`;
+
+    const desglose = cfg.mostrarDesgloseIva
+      ? `<tr><td>Base imponible</td><td class="num">${euros(ticket.baseImponible)}</td></tr>
+  <tr><td>IVA</td><td class="num">${euros(ticket.cuotaIva)}</td></tr>`
+      : "";
+    const pago = cfg.mostrarMetodoPago
+      ? `<tr><td>Pago: ${esc(ticket.cobros?.[0]?.metodo ?? "efectivo")}</td><td class="num"></td></tr>`
+      : "";
+
+    const pieDoc = regalo
+      ? `<div class="centro">Documento válido para cambios.<br>Sin valor fiscal: los importes figuran<br>en la factura simplificada ${esc(ticket.serieNumero)}.</div>
+<div class="sep"></div>
+<div class="centro">${pieTexto}</div>`
+      : `<table>
+  ${desglose}
+  <tr class="total"><td>TOTAL</td><td class="num">${euros(ticket.total)}</td></tr>
+  ${pago}
+</table>
+${qr}
+<div class="sep"></div>
+<div class="centro">${pieTexto}</div>`;
+
+    return `${cabeceraEmpresa(regalo)}
+<div class="sep"></div>
+${cabeceraDoc}
+<div class="sep"></div>
+<table>${filasPara(regalo)}</table>
+<div class="sep"></div>
+${pieDoc}`;
+  };
+
+  const corte = conCopiaRegalo
+    ? `<div style="page-break-before: always; border-top: 1px dashed #000; margin: 8px 0;"></div>`
+    : "";
+
+  const anchoPapel = ancho === 58 ? 58 : 80;
+  const anchoCuerpo = ancho === 58 ? "50mm" : "72mm";
+
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>${esRegalo ? "Ticket regalo" : "Ticket"} ${esc(ticket.serieNumero)}</title>
+<style>
+  @page { size: ${anchoPapel}mm auto; margin: 0; }
+  body { width: ${anchoCuerpo}; margin: 4mm auto; font-family: 'Courier New', monospace; font-size: 11px; color: #000; }
+  .centro { text-align: center; }
+  .sep { border-top: 1px dashed #000; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 1px 0; vertical-align: top; }
+  .num { text-align: right; white-space: nowrap; }
+  .total { font-size: 15px; font-weight: bold; }
+  .logo { max-width: 40mm; max-height: 18mm; display: block; margin: 0 auto 2mm; }
+  .qr { text-align: center; margin-top: 6px; }
+  .qr img { width: ${ancho === 58 ? "28mm" : "34mm"}; }
+  @media print { .noprint { display: none; } }
+</style></head><body>
+<button class="noprint" onclick="window.print()" style="width:100%;padding:8px;font-size:14px;margin-bottom:8px;">Imprimir ${esRegalo ? "ticket regalo" : "ticket"}</button>
+${cuerpo(esRegalo)}
+${corte}
+${conCopiaRegalo ? cuerpo(true) : ""}
+</body></html>`;
+}
+
+function paramsImpresion(req) {
+  const esRegalo = req.query.regalo === "1";
+  return {
+    esRegalo,
+    conCopiaRegalo: !esRegalo && req.query.copiaRegalo === "1",
+    ancho: req.query.ancho === "58" ? 58 : 80,
+  };
+}
+
+// Vista previa / copia del último ticket emitido (TPV → Ajustes → Modelo).
+router.get("/tickets/ultimo/imprimir", async (req, res, next) => {
+  try {
+    const [ticket, empresa] = await Promise.all([
+      FacturaVenta.findOne({ tipoFactura: "F2", estado: { $in: ["emitida", "rectificada"] }, total: { $gte: 0 } })
+        .sort({ fechaExpedicion: -1 })
+        .lean(),
+      Empresa.findOne().lean(),
+    ]);
+    if (!ticket) return res.status(404).json({ error: "Todavía no hay tickets emitidos" });
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(renderTicketHtml(ticket, empresa, paramsImpresion(req)));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/tickets/:id/imprimir", async (req, res, next) => {
   try {
     const [ticket, empresa] = await Promise.all([
@@ -933,96 +1137,8 @@ router.get("/tickets/:id/imprimir", async (req, res, next) => {
       Empresa.findOne().lean(),
     ]);
     if (!ticket) return res.status(404).json({ error: "Ticket no encontrado" });
-
-    // Ticket regalo: sin precios ni totales; sirve para cambios en tienda.
-    // copiaRegalo=1 imprime el ticket normal y el regalo en el mismo documento.
-    const esRegalo = req.query.regalo === "1";
-    const conCopiaRegalo = !esRegalo && req.query.copiaRegalo === "1";
-
-    const esc = (s) =>
-      String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const euros = (n) => `${redondear(n).toFixed(2).replace(".", ",")} €`;
-    const fecha = new Date(ticket.fechaExpedicion);
-    const fechaTxt = `${fecha.toLocaleDateString("es-ES")} ${fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
-
-    const filasPara = (regalo) =>
-      (ticket.lineas ?? [])
-        .map((l) => {
-          if (regalo) {
-            return `<tr>
-          <td>${esc(l.descripcion)}</td>
-          <td class="num">${l.cantidad}</td>
-        </tr>`;
-          }
-          const totalLinea = redondear(l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100));
-          return `<tr>
-          <td>${esc(l.descripcion)}</td>
-          <td class="num">${l.cantidad}</td>
-          <td class="num">${euros(l.precioUnitario)}</td>
-          <td class="num">${euros(totalLinea)}</td>
-        </tr>`;
-        })
-        .join("");
-
-    const qr = ticket.verifactu?.qrContenido
-      ? `<div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(ticket.verifactu.qrContenido)}" alt="QR VeriFactu"><br><small>Verificado en Veri*factu · AEAT</small></div>`
-      : "";
-
-    const cuerpo = (regalo) => {
-      const cabeceraDoc = regalo
-        ? `<div class="centro"><strong class="total">TICKET REGALO</strong></div>
-<div class="sep"></div>
-<div>Nº <strong>${esc(ticket.serieNumero)}</strong><br>${fechaTxt}</div>`
-        : `<div>FACTURA SIMPLIFICADA<br>Nº <strong>${esc(ticket.serieNumero)}</strong><br>${fechaTxt}</div>`;
-
-      const pieDoc = regalo
-        ? `<div class="centro">Documento válido para cambios.<br>Sin valor fiscal: los importes figuran<br>en la factura simplificada ${esc(ticket.serieNumero)}.</div>
-<div class="sep"></div>
-<div class="centro">Gracias por su compra</div>`
-        : `<table>
-  <tr><td>Base imponible</td><td class="num">${euros(ticket.baseImponible)}</td></tr>
-  <tr><td>IVA</td><td class="num">${euros(ticket.cuotaIva)}</td></tr>
-  <tr class="total"><td>TOTAL</td><td class="num">${euros(ticket.total)}</td></tr>
-  <tr><td>Pago: ${esc(ticket.cobros?.[0]?.metodo ?? "efectivo")}</td><td class="num"></td></tr>
-</table>
-${qr}
-<div class="sep"></div>
-<div class="centro">Gracias por su compra</div>`;
-
-      return `<div class="centro"><strong>${esc(empresa?.nombre)}</strong><br>${regalo ? "" : `NIF ${esc(empresa?.nif)}`}</div>
-<div class="sep"></div>
-${cabeceraDoc}
-<div class="sep"></div>
-<table>${filasPara(regalo)}</table>
-<div class="sep"></div>
-${pieDoc}`;
-    };
-
-    const corte = conCopiaRegalo
-      ? `<div style="page-break-before: always; border-top: 1px dashed #000; margin: 8px 0;"></div>`
-      : "";
-
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.send(`<!doctype html><html lang="es"><head><meta charset="utf-8">
-<title>${esRegalo ? "Ticket regalo" : "Ticket"} ${esc(ticket.serieNumero)}</title>
-<style>
-  @page { size: 80mm auto; margin: 0; }
-  body { width: 72mm; margin: 4mm auto; font-family: 'Courier New', monospace; font-size: 11px; color: #000; }
-  .centro { text-align: center; }
-  .sep { border-top: 1px dashed #000; margin: 6px 0; }
-  table { width: 100%; border-collapse: collapse; }
-  td { padding: 1px 0; vertical-align: top; }
-  .num { text-align: right; white-space: nowrap; }
-  .total { font-size: 15px; font-weight: bold; }
-  .qr { text-align: center; margin-top: 6px; }
-  .qr img { width: 34mm; }
-  @media print { .noprint { display: none; } }
-</style></head><body>
-<button class="noprint" onclick="window.print()" style="width:100%;padding:8px;font-size:14px;margin-bottom:8px;">Imprimir ${esRegalo ? "ticket regalo" : "ticket"}</button>
-${cuerpo(esRegalo)}
-${corte}
-${conCopiaRegalo ? cuerpo(true) : ""}
-</body></html>`);
+    res.send(renderTicketHtml(ticket, empresa, paramsImpresion(req)));
   } catch (err) {
     next(err);
   }

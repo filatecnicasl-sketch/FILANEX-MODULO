@@ -84,9 +84,13 @@ function comandoAbrirCajon() {
 }
 
 // Construye los bytes ESC/POS de un ticket (normal o regalo).
+// Respeta el modelo configurado en TPV → Ajustes → Modelo de ticket
+// (empresa.tpvTicket): cabecera, pie libre, NIF, dirección, teléfono,
+// desglose de IVA y método de pago.
 export function construirTicketEscPos(ticket, empresa, { ancho = 80, regalo = false } = {}) {
   const cols = ancho === 58 ? 32 : 42;
   const sep = "-".repeat(cols);
+  const cfg = empresa?.tpvTicket ?? {};
   const partes = [];
 
   partes.push(bytes(ESC, 0x40)); // init
@@ -94,7 +98,14 @@ export function construirTicketEscPos(ticket, empresa, { ancho = 80, regalo = fa
   partes.push(bytes(GS, 0x21, 0x01)); // doble altura
   partes.push(linea(empresa?.nombre ?? ""));
   partes.push(bytes(GS, 0x21, 0x00));
-  if (!regalo && empresa?.nif) partes.push(linea(`NIF ${empresa.nif}`));
+  if (!regalo && cfg.mostrarNif !== false && empresa?.nif) partes.push(linea(`NIF ${empresa.nif}`));
+  if (cfg.mostrarDireccion && empresa?.direccion) {
+    const d = empresa.direccion;
+    const dir = [d.calle, [d.cp, d.ciudad].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+    if (dir) partes.push(linea(dir));
+  }
+  if (cfg.mostrarTelefono && empresa?.telefono) partes.push(linea(`Tel. ${empresa.telefono}`));
+  if (cfg.cabeceraLibre) partes.push(linea(cfg.cabeceraLibre));
   partes.push(linea(sep));
 
   const fecha = new Date(ticket.fechaExpedicion);
@@ -126,23 +137,26 @@ export function construirTicketEscPos(ticket, empresa, { ancho = 80, regalo = fa
 
   const base = ticket.baseImponible ?? ticket.base ?? 0;
   const metodoPago = ticket.cobros?.[0]?.metodo ?? ticket.metodoCobro ?? "efectivo";
+  const pie = cfg.pieLibre || "Gracias por su compra";
 
   if (regalo) {
     partes.push(bytes(ESC, 0x61, 0x01));
     partes.push(linea("Documento valido para cambios."));
     partes.push(linea("Sin valor fiscal."));
     partes.push(linea(sep));
-    partes.push(linea("Gracias por su compra"));
+    partes.push(linea(pie));
   } else {
-    partes.push(lineaDos("Base imponible", eurosTxt(base), cols));
-    partes.push(lineaDos("IVA", eurosTxt(ticket.cuotaIva), cols));
+    if (cfg.mostrarDesgloseIva !== false) {
+      partes.push(lineaDos("Base imponible", eurosTxt(base), cols));
+      partes.push(lineaDos("IVA", eurosTxt(ticket.cuotaIva), cols));
+    }
     partes.push(bytes(GS, 0x21, 0x01));
     partes.push(lineaDos("TOTAL", eurosTxt(ticket.total), Math.floor(cols / 2)));
     partes.push(bytes(GS, 0x21, 0x00));
-    partes.push(linea(`Pago: ${metodoPago}`));
+    if (cfg.mostrarMetodoPago !== false) partes.push(linea(`Pago: ${metodoPago}`));
     partes.push(bytes(ESC, 0x61, 0x01));
     partes.push(linea(sep));
-    partes.push(linea("Gracias por su compra"));
+    partes.push(linea(pie));
     partes.push(linea("Verificado en Veri*factu - AEAT"));
   }
 
@@ -244,7 +258,10 @@ export async function imprimirTicketSegunConfig(cfg, { ticket, empresa, imprimir
       // Si falla la impresora directa, cae al modo navegador.
     }
   }
-  const url = regalo ? `${imprimirUrl}${imprimirUrl.includes("?") ? "&" : "?"}regalo=1` : imprimirUrl;
+  const params = new URLSearchParams();
+  if (regalo) params.set("regalo", "1");
+  params.set("ancho", String(cfg.impresion.ancho));
+  const url = `${imprimirUrl}${imprimirUrl.includes("?") ? "&" : "?"}${params}`;
   const w = window.open(url, "_blank", "width=400,height=600");
   if (w) w.focus();
   return "navegador";

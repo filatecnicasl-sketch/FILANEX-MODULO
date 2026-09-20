@@ -18,15 +18,40 @@ export default function TpvConfigPage() {
   const [error, setError] = useState(null);
   const [pruebaEscaner, setPruebaEscaner] = useState("");
   const [ultimoEscaneo, setUltimoEscaneo] = useState(null);
+  // Modelo de ticket: configuración de la empresa (se guarda en el servidor).
+  const [ticket, setTicket] = useState(null);
+  const [logoUrl, setLogoUrl] = useState("");
 
   useEffect(() => {
     reconectarImpresora().then(setImpresoraConectada).catch(() => {});
+    fetch("/api/tpv/config-ticket")
+      .then((r) => r.json())
+      .then((d) => {
+        setTicket(d.config);
+        setLogoUrl(d.logoUrl ?? "");
+      })
+      .catch(() => {});
   }, []);
 
   function actualizar(seccion, cambios) {
     const nueva = { ...cfg, [seccion]: { ...cfg[seccion], ...cambios } };
     setCfg(nueva);
     guardarConfigHardware(nueva);
+  }
+
+  async function guardarTicket(cambios) {
+    const nuevo = { ...ticket, ...cambios };
+    setTicket(nuevo);
+    try {
+      const r = await fetch("/api/tpv/config-ticket", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cambios),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || "No se pudo guardar");
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   async function conectar() {
@@ -213,6 +238,94 @@ export default function TpvConfigPage() {
             Imprimir ticket de prueba
           </button>
         </div>
+
+        {/* Modelo de ticket */}
+        {ticket && (
+          <div className="panel p-6">
+            <h2 className="text-lg font-bold text-slate-200 mb-4">Modelo de ticket</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Qué se imprime en el ticket de venta. Es de la empresa: vale para todos los terminales
+              y se aplica tanto en impresión de navegador como en impresora térmica directa.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+              <Interruptor
+                valor={ticket.mostrarLogo}
+                onCambio={(v) => guardarTicket({ mostrarLogo: v })}
+                etiqueta="Logo de la empresa"
+                ayuda={logoUrl ? "Se imprime en la cabecera (modo navegador)." : "La empresa no tiene logo: súbelo en Ajustes → Empresa."}
+              />
+              <Interruptor
+                valor={ticket.mostrarNif}
+                onCambio={(v) => guardarTicket({ mostrarNif: v })}
+                etiqueta="NIF bajo el nombre"
+              />
+              <Interruptor
+                valor={ticket.mostrarDireccion}
+                onCambio={(v) => guardarTicket({ mostrarDireccion: v })}
+                etiqueta="Dirección"
+              />
+              <Interruptor
+                valor={ticket.mostrarTelefono}
+                onCambio={(v) => guardarTicket({ mostrarTelefono: v })}
+                etiqueta="Teléfono"
+              />
+              <Interruptor
+                valor={ticket.mostrarQr}
+                onCambio={(v) => guardarTicket({ mostrarQr: v })}
+                etiqueta="QR Veri*factu"
+                ayuda="Código QR de verificación de la AEAT (modo navegador)."
+              />
+              <Interruptor
+                valor={ticket.mostrarDesgloseIva}
+                onCambio={(v) => guardarTicket({ mostrarDesgloseIva: v })}
+                etiqueta="Desglose base + IVA"
+              />
+              <Interruptor
+                valor={ticket.mostrarMetodoPago}
+                onCambio={(v) => guardarTicket({ mostrarMetodoPago: v })}
+                etiqueta="Método de pago"
+              />
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Línea extra de cabecera (opcional)</p>
+                <input
+                  type="text"
+                  value={ticket.cabeceraLibre}
+                  onChange={(e) => setTicket({ ...ticket, cabeceraLibre: e.target.value })}
+                  onBlur={(e) => guardarTicket({ cabeceraLibre: e.target.value })}
+                  placeholder="Ej.: Panadería artesana · Horario de 7:00 a 20:00"
+                  className="input"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Texto de despedida (pie del ticket)</p>
+                <input
+                  type="text"
+                  value={ticket.pieLibre}
+                  onChange={(e) => setTicket({ ...ticket, pieLibre: e.target.value })}
+                  onBlur={(e) => guardarTicket({ pieLibre: e.target.value })}
+                  placeholder="Gracias por su compra"
+                  className="input"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() =>
+                window.open(`/api/tpv/tickets/ultimo/imprimir?ancho=${cfg.impresion.ancho}`, "_blank", "width=400,height=600")
+              }
+              className="btn-ghost mt-4"
+            >
+              Vista previa con el último ticket
+            </button>
+            <p className="text-sm text-slate-500 mt-2">
+              La vista previa usa el último ticket emitido y el ancho de papel elegido arriba.
+            </p>
+          </div>
+        )}
 
         {/* Cajón */}
         <div className="panel p-6">
