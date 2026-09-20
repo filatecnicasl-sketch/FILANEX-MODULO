@@ -18,6 +18,8 @@ const articuloSchema = new Schema(
     // Familia del artículo (Bebidas, Panadería…). En el TPV agrupa la
     // rejilla en pestañas de colores para vender más rápido.
     familia: { type: String, default: "", index: true },
+    // URL relativa a /uploads/ con la foto del artículo para el TPV táctil.
+    imagen: { type: String, default: "" },
     origen: { type: String, enum: ["manual", "ocr"], default: "manual" }, // badge AUTO
   },
   { timestamps: true }

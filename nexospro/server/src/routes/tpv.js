@@ -12,6 +12,7 @@ import Cliente from "../models/Cliente.js";
 import CajaSesion from "../models/CajaSesion.js";
 import CajaMovimiento from "../models/CajaMovimiento.js";
 import TpvTicketEspera from "../models/TpvTicketEspera.js";
+import FamiliaTpv from "../models/FamiliaTpv.js";
 import Empresa from "../models/Empresa.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import RegistroFacturacion from "../models/RegistroFacturacion.js";
@@ -29,6 +30,7 @@ import {
 } from "../services/verifactu.js";
 import { certificadoActual } from "../services/certificadoEmpresa.js";
 import { envioPermitido } from "../services/verifactu-envio.js";
+import { enviarCorreoEmpresa } from "../services/correo.js";
 import { requiereModulo } from "../config/modulos.js";
 import { serializarRegistro } from "../services/registro-cola.js";
 
@@ -177,11 +179,12 @@ async function registrarVerifactu({ empresa, facturaDoc, facturaDatos, tipoFactu
 
 router.get("/estado", async (req, res, next) => {
   try {
-    const [sesion, articulos, empresa, mostrador] = await Promise.all([
+    const [sesion, articulos, empresa, mostrador, familiasTpv] = await Promise.all([
       CajaSesion.findOne({ estado: "abierta" }).lean(),
       Articulo.find({ precioVenta: { $gt: 0 } }).sort({ descripcion: 1 }).lean(),
       Empresa.findOne().lean(),
       clienteMostrador(),
+      FamiliaTpv.find().sort({ orden: 1, nombre: 1 }).lean(),
     ]);
     // Totales de la sesión abierta por método de cobro (para el arqueo).
     // Incluye los movimientos manuales de efectivo (entradas/salidas).
@@ -242,10 +245,18 @@ router.get("/estado", async (req, res, next) => {
         codigoBarras: a.codigoBarras,
         descripcion: a.descripcion,
         familia: a.familia ?? "",
+        imagen: a.imagen ?? "",
         precioVenta: a.precioVenta,
         iva: a.iva ?? 21,
       })),
       familias,
+      familiasTpv: familiasTpv.map((f) => ({
+        _id: f._id,
+        nombre: f.nombre,
+        orden: f.orden,
+        imagen: f.imagen ?? "",
+        color: f.color ?? "",
+      })),
       favoritos,
       clienteMostradorId: mostrador._id,
       empresa: { nombre: empresa?.nombre ?? "", nif: empresa?.nif ?? "" },
@@ -756,6 +767,89 @@ router.get("/resumen", async (req, res, next) => {
 });
 
 // --------------------------------------------------------- imprimir 80mm ---
+
+function htmlTicketEmail(ticket, empresa) {
+  const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const euros = (n) => `${redondear(n).toFixed(2).replace(".", ",")} €`;
+  const fecha = new Date(ticket.fechaExpedicion);
+  const fechaTxt = `${fecha.toLocaleDateString("es-ES")} ${fecha.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+  const filas = (ticket.lineas ?? [])
+    .map((l) => {
+      const totalLinea = redondear(l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100));
+      return `<tr>
+        <td style="padding:4px 0;border-bottom:1px solid #e5e7eb;">${esc(l.descripcion)}</td>
+        <td style="padding:4px 0;border-bottom:1px solid #e5e7eb;text-align:center;">${l.cantidad}</td>
+        <td style="padding:4px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${euros(l.precioUnitario)}</td>
+        <td style="padding:4px 0;border-bottom:1px solid #e5e7eb;text-align:right;">${euros(totalLinea)}</td>
+      </tr>`;
+    })
+    .join("");
+  return `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#111827;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <strong style="font-size:18px;">${esc(empresa?.nombre)}</strong><br/>
+      <span style="color:#6b7280;font-size:13px;">NIF ${esc(empresa?.nif)}</span>
+    </div>
+    <div style="border-top:1px dashed #d1d5db;border-bottom:1px dashed #d1d5db;padding:10px 0;margin-bottom:16px;">
+      <strong>Factura simplificada</strong><br/>
+      Nº ${esc(ticket.serieNumero)}<br/>
+      ${fechaTxt}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px;">
+      <thead>
+        <tr style="color:#6b7280;font-size:12px;">
+          <th style="text-align:left;">Artículo</th>
+          <th style="text-align:center;">Ud.</th>
+          <th style="text-align:right;">PVP</th>
+          <th style="text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div style="text-align:right;font-size:15px;line-height:1.6;">
+      Base imponible: ${euros(ticket.baseImponible)}<br/>
+      IVA: ${euros(ticket.cuotaIva)}<br/>
+      <strong style="font-size:18px;">TOTAL: ${euros(ticket.total)}</strong><br/>
+      Pago: ${esc(ticket.cobros?.[0]?.metodo ?? "efectivo")}
+    </div>
+    <p style="text-align:center;color:#6b7280;font-size:12px;margin-top:24px;">
+      Gracias por su compra · Verificado en Veri*factu - AEAT
+    </p>
+  </div>`;
+}
+
+router.post("/tickets/ultimo/email", async (req, res, next) => {
+  try {
+    const destino = String(req.body?.email ?? "").trim();
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (destino && !regexEmail.test(destino)) {
+      return res.status(400).json({ error: "La dirección de correo no es válida" });
+    }
+    const [empresa, ticket] = await Promise.all([
+      Empresa.findOne().lean(),
+      FacturaVenta.findOne({ tipoFactura: "F2", estado: { $in: ["emitida", "rectificada"] }, total: { $gte: 0 } })
+        .sort({ fechaExpedicion: -1 })
+        .lean(),
+    ]);
+    if (!ticket) return res.status(404).json({ error: "No hay tickets para enviar" });
+    const para = destino || empresa?.correo?.responderA || empresa?.correo?.usuario;
+    if (!para || !regexEmail.test(para)) {
+      return res.status(400).json({ error: "No hay correo destino. Indica uno en la petición o en la configuración de la empresa." });
+    }
+    await enviarCorreoEmpresa({
+      para,
+      asunto: `Ticket ${ticket.serieNumero} - ${empresa?.nombre || ""}`,
+      mensaje: "Adjunto le enviamos la copia de su ticket.",
+      adjuntos: [{
+        filename: `ticket-${ticket.serieNumero}.html`,
+        content: htmlTicketEmail(ticket, empresa),
+        contentType: "text/html",
+      }],
+    });
+    res.json({ ok: true, para });
+  } catch (err) {
+    next(err);
+  }
+});
 
 router.get("/tickets/:id/imprimir", async (req, res, next) => {
   try {

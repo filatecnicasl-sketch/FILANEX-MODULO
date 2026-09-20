@@ -8,7 +8,7 @@ import { imprimirFicha } from "../utils/imprimir.js";
 const VACIO = {
   tipo: "articulo", codigo: "", descripcion: "", detalle: "", unidad: "ud",
   precioCompra: 0, precioVenta: 0, iva: 21, proveedor: "",
-  referenciaProveedor: "", codigoBarras: "", familia: "",
+  referenciaProveedor: "", codigoBarras: "", familia: "", imagen: "",
 };
 
 function FormArticulo({ inicial, proveedores, onProveedorCreado, onGuardado, onCerrar }) {
@@ -130,6 +130,10 @@ function FormArticulo({ inicial, proveedores, onProveedorCreado, onGuardado, onC
             <div>
               <label className="text-sm text-slate-400 block mb-1">Familia (TPV)</label>
               <input value={form.familia ?? ""} onChange={poner("familia")} className="input" placeholder="Ej. Bebidas, Panadería…" />
+            </div>
+            <div className="md:col-span-3">
+              <label className="text-sm text-slate-400 block mb-1">Imagen TPV (ruta en /uploads/ o URL)</label>
+              <input value={form.imagen ?? ""} onChange={poner("imagen")} className="input" placeholder="Ej. productos/croissant.jpg" />
             </div>
           </div>
 

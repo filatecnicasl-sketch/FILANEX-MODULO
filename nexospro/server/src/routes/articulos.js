@@ -44,7 +44,7 @@ async function origenDocumentos() {
 const CAMPOS = [
   "tipo", "codigo", "descripcion", "detalle", "unidad",
   "precioCompra", "precioVenta", "iva", "proveedor",
-  "referenciaProveedor", "codigoBarras",
+  "referenciaProveedor", "codigoBarras", "familia", "imagen",
 ];
 
 function limpiar(body) {
