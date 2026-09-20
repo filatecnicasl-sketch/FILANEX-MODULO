@@ -28,6 +28,8 @@ export default function TallerVehiculosPage() {
     prestamos.filter((p) => p.estado === "activo" && p.clienteNombre).map((p) => [p.clienteNombre, p])
   );
 
+  const telefonoCliente = (v) => clientes.find((c) => String(c._id) === String(v.cliente))?.telefono;
+
   // Filtra por todos los campos visibles de la tabla.
   const filtrada = (lista ?? []).filter((v) =>
     coincideBusqueda(
@@ -36,6 +38,7 @@ export default function TallerVehiculosPage() {
       v.marca,
       v.modelo,
       v.clienteNombre,
+      telefonoCliente(v),
       v.tipo === "cortesia" ? "cortesia" : "cliente",
       v.km != null ? String(v.km) : null
     )
@@ -156,6 +159,7 @@ export default function TallerVehiculosPage() {
                   <th>Matrícula</th>
                   <th>Vehículo</th>
                   <th>Cliente</th>
+                  <th>Teléfono</th>
                   <th>Tipo</th>
                   <th className="text-right">KM</th>
                   <th className="text-right">Acciones</th>
@@ -169,6 +173,7 @@ export default function TallerVehiculosPage() {
                       {[v.marca, v.modelo].filter(Boolean).join(" ") || "—"}
                     </td>
                     <td className="text-slate-300">{v.clienteNombre ?? "—"}</td>
+                    <td className="text-slate-300 whitespace-nowrap num">{telefonoCliente(v) ?? "—"}</td>
                     <td>
                       <Badge tono={v.tipo === "cortesia" ? "amber" : "slate"}>
                         {v.tipo === "cortesia" ? "Cortesía" : "Cliente"}
@@ -238,7 +243,7 @@ export default function TallerVehiculosPage() {
                 ))}
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center text-slate-500 py-8">
+                    <td colSpan={7} className="text-center text-slate-500 py-8">
                       Sin resultados para «{q}».
                     </td>
                   </tr>
