@@ -274,6 +274,10 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
       setError("La hora de fin debe ser posterior a la de inicio");
       return false;
     }
+    if (!form.clienteNombre?.trim() && !form.telefono?.trim() && !form.matricula?.trim()) {
+      setError("Introduce al menos el cliente, el teléfono o la matrícula");
+      return false;
+    }
     setGuardando(true);
     setError(null);
     try {
