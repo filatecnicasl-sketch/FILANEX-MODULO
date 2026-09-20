@@ -43,7 +43,9 @@ router.use("/aseguradoras", aseguradoras);
 // ---------- Vehículos ----------
 router.get("/vehiculos", async (req, res, next) => {
   try {
-    const lista = await Vehiculo.find().sort({ matricula: 1 }).limit(500);
+    const filtro = {};
+    if (req.query.cliente) filtro.cliente = req.query.cliente;
+    const lista = await Vehiculo.find(filtro).sort({ matricula: 1 }).limit(500);
     res.json(lista);
   } catch (err) {
     next(err);
@@ -223,6 +225,7 @@ router.get("/ordenes", async (req, res, next) => {
   try {
     const filtro = {};
     if (req.query.abiertas === "1") filtro.estado = { $in: ["recepcion", "en_curso"] };
+    if (req.query.matricula) filtro.matricula = normalizarMatricula(req.query.matricula);
     const lista = await OrdenTrabajo.find(filtro)
       .populate("aseguradora", "nombre")
       .populate("vehiculo", "marca modelo color")
@@ -857,6 +860,9 @@ router.get("/citas", async (req, res, next) => {
       if (desde) filtro.fecha.$gte = desde;
       if (hasta) filtro.fecha.$lte = finDia(hasta);
     }
+    if (req.query.matricula) {
+      filtro.matricula = normalizarMatricula(req.query.matricula);
+    }
     const lista = await Cita.find(filtro).sort({ fecha: 1, hora: 1 }).limit(500).lean();
 
     // Contexto extra para la vista principal: valoraciones del vehículo y
@@ -1248,7 +1254,9 @@ router.get("/panel", async (req, res, next) => {
 // ---------- Valoraciones / peritajes ----------
 router.get("/valoraciones", async (req, res, next) => {
   try {
-    const lista = await Valoracion.find()
+    const filtro = {};
+    if (req.query.matricula) filtro.matricula = normalizarMatricula(req.query.matricula);
+    const lista = await Valoracion.find(filtro)
       .populate("aseguradora", "nombre")
       .sort({ createdAt: -1 })
       .limit(300);

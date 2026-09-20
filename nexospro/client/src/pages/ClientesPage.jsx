@@ -16,7 +16,7 @@ const VACIO = {
 const aFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 const aInputFecha = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
 
-function FormCliente({ inicial, onGuardado, onCerrar }) {
+function FormCliente({ inicial, onGuardado, onCerrar, modulos = [] }) {
   const editando = Boolean(inicial?._id);
   const [form, setForm] = useState(() => {
     if (!editando) return VACIO;
@@ -44,6 +44,51 @@ function FormCliente({ inicial, onGuardado, onCerrar }) {
   });
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  const [tab, setTab] = useState("ficha");
+  const [vehiculos, setVehiculos] = useState([]);
+  const [cargandoVehiculos, setCargandoVehiculos] = useState(false);
+  const [vehiculoActivo, setVehiculoActivo] = useState(null);
+  const [historial, setHistorial] = useState({ ordenes: [], citas: [], valoraciones: [] });
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+
+  const tallerActivo = modulos.includes("taller");
+
+  useEffect(() => {
+    if (!tallerActivo || !editando || tab !== "vehiculos") return;
+    let vivo = true;
+    setCargandoVehiculos(true);
+    fetch(`/api/taller/vehiculos?cliente=${inicial._id}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((datos) => {
+        if (!vivo) return;
+        setVehiculos(Array.isArray(datos) ? datos : []);
+      })
+      .catch(() => setVehiculos([]))
+      .finally(() => setCargandoVehiculos(false));
+    return () => { vivo = false; };
+  }, [tallerActivo, editando, tab, inicial._id]);
+
+  async function verHistorial(v) {
+    setVehiculoActivo(v);
+    setCargandoHistorial(true);
+    try {
+      const mat = encodeURIComponent(v.matricula);
+      const [ordenes, citas, valoraciones] = await Promise.all([
+        fetch(`/api/taller/ordenes?matricula=${mat}`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        fetch(`/api/taller/citas?matricula=${mat}`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        fetch(`/api/taller/valoraciones?matricula=${mat}`).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      ]);
+      setHistorial({
+        ordenes: Array.isArray(ordenes) ? ordenes : [],
+        citas: Array.isArray(citas) ? citas : [],
+        valoraciones: Array.isArray(valoraciones) ? valoraciones : [],
+      });
+    } catch {
+      setHistorial({ ordenes: [], citas: [], valoraciones: [] });
+    } finally {
+      setCargandoHistorial(false);
+    }
+  }
 
   const poner = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -94,130 +139,253 @@ function FormCliente({ inicial, onGuardado, onCerrar }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">{editando ? `Editar ${inicial.nombre}` : "Nuevo cliente"}</h2>
+
+        {editando && tallerActivo && (
+          <div className="flex gap-1 mb-4 border-b border-slate-700 pb-1">
+            <button
+              type="button"
+              onClick={() => setTab("ficha")}
+              className={`px-3 py-1.5 text-sm font-medium rounded-t-lg ${
+                tab === "ficha" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Ficha
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("vehiculos")}
+              className={`px-3 py-1.5 text-sm font-medium rounded-t-lg ${
+                tab === "vehiculos" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              Vehículos
+            </button>
+          </div>
+        )}
+
         <form onSubmit={guardar} className="space-y-5">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Código</label>
-              <input
-                value={form.codigo}
-                onChange={poner("codigo")}
-                className="input"
-                placeholder={editando ? "" : "Se asigna solo"}
-              />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Fecha de alta</label>
-              <input type="date" value={form.fechaAlta} onChange={poner("fechaAlta")} className="input" />
-            </div>
-          </div>
+          {tab === "ficha" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Código</label>
+                  <input
+                    value={form.codigo}
+                    onChange={poner("codigo")}
+                    className="input"
+                    placeholder={editando ? "" : "Se asigna solo"}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Fecha de alta</label>
+                  <input type="date" value={form.fechaAlta} onChange={poner("fechaAlta")} className="input" />
+                </div>
+              </div>
 
-          <div>
-            <label className="text-sm text-slate-400 block mb-1">Nombre / Razón social *</label>
-            <input value={form.nombre} onChange={poner("nombre")} className="input" autoFocus />
-          </div>
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Nombre / Razón social *</label>
+                <input value={form.nombre} onChange={poner("nombre")} className="input" autoFocus />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">NIF / CIF *</label>
-              <input value={form.nif} onChange={poner("nif")} className="input" />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
-              <input value={form.telefono} onChange={poner("telefono")} className="input" />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">NIF / CIF *</label>
+                  <input value={form.nif} onChange={poner("nif")} className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
+                  <input value={form.telefono} onChange={poner("telefono")} className="input" />
+                </div>
+              </div>
 
-          <div>
-            <label className="text-sm text-slate-400 block mb-1">Email</label>
-            <input type="email" value={form.email} onChange={poner("email")} className="input" />
-          </div>
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Email</label>
+                <input type="email" value={form.email} onChange={poner("email")} className="input" />
+              </div>
 
-          <div>
-            <label className="text-sm text-slate-400 block mb-1">Dirección</label>
-            <input value={form.calle} onChange={poner("calle")} className="input" />
-          </div>
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Dirección</label>
+                <input value={form.calle} onChange={poner("calle")} className="input" />
+              </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Ciudad</label>
-              <input value={form.ciudad} onChange={poner("ciudad")} className="input" />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Código postal</label>
-              <input value={form.cp} onChange={poner("cp")} className="input" />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Provincia</label>
-              <input value={form.provincia} onChange={poner("provincia")} className="input" />
-            </div>
-          </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Ciudad</label>
+                  <input value={form.ciudad} onChange={poner("ciudad")} className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Código postal</label>
+                  <input value={form.cp} onChange={poner("cp")} className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Provincia</label>
+                  <input value={form.provincia} onChange={poner("provincia")} className="input" />
+                </div>
+              </div>
 
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500 pt-2">Datos bancarios</p>
-          <div>
-            <label className="text-sm text-slate-400 block mb-1">IBAN</label>
-            <input value={form.iban} onChange={poner("iban")} placeholder="ES00 0000 0000 0000 0000 0000" className="input" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Banco</label>
-              <input value={form.banco} onChange={poner("banco")} className="input" />
-            </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">BIC / SWIFT</label>
-              <input value={form.bic} onChange={poner("bic")} className="input" />
-            </div>
-          </div>
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500 pt-2">Datos bancarios</p>
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">IBAN</label>
+                <input value={form.iban} onChange={poner("iban")} placeholder="ES00 0000 0000 0000 0000 0000" className="input" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Banco</label>
+                  <input value={form.banco} onChange={poner("banco")} className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">BIC / SWIFT</label>
+                  <input value={form.bic} onChange={poner("bic")} className="input" />
+                </div>
+              </div>
 
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500 pt-2">Dirección de entrega</p>
-          <div>
-            <label className="text-sm text-slate-400 block mb-1">Dirección de entrega</label>
-            <input value={form.entregaCalle} onChange={poner("entregaCalle")} className="input" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Ciudad entrega</label>
-              <input value={form.entregaCiudad} onChange={poner("entregaCiudad")} className="input" />
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500 pt-2">Dirección de entrega</p>
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Dirección de entrega</label>
+                <input value={form.entregaCalle} onChange={poner("entregaCalle")} className="input" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Ciudad entrega</label>
+                  <input value={form.entregaCiudad} onChange={poner("entregaCiudad")} className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">CP entrega</label>
+                  <input value={form.entregaCp} onChange={poner("entregaCp")} className="input" />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.esAdministracionPublica}
+                  onChange={(e) => setForm((f) => ({ ...f, esAdministracionPublica: e.target.checked }))}
+                  className="accent-cyan-400 w-4 h-4"
+                />
+                Es Administración Pública (factura electrónica FACe)
+              </label>
+
+              <label className="flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.whatsappAutorizado}
+                  onChange={(e) => setForm((f) => ({ ...f, whatsappAutorizado: e.target.checked }))}
+                  className="accent-emerald-500 w-4 h-4 mt-0.5"
+                />
+                <span>
+                  Autoriza comunicaciones por WhatsApp
+                  <span className="block text-xs text-slate-500 mt-0.5">
+                    Guarda el consentimiento para confirmaciones, recordatorios y documentos.
+                  </span>
+                </span>
+              </label>
+
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Notas</label>
+                <textarea value={form.notas} onChange={poner("notas")} rows={2} className="input" />
+              </div>
+            </>
+          )}
+
+          {tab === "vehiculos" && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-slate-300">Vehículos asignados</h3>
+              {cargandoVehiculos ? (
+                <p className="text-sm text-slate-500">Cargando…</p>
+              ) : vehiculos.length === 0 ? (
+                <p className="text-sm text-slate-500">Este cliente no tiene vehículos asignados.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {vehiculos.map((v) => (
+                    <button
+                      key={v._id}
+                      type="button"
+                      onClick={() => verHistorial(v)}
+                      className={`text-left rounded-xl border px-3 py-2 transition ${
+                        vehiculoActivo?._id === v._id
+                          ? "border-accent bg-accent/10"
+                          : "border-slate-700 hover:border-slate-500"
+                      }`}
+                    >
+                      <p className="font-bold text-white num">{v.matricula}</p>
+                      <p className="text-xs text-slate-400">{[v.marca, v.modelo].filter(Boolean).join(" ") || "—"}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {vehiculoActivo && (
+                <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white">
+                      Historial de {vehiculoActivo.matricula}
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setVehiculoActivo(null)}
+                      className="text-xs text-slate-400 hover:text-white"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+
+                  {cargandoHistorial ? (
+                    <p className="text-sm text-slate-500">Cargando historial…</p>
+                  ) : (
+                    <>
+                      {historial.ordenes.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Órdenes de trabajo</p>
+                          <ul className="space-y-1">
+                            {historial.ordenes.map((o) => (
+                              <li key={o._id} className="text-sm text-slate-300">
+                                <span className="num text-slate-400">{o.numeroOrden || o._id.slice(-6)}</span> — {o.motivo || "Sin motivo"} — {o.estado}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {historial.citas.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Citas</p>
+                          <ul className="space-y-1">
+                            {historial.citas.map((c) => (
+                              <li key={c._id} className="text-sm text-slate-300">
+                                <span className="num text-slate-400">{aFecha(c.fecha)} {c.hora}</span> — {c.motivo || c.estado}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {historial.valoraciones.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Valoraciones</p>
+                          <ul className="space-y-1">
+                            {historial.valoraciones.map((val) => (
+                              <li key={val._id} className="text-sm text-slate-300">
+                                <span className="num text-slate-400">{val.numero}</span> — {val.compania || val.aseguradora?.nombre || "Sin compañía"} — {val.estado || "Pendiente"}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {historial.ordenes.length === 0 && historial.citas.length === 0 && historial.valoraciones.length === 0 && (
+                        <p className="text-sm text-slate-500">No hay historial para este vehículo.</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">CP entrega</label>
-              <input value={form.entregaCp} onChange={poner("entregaCp")} className="input" />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2.5 text-sm text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.esAdministracionPublica}
-              onChange={(e) => setForm((f) => ({ ...f, esAdministracionPublica: e.target.checked }))}
-              className="accent-cyan-400 w-4 h-4"
-            />
-            Es Administración Pública (factura electrónica FACe)
-          </label>
-
-          <label className="flex items-start gap-2.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.whatsappAutorizado}
-              onChange={(e) => setForm((f) => ({ ...f, whatsappAutorizado: e.target.checked }))}
-              className="accent-emerald-500 w-4 h-4 mt-0.5"
-            />
-            <span>
-              Autoriza comunicaciones por WhatsApp
-              <span className="block text-xs text-slate-500 mt-0.5">
-                Guarda el consentimiento para confirmaciones, recordatorios y documentos.
-              </span>
-            </span>
-          </label>
-
-          <div>
-            <label className="text-sm text-slate-400 block mb-1">Notas</label>
-            <textarea value={form.notas} onChange={poner("notas")} rows={2} className="input" />
-          </div>
+          )}
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
-            <button type="submit" disabled={guardando} className="btn-primary">
+            <button type="submit" disabled={guardando || tab !== "ficha"} className="btn-primary">
               {guardando ? "Guardando…" : "Guardar"}
             </button>
           </div>
@@ -234,7 +402,15 @@ export default function ClientesPage() {
   const [aviso, setAviso] = useState(null);
   const [form, setForm] = useState(null); // null | VACIO | cliente
   const [importando, setImportando] = useState(false);
+  const [modulos, setModulos] = useState([]);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    fetch("/api/empresa")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((e) => setModulos(e?.modulos ?? []))
+      .catch(() => setModulos([]));
+  }, []);
 
   async function cargar(busqueda = q) {
     try {
@@ -450,6 +626,7 @@ export default function ClientesPage() {
           inicial={form._id ? form : null}
           onGuardado={() => { setForm(null); cargar(); }}
           onCerrar={() => setForm(null)}
+          modulos={modulos}
         />
       )}
     </>
