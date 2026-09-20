@@ -35,6 +35,8 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
   const [presupuestoId, setPresupuestoId] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  const [conflictoVehiculo, setConflictoVehiculo] = useState(null); // vehículo existente con otro cliente
+  const [reasignarCliente, setReasignarCliente] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -54,6 +56,21 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
       vivo = false;
     };
   }, []);
+
+  // Detectar si la matrícula introducida ya pertenece a otro cliente.
+  useEffect(() => {
+    const mat = normalizar(form.matricula);
+    if (!mat) {
+      setConflictoVehiculo(null);
+      return;
+    }
+    const v = vehiculos.find((x) => normalizar(x.matricula) === mat && x.tipo !== "cortesia");
+    if (v && v.cliente && String(v.cliente) !== String(form.clienteId)) {
+      setConflictoVehiculo(v);
+    } else {
+      setConflictoVehiculo(null);
+    }
+  }, [form.matricula, form.clienteId, vehiculos]);
 
   // Recepción lanzada desde una cita concreta (agenda): se enlaza y se
   // rellena sola en cuanto llegan los datos de la cartera.
@@ -105,6 +122,9 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
     : [];
 
   function actualizar(campoNombre, valor) {
+    if (campoNombre === "matricula") {
+      setReasignarCliente(false);
+    }
     setForm((f) => ({ ...f, [campoNombre]: valor }));
   }
 
@@ -144,6 +164,7 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
       nombreCliente: c?.nombre ?? f.nombreCliente,
       telefono: c?.telefono ?? f.telefono,
     }));
+    setReasignarCliente(false);
   }
 
   function alternarTrabajo(t) {
@@ -171,6 +192,7 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
           trabajos,
           motivo: form.motivo || undefined,
           presupuestoId: presupuestoId || undefined,
+          reasignarCliente: reasignarCliente || undefined,
         }),
       });
       const datos = await r.json();
@@ -387,6 +409,29 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
                   Se vinculará a la orden y sus líneas se cargarán en ella; el presupuesto quedará aceptado.
                 </p>
               )}
+            </div>
+          )}
+
+          {conflictoVehiculo && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2">
+              <p className="text-sm text-amber-800">
+                <b>Atención:</b> la matrícula <b>{conflictoVehiculo.matricula}</b> está actualmente asignada al cliente{' '}
+                <b>{conflictoVehiculo.clienteNombre || '—'}</b>.
+              </p>
+              <label className="flex items-start gap-2 text-sm text-amber-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reasignarCliente}
+                  onChange={(e) => setReasignarCliente(e.target.checked)}
+                  className="mt-0.5 accent-amber-600"
+                />
+                <span>
+                  Reasignar el vehículo al nuevo cliente al crear la recepción.
+                  <span className="block text-xs text-amber-700">
+                    El historial de reparaciones se conserva; solo cambia el propietario actual.
+                  </span>
+                </span>
+              </label>
             </div>
           )}
 

@@ -590,7 +590,7 @@ router.post("/ordenes/:id/recepcion/firma", async (req, res, next) => {
  */
 router.post("/recepcion", async (req, res, next) => {
   try {
-    const { matricula, marca, modelo, km, clienteId, nombreCliente, telefono, trabajos, motivo, presupuestoId } = req.body;
+    const { matricula, marca, modelo, km, clienteId, nombreCliente, telefono, trabajos, motivo, presupuestoId, reasignarCliente } = req.body;
     if (!matricula) return res.status(400).json({ error: "La matrícula es obligatoria" });
 
     let nombreFinal = nombreCliente || undefined;
@@ -610,11 +610,24 @@ router.post("/recepcion", async (req, res, next) => {
     }
 
     const mat = normalizarMatricula(matricula);
-    const vehiculo = await Vehiculo.findOneAndUpdate(
-      { matricula: mat },
-      { marca, modelo, km, cliente: clienteId || undefined, clienteNombre: nombreFinal },
-      { new: true, upsert: true, omitUndefined: true, setDefaultsOnInsert: true }
-    );
+    const existente = await Vehiculo.findOne({ matricula: mat });
+
+    // Si se pide reasignar un vehículo existente a otro cliente, lo aplicamos
+    // antes de seguir; si no, conservamos el cliente anterior.
+    let vehiculo;
+    if (existente && reasignarCliente && clienteId && String(existente.cliente) !== String(clienteId)) {
+      vehiculo = await Vehiculo.findByIdAndUpdate(
+        existente._id,
+        { marca, modelo, km, cliente: clienteId, clienteNombre: nombreFinal },
+        { new: true, omitUndefined: true }
+      );
+    } else {
+      vehiculo = await Vehiculo.findOneAndUpdate(
+        { matricula: mat },
+        { marca, modelo, km, cliente: clienteId || undefined, clienteNombre: nombreFinal },
+        { new: true, upsert: true, omitUndefined: true, setDefaultsOnInsert: true }
+      );
+    }
 
     const orden = await crearOrden({
       matricula: mat,
@@ -901,6 +914,15 @@ router.post("/citas", async (req, res, next) => {
           clienteNombre: req.body.clienteNombre || undefined,
         });
       }
+      // Reasignar el vehículo a otro cliente si se marca la casilla.
+      if (v && req.body.reasignarCliente && req.body.cliente) {
+        await Vehiculo.findByIdAndUpdate(
+          v._id,
+          { cliente: req.body.cliente, clienteNombre: req.body.clienteNombre || undefined },
+          { omitUndefined: true }
+        );
+        v = await Vehiculo.findById(v._id).lean();
+      }
       if (v) vehiculoId = v._id;
     }
 
@@ -965,7 +987,16 @@ router.put("/citas/:id", async (req, res, next) => {
     if (matricula !== undefined) {
       cambios.matricula = normalizarMatricula(matricula) || undefined;
       if (cambios.matricula) {
-        const v = await Vehiculo.findOne({ matricula: cambios.matricula }).lean();
+        let v = await Vehiculo.findOne({ matricula: cambios.matricula }).lean();
+        // Reasignar el vehículo si el usuario lo ha marcado.
+        if (v && req.body.reasignarCliente && req.body.cliente) {
+          await Vehiculo.findByIdAndUpdate(
+            v._id,
+            { cliente: req.body.cliente, clienteNombre: req.body.clienteNombre || undefined },
+            { omitUndefined: true }
+          );
+          v = await Vehiculo.findById(v._id).lean();
+        }
         cambios.vehiculo = v?._id;
       } else {
         cambios.vehiculo = undefined;

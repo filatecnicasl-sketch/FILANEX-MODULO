@@ -157,6 +157,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
   const [cortesiaAbierta, setCortesiaAbierta] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  const [conflictoVehiculo, setConflictoVehiculo] = useState(null);
+  const [reasignarCliente, setReasignarCliente] = useState(false);
 
   useEffect(() => {
     fetch("/api/clientes")
@@ -191,8 +193,26 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
   }, [prestamos, cita, form.clienteNombre]);
 
   function actualizar(nombre, valor) {
+    if (nombre === "matricula" || nombre === "cliente") {
+      setReasignarCliente(false);
+    }
     setForm((f) => ({ ...f, [nombre]: valor }));
   }
+
+  // Detectar si la matrícula introducida ya pertenece a otro cliente.
+  useEffect(() => {
+    const mat = (form.matricula ?? "").toString().trim().toUpperCase();
+    if (!mat) {
+      setConflictoVehiculo(null);
+      return;
+    }
+    const v = vehiculos.find((x) => x.matricula?.toUpperCase() === mat && x.tipo !== "cortesia");
+    if (v && v.cliente && String(v.cliente) !== String(form.cliente)) {
+      setConflictoVehiculo(v);
+    } else {
+      setConflictoVehiculo(null);
+    }
+  }, [form.matricula, form.cliente, vehiculos]);
 
   // Elegir de la cartera rellena nombre y teléfono; también vale texto libre.
   function elegirCliente(op) {
@@ -204,6 +224,7 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
       telefono: op.telefono ?? f.telefono,
       whatsappAutorizado: op.comunicaciones?.whatsapp?.autorizado ?? false,
     }));
+    setReasignarCliente(false);
   }
 
   // Búsqueda por matrícula: al elegir un vehículo se rellenan cliente y
@@ -228,6 +249,7 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
       telefono: f.telefono || cli?.telefono || f.telefono,
       whatsappAutorizado: f.whatsappAutorizado || cli?.comunicaciones?.whatsapp?.autorizado || false,
     }));
+    setReasignarCliente(false);
   }
 
   function elegirAseguradora(op) {
@@ -271,6 +293,7 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           cortesia: Boolean(form.cortesia),
           cortesiaVehiculo: form.cortesia ? (form.cortesiaVehiculo || null) : null,
           cortesiaMatricula: form.cortesia ? (cortesiaVeh?.matricula || undefined) : null,
+          reasignarCliente: reasignarCliente || undefined,
         }),
       });
       const datos = await r.json();
@@ -524,6 +547,31 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
               </select>
             </div>
           </div>
+
+          {/* Aviso de reasignación si la matrícula pertenece a otro cliente */}
+          {conflictoVehiculo && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2">
+              <p className="text-sm text-amber-800">
+                <b>Atención:</b> la matrícula <b>{conflictoVehiculo.matricula}</b> está actualmente asignada al cliente{' '}
+                <b>{conflictoVehiculo.clienteNombre || '—'}</b>.
+              </p>
+              <label className="flex items-start gap-2 text-sm text-amber-900 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reasignarCliente}
+                  onChange={(e) => setReasignarCliente(e.target.checked)}
+                  className="mt-0.5 accent-amber-600"
+                />
+                <span>
+                  Reasignar el vehículo al nuevo cliente al guardar la cita.
+                  <span className="block text-xs text-amber-700">
+                    El historial se conserva; solo cambia el propietario actual.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
+
           {/* Casilla "Nuevo" en vehículo: marca y modelo para darlo de alta */}
           {form.matricula && !matriculaExiste && (
             <div>
