@@ -65,8 +65,10 @@ function Chip({ cita, compacto, onClick }) {
         cita.estado === "cancelada" ? "opacity-50" : ""
       } ${tono} ${compacto ? "text-[0.65625rem]" : "text-[0.71875rem]"}`}
     >
-      <span className="font-bold num">{cita.hora}</span> {textoCita(cita)}
-      {(cita.cortesia || cita.prestamoCortesia) && <span title="Coche de cortesía"> C</span>}
+      <span className="font-bold num">{cita.hora}</span>{" "}
+      {cita.cortesia || cita.prestamoCortesia
+        ? `V. cortesía ${cita.prestamoCortesia?.matricula || cita.cortesiaMatricula || cita.matricula || ""}`
+        : textoCita(cita)}
     </button>
   );
 }
@@ -253,7 +255,7 @@ export default function Calendario({
                               title={`Coche de cortesía${c.prestamoCortesia?.matricula ? `: ${c.prestamoCortesia.matricula}` : c.cortesiaMatricula ? `: ${c.cortesiaMatricula}` : " (reservado)"}`}
                               className="ml-1.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
                             >
-                              Cortesía{c.prestamoCortesia?.matricula ? ` ${c.prestamoCortesia.matricula}` : ""}
+                              V. cortesía {c.prestamoCortesia?.matricula || c.cortesiaMatricula || "(reservado)"}
                             </span>
                           )}
                         </span>

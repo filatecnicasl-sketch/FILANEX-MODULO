@@ -32,7 +32,7 @@ function BadgesCita({ cita }) {
           title={`Coche de cortesía${cita.prestamoCortesia?.matricula ? `: ${cita.prestamoCortesia.matricula}` : cita.cortesiaMatricula ? `: ${cita.cortesiaMatricula}` : " (reservado)"}`}
           className="ml-1.5 rounded-full bg-teal-100 text-teal-700 border border-teal-200 text-[0.625rem] font-bold px-1.5 py-0.5 align-middle"
         >
-          Cortesía{cita.prestamoCortesia?.matricula ? ` ${cita.prestamoCortesia.matricula}` : ""}
+          V. cortesía {cita.prestamoCortesia?.matricula || cita.cortesiaMatricula || "(reservado)"}
         </span>
       )}
     </>
