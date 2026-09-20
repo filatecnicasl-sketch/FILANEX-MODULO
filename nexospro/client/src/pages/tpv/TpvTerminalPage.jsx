@@ -6,29 +6,16 @@ import { euros } from "../../components/ui.jsx";
 import {
   IconTicket,
   IconCaja,
-  IconCerrar,
   IconAyuda,
   IconImprimir,
-  IconCorreo,
   IconBorrar,
 } from "../../components/icons.jsx";
 
-const COLORES_FAMILIA = [
-  "bg-indigo-600",
-  "bg-emerald-600",
-  "bg-amber-600",
-  "bg-sky-600",
-  "bg-violet-600",
-  "bg-rose-600",
-  "bg-teal-600",
-  "bg-orange-600",
-  "bg-lime-600",
-  "bg-cyan-600",
-  "bg-fuchsia-600",
-  "bg-pink-600",
+// Colores por defecto para las familias que no tengan uno configurado.
+const PALETA = [
+  "#6366f1", "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6", "#f43f5e",
+  "#14b8a6", "#f97316", "#84cc16", "#06b6d4", "#d946ef", "#ec4899",
 ];
-
-const colorFamilia = (i) => COLORES_FAMILIA[i % COLORES_FAMILIA.length];
 
 function urlImagen(ruta) {
   if (!ruta) return null;
@@ -103,21 +90,33 @@ export default function TpvTerminalPage() {
 
   useEffect(() => { cargarEstado(); }, [cargarEstado]);
 
+  // Color de una familia: el configurado en FamiliaTpv o uno de la paleta.
+  const colorDeFamilia = useCallback(
+    (familia) => {
+      if (!familia) return "#94a3b8";
+      const cfg = estado?.familiasTpv?.find((f) => f.nombre === familia);
+      if (cfg?.color) return cfg.color;
+      const idx = (estado?.familias ?? []).indexOf(familia);
+      return PALETA[(idx >= 0 ? idx : 0) % PALETA.length];
+    },
+    [estado]
+  );
+
   const categorias = useMemo(() => {
     const configuradas = (estado?.familiasTpv ?? []).map((f) => f.nombre);
     const deArticulos = (estado?.familias ?? []).filter((f) => !configuradas.includes(f));
     return [
-      { id: "favoritos", nombre: "Favoritos", icono: "★" },
-      { id: "todos", nombre: "Todas", icono: "⊞" },
+      { id: "favoritos", nombre: "Favoritos", icono: "★", color: "#eab308" },
+      { id: "todos", nombre: "Todas", icono: "⊞", color: "#475569" },
       ...(estado?.familiasTpv ?? []).map((f) => ({ id: f.nombre, ...f, icono: null })),
-      ...deArticulos.map((f, i) => ({ id: f, nombre: f, color: colorFamilia((estado?.familiasTpv?.length || 0) + i), icono: null })),
+      ...deArticulos.map((f) => ({ id: f, nombre: f, color: colorDeFamilia(f), icono: null })),
     ];
-  }, [estado]);
+  }, [estado, colorDeFamilia]);
 
   const articulosFiltrados = useMemo(() => {
     if (!estado?.articulos) return [];
     const q = busqueda.trim().toLowerCase();
-    let lista = estado.articulos;
+    const lista = estado.articulos;
     if (q) {
       return lista.filter(
         (a) =>
@@ -159,8 +158,7 @@ export default function TpvTerminalPage() {
         l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (l.iva / 100),
       0
     );
-    const total = base + iva;
-    return { bruto, descuento, base, iva, total };
+    return { bruto, descuento, base, iva, total: base + iva };
   }, [lineas]);
 
   function setCantidadLinea(idx, cantidad) {
@@ -222,20 +220,24 @@ export default function TpvTerminalPage() {
   }
 
   function tecla(k) {
-    if (k === "C") {
-      if (modoTeclado === "linea") {
-        setCantidadLinea(lineaSeleccionada, 1);
-        setBufferTeclado("1");
-      } else {
-        setBufferTeclado("1");
-      }
+    if (k === "*") {
+      setBufferTeclado("1");
+      if (modoTeclado === "linea") setCantidadLinea(lineaSeleccionada, 1);
       return;
     }
-    if (k === "B") {
-      setBufferTeclado((prev) => {
-        const nuevo = prev.length > 1 ? prev.slice(0, -1) : "1";
-        return nuevo;
-      });
+    if (k === "%") {
+      if (lineaSeleccionada === null) return;
+      const actual = lineas[lineaSeleccionada]?.descuento ?? 0;
+      const siguiente = actual === 0 ? 5 : actual === 5 ? 10 : actual === 10 ? 20 : 0;
+      cambiarDescuento(lineaSeleccionada, siguiente);
+      return;
+    }
+    if (k === "-") {
+      if (lineaSeleccionada !== null) cambiarCantidad(lineaSeleccionada, -1);
+      return;
+    }
+    if (k === "Del") {
+      setBufferTeclado((prev) => (prev.length > 1 ? prev.slice(0, -1) : "1"));
       return;
     }
     if (k === ".") {
@@ -247,6 +249,8 @@ export default function TpvTerminalPage() {
         setModoTeclado("preseleccion");
         setLineaSeleccionada(null);
         setBufferTeclado("1");
+      } else {
+        abrirCobro();
       }
       return;
     }
@@ -277,6 +281,7 @@ export default function TpvTerminalPage() {
   }
 
   function quitarLinea(i) {
+    if (i === null) return;
     setLineas((prev) => prev.filter((_, idx) => idx !== i));
     if (lineaSeleccionada === i) {
       setLineaSeleccionada(null);
@@ -351,16 +356,18 @@ export default function TpvTerminalPage() {
     }
   }
 
+  async function ultimoTicket() {
+    const r = await fetch("/api/tpv/tickets");
+    const lista = await r.json();
+    if (!r.ok) throw new Error(lista.error || "Error al buscar tickets");
+    const ultimo = lista?.find((t) => t.total >= 0);
+    if (!ultimo) throw new Error("Todavía no hay tickets");
+    return ultimo;
+  }
+
   async function reimprimirUltimo() {
     try {
-      const r = await fetch("/api/tpv/tickets");
-      const lista = await r.json();
-      if (!r.ok) throw new Error(lista.error || "Error al buscar tickets");
-      const ultimo = lista?.find((t) => t.total >= 0);
-      if (!ultimo) {
-        setError("Todavía no hay tickets para reimprimir");
-        return;
-      }
+      const ultimo = await ultimoTicket();
       window.open(`/api/tpv/tickets/${ultimo._id}/imprimir`, "_blank", "width=400,height=600");
     } catch (e) {
       setError(e.message);
@@ -369,14 +376,7 @@ export default function TpvTerminalPage() {
 
   async function imprimirTicketRegalo() {
     try {
-      const r = await fetch("/api/tpv/tickets");
-      const lista = await r.json();
-      if (!r.ok) throw new Error(lista.error || "Error al buscar tickets");
-      const ultimo = lista?.find((t) => t.total >= 0);
-      if (!ultimo) {
-        setError("Todavía no hay tickets para imprimir");
-        return;
-      }
+      const ultimo = await ultimoTicket();
       window.open(`/api/tpv/tickets/${ultimo._id}/imprimir?regalo=1`, "_blank", "width=400,height=600");
     } catch (e) {
       setError(e.message);
@@ -499,7 +499,7 @@ export default function TpvTerminalPage() {
 
   if (cargando) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center text-slate-500">
         Cargando TPV…
       </div>
     );
@@ -507,11 +507,11 @@ export default function TpvTerminalPage() {
 
   if (error && !estado) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300 p-6">
-        <p className="text-red-400 mb-4">{error}</p>
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center text-slate-700 p-6">
+        <p className="text-rose-600 mb-4">{error}</p>
         <button
           onClick={() => navigate("/")}
-          className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700"
+          className="px-4 py-2 rounded-lg bg-neutral-900 text-white hover:bg-neutral-700"
         >
           Volver al panel
         </button>
@@ -523,31 +523,31 @@ export default function TpvTerminalPage() {
 
   if (!cajaAbierta) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-200 p-6">
-        <div className="w-full max-w-sm bg-slate-900 rounded-2xl p-6 border border-slate-700">
+      <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center text-slate-800 p-6">
+        <div className="w-full max-w-sm bg-white rounded-2xl p-6 border border-slate-200 shadow-lg">
           <h1 className="text-2xl font-bold mb-2 text-center">TPV / Caja</h1>
-          <p className="text-slate-400 text-center mb-6">
+          <p className="text-slate-500 text-center mb-6">
             No hay ninguna sesión de caja abierta. Introduce el fondo inicial para empezar a vender.
           </p>
-          <label className="block text-sm text-slate-400 mb-2">Fondo de caja</label>
+          <label className="block text-sm text-slate-500 mb-2">Fondo de caja</label>
           <input
             type="number"
             step="0.01"
             value={fondo}
             onChange={(e) => setFondo(e.target.value)}
-            className="w-full text-center text-2xl font-bold bg-slate-800 border border-slate-600 rounded-xl py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full text-center text-2xl font-bold bg-slate-50 border border-slate-300 rounded-xl py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-neutral-900"
           />
-          {error && <p className="text-sm text-red-400 mb-3 text-center">{error}</p>}
+          {error && <p className="text-sm text-rose-600 mb-3 text-center">{error}</p>}
           <button
             onClick={abrirCaja}
             disabled={abriendoCaja}
-            className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 text-xl font-bold transition"
+            className="w-full py-4 rounded-xl bg-neutral-900 hover:bg-neutral-700 disabled:bg-slate-300 text-white text-xl font-bold transition"
           >
             {abriendoCaja ? "Abriendo…" : "Abrir caja"}
           </button>
           <button
             onClick={() => navigate("/")}
-            className="w-full mt-3 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            className="w-full mt-3 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition"
           >
             Volver al panel
           </button>
@@ -557,62 +557,65 @@ export default function TpvTerminalPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 select-none overflow-hidden">
-      {/* Cabecera */}
-      <header className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-slate-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/")}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-            title="Volver"
-          >
-            <IconCerrar />
-          </button>
-          <h1 className="text-lg font-bold">TPV</h1>
-          <span className="text-sm text-slate-400 hidden sm:inline">
-            Caja abierta · {estado?.caja?.apertura?.usuario ?? "—"}
-          </span>
-        </div>
-        <div className="flex-1 max-w-xl mx-4">
+    <div className="h-screen flex flex-col bg-slate-100 text-slate-800 select-none overflow-hidden">
+      {/* Barra superior negra */}
+      <header className="flex items-center gap-3 px-3 h-14 bg-neutral-900 text-white shrink-0">
+        <button
+          onClick={() => navigate("/")}
+          className="text-2xl px-2 hover:bg-white/10 rounded"
+          title="Menú principal"
+        >
+          ☰
+        </button>
+        <h1 className="text-lg font-bold tracking-wide">Venta</h1>
+        <div className="flex-1 max-w-xl mx-auto">
           <input
             type="text"
             placeholder="Buscar artículo o escanear código…"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             onKeyDown={onEnterBusqueda}
-            className="w-full px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-base placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-1.5 rounded-lg bg-white text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1 px-3 py-2 rounded hover:bg-white/10 text-sm font-semibold"
+          >
+            ↩ VOLVER
+          </button>
           <button
             onClick={() => setMostrarEspera(true)}
-            className="relative flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
+            className="relative px-3 py-2 rounded hover:bg-white/10"
+            title="Tickets en espera"
           >
-            Espera
+            <IconTicket />
             {espera.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold flex items-center justify-center">
+              <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">
                 {espera.length}
               </span>
             )}
           </button>
           <button
             onClick={() => navigate("/tpv/tickets")}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
+            className="px-3 py-2 rounded hover:bg-white/10"
+            title="Tickets"
           >
-            <IconTicket /> Tickets
+            <IconImprimir />
           </button>
           <button
             onClick={() => navigate("/tpv/caja")}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
+            className="px-3 py-2 rounded hover:bg-white/10"
+            title="Caja"
           >
-            <IconCaja /> Caja
+            <IconCaja />
           </button>
           <button
             onClick={() => navigate("/ayuda/tpv")}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm"
-            title="Ayuda TPV"
+            className="flex items-center gap-1 px-3 py-2 rounded hover:bg-white/10 text-sm font-semibold"
           >
-            <IconAyuda /> Ayuda
+            <IconAyuda /> AYUDA
           </button>
         </div>
       </header>
@@ -620,54 +623,58 @@ export default function TpvTerminalPage() {
       {/* Cuerpo */}
       <div className="flex-1 flex overflow-hidden">
         {/* Categorías */}
-        <aside className="w-28 sm:w-36 flex flex-col bg-slate-900 border-r border-slate-800 overflow-y-auto shrink-0">
-          {categorias.map((c, i) => {
+        <aside className="w-36 sm:w-44 bg-white border-r border-slate-200 overflow-y-auto shrink-0">
+          {categorias.map((c) => {
             const activa = familiaActiva === c.id;
-            const bg = c.color || (activa ? colorFamilia(i) : "bg-slate-800");
             return (
               <button
                 key={c.id}
                 onClick={() => setFamiliaActiva(c.id)}
-                className={`flex flex-col items-center justify-center gap-1 p-3 m-2 rounded-xl min-h-[76px] transition hover:brightness-110 ${
-                  activa ? `${bg} text-white shadow-lg` : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                className={`w-full flex items-center justify-between gap-2 px-3 py-3 border-b border-slate-100 border-l-4 transition ${
+                  activa
+                    ? "bg-slate-100 font-bold"
+                    : "text-slate-600 hover:bg-slate-50 border-l-transparent"
                 }`}
+                style={activa ? { borderLeftColor: c.color } : undefined}
               >
-                {c.imagen ? (
-                  <img
-                    src={urlImagen(c.imagen)}
-                    alt=""
-                    className="w-10 h-10 rounded-lg object-cover bg-slate-700"
-                    onError={(e) => { e.currentTarget.style.display = "none"; }}
-                  />
-                ) : (
-                  <span className="text-xl">{c.icono || "●"}</span>
-                )}
-                <span className="text-xs font-semibold text-center leading-tight">{c.nombre}</span>
+                <span className="text-sm text-left leading-tight">{c.nombre}</span>
+                <span
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shrink-0 overflow-hidden"
+                  style={{ backgroundColor: c.color }}
+                >
+                  {c.imagen ? (
+                    <img
+                      src={urlImagen(c.imagen)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
+                  ) : (
+                    c.icono || iniciales(c.nombre)
+                  )}
+                </span>
               </button>
             );
           })}
         </aside>
 
         {/* Rejilla de productos */}
-        <main className="flex-1 flex flex-col p-3 overflow-hidden min-w-0">
-          <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 content-start">
-            {articulosFiltrados.map((a, i) => {
+        <main className="flex-1 overflow-y-auto p-4 min-w-0 bg-white">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-x-3 gap-y-5 content-start">
+            {articulosFiltrados.map((a) => {
               const img = urlImagen(a.imagen);
-              const cantidadEnTicket = cantidadesPorArticulo.get(String(a._id)) || 0;
-              const catIndex = categorias.findIndex((c) => c.id === (a.familia || "todos"));
-              const bg = colorFamilia(catIndex >= 0 ? catIndex : i);
+              const cantidad = cantidadesPorArticulo.get(String(a._id)) || 0;
+              const color = colorDeFamilia(a.familia);
               return (
                 <button
                   key={a._id}
                   onClick={() => agregarArticulo(a)}
-                  className={`group relative flex flex-col rounded-xl overflow-hidden shadow-lg transition active:scale-95 hover:brightness-110 ${bg}`}
+                  className="group flex flex-col items-center transition active:scale-95"
                 >
-                  {cantidadEnTicket > 0 && (
-                    <span className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-slate-900/80 text-white text-sm font-bold">
-                      ×{cantidadEnTicket}
-                    </span>
-                  )}
-                  <div className="h-24 sm:h-28 bg-slate-800/40 flex items-center justify-center overflow-hidden">
+                  <div
+                    className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full border-b-4 bg-slate-50 overflow-hidden shadow group-hover:shadow-lg transition"
+                    style={{ borderBottomColor: color }}
+                  >
                     {img ? (
                       <img
                         src={img}
@@ -676,40 +683,64 @@ export default function TpvTerminalPage() {
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                       />
                     ) : (
-                      <span className="text-2xl font-bold text-white/60">{iniciales(a.descripcion)}</span>
+                      <span
+                        className="w-full h-full flex items-center justify-center text-2xl font-bold text-white"
+                        style={{ backgroundColor: color }}
+                      >
+                        {iniciales(a.descripcion)}
+                      </span>
+                    )}
+                    <span className="absolute top-1 right-1 bg-emerald-500 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow">
+                      {euros(a.precioVenta)}
+                    </span>
+                    {cantidad > 0 && (
+                      <span className="absolute top-1 left-1 bg-rose-500 text-white text-xs font-bold rounded px-1.5 py-0.5 shadow">
+                        +{cantidad}
+                      </span>
                     )}
                   </div>
-                  <div className="p-3 text-left">
-                    <p className="font-semibold text-white leading-tight line-clamp-2 text-sm sm:text-base">{a.descripcion}</p>
-                    <p className="mt-2 text-lg sm:text-xl font-extrabold text-white/95">{euros(a.precioVenta)}</p>
-                  </div>
+                  <p className="mt-2 text-sm text-center leading-tight text-slate-700 line-clamp-2">
+                    {a.descripcion}
+                  </p>
                 </button>
               );
             })}
             {!articulosFiltrados.length && (
-              <p className="col-span-full text-center text-slate-500 py-10">No hay artículos</p>
+              <p className="col-span-full text-center text-slate-400 py-10">No hay artículos</p>
             )}
           </div>
         </main>
 
         {/* Ticket + teclado */}
-        <aside className="w-[360px] lg:w-[420px] flex flex-col bg-slate-900 border-l border-slate-800 shrink-0">
-          <div className="p-3 border-b border-slate-800 flex items-center justify-between shrink-0">
-            <div>
-              <h2 className="font-bold text-slate-300">Ticket actual</h2>
-              <p className="text-xs text-slate-500">Venta normal</p>
+        <aside className="w-[360px] lg:w-[400px] flex flex-col bg-slate-50 border-l border-slate-200 shrink-0">
+          {/* Cabecera del ticket */}
+          <div className="bg-white border-b-2 border-rose-300 px-4 py-3 shrink-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg">
+                  👤
+                </span>
+                <div>
+                  <span className="inline-block bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold rounded px-2 py-0.5">
+                    VENTA NORMAL
+                  </span>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {modoTeclado === "linea" ? `Cantidad: ${bufferTeclado}` : `Siguiente cantidad: ${bufferTeclado}`}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">Ticket actual</p>
+                <p className="text-xs text-slate-400">
+                  {new Date().toLocaleString("es-ES", { dateStyle: "short", timeStyle: "medium" })}
+                </p>
+                <p className="text-3xl font-extrabold text-slate-900">{euros(totales.total)}</p>
+              </div>
             </div>
-            {lineas.length > 0 && (
-              <button
-                onClick={aparcarTicket}
-                className="px-3 py-1.5 rounded-lg bg-amber-600/20 text-amber-400 hover:bg-amber-600/40 text-sm font-semibold"
-              >
-                Aparcar
-              </button>
-            )}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-0">
+          {/* Líneas */}
+          <div className="flex-1 overflow-y-auto bg-white min-h-0">
             {lineas.map((l, i) => {
               const totalLinea = l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100);
               const seleccionada = lineaSeleccionada === i;
@@ -717,222 +748,195 @@ export default function TpvTerminalPage() {
                 <div
                   key={i}
                   onClick={() => seleccionarLinea(i)}
-                  className={`rounded-xl p-3 cursor-pointer transition ${
-                    seleccionada ? "bg-indigo-600/30 border border-indigo-500" : "bg-slate-800 hover:bg-slate-700"
+                  className={`flex items-center justify-between gap-3 px-4 py-3 border-b-2 cursor-pointer transition ${
+                    seleccionada ? "bg-indigo-50 border-indigo-400" : "border-rose-200 hover:bg-slate-50"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{l.descripcion}</p>
-                      <p className="text-sm text-slate-400">
-                        {euros(l.precioUnitario)}
-                        {l.descuento > 0 && (
-                          <span className="ml-2 text-amber-400 font-semibold">−{l.descuento}%</span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); cambiarCantidad(i, -1); }}
-                        className="w-8 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 text-lg font-bold"
-                      >
-                        −
-                      </button>
-                      <span className={`w-9 text-center font-bold text-lg ${seleccionada ? "text-indigo-300" : ""}`}>
-                        {l.cantidad}
-                      </span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); cambiarCantidad(i, 1); }}
-                        className="w-8 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 text-lg font-bold"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <p className="w-20 text-right font-bold text-sm sm:text-base">{euros(totalLinea)}</p>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); quitarLinea(i); }}
-                      className="w-8 h-8 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600/40 flex items-center justify-center"
-                    >
-                      <IconBorrar />
-                    </button>
+                  <div className="min-w-0">
+                    <p className="text-xs text-slate-500">
+                      {l.cantidad} ud. x {euros(l.precioUnitario)}
+                      {l.descuento > 0 && <span className="ml-1 text-rose-500 font-bold">−{l.descuento}%</span>}
+                    </p>
+                    <p className="font-bold text-slate-800 truncate">{l.descripcion}</p>
                   </div>
-                  <div className="flex gap-1 mt-2">
-                    {[0, 5, 10, 20].map((d) => (
-                      <button
-                        key={d}
-                        onClick={(e) => { e.stopPropagation(); cambiarDescuento(i, d); }}
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
-                          (l.descuento ?? 0) === d
-                            ? "bg-amber-500 text-slate-900"
-                            : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                        }`}
-                      >
-                        {d === 0 ? "Sin dto" : `−${d}%`}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-xl font-bold text-slate-900 whitespace-nowrap">{euros(totalLinea)}</p>
                 </div>
               );
             })}
             {!lineas.length && (
-              <p className="text-center text-slate-500 py-10">Toca un artículo para añadirlo</p>
+              <p className="text-center text-slate-400 py-10">Toca un artículo para añadirlo</p>
             )}
           </div>
 
-          {/* Teclado numérico */}
-          <div className="p-3 border-t border-slate-800 shrink-0">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">
-                {modoTeclado === "linea" ? "Editando cantidad" : "Cantidad siguiente"}
-              </span>
-              <span className="text-xl font-bold text-indigo-300">{bufferTeclado}</span>
+          {/* Totales */}
+          <div className="grid grid-cols-4 bg-white border-t border-slate-200 text-center shrink-0">
+            <div className="py-2 border-r border-slate-100">
+              <p className="text-[11px] text-slate-400">Total bruto:</p>
+              <p className="font-bold text-slate-700">{euros(totales.bruto)}</p>
             </div>
-            <div className="grid grid-cols-4 gap-2 mb-2">
-              {["1", "2", "3", "Del"].map((k) => (
-                <button
-                  key={k}
-                  onClick={() => tecla(k === "Del" ? "B" : k)}
-                  className={`py-3 rounded-xl font-bold text-lg transition active:scale-95 ${
-                    k === "Del" ? "bg-rose-600/20 text-rose-400 hover:bg-rose-600/40" : "bg-slate-800 hover:bg-slate-700"
-                  }`}
-                >
-                  {k === "Del" ? "⌫" : k}
-                </button>
-              ))}
-              {["4", "5", "6", "C"].map((k) => (
+            <div className="py-2 border-r border-slate-100">
+              <p className="text-[11px] text-slate-400">Total base:</p>
+              <p className="font-bold text-slate-700">{euros(totales.base)}</p>
+            </div>
+            <div className="py-2 border-r border-slate-100">
+              <p className="text-[11px] text-slate-400">Impuestos:</p>
+              <p className="font-bold text-slate-700">{euros(totales.iva)}</p>
+            </div>
+            <div className="py-2">
+              <p className="text-[11px] text-slate-400">Total dto:</p>
+              <p className="font-bold text-slate-700">{euros(totales.descuento)}</p>
+            </div>
+          </div>
+
+          {/* Teclado + columna de acciones */}
+          <div className="flex bg-slate-100 p-1 gap-1 shrink-0">
+            <div className="flex-1 grid grid-cols-4 gap-1">
+              {["7", "8", "9", "*", "4", "5", "6", "%", "1", "2", "3", "-", "0", ".", "Del", "Enter"].map((k) => (
                 <button
                   key={k}
                   onClick={() => tecla(k)}
-                  className={`py-3 rounded-xl font-bold text-lg transition active:scale-95 ${
-                    k === "C" ? "bg-amber-600/20 text-amber-400 hover:bg-amber-600/40" : "bg-slate-800 hover:bg-slate-700"
+                  className={`py-4 rounded font-bold text-xl transition active:scale-95 ${
+                    k === "Enter"
+                      ? "bg-emerald-500 hover:bg-emerald-400 text-white"
+                      : k === "Del"
+                        ? "bg-rose-100 hover:bg-rose-200 text-rose-600"
+                        : "bg-slate-300 hover:bg-slate-400 text-slate-800"
                   }`}
                 >
                   {k}
                 </button>
               ))}
-              {["7", "8", "9", "."].map((k) => (
-                <button
-                  key={k}
-                  onClick={() => tecla(k)}
-                  className="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-lg transition active:scale-95"
-                >
-                  {k}
-                </button>
-              ))}
-              <button
-                onClick={() => tecla("0")}
-                className="py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-lg transition active:scale-95"
-              >
-                0
-              </button>
-              <button
-                onClick={() => tecla("Enter")}
-                className="col-span-3 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 font-bold text-lg transition active:scale-95"
-              >
-                Enter
-              </button>
             </div>
-            <div className="flex gap-2 mb-3">
+            <div className="w-14 flex flex-col gap-1">
               <button
-                onClick={() => { if (lineaSeleccionada !== null) quitarLinea(lineaSeleccionada); }}
+                onClick={() => setMostrarEspera(true)}
+                className="flex-1 rounded bg-sky-500 hover:bg-sky-400 text-white text-xl"
+                title="Tickets en espera"
+              >
+                ⤓
+              </button>
+              <button
+                onClick={aparcarTicket}
+                disabled={!lineas.length}
+                className="flex-1 rounded bg-cyan-500 hover:bg-cyan-400 text-white text-xl disabled:opacity-40"
+                title="Aparcar ticket"
+              >
+                ⤴
+              </button>
+              <button
+                onClick={() => quitarLinea(lineaSeleccionada)}
                 disabled={lineaSeleccionada === null}
-                className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-sm font-semibold"
+                className="flex-1 rounded bg-rose-500 hover:bg-rose-400 text-white disabled:opacity-40 flex items-center justify-center"
+                title="Vaciar línea"
               >
-                Vaciar línea
+                <IconBorrar />
               </button>
               <button
                 onClick={vaciarTicket}
                 disabled={!lineas.length}
-                className="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-sm font-semibold"
+                className="flex-1 rounded bg-neutral-700 hover:bg-neutral-600 text-white text-xl disabled:opacity-40"
+                title="Borrar ticket"
               >
-                Borrar ticket
+                ✕
+              </button>
+              <button
+                onClick={abrirCobro}
+                disabled={!lineas.length}
+                className="flex-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-2xl disabled:opacity-40"
+                title="Cobrar"
+              >
+                €
               </button>
             </div>
-            <div className="flex justify-between items-end mb-3">
-              <div className="text-xs text-slate-400 leading-tight">
-                Bruto {euros(totales.bruto)}<br />
-                Dto −{euros(totales.descuento)}<br />
-                IVA {euros(totales.iva)}
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-400">Total</p>
-                <p className="text-3xl font-extrabold text-emerald-400">{euros(totales.total)}</p>
-              </div>
-            </div>
-            <button
-              onClick={abrirCobro}
-              disabled={!lineas.length}
-              className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-2xl font-extrabold tracking-wide transition active:scale-95"
-            >
-              COBRAR
-            </button>
           </div>
         </aside>
       </div>
 
       {/* Barra inferior de acciones */}
-      <footer className="flex flex-wrap items-center gap-2 px-3 py-2 bg-slate-900 border-t border-slate-800 shrink-0">
-        <button onClick={() => setModalMovimiento(true)} className="accion-tpv">
-          <IconCaja /> Movim. caja
+      <footer className="grid grid-cols-7 bg-white border-t border-slate-200 shrink-0">
+        <button
+          onClick={() => setModalMovimiento(true)}
+          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-sky-500"
+        >
+          Movim. caja
         </button>
-        <button onClick={cargarResumen} className="accion-tpv">
-          <IconTicket /> Informe usuario
+        <button
+          onClick={cargarResumen}
+          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-neutral-700"
+        >
+          Informe usuario
         </button>
-        <button onClick={imprimirProforma} disabled={!lineas.length} className="accion-tpv disabled:opacity-40">
-          <IconImprimir /> Imprime proforma
+        <button
+          onClick={imprimirProforma}
+          disabled={!lineas.length}
+          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-amber-400 disabled:opacity-40"
+        >
+          Imprime proforma
         </button>
-        <button onClick={imprimirTicketRegalo} className="accion-tpv">
-          <IconTicket /> Ticket regalo
+        <button
+          onClick={imprimirTicketRegalo}
+          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-orange-400"
+        >
+          Ticket regalo
         </button>
-        <button onClick={reimprimirUltimo} className="accion-tpv">
-          <IconImprimir /> Copia últ. ticket
+        <button
+          onClick={reimprimirUltimo}
+          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-yellow-400"
+        >
+          Copia últ.ticket
         </button>
-        <button onClick={emailUltimoTicket} className="accion-tpv">
-          <IconCorreo /> Email últ. ticket
+        <button
+          onClick={emailUltimoTicket}
+          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-neutral-500"
+        >
+          Email últ.ticket
         </button>
-        <button onClick={abrirCajonTpv} className="accion-tpv">
-          <IconCaja /> Abrir cajón
+        <button
+          onClick={abrirCajonTpv}
+          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-sky-600"
+        >
+          Abrir cajón
         </button>
       </footer>
 
       {error && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-rose-600 text-white shadow-lg text-sm">
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-rose-600 text-white shadow-lg text-sm">
           {error}
         </div>
       )}
 
       {/* Tickets en espera */}
       {mostrarEspera && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Tickets en espera</h3>
-              <button onClick={() => setMostrarEspera(false)} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+              <h3 className="text-lg font-bold text-slate-800">Tickets en espera</h3>
+              <button onClick={() => setMostrarEspera(false)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
             </div>
             {!espera.length ? (
-              <p className="text-slate-500 text-center py-6">No hay tickets aparcados.</p>
+              <p className="text-slate-400 text-center py-6">No hay tickets aparcados.</p>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {espera.map((t) => (
-                  <div key={t._id} className="flex items-center gap-3 bg-slate-800 rounded-xl p-3">
+                  <div key={t._id} className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3">
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">
+                      <p className="font-semibold text-slate-800 truncate">
                         {t.nombre || `Ticket ${new Date(t.fecha).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`}
                       </p>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-slate-500">
                         {t.lineas.length} líneas ·{" "}
                         {euros(t.lineas.reduce((a, l) => a + l.cantidad * l.precioUnitario * (1 + l.iva / 100), 0))}
                       </p>
                     </div>
                     <button
                       onClick={() => recuperarTicket(t)}
-                      className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-sm font-bold"
+                      className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold"
                     >
                       Recuperar
                     </button>
                     <button
                       onClick={() => borrarEspera(t)}
-                      className="px-3 py-2 rounded-lg bg-rose-600/20 text-rose-400 hover:bg-rose-600/40 text-sm"
+                      className="px-3 py-2 rounded-lg bg-rose-100 text-rose-600 hover:bg-rose-200 text-sm"
                     >
                       ×
                     </button>
@@ -946,32 +950,32 @@ export default function TpvTerminalPage() {
 
       {/* Movimiento de caja */}
       {modalMovimiento && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <form
             onSubmit={guardarMovimiento}
-            className="w-full max-w-sm rounded-2xl bg-slate-900 border border-slate-700 p-5"
+            className="w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl p-5"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Movimiento de caja</h3>
-              <button type="button" onClick={() => setModalMovimiento(false)} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+              <h3 className="text-lg font-bold text-slate-800">Movimiento de caja</h3>
+              <button type="button" onClick={() => setModalMovimiento(false)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Tipo</label>
+                <label className="block text-sm text-slate-500 mb-1">Tipo</label>
                 <select name="tipo" className="input w-full">
                   <option value="entrada">Entrada de efectivo</option>
                   <option value="salida">Salida de efectivo</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Importe</label>
+                <label className="block text-sm text-slate-500 mb-1">Importe</label>
                 <input name="importe" type="number" step="0.01" min="0.01" required className="input w-full" />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Concepto</label>
+                <label className="block text-sm text-slate-500 mb-1">Concepto</label>
                 <input name="concepto" type="text" required className="input w-full" />
               </div>
-              <button type="submit" className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold">
+              <button type="submit" className="w-full py-3 rounded-xl bg-neutral-900 hover:bg-neutral-700 text-white font-bold">
                 Guardar movimiento
               </button>
             </div>
@@ -981,24 +985,24 @@ export default function TpvTerminalPage() {
 
       {/* Resumen de usuario */}
       {modalResumen && resumen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Resumen del día</h3>
-              <button onClick={() => setModalResumen(false)} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+              <h3 className="text-lg font-bold text-slate-800">Resumen del día</h3>
+              <button onClick={() => setModalResumen(false)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
             </div>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm text-slate-700">
               <p>Fecha: <span className="font-semibold">{resumen.fecha}</span></p>
               <p>Tickets: {resumen.numeroTickets} · Devoluciones: {resumen.numeroDevoluciones}</p>
               <p>Ventas: {euros(resumen.ventas)} · Devoluciones: {euros(resumen.devoluciones)}</p>
-              <p className="text-lg font-bold text-emerald-400">Total: {euros(resumen.total)}</p>
-              <div className="mt-3 pt-3 border-t border-slate-700">
+              <p className="text-lg font-bold text-emerald-600">Total: {euros(resumen.total)}</p>
+              <div className="mt-3 pt-3 border-t border-slate-200">
                 <p className="text-slate-400 mb-1">Por método de pago</p>
                 {Object.entries(resumen.porMetodo).map(([k, v]) => (
                   <div key={k} className="flex justify-between"><span className="capitalize">{k}</span><span>{euros(v)}</span></div>
                 ))}
               </div>
-              <div className="mt-3 pt-3 border-t border-slate-700">
+              <div className="mt-3 pt-3 border-t border-slate-200">
                 <p className="text-slate-400 mb-1">Top artículos</p>
                 {resumen.topArticulos.slice(0, 5).map((a) => (
                   <div key={a.descripcion} className="flex justify-between"><span className="truncate pr-2">{a.descripcion}</span><span>{a.cantidad}</span></div>

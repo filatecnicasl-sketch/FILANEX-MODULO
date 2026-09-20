@@ -56,17 +56,17 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-slate-900 text-slate-100 shadow-2xl border border-slate-700">
-        <div className="p-5 border-b border-slate-700 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white text-slate-800 shadow-2xl border border-slate-200">
+        <div className="p-5 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-xl font-bold">Cobrar</h2>
-          <button onClick={onCerrar} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+          <button onClick={onCerrar} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
         </div>
 
         <div className="p-5">
           <div className="text-center mb-5">
             <p className="text-sm text-slate-400 uppercase tracking-wide">Total a cobrar</p>
-            <p className="text-5xl font-extrabold text-emerald-400">{euros(total)}</p>
+            <p className="text-5xl font-extrabold text-emerald-600">{euros(total)}</p>
           </div>
 
           <div className="grid grid-cols-3 gap-3 mb-5">
@@ -76,8 +76,8 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
                 onClick={() => setMetodo(m.id)}
                 className={`py-3 rounded-xl font-bold text-base transition ${
                   metodo === m.id
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                    ? "bg-neutral-900 text-white shadow-lg"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 {m.etiqueta}
@@ -88,14 +88,14 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
           {metodo === "efectivo" && (
             <>
               <div className="mb-3">
-                <label className="block text-sm text-slate-400 mb-1">Entregado</label>
+                <label className="block text-sm text-slate-500 mb-1">Entregado</label>
                 <input
                   ref={inputRef}
                   type="text"
                   inputMode="decimal"
                   value={entregado}
                   onChange={(e) => setEntregado(e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."))}
-                  className="w-full text-center text-3xl font-bold bg-slate-800 border border-slate-600 rounded-xl py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full text-center text-3xl font-bold bg-slate-50 border border-slate-300 rounded-xl py-3 focus:outline-none focus:ring-2 focus:ring-neutral-900"
                 />
               </div>
 
@@ -104,14 +104,14 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
                   <button
                     key={v}
                     onClick={() => ponerImporte(v)}
-                    className="py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-semibold"
+                    className="py-2 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold text-slate-700"
                   >
                     +{v}€
                   </button>
                 ))}
                 <button
                   onClick={() => ponerImporte("justo")}
-                  className="py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-semibold text-emerald-400"
+                  className="py-2 rounded-lg bg-slate-100 hover:bg-slate-200 font-semibold text-emerald-600"
                 >
                   Justo
                 </button>
@@ -119,19 +119,19 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
 
               <div className="text-center mb-4">
                 <p className="text-sm text-slate-400">Cambio</p>
-                <p className="text-3xl font-bold text-amber-400">{euros(cambio)}</p>
+                <p className="text-3xl font-bold text-amber-500">{euros(cambio)}</p>
               </div>
             </>
           )}
 
-          {error && <p className="text-sm text-red-400 mb-3 text-center">{error}</p>}
+          {error && <p className="text-sm text-rose-600 mb-3 text-center">{error}</p>}
 
-          <label className="flex items-center justify-center gap-2 mb-4 text-sm text-slate-300 cursor-pointer select-none">
+          <label className="flex items-center justify-center gap-2 mb-4 text-sm text-slate-600 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={conRegalo}
               onChange={(e) => setConRegalo(e.target.checked)}
-              className="w-5 h-5 accent-indigo-500"
+              className="w-5 h-5 accent-neutral-900"
             />
             Imprimir también <strong>ticket regalo</strong> (sin precios)
           </label>
@@ -139,7 +139,7 @@ export default function CobroModal({ total, onCobrado, onCerrar }) {
           <button
             onClick={cobrar}
             disabled={cobrando || (metodo === "efectivo" && Number(entregado) < total)}
-            className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-xl font-extrabold tracking-wide transition"
+            className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xl font-extrabold tracking-wide transition"
           >
             {cobrando ? "Cobrando…" : "COBRAR"}
           </button>
