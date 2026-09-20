@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { euros } from "../../components/ui.jsx";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 // Denominaciones de euros para el conteo del cajón en el arqueo.
 const BILLETES = [500, 200, 100, 50, 20, 10, 5];
@@ -127,7 +128,7 @@ export default function TpvCajaPage() {
       const rSes = await fetch("/api/tpv/caja/sesiones");
       const lista = await rSes.json();
       if (rSes.ok && lista?.[0]?._id) {
-        window.open(`/api/tpv/caja/sesiones/${lista[0]._id}/imprimir`, "_blank", "width=400,height=640");
+        window.open(urlApiConSesion(`/api/tpv/caja/sesiones/${lista[0]._id}/imprimir`), "_blank", "width=400,height=640");
       }
     } catch (e) {
       setError(e.message);
@@ -137,7 +138,7 @@ export default function TpvCajaPage() {
   }
 
   function imprimirCierre(s) {
-    window.open(`/api/tpv/caja/sesiones/${s._id}/imprimir`, "_blank", "width=400,height=640");
+    window.open(urlApiConSesion(`/api/tpv/caja/sesiones/${s._id}/imprimir`), "_blank", "width=400,height=640");
   }
 
   const abierta = estado?.caja;

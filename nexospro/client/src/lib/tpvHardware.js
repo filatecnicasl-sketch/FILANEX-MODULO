@@ -8,6 +8,8 @@
 //    sin diálogo y con apertura del cajón portamonedas por el RJ11 de la
 //    impresora. La impresora debe estar conectada por USB-serie o puerto serie.
 
+import { urlApiConSesion } from "./sesion.js";
+
 const CLAVE = "filanex.tpvHardware";
 
 export const CONFIG_DEFECTO = {
@@ -262,7 +264,7 @@ export async function imprimirTicketSegunConfig(cfg, { ticket, empresa, imprimir
   if (regalo) params.set("regalo", "1");
   params.set("ancho", String(cfg.impresion.ancho));
   const url = `${imprimirUrl}${imprimirUrl.includes("?") ? "&" : "?"}${params}`;
-  const w = window.open(url, "_blank", "width=400,height=600");
+  const w = window.open(urlApiConSesion(url), "_blank", "width=400,height=600");
   if (w) w.focus();
   return "navegador";
 }

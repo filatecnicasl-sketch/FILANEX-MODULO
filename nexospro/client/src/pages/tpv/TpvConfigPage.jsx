@@ -10,6 +10,7 @@ import {
   construirTicketPrueba,
   abrirCajon,
 } from "../../lib/tpvHardware.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 export default function TpvConfigPage() {
   const [cfg, setCfg] = useState(cargarConfigHardware);
@@ -315,7 +316,7 @@ export default function TpvConfigPage() {
 
             <button
               onClick={() =>
-                window.open(`/api/tpv/tickets/ultimo/imprimir?ancho=${cfg.impresion.ancho}`, "_blank", "width=400,height=600")
+                window.open(urlApiConSesion(`/api/tpv/tickets/ultimo/imprimir?ancho=${cfg.impresion.ancho}`), "_blank", "width=400,height=600")
               }
               className="btn-ghost mt-4"
             >

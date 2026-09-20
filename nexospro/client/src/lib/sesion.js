@@ -92,6 +92,15 @@ export function cerrarSesion() {
   location.reload();
 }
 
+// URL de la API lista para abrir en una ventana nueva (impresión de tickets,
+// PDFs...). window.open no puede mandar la cabecera Authorization, así que el
+// token viaja como ?sesion=, que el backend ya acepta.
+export function urlApiConSesion(url) {
+  const token = obtenerToken();
+  if (!token) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}sesion=${encodeURIComponent(token)}`;
+}
+
 // Saca el cuerpo de la petición en algo que se pueda guardar en IndexedDB.
 async function extraerCuerpo(opciones) {
   const cuerpo = opciones?.body;

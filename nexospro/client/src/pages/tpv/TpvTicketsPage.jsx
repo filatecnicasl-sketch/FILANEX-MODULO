@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { euros } from "../../components/ui.jsx";
 import { cargarConfigHardware } from "../../lib/tpvHardware.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const METODOS = {
   efectivo: "Efectivo",
@@ -61,12 +62,12 @@ export default function TpvTicketsPage() {
 
   function imprimir(t) {
     const ancho = cargarConfigHardware().impresion.ancho;
-    window.open(`/api/tpv/tickets/${t._id}/imprimir?ancho=${ancho}`, "_blank", "width=400,height=600");
+    window.open(urlApiConSesion(`/api/tpv/tickets/${t._id}/imprimir?ancho=${ancho}`), "_blank", "width=400,height=600");
   }
 
   function imprimirRegalo(t) {
     const ancho = cargarConfigHardware().impresion.ancho;
-    window.open(`/api/tpv/tickets/${t._id}/imprimir?regalo=1&ancho=${ancho}`, "_blank", "width=400,height=600");
+    window.open(urlApiConSesion(`/api/tpv/tickets/${t._id}/imprimir?regalo=1&ancho=${ancho}`), "_blank", "width=400,height=600");
   }
 
   function confirmarParcial() {
