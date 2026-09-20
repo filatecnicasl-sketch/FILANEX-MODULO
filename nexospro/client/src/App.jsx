@@ -144,7 +144,8 @@ export default function App() {
           <Route index element={<InicioRedirect />} />
           <Route path="tpv/tickets" element={<TpvTicketsPage />} />
           <Route path="tpv/caja" element={<TpvCajaPage />} />
-          <Route path="tpv/perifericos" element={<TpvConfigPage />} />
+          <Route path="tpv/ajustes" element={<TpvConfigPage />} />
+          <Route path="tpv/perifericos" element={<Navigate to="/tpv/ajustes" replace />} />
           <Route path="ventas" element={<VentasPage />} />
           <Route path="presupuestos" element={<PresupuestosPage />} />
           <Route path="albaranes" element={<AlbaranesPage />} />

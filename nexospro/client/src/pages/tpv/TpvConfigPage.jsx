@@ -104,14 +104,37 @@ export default function TpvConfigPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <CabeceraPagina
-        titulo="Periféricos del TPV"
-        subtitulo="Impresora de tickets, cajón portamonedas y escáner — se guardan en este equipo"
+        titulo="Ajustes del TPV"
+        subtitulo="Apariencia del terminal, impresora de tickets, cajón y escáner — se guardan en este equipo"
       />
 
       {mensaje && <p className="text-sm text-emerald-300 mb-4">{mensaje}</p>}
       {error && <p className="text-sm text-rose-400 mb-4">{error}</p>}
 
       <div className="space-y-6">
+        {/* Apariencia */}
+        <div className="panel p-6">
+          <h2 className="text-lg font-bold text-slate-200 mb-4">Apariencia del terminal</h2>
+          <p className="text-sm text-slate-500 mb-2">Forma de los artículos en la rejilla de venta</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Opcion
+              activo={cfg.vista?.formaArticulos !== "cuadrado"}
+              onClick={() => actualizar("vista", { formaArticulos: "redondo" })}
+            >
+              Redondos
+            </Opcion>
+            <Opcion
+              activo={cfg.vista?.formaArticulos === "cuadrado"}
+              onClick={() => actualizar("vista", { formaArticulos: "cuadrado" })}
+            >
+              Cuadrados
+            </Opcion>
+          </div>
+          <p className="text-sm text-slate-500">
+            Se aplica solo en este equipo: cada terminal puede tener su propia apariencia.
+          </p>
+        </div>
+
         {/* Impresora */}
         <div className="panel p-6">
           <h2 className="text-lg font-bold text-slate-200 mb-4">Impresora de tickets</h2>

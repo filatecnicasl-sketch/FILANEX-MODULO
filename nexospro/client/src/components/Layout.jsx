@@ -153,7 +153,7 @@ const gruposModulos = {
       { to: "/tpv", etiqueta: "Terminal", fin: true, Icono: IconCaja, tono: "emerald" },
       { to: "/tpv/tickets", etiqueta: "Tickets", Icono: IconTicket, tono: "amber" },
       { to: "/tpv/caja", etiqueta: "Caja", Icono: IconTesoreria, tono: "violet" },
-      { to: "/tpv/perifericos", etiqueta: "Periféricos", fin: true, Icono: IconImprimir, tono: "sky" },
+      { to: "/tpv/ajustes", etiqueta: "Ajustes", fin: true, Icono: IconImprimir, tono: "sky" },
       { to: "/ayuda/tpv", etiqueta: "Ayuda TPV", Icono: IconAyuda, tono: "slate" },
     ],
   },

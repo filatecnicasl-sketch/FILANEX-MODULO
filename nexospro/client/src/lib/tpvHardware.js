@@ -1,5 +1,5 @@
-// Configuración de periféricos del TPV, por terminal (localStorage de este
-// equipo/tablet): impresora de tickets, cajón portamonedas y escáner.
+// Configuración del TPV, por terminal (localStorage de este equipo/tablet):
+// impresora de tickets, cajón portamonedas, escáner y aspecto del terminal.
 //
 // Modos de impresión:
 //  - "navegador": abre el ticket HTML y usa el diálogo de impresión (funciona
@@ -24,6 +24,9 @@ export const CONFIG_DEFECTO = {
   escaner: {
     sonido: true, // pitido al añadir por escáner/toque
   },
+  vista: {
+    formaArticulos: "redondo", // redondo | cuadrado (rejilla del terminal)
+  },
 };
 
 export function cargarConfigHardware() {
@@ -33,6 +36,7 @@ export function cargarConfigHardware() {
       impresion: { ...CONFIG_DEFECTO.impresion, ...(guardada.impresion ?? {}) },
       cajon: { ...CONFIG_DEFECTO.cajon, ...(guardada.cajon ?? {}) },
       escaner: { ...CONFIG_DEFECTO.escaner, ...(guardada.escaner ?? {}) },
+      vista: { ...CONFIG_DEFECTO.vista, ...(guardada.vista ?? {}) },
     };
   } catch {
     return structuredClone(CONFIG_DEFECTO);

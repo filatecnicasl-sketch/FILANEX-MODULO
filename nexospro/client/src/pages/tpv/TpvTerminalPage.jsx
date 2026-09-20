@@ -53,6 +53,8 @@ export default function TpvTerminalPage() {
   const [modalResumen, setModalResumen] = useState(false);
   const [resumen, setResumen] = useState(null);
   const cfgHw = cargarConfigHardware();
+  // Apariencia de la rejilla, configurable en TPV → Ajustes (por terminal).
+  const formaCuadrada = cfgHw.vista?.formaArticulos === "cuadrado";
 
   const pitido = useCallback((frecuencia = 880, duracion = 0.07) => {
     if (!cargarConfigHardware().escaner.sonido) return;
@@ -672,7 +674,11 @@ export default function TpvTerminalPage() {
                   className="group flex flex-col items-center transition active:scale-95"
                 >
                   <div
-                    className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full border-b-4 bg-slate-50 overflow-hidden shadow group-hover:shadow-lg transition"
+                    className={`relative bg-slate-50 overflow-hidden shadow border-b-4 group-hover:shadow-lg transition ${
+                      formaCuadrada
+                        ? "w-full aspect-square rounded-xl"
+                        : "w-24 h-24 sm:w-28 sm:h-28 rounded-full"
+                    }`}
                     style={{ borderBottomColor: color }}
                   >
                     {img ? (
