@@ -161,6 +161,9 @@ router.post("/:id/enviar-a-orden", requiereModulo("taller"), async (req, res, ne
         precioUnitario: l.precioUnitario,
         iva: l.iva,
         tipo: "material",
+        // El enlace al artículo viaja con la línea: al facturar la orden se
+        // descuenta su stock como cualquier otra venta.
+        articulo: l.articulo ?? undefined,
       }))
     );
     orden.total = calcularTotales(orden.lineas).total;
@@ -182,8 +185,14 @@ router.post("/:id/enviar-a-orden", requiereModulo("taller"), async (req, res, ne
 
 router.delete("/:id", async (req, res, next) => {
   try {
-    const albaran = await AlbaranCompra.findByIdAndDelete(req.params.id);
+    const albaran = await AlbaranCompra.findById(req.params.id);
     if (!albaran) return res.status(404).json({ error: "Albarán no encontrado" });
+    if (albaran.estado === "facturado") {
+      return res.status(409).json({ error: "El albarán ya está facturado: no se puede borrar" });
+    }
+    await albaran.deleteOne();
+    // La mercancía del albarán borrado sale del almacén.
+    await moverStock(albaran.lineas, -1);
     res.json({ ok: true });
   } catch (err) {
     next(err);

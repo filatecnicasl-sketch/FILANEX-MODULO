@@ -4,6 +4,7 @@ import AlbaranCompra from "../models/AlbaranCompra.js";
 import Empresa from "../models/Empresa.js";
 import { calcularTotales } from "../services/totales.js";
 import { tomarNumero } from "../services/numeracion.js";
+import { moverStock } from "../services/stock.js";
 
 const router = Router();
 
@@ -108,6 +109,10 @@ router.post("/:id/pasar-a-albaran", async (req, res, next) => {
     pedido.albaran = albaran._id;
     pedido.numeroAlbaran = albaran.numero;
     await pedido.save();
+
+    // Entrada de stock: la mercancía del pedido ya está en el almacén. La
+    // factura del proveedor (pasar-a-factura) no lo volverá a sumar.
+    await moverStock(albaran.lineas, +1);
 
     res.status(201).json({
       pedido: await pedido.populate("proveedor", "nombre nif"),

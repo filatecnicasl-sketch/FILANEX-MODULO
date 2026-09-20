@@ -17,6 +17,7 @@ import Empresa from "../models/Empresa.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import RegistroFacturacion from "../models/RegistroFacturacion.js";
 import { calcularTotales } from "../services/totales.js";
+import { moverStock } from "../services/stock.js";
 import { tomarNumeroFacturaVentaAtomico } from "../services/numeracion.js";
 import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 import {
@@ -586,14 +587,9 @@ router.post("/cobrar", serializarRegistro, async (req, res, next) => {
     });
     await ticket.save();
 
-    // Salida de stock: cada línea con artículo descuenta sus unidades.
-    await Promise.all(
-      lineas
-        .filter((l) => l.articulo)
-        .map((l) =>
-          Articulo.findByIdAndUpdate(l.articulo, { $inc: { stock: -l.cantidad } }).catch(() => null)
-        )
-    );
+    // Salida de stock: cada línea con artículo descuenta sus unidades
+    // (los servicios no mueven stock, lo decide moverStock).
+    await moverStock(lineas, -1);
 
     const entregado = redondear(req.body?.entregado);
     res.status(201).json({
@@ -728,12 +724,12 @@ router.post("/tickets/:id/devolucion", serializarRegistro, async (req, res, next
     await original.save();
 
     // Entrada de stock: las unidades devueltas vuelven al almacén.
-    await Promise.all(
-      seleccion
-        .filter(({ indice }) => original.lineas[indice]?.articulo)
-        .map(({ indice, cantidad }) =>
-          Articulo.findByIdAndUpdate(original.lineas[indice].articulo, { $inc: { stock: cantidad } }).catch(() => null)
-        )
+    await moverStock(
+      seleccion.map(({ indice, cantidad }) => ({
+        articulo: original.lineas[indice]?.articulo,
+        cantidad,
+      })),
+      +1
     );
 
     res.status(201).json({ devolucion: vistaTicket(devolucion), completa: agotado });

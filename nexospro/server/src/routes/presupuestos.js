@@ -6,6 +6,7 @@ import Empresa from "../models/Empresa.js";
 import { calcularTotales, limpiarLineas } from "../services/totales.js";
 import { metodoPagoDefecto } from "../services/metodos-pago.js";
 import { tomarNumero } from "../services/numeracion.js";
+import { moverStock } from "../services/stock.js";
 
 const router = Router();
 
@@ -116,6 +117,9 @@ router.post("/:id/albaran", async (req, res, next) => {
     });
     p.albaranVenta = albaran._id;
     await p.save();
+    // Salida de stock: la mercancía sale con el albarán. La factura que se
+    // genere después de este albarán no lo volverá a descontar.
+    await moverStock(albaran.lineas, -1);
     res.status(201).json(albaran);
   } catch (err) {
     next(err);
