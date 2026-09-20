@@ -54,7 +54,8 @@ const gruposBase = [
       { to: "/presupuestos", etiqueta: "Presupuestos", Icono: IconPresupuestos, tono: "teal" },
       { to: "/albaranes", etiqueta: "Albaranes", Icono: IconAlbaranes, tono: "emerald" },
       { to: "/ventas", etiqueta: "Facturas", fin: true, Icono: IconVentas, tono: "violet" },
-      { to: "/recurrencias", etiqueta: "Recurrencias", Icono: IconRecurrencias, tono: "slate" },
+      { to: "/recurrencias", etiqueta: "Recurrencias", fin: true, Icono: IconRecurrencias, tono: "slate" },
+      { to: "/ayuda/facturacion", etiqueta: "Ayuda facturación", Icono: IconAyuda, tono: "slate" },
     ],
   },
   {
@@ -91,16 +92,6 @@ const gruposBase = [
       { to: "/actividad", etiqueta: "Actividad", Icono: IconNotificaciones, tono: "amber" },
     ],
   },
-  {
-    titulo: "Ayuda",
-    Icono: IconAyuda,
-    items: [
-      { to: "/ayuda/facturacion", etiqueta: "Facturación", Icono: IconVentas, tono: "violet" },
-      { to: "/ayuda/taller", etiqueta: "Taller", Icono: IconTaller, tono: "sky" },
-      { to: "/ayuda/telefonia", etiqueta: "Telefonía", Icono: IconTelefono, tono: "emerald" },
-      { to: "/ayuda/servicio", etiqueta: "Servicio Técnico", Icono: IconServicio, tono: "teal" },
-    ],
-  },
   { titulo: "Inicio", Icono: IconModulos, directo: "/inicio", tono: "cyan" },
 ];
 
@@ -118,7 +109,8 @@ const gruposModulos = {
       { to: "/taller/valoraciones", etiqueta: "Valoraciones", Icono: IconValoracion, tono: "amber" },
       { to: "/taller/aseguradoras", etiqueta: "Aseguradoras", Icono: IconAseguradora, tono: "teal" },
       { to: "/taller/cortesia", etiqueta: "Cortesía", Icono: IconCortesia, tono: "rose" },
-      { to: "/taller/operarios", etiqueta: "Operarios", Icono: IconOperarios, tono: "cyan" },
+      { to: "/taller/operarios", etiqueta: "Operarios", fin: true, Icono: IconOperarios, tono: "cyan" },
+      { to: "/ayuda/taller", etiqueta: "Ayuda taller", Icono: IconAyuda, tono: "slate" },
     ],
   },
   telefonia: {
@@ -126,6 +118,7 @@ const gruposModulos = {
     Icono: IconTelefono,
     items: [
       { to: "/telefonia/llamadas", etiqueta: "Llamadas", fin: true, Icono: IconTelefono, tono: "sky" },
+      { to: "/ayuda/telefonia", etiqueta: "Ayuda telefonía", Icono: IconAyuda, tono: "slate" },
     ],
   },
   servicio: {
@@ -135,7 +128,8 @@ const gruposModulos = {
       { to: "/servicio", etiqueta: "Panel", fin: true, Icono: IconPanel, tono: "indigo" },
       { to: "/servicio/agenda", etiqueta: "Citas", Icono: IconAgenda, tono: "emerald" },
       { to: "/servicio/aparatos", etiqueta: "Aparatos", Icono: IconAparato, tono: "sky" },
-      { to: "/servicio/ordenes", etiqueta: "Órdenes", Icono: IconOrdenes, tono: "violet" },
+      { to: "/servicio/ordenes", etiqueta: "Órdenes", fin: true, Icono: IconOrdenes, tono: "violet" },
+      { to: "/ayuda/servicio", etiqueta: "Ayuda servicio", Icono: IconAyuda, tono: "slate" },
     ],
   },
   asesoria: {
@@ -159,7 +153,8 @@ const gruposModulos = {
       { to: "/tpv", etiqueta: "Terminal", fin: true, Icono: IconCaja, tono: "emerald" },
       { to: "/tpv/tickets", etiqueta: "Tickets", Icono: IconTicket, tono: "amber" },
       { to: "/tpv/caja", etiqueta: "Caja", Icono: IconTesoreria, tono: "violet" },
-      { to: "/tpv/perifericos", etiqueta: "Periféricos", Icono: IconImprimir, tono: "sky" },
+      { to: "/tpv/perifericos", etiqueta: "Periféricos", fin: true, Icono: IconImprimir, tono: "sky" },
+      { to: "/ayuda/tpv", etiqueta: "Ayuda TPV", Icono: IconAyuda, tono: "slate" },
     ],
   },
 };

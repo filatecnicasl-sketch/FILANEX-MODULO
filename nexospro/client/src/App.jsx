@@ -45,6 +45,7 @@ import AyudaFacturacionPage from "./pages/ayuda/AyudaFacturacionPage.jsx";
 import AyudaTallerPage from "./pages/ayuda/AyudaTallerPage.jsx";
 import AyudaTelefoniaPage from "./pages/ayuda/AyudaTelefoniaPage.jsx";
 import AyudaServicioPage from "./pages/ayuda/AyudaServicioPage.jsx";
+import AyudaTpvPage from "./pages/ayuda/AyudaTpvPage.jsx";
 import ServicioPanelPage from "./pages/servicio/ServicioPanelPage.jsx";
 import ServicioAgendaPage from "./pages/servicio/ServicioAgendaPage.jsx";
 import ServicioAparatosPage from "./pages/servicio/ServicioAparatosPage.jsx";
@@ -207,6 +208,7 @@ export default function App() {
           <Route path="ayuda/taller" element={<AyudaTallerPage />} />
           <Route path="ayuda/telefonia" element={<AyudaTelefoniaPage />} />
           <Route path="ayuda/servicio" element={<AyudaServicioPage />} />
+          <Route path="ayuda/tpv" element={<AyudaTpvPage />} />
           <Route path="admin/tenants" element={<AdminTenantsPage />} />
           {/* Cualquier dirección desconocida vuelve al inicio en vez de quedarse en negro */}
           <Route path="*" element={<Navigate to="/" replace />} />
