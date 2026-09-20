@@ -27,6 +27,7 @@ export default function TallerCortesiaPage() {
       q,
       p.matricula,
       p.clienteNombre,
+      p.telefono,
       p.numeroOrden,
       estadoPrestamo(p).nombre,
       fmtFecha(p.fechaSalida),
@@ -89,6 +90,7 @@ export default function TallerCortesiaPage() {
                 <tr>
                   <th>Vehículo</th>
                   <th>Cliente</th>
+                  <th>Teléfono</th>
                   <th>Salida</th>
                   <th>Devolución prevista</th>
                   <th>Devuelto</th>
@@ -107,6 +109,7 @@ export default function TallerCortesiaPage() {
                         {p.clienteNombre}
                         {p.numeroOrden && <span className="text-xs text-slate-500 num"> · {p.numeroOrden}</span>}
                       </td>
+                      <td className="text-slate-300 whitespace-nowrap num">{p.telefono ?? "—"}</td>
                       <td className="text-slate-300 whitespace-nowrap num">{fmtFecha(p.fechaSalida)}</td>
                       <td className={`whitespace-nowrap num ${p.vencido ? "text-red-300 font-semibold" : "text-slate-300"}`}>
                         {fmtFecha(p.fechaPrevista)}
@@ -149,7 +152,7 @@ export default function TallerCortesiaPage() {
                 })}
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center text-slate-500 py-8">
+                    <td colSpan={9} className="text-center text-slate-500 py-8">
                       Sin resultados para «{q}».
                     </td>
                   </tr>
