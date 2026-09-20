@@ -69,6 +69,7 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
         j === i
           ? {
               ...l,
+              articulo: a._id,
               descripcion: a.descripcion,
               precioUnitario: precio === "compra" ? a.precioCompra ?? 0 : a.precioVenta ?? 0,
               iva: a.iva ?? 21,

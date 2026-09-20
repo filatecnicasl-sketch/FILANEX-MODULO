@@ -9,6 +9,7 @@ import { tomarNumero } from "../services/numeracion.js";
 import { validarNIF, normalizarNIF } from "../services/validacion.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
 import { slugActual } from "../models/tenant.js";
+import { moverStock } from "../services/stock.js";
 
 const router = Router();
 
@@ -45,6 +46,9 @@ router.post("/", async (req, res, next) => {
       numero,
       serieNumero,
     });
+    // Salida de stock: la mercancía sale al hacer el albarán de entrega.
+    // Cuando se facture, la factura no lo vuelve a descontar.
+    await moverStock(lineas, -1);
     res.status(201).json(albaran);
   } catch (err) {
     next(err);
@@ -65,7 +69,10 @@ router.put("/:id", async (req, res, next) => {
       return res.status(400).json({ error: "cliente y al menos una línea con descripción son obligatorios" });
     }
     albaran.cliente = cliente;
+    // Ajuste de stock: vuelven las líneas antiguas y salen las nuevas.
+    await moverStock(albaran.lineas, +1);
     albaran.lineas = lineas;
+    await moverStock(lineas, -1);
     if (req.body.fecha) albaran.fecha = new Date(req.body.fecha);
     if (req.body.direccionEntrega !== undefined) albaran.direccionEntrega = req.body.direccionEntrega;
     if (req.body.notas !== undefined) albaran.notas = req.body.notas;
@@ -85,6 +92,8 @@ router.delete("/:id", async (req, res, next) => {
       return res.status(409).json({ error: "Un albarán ya facturado no se puede borrar" });
     }
     await albaran.deleteOne();
+    // La mercancía del albarán borrado vuelve al almacén.
+    await moverStock(albaran.lineas, +1);
     res.json({ ok: true });
   } catch (err) {
     next(err);

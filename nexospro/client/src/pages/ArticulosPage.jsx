@@ -421,6 +421,188 @@ function ModalFamilias({ familias, nombresDeArticulos, onCambio, onCerrar }) {
   );
 }
 
+// Inventario de almacén: conteo físico y valoración. Editar el stock aquí
+// es un ajuste manual (regularización por inventario); las ventas, tickets,
+// devoluciones y albaranes ya mueven el stock automáticamente.
+function ModalInventario({ articulos, onAjustado, onCerrar }) {
+  const [soloBajos, setSoloBajos] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [editando, setEditando] = useState({}); // id -> valor en edición
+  const [guardandoId, setGuardandoId] = useState(null);
+
+  const filtrados = articulos
+    .filter((a) => a.tipo !== "servicio")
+    .filter((a) => {
+      if (soloBajos && (a.stock ?? 0) > (a.stockMinimo ?? 0)) return false;
+      const q = busqueda.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        a.descripcion.toLowerCase().includes(q) ||
+        (a.codigo ?? "").toLowerCase().includes(q) ||
+        (a.familia ?? "").toLowerCase().includes(q)
+      );
+    });
+
+  const totales = filtrados.reduce(
+    (acc, a) => {
+      acc.unidades += Number(a.stock ?? 0);
+      acc.valor += Number(a.stock ?? 0) * Number(a.precioCompra ?? 0);
+      return acc;
+    },
+    { unidades: 0, valor: 0 }
+  );
+
+  async function guardarStock(a) {
+    const bruto = editando[a._id];
+    if (bruto === undefined) return;
+    const nuevo = Number(bruto);
+    if (Number.isNaN(nuevo) || nuevo === (a.stock ?? 0)) {
+      setEditando((e) => { const c = { ...e }; delete c[a._id]; return c; });
+      return;
+    }
+    setGuardandoId(a._id);
+    try {
+      const r = await fetch(`/api/articulos/${a._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stock: nuevo }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || "No se pudo guardar");
+      setEditando((e) => { const c = { ...e }; delete c[a._id]; return c; });
+      onAjustado();
+    } catch (err) {
+      window.alert(err.message);
+    } finally {
+      setGuardandoId(null);
+    }
+  }
+
+  function imprimir() {
+    const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const filas = filtrados
+      .map((a) => {
+        const valor = (a.stock ?? 0) * (a.precioCompra ?? 0);
+        const bajo = (a.stock ?? 0) <= (a.stockMinimo ?? 0);
+        return `<tr${bajo ? ' class="bajo"' : ""}>
+          <td>${esc(a.codigo)}</td>
+          <td>${esc(a.descripcion)}</td>
+          <td>${esc(a.familia)}</td>
+          <td class="num">${a.stock ?? 0} ${esc(a.unidad ?? "ud")}</td>
+          <td class="num">${euros(a.precioCompra ?? 0)}</td>
+          <td class="num">${euros(valor)}</td>
+        </tr>`;
+      })
+      .join("");
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Inventario de almacén</title>
+<style>body{font-family:Arial,sans-serif;font-size:12px;color:#111;margin:24px}h1{font-size:18px;margin-bottom:2px}.fecha{color:#666;font-size:11px;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{text-align:left;border-bottom:2px solid #000;padding:6px 4px}td{border-bottom:1px solid #ddd;padding:5px 4px}.num{text-align:right}.bajo td{color:#b91c1c;font-weight:bold}.total td{border-top:2px solid #000;font-weight:bold;font-size:13px}@media print{.noprint{display:none}}</style></head><body>
+<button class="noprint" onclick="window.print()" style="padding:8px 16px;margin-bottom:12px;">Imprimir</button>
+<h1>Inventario de almacén</h1>
+<p class="fecha">${new Date().toLocaleString("es-ES")}</p>
+<table>
+<thead><tr><th>Código</th><th>Artículo</th><th>Familia</th><th class="num">Stock</th><th class="num">P. coste</th><th class="num">Valor</th></tr></thead>
+<tbody>${filas}</tbody>
+<tfoot><tr class="total"><td colspan="3">Total (${filtrados.length} artículos)</td><td class="num">${totales.unidades}</td><td></td><td class="num">${euros(totales.valor)}</td></tr></tfoot>
+</table></body></html>`);
+    w.document.close();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+      <div className="modal-panel w-full max-w-4xl max-h-[90vh] flex flex-col p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4 shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-white">Inventario de almacén</h2>
+            <p className="text-xs text-slate-500">
+              Ajusta el conteo físico editando la casilla de stock. El resto de movimientos (tickets, facturas, albaranes, devoluciones) son automáticos.
+            </p>
+          </div>
+          <button onClick={onCerrar} className="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+        </div>
+
+        <div className="flex items-center gap-3 mb-3 shrink-0">
+          <input
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre, código o familia…"
+            className="input flex-1"
+          />
+          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={soloBajos}
+              onChange={(e) => setSoloBajos(e.target.checked)}
+              className="w-4 h-4 accent-rose-500"
+            />
+            Solo bajo stock
+          </label>
+          <button onClick={imprimir} className="btn-ghost whitespace-nowrap">Imprimir</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <table className="tabla">
+            <thead>
+              <tr>
+                <th>Artículo</th>
+                <th>Familia</th>
+                <th className="text-right whitespace-nowrap">Stock</th>
+                <th className="text-right whitespace-nowrap">Mínimo</th>
+                <th className="text-right whitespace-nowrap">P. coste</th>
+                <th className="text-right whitespace-nowrap">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtrados.map((a) => {
+                const bajo = (a.stock ?? 0) <= (a.stockMinimo ?? 0);
+                const enEdicion = editando[a._id] !== undefined;
+                return (
+                  <tr key={a._id}>
+                    <td className="max-w-[300px]">
+                      <p className="font-medium text-[#0f172a] truncate">{a.descripcion}</p>
+                      <p className="num text-[0.6875rem] text-slate-400">{a.codigo ?? ""}</p>
+                    </td>
+                    <td className="text-slate-500 whitespace-nowrap">{a.familia || "—"}</td>
+                    <td className="text-right whitespace-nowrap">
+                      <input
+                        type="number"
+                        value={enEdicion ? editando[a._id] : a.stock ?? 0}
+                        disabled={guardandoId === a._id}
+                        onChange={(e) => setEditando((ed) => ({ ...ed, [a._id]: e.target.value }))}
+                        onBlur={() => guardarStock(a)}
+                        onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+                        className={`w-20 text-right px-2 py-1 rounded-lg border bg-white focus:outline-none focus:ring-2 focus:ring-accent num font-semibold ${
+                          bajo ? "border-rose-400 text-rose-600" : "border-slate-300 text-[#0f172a]"
+                        }`}
+                      />
+                    </td>
+                    <td className="num text-right text-slate-500">{a.stockMinimo ?? 0}</td>
+                    <td className="num text-right text-slate-500">{euros(a.precioCompra ?? 0)}</td>
+                    <td className="num text-right font-medium text-[#0f172a]">
+                      {euros((a.stock ?? 0) * (a.precioCompra ?? 0))}
+                    </td>
+                  </tr>
+                );
+              })}
+              {!filtrados.length && (
+                <tr><td colSpan={6} className="text-center text-slate-400 py-8">No hay artículos que mostrar</td></tr>
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2} className="font-bold text-[#0f172a]">Total ({filtrados.length} artículos)</td>
+                <td className="num text-right font-bold text-[#0f172a]">{totales.unidades}</td>
+                <td colSpan={2}></td>
+                <td className="num text-right font-bold text-[#0f172a]">{euros(totales.valor)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ArticulosPage() {
   const [lista, setLista] = useState(null);
   const [proveedores, setProveedores] = useState([]);
@@ -429,6 +611,7 @@ export default function ArticulosPage() {
   const [error, setError] = useState(null);
   const [form, setForm] = useState(null); // null | {} | articulo
   const [verFamilias, setVerFamilias] = useState(false);
+  const [verInventario, setVerInventario] = useState(false);
 
   async function cargar(busqueda = q) {
     try {
@@ -487,6 +670,7 @@ export default function ArticulosPage() {
       >
         <button onClick={() => window.print()} className="btn-ghost mr-2">Imprimir</button>
         <button onClick={() => setVerFamilias(true)} className="btn-ghost mr-2">Familias TPV</button>
+        <button onClick={() => setVerInventario(true)} className="btn-ghost mr-2">Inventario</button>
         <button onClick={() => setForm(VACIO)} className="btn-primary">Nuevo artículo</button>
       </CabeceraPagina>
 
@@ -665,6 +849,14 @@ export default function ArticulosPage() {
           nombresDeArticulos={[...new Set((lista ?? []).map((a) => a.familia).filter(Boolean))]}
           onCambio={cargarFamilias}
           onCerrar={() => setVerFamilias(false)}
+        />
+      )}
+
+      {verInventario && (
+        <ModalInventario
+          articulos={lista ?? []}
+          onAjustado={cargar}
+          onCerrar={() => setVerInventario(false)}
         />
       )}
     </>

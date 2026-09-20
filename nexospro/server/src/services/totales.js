@@ -26,6 +26,9 @@ export function limpiarLineas(lineas) {
       precioUnitario: Number(l.precioUnitario) || 0,
       descuento: Number(l.descuento) || 0,
       iva: Number(l.iva) || 0,
+      // Enlace con el catálogo (si la línea salió de un artículo): sirve
+      // para mover el stock de almacén al validar el documento.
+      ...(l.articulo ? { articulo: l.articulo } : {}),
     }));
   return validas.length > 0 ? validas : null;
 }

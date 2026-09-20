@@ -19,6 +19,7 @@ import { certificadoActual } from "../services/certificadoEmpresa.js";
 import { envioPermitido } from "../services/verifactu-envio.js";
 import { serializarRegistro } from "../services/registro-cola.js";
 import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
+import { moverStock } from "../services/stock.js";
 
 const router = Router();
 
@@ -243,6 +244,12 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
     };
     await factura.save();
 
+    // Salida de stock al emitir. Si la factura viene de albaranes, el stock
+    // ya se descontó al crear esos albaranes: no se mueve dos veces.
+    if (!factura.origen?.albaranes?.length) {
+      await moverStock(factura.lineas, -1);
+    }
+
     // Remisión a la AEAT: se hace en segundo plano para no bloquear al
     // usuario. El registro ya está guardado; el reintento automático o manual
     // lo terminará si falla. La factura es válida igualmente: tiene huella y QR.
@@ -296,11 +303,13 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
     const { serie, numero, serieNumero } = await tomarNumeroFacturaVentaAtomico(empresa);
 
     // Líneas y totales en negativo (rectificación íntegra por sustitución).
+    // Se conserva el enlace al artículo para reponer el stock devuelto.
     const lineas = original.lineas.map((l) => ({
       descripcion: l.descripcion,
       cantidad: l.cantidad,
       precioUnitario: -Math.abs(l.precioUnitario),
       iva: l.iva,
+      ...(l.articulo ? { articulo: l.articulo } : {}),
     }));
     const totales = calcularTotales(lineas);
     const fechaExpedicion = fechaDDMMYYYY(new Date());
@@ -395,6 +404,9 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
 
     original.estado = "rectificada";
     await original.save();
+
+    // Entrada de stock: la mercancía rectificada vuelve al almacén.
+    await moverStock(original.lineas, +1);
 
     const certRect = puedeEnviarRect ? await certificadoActual() : null;
     if (certRect) {
