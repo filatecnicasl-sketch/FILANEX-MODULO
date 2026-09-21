@@ -1,11 +1,14 @@
 // Propuestas de mejora del programa escritas por los usuarios (Ayuda →
-// Novedades → Propuestas). Cada empresa ve las suyas.
+// Novedades → Propuestas). Cada empresa ve las suyas; el superadministrador
+// de la plataforma las ve TODAS juntas con /todas.
 import { Router } from "express";
 import multer from "multer";
 import Propuesta from "../models/Propuesta.js";
+import Tenant from "../models/plataforma/Tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { requiereSuperAdmin } from "../middleware/auth.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
-import { slugActual } from "../models/tenant.js";
+import { slugActual, conexionTenant } from "../models/tenant.js";
 
 const router = Router();
 
@@ -13,6 +16,35 @@ const router = Router();
 const subidaCapturas = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 4 },
+});
+
+// Buzón global del superadministrador: propuestas de TODAS las empresas,
+// etiquetadas con la empresa de la que viene cada una.
+router.get("/todas", requiereSuperAdmin, async (req, res, next) => {
+  try {
+    const tenants = await Tenant.find({ activo: { $ne: false } }).select("slug nombre dbName").lean();
+    const todas = [];
+    for (const t of tenants) {
+      try {
+        const conn = conexionTenant(t.dbName);
+        const lista = await conn
+          .model("Propuesta")
+          .find()
+          .sort({ createdAt: -1 })
+          .limit(100)
+          .lean();
+        for (const p of lista) {
+          todas.push({ ...p, empresaSlug: t.slug, empresaNombre: t.nombre });
+        }
+      } catch (err) {
+        console.warn(`Propuestas de ${t.slug}: ${err?.message}`);
+      }
+    }
+    todas.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json(todas.slice(0, 300));
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get("/", async (req, res, next) => {

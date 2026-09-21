@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { CAMBIOS } from "../data/novedades.js";
-import { payloadToken } from "../lib/sesion.js";
+import { payloadToken, esSuperAdmin } from "../lib/sesion.js";
 
 const TIPOS = {
   nuevo: { etiqueta: "Nuevo", clases: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -36,13 +36,15 @@ export default function NovedadesPage() {
   const [error, setError] = useState(null);
   const inputCapturasRef = useRef(null);
   const usuario = payloadToken()?.nombre ?? "";
+  // El superadministrador ve las propuestas de TODAS las empresas juntas.
+  const superadmin = esSuperAdmin();
 
   useEffect(() => {
-    fetch("/api/propuestas")
+    fetch(superadmin ? "/api/propuestas/todas" : "/api/propuestas")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudieron cargar"))))
       .then(setPropuestas)
       .catch((e) => setError(e.message));
-  }, []);
+  }, [superadmin]);
 
   function anadirCapturas(e) {
     const nuevas = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
@@ -208,6 +210,12 @@ export default function NovedadesPage() {
                     <span className="font-semibold text-slate-800 text-sm">
                       {p.usuarioNombre || p.usuarioEmail || "Usuario"}
                     </span>
+                    {superadmin && p.empresaNombre && (
+                      <Chip
+                        texto={p.empresaNombre}
+                        clases="bg-violet-100 text-violet-700 border-violet-200"
+                      />
+                    )}
                     <span className="text-xs text-slate-500">{fechaTxt(p.createdAt)}</span>
                   </div>
                   <p className="text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">{p.texto}</p>
