@@ -25,8 +25,6 @@ const valoracionSchema = new Schema(
     marca: String,   // copia del dato del vehículo en el momento de valorar
     modelo: String,
     bastidor: String, // nº de bastidor (VIN)
-    clienteNombre: String,
-    telefono: String,
     compania: String, // nombre de la compañía (se rellena solo al elegir aseguradora)
     aseguradora: { type: Schema.Types.ObjectId, ref: "Aseguradora" }, // ficha con condiciones
     numeroSiniestro: String,

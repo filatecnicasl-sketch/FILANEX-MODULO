@@ -126,7 +126,7 @@ function aHora(minutos) {
   return `${hh}:${mm}`;
 }
 
-export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, onRecepcionar }) {
+export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, onGuardada, onRecepcionar }) {
   const [clientes, setClientes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [aseguradoras, setAseguradoras] = useState([]);
@@ -146,6 +146,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     modelo: "",
     vehiculoNuevo: false,
     motivo: cita?.motivo ?? "",
+    tipo: cita?.tipo ?? tipoInicial ?? "normal",
+    numeroSiniestro: cita?.numeroSiniestro ?? "",
     // Siempre marcada al abrir la cita: el cliente quiere ver de entrada
     // la valoración y el presupuesto del vehículo sin tener que señalarla.
     presupuesto: true,
@@ -262,6 +264,19 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     }));
   }
 
+  // Texto libre en la compañía: si deja de coincidir con la ficha elegida,
+  // se suelta el id (el servidor la dará de alta al guardar).
+  function escribirAseguradora(t) {
+    setForm((f) => {
+      const elegida = aseguradoras.find((a) => String(a._id) === String(f.aseguradora));
+      return {
+        ...f,
+        aseguradoraNombre: t,
+        aseguradora: elegida && elegida.nombre === t ? f.aseguradora : "",
+      };
+    });
+  }
+
   const matriculaExiste = vehiculos.some((v) => v.matricula?.toUpperCase() === form.matricula?.toUpperCase());
   // Valoraciones del vehículo de la cita (o las de la cita ya cargada).
   const valoracionesCita = (cita?.valoraciones?.length ? cita.valoraciones : valoraciones)
@@ -294,6 +309,8 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           matricula: form.matricula || undefined,
           marca: form.vehiculoNuevo && !matriculaExiste ? (form.marca || undefined) : undefined,
           modelo: form.vehiculoNuevo && !matriculaExiste ? (form.modelo || undefined) : undefined,
+          tipo: form.tipo,
+          numeroSiniestro: form.tipo === "peritaje" ? (form.numeroSiniestro || undefined) : undefined,
           presupuesto: Boolean(form.presupuesto),
           aseguradora: form.aseguradora || null,
           cortesia: Boolean(form.cortesia),
@@ -417,7 +434,11 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
-          {cita ? `Cita ${aFechaInput(cita.fecha)} ${cita.hora}` : "Nueva cita"}
+          {cita
+            ? `${cita.tipo === "peritaje" ? "Peritaje" : "Cita"} ${aFechaInput(cita.fecha)} ${cita.hora}`
+            : form.tipo === "peritaje"
+              ? "Nueva cita de peritaje"
+              : "Nueva cita"}
           {cita && (
             <EnviarWhatsApp
               telefono={cita.telefono}
@@ -465,6 +486,29 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           </button>
         )}
         <form onSubmit={guardar} className="space-y-3">
+          {/* Tipo de cita: recepción normal o peritaje (viene el perito) */}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              ["normal", "Cita normal", "Recepción o entrega del vehículo"],
+              ["peritaje", "Peritaje", "Deja el coche para el perito"],
+            ].map(([id, et, desc]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => actualizar("tipo", id)}
+                className={`rounded-xl border px-3 py-2 text-left transition ${
+                  form.tipo === id
+                    ? id === "peritaje"
+                      ? "border-violet-400 bg-violet-500/15 text-white"
+                      : "border-accent bg-accent/10 text-white"
+                    : "border-slate-600/40 text-slate-400 hover:border-slate-500"
+                }`}
+              >
+                <span className="block text-sm font-bold">{et}</span>
+                <span className="block text-[0.6875rem] opacity-75">{desc}</span>
+              </button>
+            ))}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-sm text-slate-400 block mb-1">Fecha *</label>
@@ -617,13 +661,21 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
           {/* Compañía de seguros (si la reparación va por aseguradora) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-slate-400 block mb-1">Por compañía de seguros</label>
+              <label className="text-sm text-slate-400 block mb-1">
+                Por compañía de seguros{form.tipo === "peritaje" ? " *" : ""}
+              </label>
               <BuscadorEntidad
                 opciones={aseguradoras}
                 valorId={form.aseguradora}
+                valorTexto={form.aseguradoraNombre}
                 onElegir={elegirAseguradora}
+                onTexto={escribirAseguradora}
                 placeholder="Particular (sin compañía)…"
+                required={form.tipo === "peritaje"}
               />
+              {form.aseguradoraNombre && !form.aseguradora && (
+                <p className="text-[11px] text-slate-500 mt-1">Se dará de alta la compañía al guardar.</p>
+              )}
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Coche de cortesía</label>
@@ -638,6 +690,26 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
               </label>
             </div>
           </div>
+
+          {/* Datos del peritaje: el perito de la compañía viene a valorar */}
+          {form.tipo === "peritaje" && (
+            <div className="rounded-xl border border-violet-500/25 bg-violet-500/5 p-3 space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Nº de siniestro</label>
+                  <input
+                    className={campo}
+                    value={form.numeroSiniestro}
+                    onChange={(e) => actualizar("numeroSiniestro", e.target.value)}
+                    placeholder="Nº que da la compañía"
+                  />
+                </div>
+                <p className="text-xs text-violet-300/80 self-end pb-1">
+                  El cliente deja el vehículo y el perito de la compañía vendrá a valorarlo en el taller.
+                </p>
+              </div>
+            </div>
+          )}
           {form.cortesia && (
             <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-3 space-y-2">
               <div className="flex flex-wrap items-center gap-3">

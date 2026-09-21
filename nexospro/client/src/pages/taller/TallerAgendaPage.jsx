@@ -43,27 +43,32 @@ export default function TallerAgendaPage() {
   const [rango, setRango] = useState(null); // { desde, hasta } visibles en el calendario
   const [citas, setCitas] = useState(null);
   const [error, setError] = useState(null);
-  const [modal, setModal] = useState(null); // { cita?, fecha }
+  const [modal, setModal] = useState(null); // { cita?, fecha, tipo? }
   const [recepcion, setRecepcion] = useState(null); // cita pendiente a recepcionar
   const [aviso, setAviso] = useState(null); // confirmación de recepción creada
   const [q, setQ] = useState("");
+  const [pestana, setPestana] = useState("citas"); // "citas" | "peritaje"
 
-  // Búsqueda por cualquier campo visible de la cita.
-  const citasFiltradas = (citas ?? []).filter((c) =>
-    coincideBusqueda(
-      q,
-      c.matricula,
-      c.clienteNombre,
-      c.telefono,
-      c.motivo,
-      c.notas,
-      c.hora,
-      new Date(c.fecha).toLocaleDateString("es-ES"),
-      NOMBRE_ESTADO[c.estado],
-      c.presupuesto ? "presupuesto" : "",
-      c.aseguradoraNombre,
-      c.cortesia || c.prestamoCortesia ? "cortesia" : ""
-    )
+  // Búsqueda por cualquier campo visible de la cita; cada pestaña muestra
+  // solo su tipo (las de peritaje van aparte).
+  const citasFiltradas = (citas ?? []).filter(
+    (c) =>
+      (pestana === "peritaje" ? c.tipo === "peritaje" : c.tipo !== "peritaje") &&
+      coincideBusqueda(
+        q,
+        c.matricula,
+        c.clienteNombre,
+        c.telefono,
+        c.motivo,
+        c.notas,
+        c.hora,
+        new Date(c.fecha).toLocaleDateString("es-ES"),
+        NOMBRE_ESTADO[c.estado],
+        c.presupuesto ? "presupuesto" : "",
+        c.aseguradoraNombre,
+        c.numeroSiniestro,
+        c.cortesia || c.prestamoCortesia ? "cortesia" : ""
+      )
   );
 
   const cargar = useCallback(async () => {
@@ -106,7 +111,37 @@ export default function TallerAgendaPage() {
 
   return (
     <>
-      <CabeceraPagina titulo="Citas del taller" descripcion="Citas de recepción y entrega de vehículos." />
+      <CabeceraPagina titulo="Citas del taller" descripcion="Citas de recepción y entrega de vehículos.">
+        {pestana === "peritaje" && (
+          <button
+            onClick={() => setModal({ fecha: aFechaInput(new Date()), tipo: "peritaje" })}
+            className="btn-primary"
+          >
+            Nueva cita peritaje
+          </button>
+        )}
+      </CabeceraPagina>
+
+      {/* Pestañas: agenda normal / citas de peritaje (viene el perito) */}
+      <div className="flex gap-2 mb-4 no-print">
+        {[
+          ["citas", "Citas"],
+          ["peritaje", "Citas peritaje"],
+        ].map(([id, et]) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setPestana(id)}
+            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              pestana === id
+                ? "bg-accent text-white"
+                : "bg-slate-800/60 text-slate-400 hover:text-white border border-slate-700/50"
+            }`}
+          >
+            {et}
+          </button>
+        ))}
+      </div>
 
       {error && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
@@ -125,7 +160,70 @@ export default function TallerAgendaPage() {
         <InputBusqueda value={q} onChange={setQ} placeholder="Buscar por matrícula, cliente, teléfono, motivo…" />
       </div>
 
-      {q.trim() ? (
+      {pestana === "peritaje" ? (
+        // Citas de peritaje: el cliente deja el coche y viene el perito de
+        // la compañía. Lista plana ordenada por fecha y hora.
+        <div className="panel overflow-x-auto">
+          <table className="tabla">
+            <thead>
+              <tr>
+                <th className="whitespace-nowrap">Fecha</th>
+                <th className="whitespace-nowrap">Hora</th>
+                <th>Matrícula</th>
+                <th>Cliente</th>
+                <th>Teléfono</th>
+                <th>Compañía</th>
+                <th>Siniestro</th>
+                <th>Estado</th>
+                <th className="text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...citasFiltradas]
+                .sort((a, b) => new Date(a.fecha) - new Date(b.fecha) || String(a.hora).localeCompare(String(b.hora)))
+                .map((c) => {
+                  const est = ESTADOS_CITA.find((e) => e.clave === c.estado);
+                  return (
+                    <tr key={c._id} className="cursor-pointer" onClick={() => setModal({ cita: c, fecha: aFechaInput(c.fecha), tipo: "peritaje" })}>
+                      <td className="whitespace-nowrap">{new Date(c.fecha).toLocaleDateString("es-ES")}</td>
+                      <td className="whitespace-nowrap font-medium">{c.hora}</td>
+                      <td className="font-medium">{c.matricula ?? "—"}</td>
+                      <td className="text-slate-600">{c.clienteNombre ?? "—"}</td>
+                      <td className="text-slate-500 num">{c.telefono ?? "—"}</td>
+                      <td className="text-slate-600">{c.aseguradoraNombre ?? "—"}</td>
+                      <td className="text-slate-500 num">{c.numeroSiniestro ?? "—"}</td>
+                      <td>
+                        <span className="text-xs" style={{ color: est?.color ?? "#64748b" }}>{est?.nombre ?? c.estado}</span>
+                      </td>
+                      <td className="text-right text-xs whitespace-nowrap">
+                        {!["realizada", "cancelada"].includes(c.estado) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRecepcion(c);
+                            }}
+                            className="font-semibold text-emerald-600 hover:text-emerald-800 hover:underline mr-2"
+                          >
+                            Recepcionar
+                          </button>
+                        )}
+                        <span className="text-accent">Abrir</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              {citasFiltradas.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="text-center text-slate-500 py-8">
+                    {q.trim() ? `Sin resultados para «${q}».` : "No hay citas de peritaje en este periodo."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : q.trim() ? (
         // Resultados de la búsqueda: lista plana de todas las citas que
         // coinciden, estén en el periodo visible o no.
         <div className="panel overflow-x-auto">
@@ -195,8 +293,8 @@ export default function TallerAgendaPage() {
         citas={citasFiltradas}
         etiquetaNueva="Nueva cita"
         onRango={(desde, hasta) => setRango({ desde, hasta })}
-        onNueva={(fecha) => setModal({ fecha })}
-        onAbrir={(cita) => setModal({ cita, fecha: aFechaInput(cita.fecha) })}
+        onNueva={(fecha) => setModal({ fecha, tipo: "normal" })}
+        onAbrir={(cita) => setModal({ cita, fecha: aFechaInput(cita.fecha), tipo: cita.tipo ?? "normal" })}
         onEstado={cambiarEstado}
       />
       )}
@@ -205,6 +303,7 @@ export default function TallerAgendaPage() {
         <CitaModal
           cita={modal.cita ?? null}
           fechaInicial={modal.fecha}
+          tipoInicial={modal.tipo}
           onCerrar={() => setModal(null)}
           onGuardada={() => {
             setModal(null);

@@ -466,8 +466,8 @@ export async function imprimirValoracion(v) {
   abrirVentana(
     `Valoración ${v.numero ?? ""}`,
     `${cabecera(emp, "Valoración", v.numero, v.fecha)}
-     ${bloqueContraparte("Cliente / Vehículo", {
-       nombre: `${v.clienteNombre ?? ""} · ${vehiculoTxt}`,
+     ${bloqueContraparte("Vehículo", {
+       nombre: vehiculoTxt,
        nif: detContraparte,
      })}
      <table>

@@ -5,6 +5,20 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-09-22",
+    tipo: "nuevo",
+    titulo: "Citas de peritaje: el coche espera al perito",
+    detalle:
+      "En Taller → Citas hay una pestaña nueva «Citas peritaje» para cuando el cliente deja el vehículo y viene el perito de la compañía: la cita guarda compañía (obligatoria, se da de alta sola si no existe) y nº de siniestro, y salen en una lista ordenada con recepción directa. En cualquier cita se puede cambiar el tipo entre «Cita normal» y «Peritaje».",
+  },
+  {
+    fecha: "2026-09-22",
+    tipo: "mejora",
+    titulo: "La compañía de seguros se da de alta sola",
+    detalle:
+      "Al escribir el nombre de una compañía que no existe (en la valoración, en la cita o al importar el PDF de la peritación), la ficha de aseguradora se crea automáticamente al guardar. Además las valoraciones se simplifican: ya no piden nombre ni teléfono del cliente, trabajan con el vehículo y la compañía.",
+  },
+  {
     fecha: "2026-09-21",
     tipo: "mejora",
     titulo: "Capturas de pantalla en las propuestas",

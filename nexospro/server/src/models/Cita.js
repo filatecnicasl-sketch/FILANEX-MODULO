@@ -24,6 +24,10 @@ const citaSchema = new Schema(
     aparatoDescripcion: String,
     direccion: String,
     motivo: String,
+    // "normal": recepción/entrega · "peritaje": el cliente deja el coche
+    // para que venga el perito de la compañía a valorar los daños.
+    tipo: { type: String, enum: ["normal", "peritaje"], default: "normal", index: true },
+    numeroSiniestro: String, // peritaje: nº de siniestro de la compañía
     // Las citas del taller suelen venir de un presupuesto aceptado.
     presupuesto: { type: Boolean, default: false },
     // Si la reparación va por compañía de seguros.

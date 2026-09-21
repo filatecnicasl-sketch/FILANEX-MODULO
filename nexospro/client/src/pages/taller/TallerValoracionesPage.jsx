@@ -14,9 +14,8 @@ const VACIO = {
   marca: "",
   modelo: "",
   bastidor: "",
-  clienteNombre: "",
-  telefono: "",
   aseguradora: "",
+  compania: "",
   numeroSiniestro: "",
   fechaSiniestro: "",
   compromiso: false,
@@ -84,7 +83,6 @@ export default function TallerValoracionesPage() {
       q,
       v.numero,
       v.matricula,
-      v.clienteNombre,
       v.compania,
       v.numeroSiniestro,
       nombreEstadoValoracion(v.estado),
@@ -185,9 +183,8 @@ export default function TallerValoracionesPage() {
       marca: v.marca ?? "",
       modelo: v.modelo ?? "",
       bastidor: v.bastidor ?? "",
-      clienteNombre: v.clienteNombre ?? "",
-      telefono: v.telefono ?? "",
       aseguradora: v.aseguradora?._id ?? v.aseguradora ?? "",
+      compania: v.compania ?? "",
       numeroSiniestro: v.numeroSiniestro ?? "",
       fechaSiniestro: v.fechaSiniestro ? aFechaInput(v.fechaSiniestro) : "",
       compromiso: !!v.compromiso,
@@ -228,6 +225,7 @@ export default function TallerValoracionesPage() {
         numeroSiniestro: datos.numeroSiniestro ?? f.numeroSiniestro,
         fechaSiniestro: datos.fechaSiniestro ?? f.fechaSiniestro,
         aseguradora: aseg?._id ?? f.aseguradora,
+        compania: aseg?.nombre ?? ((datos.compania ?? "").trim() || f.compania),
         observaciones: datos.observaciones ?? f.observaciones,
       }));
 
@@ -368,7 +366,6 @@ export default function TallerValoracionesPage() {
                 <tr>
                   <th>Nº</th>
                   <th>Vehículo</th>
-                  <th>Cliente</th>
                   <th>Compañía</th>
                   <th>Siniestro</th>
                   <th>Estado</th>
@@ -382,7 +379,6 @@ export default function TallerValoracionesPage() {
                   <tr key={v._id}>
                     <td className="font-bold text-white whitespace-nowrap num">{v.numero}</td>
                     <td className="text-slate-300 num">{v.matricula}</td>
-                    <td className="text-slate-300">{v.clienteNombre ?? "—"}</td>
                     <td className="text-slate-300">
                       {v.compania ?? "—"}
                       {v.compromiso && (
@@ -438,7 +434,7 @@ export default function TallerValoracionesPage() {
                 ))}
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-center text-slate-500 py-8">
+                    <td colSpan={8} className="text-center text-slate-500 py-8">
                       Sin resultados para «{q}».
                     </td>
                   </tr>
@@ -478,7 +474,7 @@ export default function TallerValoracionesPage() {
             </div>
             {avisoAlta && (
               <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
-                Valoración creada desde el PDF de la compañía. Revisa los datos y completa el cliente y el teléfono.
+                Valoración creada desde el PDF de la compañía. Revisa los datos antes de guardar.
               </div>
             )}
             <form onSubmit={guardar} className="space-y-4">
@@ -518,29 +514,26 @@ export default function TallerValoracionesPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-slate-400 block mb-1">Cliente</label>
-                  <input
-                    className={campo}
-                    value={form.clienteNombre}
-                    onChange={(e) => setForm({ ...form, clienteNombre: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
-                  <input
-                    className={campo}
-                    value={form.telefono}
-                    onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-                  />
-                </div>
-                <div>
                   <label className="text-sm text-slate-400 block mb-1">Compañía de seguros</label>
                   <BuscadorEntidad
                     opciones={aseguradoras}
                     valorId={form.aseguradora}
-                    onElegir={(op) => setForm({ ...form, aseguradora: op?._id ?? "" })}
-                    placeholder="Particular o busca la compañía…"
+                    valorTexto={form.compania}
+                    onElegir={(op) => setForm({ ...form, aseguradora: op?._id ?? "", compania: op?.nombre ?? "" })}
+                    onTexto={(t) => {
+                      const elegida = aseguradoras.find((a) => String(a._id) === String(form.aseguradora));
+                      setForm({
+                        ...form,
+                        compania: t,
+                        // Si se edita el texto y ya no coincide con la ficha elegida, se suelta el id.
+                        aseguradora: elegida && elegida.nombre === t ? form.aseguradora : "",
+                      });
+                    }}
+                    placeholder="Particular o escribe la compañía…"
                   />
+                  {form.compania && !form.aseguradora && (
+                    <p className="text-[11px] text-slate-500 mt-1">Se dará de alta la compañía al guardar.</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-slate-400 block mb-1">Nº de siniestro</label>

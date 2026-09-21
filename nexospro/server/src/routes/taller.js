@@ -954,6 +954,15 @@ router.post("/citas", async (req, res, next) => {
       if (v) vehiculoId = v._id;
     }
 
+    // Compañía escrita a mano (sin ficha): alta automática, igual que en
+    // las valoraciones.
+    let aseguradoraId = req.body.aseguradora || undefined;
+    let aseguradoraNombre = req.body.aseguradoraNombre || undefined;
+    if (!aseguradoraId && aseguradoraNombre) {
+      const a = await aseguradoraPorNombre(aseguradoraNombre);
+      if (a) { aseguradoraId = a._id; aseguradoraNombre = a.nombre; }
+    }
+
     const cita = await Cita.create({
       ambito: "taller",
       fecha: dia,
@@ -967,9 +976,11 @@ router.post("/citas", async (req, res, next) => {
       vehiculo: vehiculoId,
       matricula: normalizarMatricula(req.body.matricula) || undefined,
       motivo: req.body.motivo || undefined,
+      tipo: req.body.tipo === "peritaje" ? "peritaje" : "normal",
+      numeroSiniestro: req.body.numeroSiniestro || undefined,
       presupuesto: Boolean(req.body.presupuesto),
-      aseguradora: req.body.aseguradora || undefined,
-      aseguradoraNombre: req.body.aseguradoraNombre || undefined,
+      aseguradora: aseguradoraId,
+      aseguradoraNombre,
       cortesia: Boolean(req.body.cortesia),
       cortesiaVehiculo: req.body.cortesia ? (req.body.cortesiaVehiculo || undefined) : undefined,
       cortesiaMatricula: req.body.cortesia ? (normalizarMatricula(req.body.cortesiaMatricula) || undefined) : undefined,
@@ -992,10 +1003,25 @@ router.put("/citas/:id", async (req, res, next) => {
     const anterior = await Cita.findOne({ _id: req.params.id, ambito: "taller" }).lean();
     if (!anterior) return res.status(404).json({ error: "Cita no encontrada" });
     const cambios = { hora, duracion, clienteNombre, telefono, motivo, estado, notas };
+    if (req.body.tipo !== undefined) {
+      cambios.tipo = req.body.tipo === "peritaje" ? "peritaje" : "normal";
+    }
+    if (req.body.numeroSiniestro !== undefined) {
+      cambios.numeroSiniestro = req.body.numeroSiniestro || null;
+    }
     if (req.body.cliente !== undefined) cambios.cliente = req.body.cliente || null;
-    if (req.body.aseguradora !== undefined) {
-      cambios.aseguradora = req.body.aseguradora || null;
-      cambios.aseguradoraNombre = req.body.aseguradora ? (req.body.aseguradoraNombre || undefined) : null;
+    if (req.body.aseguradora !== undefined || req.body.aseguradoraNombre !== undefined) {
+      if (req.body.aseguradora) {
+        cambios.aseguradora = req.body.aseguradora;
+        cambios.aseguradoraNombre = req.body.aseguradoraNombre || undefined;
+      } else if (req.body.aseguradoraNombre) {
+        // Compañía escrita a mano (sin ficha): alta automática.
+        const a = await aseguradoraPorNombre(req.body.aseguradoraNombre);
+        if (a) { cambios.aseguradora = a._id; cambios.aseguradoraNombre = a.nombre; }
+      } else {
+        cambios.aseguradora = null;
+        cambios.aseguradoraNombre = null;
+      }
     }
     if (req.body.cortesia !== undefined) {
       cambios.cortesia = Boolean(req.body.cortesia);
@@ -1308,7 +1334,7 @@ router.post(
 
 // Alta automática desde el PDF de la compañía: lee el documento con OCR y
 // crea la valoración con todos sus campos (vehículo, aseguradora, siniestro,
-// fechas y partidas). Solo queda completar los datos del cliente.
+// fechas y partidas).
 router.post(
   "/valoraciones/importar",
   [subidaPdf.single("archivo"), contextoTrasSubida],
@@ -1352,22 +1378,13 @@ router.post(
         if (tocado) await vehiculo.save();
       }
 
-      // Aseguradora: coincide por nombre normalizado (sin espacios ni signos,
-      // así "MUTUAMADRILEÑA" casa con "Mutua Madrileña Automovilista").
+      // Aseguradora: coincide por nombre normalizado; si no hay ficha, se da
+      // de alta con el nombre leído del documento.
       let aseguradora;
       let compania = (datos.compania ?? "").trim() || undefined;
       if (compania) {
-        const norm = (s) => s.toLowerCase().normalize("NFC").replace(/[^a-z0-9áéíóúñ]/g, "");
-        const c = norm(compania);
-        const candidatas = await Aseguradora.find().lean();
-        const a = candidatas.find((x) => {
-          const n = norm(x.nombre);
-          return n.includes(c) || c.includes(n);
-        });
-        if (a) {
-          aseguradora = a._id;
-          compania = a.nombre;
-        }
+        const a = await aseguradoraPorNombre(compania);
+        if (a) { aseguradora = a._id; compania = a.nombre; }
       }
 
       // Secciones/imputaciones del documento aplastadas a partidas con el
@@ -1423,29 +1440,8 @@ router.post("/valoraciones", async (req, res, next) => {
 
     const mat = normalizarMatricula(matricula);
 
-    // El cliente y el vehículo deben existir para que las citas y las
-    // recepciones puedan relacionarlos. Se reutiliza la ficha si ya hay una
-    // con ese nombre exacto; si no, se da de alta con el NIF pendiente
-    // («SIN NIF <código>», igual que el alta rápida de la agenda).
-    const nombreCli = (req.body.clienteNombre ?? "").trim();
-    let cliente = null;
-    if (nombreCli) {
-      cliente = await Cliente.findOne({
-        nombre: { $regex: `^${nombreCli.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
-      });
-      if (!cliente) {
-        const codigo = await siguienteCodigoFicha(Cliente);
-        cliente = await Cliente.create({
-          codigo,
-          nombre: nombreCli,
-          telefono: (req.body.telefono ?? "").trim() || undefined,
-          nif: `SIN NIF ${codigo}`,
-        });
-      }
-    }
-
     // Alta exprés del vehículo si no existe; si existe, se completan los
-    // datos que le falten (marca, modelo, bastidor) y el cliente.
+    // datos que le falten (marca, modelo, bastidor).
     const bastidorBody = (req.body.bastidor ?? "").trim().toUpperCase() || undefined;
     let vehiculo = await Vehiculo.findOne({ matricula: mat });
     if (!vehiculo) {
@@ -1454,31 +1450,28 @@ router.post("/valoraciones", async (req, res, next) => {
         marca: req.body.marca || undefined,
         modelo: req.body.modelo || undefined,
         bastidor: bastidorBody,
-        cliente: cliente?._id,
-        clienteNombre: cliente?.nombre ?? (nombreCli || undefined),
       });
     } else {
       let tocado = false;
       if (!vehiculo.marca && req.body.marca) { vehiculo.marca = req.body.marca; tocado = true; }
       if (!vehiculo.modelo && req.body.modelo) { vehiculo.modelo = req.body.modelo; tocado = true; }
       if (!vehiculo.bastidor && bastidorBody) { vehiculo.bastidor = bastidorBody; tocado = true; }
-      if (cliente && !vehiculo.cliente) {
-        vehiculo.cliente = cliente._id;
-        vehiculo.clienteNombre = cliente.nombre;
-        tocado = true;
-      }
       if (tocado) await vehiculo.save();
     }
 
     const lineas = limpiarLineasValoracion(req.body.lineas);
 
-    // Aseguradora elegida: su nombre rellena el texto "compañía".
+    // Aseguradora elegida: su nombre rellena el texto "compañía". Si solo
+    // llega el nombre y no hay ficha, se da de alta automáticamente.
     let compania = req.body.compania || undefined;
     let aseguradora = req.body.aseguradora || undefined;
     if (aseguradora) {
       const a = await Aseguradora.findById(aseguradora).lean();
       if (!a) return res.status(404).json({ error: "Aseguradora no encontrada" });
       compania = a.nombre;
+    } else if (compania) {
+      const a = await aseguradoraPorNombre(compania);
+      if (a) { aseguradora = a._id; compania = a.nombre; }
     }
 
     const valoracion = await Valoracion.create({
@@ -1488,8 +1481,6 @@ router.post("/valoraciones", async (req, res, next) => {
       marca: vehiculo?.marca || undefined,
       modelo: vehiculo?.modelo || undefined,
       bastidor: vehiculo?.bastidor || undefined,
-      clienteNombre: req.body.clienteNombre || undefined,
-      telefono: req.body.telefono || undefined,
       compania,
       aseguradora,
       numeroSiniestro: req.body.numeroSiniestro || undefined,
@@ -1507,18 +1498,24 @@ router.post("/valoraciones", async (req, res, next) => {
 
 router.put("/valoraciones/:id", async (req, res, next) => {
   try {
-    const { matricula, clienteNombre, telefono, compania, numeroSiniestro, fechaSiniestro, estado, observaciones } = req.body;
+    const { matricula, compania, numeroSiniestro, fechaSiniestro, estado, observaciones } = req.body;
     if (estado !== undefined && !ESTADOS_VALORACION.includes(estado)) {
       return res.status(400).json({ error: `Estado no válido. Válidos: ${ESTADOS_VALORACION.join(", ")}` });
     }
-    const cambios = { clienteNombre, telefono, compania, numeroSiniestro, estado, observaciones };
+    const cambios = { compania, numeroSiniestro, estado, observaciones };
     if (req.body.compromiso !== undefined) cambios.compromiso = !!req.body.compromiso;
     if (req.body.aseguradora !== undefined) {
-      cambios.aseguradora = req.body.aseguradora || null;
-      if (cambios.aseguradora) {
-        const a = await Aseguradora.findById(cambios.aseguradora).lean();
+      if (req.body.aseguradora) {
+        const a = await Aseguradora.findById(req.body.aseguradora).lean();
         if (!a) return res.status(404).json({ error: "Aseguradora no encontrada" });
+        cambios.aseguradora = req.body.aseguradora;
         cambios.compania = a.nombre;
+      } else if (compania) {
+        // Nombre escrito a mano sin ficha elegida: alta automática.
+        const a = await aseguradoraPorNombre(compania);
+        if (a) { cambios.aseguradora = a._id; cambios.compania = a.nombre; }
+      } else {
+        cambios.aseguradora = null;
       }
     }
     if (matricula !== undefined) {
@@ -1573,8 +1570,6 @@ router.post("/valoraciones/:id/crear-orden", async (req, res, next) => {
     const orden = await crearOrden({
       matricula: valoracion.matricula,
       vehiculo: valoracion.vehiculo,
-      clienteNombre: valoracion.clienteNombre,
-      telefono: valoracion.telefono,
       trabajos: ["Chapa", "Pintura"],
       motivo: `Siniestro ${valoracion.numeroSiniestro ?? valoracion.numero}` +
         (valoracion.compania ? ` · ${valoracion.compania}` : ""),
@@ -1618,6 +1613,23 @@ function finDia(dia) {
 }
 function sumarLineasValoracion(lineas) {
   return Math.round(lineas.reduce((s, l) => s + (Number(l.importe) || 0), 0) * 100) / 100;
+}
+
+// Busca una aseguradora por nombre normalizado (sin espacios ni signos, así
+// "MUTUAMADRILEÑA" casa con "Mutua Madrileña Automovilista"); si no existe,
+// la da de alta con ese nombre.
+async function aseguradoraPorNombre(nombre) {
+  const texto = (nombre ?? "").trim();
+  if (!texto) return null;
+  const norm = (s) => s.toLowerCase().normalize("NFC").replace(/[^a-z0-9áéíóúñ]/g, "");
+  const c = norm(texto);
+  const candidatas = await Aseguradora.find().lean();
+  const existente = candidatas.find((x) => {
+    const n = norm(x.nombre);
+    return n.includes(c) || c.includes(n);
+  });
+  if (existente) return existente;
+  return Aseguradora.create({ nombre: texto });
 }
 
 const TIPOS_PARTIDA = ["chapa", "pintura", "mecanica", "material", "otro"];
