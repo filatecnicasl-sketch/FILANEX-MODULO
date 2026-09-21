@@ -29,6 +29,11 @@ export const MODULOS = {
     descripcion: "Terminal punto de venta táctil: tickets con VeriFactu, caja con arqueo y devoluciones.",
     disponible: true,
   },
+  asistente: {
+    nombre: "Asistente IA",
+    descripcion: "Asistente con inteligencia artificial dentro del programa: explica cómo hacer cualquier cosa, conoce tu configuración y te guía paso a paso.",
+    disponible: true,
+  },
   logistica: {
     nombre: "Logística",
     descripcion: "Rutas, portes y seguimiento de envíos.",

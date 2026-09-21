@@ -36,6 +36,8 @@ import correo from "./correo.js";
 import backups from "./backups.js";
 import informes from "./informes.js";
 import propuestas from "./propuestas.js";
+import asistente from "./asistente.js";
+import { requiereModulo } from "../config/modulos.js";
 import { requiereAuth } from "../middleware/auth.js";
 import { middlewareEmpresa } from "../middleware/empresa.js";
 import { idempotencia } from "../middleware/idempotencia.js";
@@ -94,5 +96,6 @@ router.use("/correo", correo);
 router.use("/backups", backups);
 router.use("/informes", informes);
 router.use("/propuestas", propuestas);
+router.use("/asistente", requiereModulo("asistente"), asistente);
 
 export default router;

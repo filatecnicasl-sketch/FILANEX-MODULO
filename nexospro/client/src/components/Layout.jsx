@@ -12,6 +12,7 @@ import {
   LogoFX,
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
+import AsistenteChat from "./AsistenteChat.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
 import { cerrarSesion, esSuperAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
 
@@ -600,6 +601,8 @@ export default function Layout() {
       </div>
       {/* Aviso de llamada entrante de la centralita IP (global, flotante) */}
       <LlamadaEntrante />
+      {/* Asistente IA: solo si la empresa tiene el módulo contratado */}
+      {modulos.includes("asistente") && <AsistenteChat />}
     </div>
   );
 }

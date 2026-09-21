@@ -328,3 +328,174 @@ export function estadoIa() {
     proxyGemini: Boolean(process.env.GEMINI_BASE_URL),
   };
 }
+
+// --- Generación de texto libre (asistente de ayuda) ---
+//
+// Misma cadena de proveedores que el JSON (Vertex → AI Studio → OpenAI), pero
+// sin esquema: se pide una respuesta en texto con instrucción de sistema.
+// El historial llega como [{ rol: "usuario"|"asistente", texto }].
+
+function contenidosTexto(historial) {
+  return historial.map((m) => ({
+    role: m.rol === "asistente" ? "model" : "user",
+    parts: [{ text: String(m.texto ?? "").slice(0, 8000) }],
+  }));
+}
+
+async function generarTextoConCliente({ ai, historial, sistema, modelos, timeoutMs, motor }) {
+  let ultimoError;
+  for (const modelo of modelos) {
+    for (let intento = 0; intento < 2; intento++) {
+      const ctrl = new AbortController();
+      const reloj = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const peticion = ai.models.generateContent({
+          model: modelo,
+          contents: contenidosTexto(historial),
+          config: {
+            systemInstruction: sistema,
+            abortSignal: ctrl.signal,
+          },
+        });
+        const corte = new Promise((_, rechazar) =>
+          setTimeout(() => rechazar(new Error(`El modelo ${modelo} tardó demasiado`)), timeoutMs + 500)
+        );
+        const respuesta = await Promise.race([peticion, corte]);
+        const texto = respuesta.text;
+        if (!texto) throw new Error("respuesta vacía");
+        return texto;
+      } catch (err) {
+        ultimoError = err;
+        if (esBloqueoUbicacion(err)) throw err;
+        console.warn(`${motor} ${modelo} (intento ${intento + 1}): ${String(err?.message).slice(0, 160)}`);
+        if (!esRecuperable(err)) throw err;
+        if (err?.status === 404 || String(err?.message).includes("no longer available")) break;
+        await esperar(1200 * (intento + 1));
+      } finally {
+        clearTimeout(reloj);
+      }
+    }
+  }
+  throw ultimoError ?? new Error(`${motor} no devolvió respuesta`);
+}
+
+async function generarTextoConGemini({ historial, sistema, modelos, timeoutMs }) {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY no configurada en server/.env");
+  }
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+    ...(process.env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: process.env.GEMINI_BASE_URL } } : {}),
+  });
+  return generarTextoConCliente({ ai, historial, sistema, modelos, timeoutMs, motor: "Gemini" });
+}
+
+async function generarTextoConVertex({ historial, sistema, timeoutMs }) {
+  const proyecto = process.env.VERTEX_PROJECT_ID;
+  if (!proyecto) throw new Error("VERTEX_PROJECT_ID no configurado en server/.env");
+  const ai = new GoogleGenAI({
+    vertexai: true,
+    project: proyecto,
+    location: process.env.VERTEX_LOCATION || "europe-west1",
+  });
+  const modelos = sinRepetir([process.env.VERTEX_MODEL, "gemini-2.5-flash"]);
+  return generarTextoConCliente({ ai, historial, sistema, modelos, timeoutMs, motor: "Vertex AI" });
+}
+
+async function generarTextoConOpenAi({ historial, sistema, timeoutMs }) {
+  const clave = process.env.OPENAI_API_KEY;
+  if (!clave) throw new Error("OPENAI_API_KEY no configurada en server/.env");
+  const base = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
+  const modelo = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+  const respuesta = await fetch(`${base}/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${clave}` },
+    body: JSON.stringify({
+      model: modelo,
+      messages: [
+        { role: "system", content: sistema },
+        ...historial.map((m) => ({
+          role: m.rol === "asistente" ? "assistant" : "user",
+          content: String(m.texto ?? "").slice(0, 8000),
+        })),
+      ],
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+
+  const texto = await respuesta.text();
+  if (!respuesta.ok) {
+    let detalle = texto.slice(0, 200);
+    try {
+      detalle = JSON.parse(texto)?.error?.message ?? detalle;
+    } catch {
+      /* se deja el texto crudo */
+    }
+    throw new Error(`OpenAI ${respuesta.status}: ${detalle}`);
+  }
+  const contenido = JSON.parse(texto)?.choices?.[0]?.message?.content;
+  if (!contenido) throw new Error("OpenAI no devolvió contenido");
+  return contenido;
+}
+
+/**
+ * Pide a la IA una respuesta en texto (conversación con el asistente).
+ */
+export async function generarTextoIA({
+  historial,
+  sistema,
+  modelos = MODELOS_RAPIDOS,
+  timeoutMs = Number(process.env.GEMINI_TIMEOUT_CHAT_MS) || 45000,
+  etiqueta = "El asistente",
+}) {
+  const proveedor = proveedorConfigurado();
+  const hayVertex = Boolean(process.env.VERTEX_PROJECT_ID);
+  const usarOpenAiPrimero = proveedor === "openai" || (proveedor === "auto" && geminiBloqueado && hayOpenAi());
+
+  if (!usarOpenAiPrimero && hayVertex && (proveedor === "auto" || proveedor === "vertex" || proveedor === "gemini")) {
+    try {
+      return await generarTextoConVertex({ historial, sistema, timeoutMs });
+    } catch (err) {
+      console.error("Vertex AI:", err?.message);
+      if (proveedor === "vertex" || !hayOpenAi()) {
+        throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+      }
+    }
+  }
+
+  if (!usarOpenAiPrimero) {
+    try {
+      return await generarTextoConGemini({ historial, sistema, modelos, timeoutMs });
+    } catch (err) {
+      if (esBloqueoUbicacion(err)) {
+        geminiBloqueado = true;
+        console.error("Google rechaza la clave desde la IP de este servidor; se prueba la alternativa.");
+        if (!hayOpenAi() && !hayVertex) {
+          throw new Error(`${etiqueta} no está disponible: Google bloquea este servidor por ubicación.`);
+        }
+      } else if (proveedor === "gemini" || (!hayOpenAi() && !hayVertex)) {
+        console.error("IA agotada:", err?.message);
+        throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+      } else {
+        console.warn("Gemini falló, se prueba la alternativa:", String(err?.message).slice(0, 160));
+      }
+    }
+  }
+
+  if (hayVertex) {
+    try {
+      return await generarTextoConVertex({ historial, sistema, timeoutMs });
+    } catch (err) {
+      console.error("Vertex AI:", err?.message);
+      if (!hayOpenAi()) throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+    }
+  }
+
+  try {
+    return await generarTextoConOpenAi({ historial, sistema, timeoutMs });
+  } catch (err) {
+    console.error("IA agotada:", err?.message);
+    throw new Error(`${etiqueta} no está disponible ahora mismo: ${err.message}`);
+  }
+}
