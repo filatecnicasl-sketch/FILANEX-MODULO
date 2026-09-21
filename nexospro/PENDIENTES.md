@@ -13,6 +13,11 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Ideas en estudio (propuestas internas)
 
+- **Nexo — fase 2 (agente que ejecuta acciones)**: APLAZADO por el usuario
+  (21/09/2026, "de momento Nexo se queda así"). Diseño acordado: Nexo crearía
+  citas/clientes y consultaría agenda y facturación, con confirmación en el
+  chat antes de acciones delicadas (facturar, cobrar, borrar) y registro de
+  cada acción. Empezar por consultas + citas + altas de cliente.
 - **Capturas de pantalla en las ayudas**: ilustrar cada apartado del manual
   con pantallazos reales y leyendas (los hace el usuario, yo los inserto).
 - **Avisos de stock mínimo**: avisar al vender o en el panel cuando un
