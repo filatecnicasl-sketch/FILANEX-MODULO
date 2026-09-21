@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 // Asistente IA de ayuda (módulo "asistente"). Botón flotante + panel de chat.
 // El backend responde con el manual del programa y la configuración real de
@@ -29,21 +29,58 @@ function sugerenciasPara(pathname) {
   return hit ? hit[1] : SUGERENCIAS_GENERALES;
 }
 
-// Formato ligero: **negrita** y saltos de línea; listas numeradas tal cual.
-function TextoMensaje({ texto }) {
+// Formato ligero: **negrita**, saltos de línea y enlaces de navegación que
+// el asistente incluye como [→Ir a X](/ruta) para saltar a la pantalla.
+const RE_ENLACE = /\[([^\]]+)\]\((\/[a-z0-9/-]*)\)/g;
+
+function TextoMensaje({ texto, alPulsarEnlace }) {
   const lineas = String(texto ?? "").split("\n");
   return (
     <div className="space-y-1">
       {lineas.map((linea, i) => {
-        const partes = linea.split(/(\*\*[^*]+\*\*)/g).map((p, j) =>
-          p.startsWith("**") && p.endsWith("**") ? (
-            <strong key={j} className="font-semibold text-white">
-              {p.slice(2, -2)}
-            </strong>
-          ) : (
-            <span key={j}>{p}</span>
-          )
-        );
+        // Si la línea es un enlace de navegación, se pinta como botón.
+        const soloEnlace = linea.trim().match(/^\[([^\]]+)\]\((\/[a-z0-9/-]*)\)$/);
+        if (soloEnlace) {
+          return (
+            <p key={i}>
+              <Link
+                to={soloEnlace[2]}
+                onClick={alPulsarEnlace}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent/15 border border-accent/40 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent hover:text-white transition"
+              >
+                {soloEnlace[1]}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </Link>
+            </p>
+          );
+        }
+        // Texto normal: **negrita** y enlaces incrustados si los hubiera.
+        const partes = linea.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\(\/[a-z0-9/-]*\))/g).map((p, j) => {
+          if (p.startsWith("**") && p.endsWith("**")) {
+            return (
+              <strong key={j} className="font-semibold text-white">
+                {p.slice(2, -2)}
+              </strong>
+            );
+          }
+          RE_ENLACE.lastIndex = 0;
+          const m = RE_ENLACE.exec(p);
+          if (m && m[0] === p) {
+            return (
+              <Link
+                key={j}
+                to={m[2]}
+                onClick={alPulsarEnlace}
+                className="font-semibold text-accent underline underline-offset-2 hover:text-white transition"
+              >
+                {m[1]}
+              </Link>
+            );
+          }
+          return <span key={j}>{p}</span>;
+        });
         return linea.trim() ? (
           <p key={i} className="leading-relaxed">
             {partes}
@@ -187,7 +224,7 @@ export default function AsistenteChat() {
               ) : (
                 <div key={i} className="flex justify-start">
                   <div className="max-w-[92%] rounded-2xl rounded-bl-sm bg-slate-800/70 border border-slate-700/50 text-sm text-slate-200 px-3.5 py-2.5">
-                    <TextoMensaje texto={m.texto} />
+                    <TextoMensaje texto={m.texto} alPulsarEnlace={() => setAbierto(false)} />
                   </div>
                 </div>
               )
