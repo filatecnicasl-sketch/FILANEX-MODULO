@@ -187,10 +187,13 @@ export async function extraerTicket(fichero) {
 const esquemaValoracion = {
   type: "OBJECT",
   properties: {
-    matricula: { type: "STRING" },
+    matricula: { type: "STRING", description: "Matrícula sin espacios ni guiones" },
     marca: { type: "STRING" },
     modelo: { type: "STRING" },
+    kilometros: { type: "NUMBER", description: "Kilómetros del vehículo, número entero" },
     numeroSiniestro: { type: "STRING", description: "Número de siniestro o expediente" },
+    poliza: { type: "STRING", description: "Número de póliza" },
+    fechaSiniestro: { type: "STRING", description: "Fecha de ocurrencia del siniestro, formato YYYY-MM-DD" },
     compania: { type: "STRING", description: "Aseguradora que emite la valoración" },
     observaciones: { type: "STRING" },
     secciones: {
@@ -222,10 +225,17 @@ const esquemaValoracion = {
 
 const PROMPT_VALORACION = `Analiza la valoración de siniestro adjunta (documento de taller de chapa/pintura tipo Audatex, GT Estimate o peritación de aseguradora) y extrae sus datos.
 Reglas:
+- matricula: sin espacios ni guiones (p.ej. "1834KZK").
+- marca y modelo: del dato "VEHÍCULO" o similar (p.ej. "SEAT ARONA 2018 5P STYLE" -> marca "SEAT", modelo "ARONA 2018 5P STYLE").
+- kilometros: número entero, sin separador de miles (44.814 -> 44814).
+- numeroSiniestro: la referencia del siniestro/expediente tal como aparece (p.ej. "896.945 / 2026 - AP").
+- compania: la aseguradora que emite el documento. Si el nombre comercial no aparece directamente, identifícala por el membrete, el pie de página (registro mercantil, NIF, dirección) o el formato del documento.
+- fechaSiniestro: la fecha de ocurrencia ("FECHA SINIESTRO"), NO la fecha de emisión del documento ni la de apertura. Formato YYYY-MM-DD.
 - secciones[]: agrupa las operaciones por imputaciones/grupos de trabajo tal como vienen en el documento (p.ej. "Chapa aleta delantera derecha", "Pintura paragolpes trasero"). Si no hay agrupación clara, usa una única sección con el tipo de trabajo general.
 - operaciones[].tipo: "sustitucion" si se cambia una pieza/recambio; "reparacion" para mano de obra, pintura o reparaciones.
 - Si una pieza y su mano de obra de sustitución vienen por separado, súmalos en la operación de la pieza.
 - importe: importe total de la operación en euros, numérico sin símbolo de moneda ni separador de miles. No inventes importes: si no se lee, pon 0.
+- Si el documento trae un resumen por conceptos (mano de obra de reparaciones, mano de obra de pintura, material de pintura...) con totales, y las operaciones individuales no tienen importe claro, usa ese resumen como operaciones.
 - No uses Markdown. No inventes datos: si un campo no aparece, omítelo.`;
 
 // Lee una valoración de siniestro (PDF o imagen) y devuelve las secciones

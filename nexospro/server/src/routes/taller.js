@@ -1306,6 +1306,101 @@ router.post(
   }
 );
 
+// Alta automática desde el PDF de la compañía: lee el documento con OCR y
+// crea la valoración con todos sus campos (vehículo, aseguradora, siniestro,
+// fechas y partidas). Solo queda completar los datos del cliente.
+router.post(
+  "/valoraciones/importar",
+  [subidaPdf.single("archivo"), contextoTrasSubida],
+  async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Sube el PDF o la foto de la valoración" });
+      const datos = await extraerValoracion(req.file);
+      const mat = normalizarMatricula(datos.matricula ?? "");
+      if (!mat) {
+        return res.status(422).json({ error: "No se ha podido leer la matrícula en el documento" });
+      }
+
+      // Contador PER-000001 (mismo pipeline que el alta manual).
+      const empresa = await Empresa.findOneAndUpdate(
+        {},
+        [{ $set: { "contadores.valoracion": { $add: [{ $ifNull: ["$contadores.valoracion", 0] }, 1] } } }],
+        { new: true }
+      );
+      if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
+      const numero = `PER-${String(empresa.contadores.valoracion).padStart(6, "0")}`;
+
+      // Vehículo: alta exprés con lo leído (marca, modelo, km). Si ya existe,
+      // se completan los datos que le falten.
+      let vehiculo = await Vehiculo.findOne({ matricula: mat });
+      const km = Number.isFinite(datos.kilometros) ? Math.round(datos.kilometros) : undefined;
+      if (!vehiculo) {
+        vehiculo = await Vehiculo.create({
+          matricula: mat,
+          marca: datos.marca || undefined,
+          modelo: datos.modelo || undefined,
+          km,
+        });
+      } else {
+        let tocado = false;
+        if (!vehiculo.marca && datos.marca) { vehiculo.marca = datos.marca; tocado = true; }
+        if (!vehiculo.modelo && datos.modelo) { vehiculo.modelo = datos.modelo; tocado = true; }
+        if (km && vehiculo.km !== km) { vehiculo.km = km; tocado = true; }
+        if (tocado) await vehiculo.save();
+      }
+
+      // Aseguradora: coincide por nombre normalizado (sin espacios ni signos,
+      // así "MUTUAMADRILEÑA" casa con "Mutua Madrileña Automovilista").
+      let aseguradora;
+      let compania = (datos.compania ?? "").trim() || undefined;
+      if (compania) {
+        const norm = (s) => s.toLowerCase().normalize("NFC").replace(/[^a-z0-9áéíóúñ]/g, "");
+        const c = norm(compania);
+        const candidatas = await Aseguradora.find().lean();
+        const a = candidatas.find((x) => {
+          const n = norm(x.nombre);
+          return n.includes(c) || c.includes(n);
+        });
+        if (a) {
+          aseguradora = a._id;
+          compania = a.nombre;
+        }
+      }
+
+      // Secciones/imputaciones del documento aplastadas a partidas con el
+      // prefijo del grupo (p.ej. "Chapa aleta dcha: Reparar aleta").
+      const lineas = (datos.secciones ?? []).flatMap((s) =>
+        (s.operaciones ?? []).map((op) => ({
+          descripcion: s.nombre ? `${s.nombre}: ${op.descripcion}` : op.descripcion,
+          importe: Number(op.importe) || 0,
+        }))
+      );
+
+      const valoracion = await Valoracion.create({
+        numero,
+        vehiculo: vehiculo._id,
+        matricula: mat,
+        compania,
+        aseguradora,
+        numeroSiniestro: datos.numeroSiniestro || undefined,
+        fechaSiniestro: datos.fechaSiniestro ? new Date(datos.fechaSiniestro) : undefined,
+        observaciones:
+          [datos.poliza ? `Póliza ${datos.poliza}` : null, (datos.observaciones ?? "").trim() || null]
+            .filter(Boolean)
+            .join(" · ") || undefined,
+        lineas,
+        total: sumarLineasValoracion(lineas),
+      });
+
+      const creada = await Valoracion.findById(valoracion._id).populate("aseguradora", "nombre");
+      res.status(201).json({ valoracion: creada, ocr: datos._ocr });
+    } catch (err) {
+      console.error("[taller] importación de valoración fallida:", err.message);
+      res.status(502).json({ error: `No se pudo importar la valoración: ${err.message}` });
+    }
+  }
+);
+
 router.post("/valoraciones", async (req, res, next) => {
   try {
     const { matricula } = req.body;

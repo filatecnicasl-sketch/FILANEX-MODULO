@@ -44,7 +44,10 @@ export default function TallerValoracionesPage() {
   const [form, setForm] = useState(VACIO);
   const [lineas, setLineas] = useState([lineaVacia()]);
   const [importando, setImportando] = useState(false);
+  const [importandoAlta, setImportandoAlta] = useState(false);
+  const [avisoAlta, setAvisoAlta] = useState(false);
   const inputPdfRef = useRef(null);
+  const inputAltaPdfRef = useRef(null);
   const [q, setQ] = useState("");
   const [params, setParams] = useSearchParams();
 
@@ -100,11 +103,13 @@ export default function TallerValoracionesPage() {
     setEditando(null);
     setForm(VACIO);
     setLineas([lineaVacia()]);
+    setAvisoAlta(false);
     setModal(true);
   }
 
   function abrirEdicion(v) {
     setEditando(v);
+    setAvisoAlta(false);
     setForm({
       matricula: v.matricula,
       clienteNombre: v.clienteNombre ?? "",
@@ -203,6 +208,29 @@ export default function TallerValoracionesPage() {
     else alert(datos.error || "No se pudo crear la orden");
   }
 
+  // Alta automática desde el PDF de la compañía: el servidor lo lee con OCR,
+  // crea la valoración completa y se abre para poner solo los datos del cliente.
+  async function importarAltaPDF(e) {
+    const archivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!archivo) return;
+    setImportandoAlta(true);
+    try {
+      const fd = new FormData();
+      fd.append("archivo", archivo);
+      const r = await fetch("/api/taller/valoraciones/importar", { method: "POST", body: fd });
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "No se pudo importar el documento");
+      await cargar();
+      abrirEdicion(datos.valoracion);
+      setAvisoAlta(true);
+    } catch (e2) {
+      alert(e2.message);
+    } finally {
+      setImportandoAlta(false);
+    }
+  }
+
   async function borrar(v) {
     if (!window.confirm(`¿Borrar la valoración ${v.numero}?`)) return;
     const r = await fetch(`/api/taller/valoraciones/${v._id}`, { method: "DELETE" });
@@ -218,10 +246,26 @@ export default function TallerValoracionesPage() {
         titulo="Valoraciones"
         descripcion="Peritajes de daños para compañías de seguros o clientes particulares."
       >
+        <button
+          onClick={() => inputAltaPdfRef.current?.click()}
+          disabled={importandoAlta}
+          className="btn-ghost disabled:opacity-50"
+          title="Sube el PDF de la compañía: se lee solo y se crea la valoración completa"
+        >
+          {importandoAlta ? "Leyendo documento…" : "Alta desde PDF"}
+        </button>
         <button onClick={abrirNueva} className="btn-primary">
           Nueva valoración
         </button>
       </CabeceraPagina>
+
+      <input
+        ref={inputAltaPdfRef}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={importarAltaPDF}
+      />
 
       {error && (
         <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div>
@@ -347,6 +391,11 @@ export default function TallerValoracionesPage() {
                 onChange={importarPDF}
               />
             </div>
+            {avisoAlta && (
+              <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
+                Valoración creada desde el PDF de la compañía. Revisa los datos y completa el cliente y el teléfono.
+              </div>
+            )}
             <form onSubmit={guardar} className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div>

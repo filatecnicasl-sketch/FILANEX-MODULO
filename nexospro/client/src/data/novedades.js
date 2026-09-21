@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-21",
+    tipo: "nuevo",
+    titulo: "Alta de valoraciones desde el PDF de la compañía",
+    detalle:
+      "En Taller → Valoraciones, el botón «Alta desde PDF» lee el documento de la aseguradora (peritación) y crea la valoración completa: matrícula, vehículo (marca, modelo, km), aseguradora, nº de siniestro, fecha, póliza y las partidas con importes. Solo queda poner los datos del cliente.",
+  },
+  {
+    fecha: "2026-09-21",
     tipo: "mejora",
     titulo: "La orden de trabajo sale rellena al imprimir",
     detalle:

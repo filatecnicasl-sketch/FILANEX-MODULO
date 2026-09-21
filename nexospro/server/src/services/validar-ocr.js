@@ -144,8 +144,8 @@ export function revisarDocumentoCompra(d) {
 // operaciones con contenido.
 export function revisarValoracion(d) {
   const problemas = [];
-  const secciones = [d?.mano_de_obra, d?.pintura, d?.piezas].filter(Array.isArray);
-  const total = secciones.reduce((s, x) => s + x.length, 0);
-  if (!total) problemas.push("no se ha leído ninguna operación");
+  const operaciones = (d?.secciones ?? []).reduce((s, sec) => s + (sec?.operaciones?.length ?? 0), 0);
+  if (!operaciones) problemas.push("no se ha leído ninguna operación");
+  if (!d?.matricula) problemas.push("no se ha leído la matrícula");
   return { ok: problemas.length === 0, problemas };
 }
