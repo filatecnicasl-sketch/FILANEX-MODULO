@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-21",
+    tipo: "mejora",
+    titulo: "Propuestas escritas por los usuarios",
+    detalle:
+      "La pestaña «Propuestas» de Novedades es ahora un buzón: cualquier usuario escribe su idea (nombre, texto y fecha) y queda registrada para estudiarla.",
+  },
+  {
+    fecha: "2026-09-21",
     tipo: "nuevo",
     titulo: "Novedades: registro de cambios y propuestas",
     detalle:
@@ -101,79 +108,5 @@ export const CAMBIOS = [
     titulo: "Justificante de cita imprimible",
     detalle:
       "Al crear una cita de taller se puede imprimir el justificante para el cliente, con la fecha y hora de la cita.",
-  },
-];
-
-// Ideas y mejoras pendientes de estudio. estados: "estudio" | "programada" | "cliente"
-export const PROPUESTAS = [
-  {
-    fecha: "2026-09-21",
-    estado: "programada",
-    titulo: "Fecha de operación en facturas",
-    detalle:
-      "Permitir facturar en enero trabajos de diciembre y que el IVA caiga en el trimestre correcto, sin tocar la fecha de expedición. Necesario antes de enero por la normativa VeriFactu.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "programada",
-    titulo: "Activar el envío real a la AEAT",
-    detalle:
-      "Pasados los primeros días de pruebas, subir el certificado y cambiar el entorno de Pruebas a Producción en Ajustes → Certificado para que las facturas se remitan a Hacienda.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "estudio",
-    titulo: "Capturas de pantalla en las ayudas",
-    detalle:
-      "Ilustrar cada apartado del manual con pantallazos reales de la aplicación y leyendas explicativas.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "estudio",
-    titulo: "Avisos de stock mínimo",
-    detalle:
-      "Avisar en el panel o al vender cuando un artículo baja de su stock mínimo, para reponer antes de quedarse sin existencias.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "estudio",
-    titulo: "Histórico de movimientos de stock",
-    detalle:
-      "Registro de cada entrada y salida de almacén con el documento que la originó (ticket, albarán, factura o ajuste de inventario), para trazar cualquier descuadre.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "estudio",
-    titulo: "Informe de ventas por artículo y familia",
-    detalle:
-      "Ranking de lo más vendido con importes y márgenes, filtrable por periodo, familia y artículo.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "estudio",
-    titulo: "Vigilante externo del servicio",
-    detalle:
-      "Servicio gratuito (UptimeRobot o similar) que avisa al móvil y al correo en 1-2 minutos si app.filanex.es deja de responder.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "estudio",
-    titulo: "Copias automáticas del servidor",
-    detalle:
-      "Instantánea diaria del disco completo del servidor (1-2 €/mes en UpCloud), además de las copias de la base de datos.",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "cliente",
-    titulo: "Valoraciones: ver presupuestos y peritaciones",
-    detalle:
-      "Pendiente de confirmar con la clienta qué quiere ver exactamente dentro de la valoración (¿líneas del peritaje? ¿presupuesto asociado?).",
-  },
-  {
-    fecha: "2026-09-21",
-    estado: "estudio",
-    titulo: "Etiquetas con código de barras",
-    detalle:
-      "Impresión de etiquetas de precio con código de barras desde la ficha del artículo para pegar en estantería o producto.",
   },
 ];

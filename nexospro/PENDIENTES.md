@@ -11,6 +11,23 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
   `bg-<color>-100 text-<color>-700 border-<color>-200` (igual que en
   Taller → Valoraciones).
 
+## Ideas en estudio (propuestas internas)
+
+- **Capturas de pantalla en las ayudas**: ilustrar cada apartado del manual
+  con pantallazos reales y leyendas (los hace el usuario, yo los inserto).
+- **Avisos de stock mínimo**: avisar al vender o en el panel cuando un
+  artículo baja de su stock mínimo.
+- **Histórico de movimientos de stock**: registro de cada entrada/salida con
+  el documento que la originó, para trazar descuadres.
+- **Informe de ventas por artículo y familia**: ranking con importes y
+  márgenes, filtrable por periodo.
+- **Etiquetas con código de barras**: impresión de etiquetas de precio desde
+  la ficha del artículo.
+- **Valoraciones con presupuestos/peritaciones** (taller): pendiente de que
+  la clienta confirme qué quiere ver exactamente.
+- Las propuestas que escriben los usuarios se recogen en
+  **Ayuda → Novedades → Propuestas** (colección `propuestas` del tenant).
+
 ## Recordatorios de arquitectura / trabajo
 
 - **Apuntar cada cambio en Novedades.** Cada vez que se hace un cambio en la
