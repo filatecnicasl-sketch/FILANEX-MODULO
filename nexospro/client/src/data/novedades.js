@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-21",
     tipo: "mejora",
+    titulo: "Citas: valoración siempre visible y traspaso a la orden",
+    detalle:
+      "En la cita de taller la casilla «Viene de presupuesto» sale siempre marcada, y al recepcionar con recepción rápida las valoraciones del vehículo se enlazan con la orden creada (la orden hereda aseguradora y número de siniestro).",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
     titulo: "Propuestas escritas por los usuarios",
     detalle:
       "La pestaña «Propuestas» de Novedades es ahora un buzón: cualquier usuario escribe su idea (nombre, texto y fecha) y queda registrada para estudiarla.",

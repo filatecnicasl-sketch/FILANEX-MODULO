@@ -146,7 +146,9 @@ export default function CitaModal({ cita, fechaInicial, onCerrar, onGuardada, on
     modelo: "",
     vehiculoNuevo: false,
     motivo: cita?.motivo ?? "",
-    presupuesto: cita?.presupuesto ?? true,
+    // Siempre marcada al abrir la cita: el cliente quiere ver de entrada
+    // la valoración y el presupuesto del vehículo sin tener que señalarla.
+    presupuesto: true,
     aseguradora: cita?.aseguradora?._id ?? cita?.aseguradora ?? "",
     aseguradoraNombre: cita?.aseguradoraNombre ?? "",
     cortesia: cita?.cortesia ?? false,

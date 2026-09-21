@@ -632,6 +632,15 @@ router.post("/recepcion", async (req, res, next) => {
       );
     }
 
+    // Valoraciones del vehículo sin orden todavía: se traspasan a la OT que
+    // se crea (quedan enlazadas) y la orden hereda aseguradora y siniestro.
+    const valoracionesPendientes = await Valoracion.find({
+      matricula: mat,
+      orden: null,
+      estado: { $ne: "rechazada" },
+    }).sort({ createdAt: -1 });
+    const valReciente = valoracionesPendientes[0];
+
     const orden = await crearOrden({
       matricula: mat,
       vehiculo: vehiculo._id,
@@ -641,12 +650,24 @@ router.post("/recepcion", async (req, res, next) => {
       trabajos,
       motivo,
       km,
+      aseguradora: valReciente?.aseguradora ?? undefined,
+      numeroSiniestro: valReciente?.numeroSiniestro ?? undefined,
+      facturarA: valReciente?.aseguradora ? "aseguradora" : undefined,
       presupuesto: pto?._id,
       presupuestoNumero: pto?.serieNumero,
       lineas: pto ? pto.lineas.map((l) => l.toObject?.() ?? l) : undefined,
     });
 
     if (pto) await marcarPresupuestoAceptado(pto);
+
+    // Enlazar las valoraciones con la orden recién creada (igual que al
+    // crear la orden desde la propia valoración).
+    for (const v of valoracionesPendientes) {
+      v.orden = orden._id;
+      v.numeroOrden = orden.numero;
+      if (v.estado === "pendiente") v.estado = "valorado";
+      await v.save();
+    }
 
     await sincronizarHistorialVehiculo(orden);
 
