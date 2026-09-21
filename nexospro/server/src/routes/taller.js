@@ -1583,7 +1583,7 @@ function sumarLineasValoracion(lineas) {
 // líneas a facturar. El importe peritado se entiende con IVA incluido (lo
 // habitual en las compañías), así que se desglosa al 21 %.
 function lineasDesdeValoracion(v) {
-  return (v?.lineas ?? [])
+  const lineas = (v?.lineas ?? [])
     .filter((l) => (l.descripcion ?? "").trim())
     .map((l) => {
       const importe = Number(l.importe) || 0;
@@ -1597,6 +1597,16 @@ function lineasDesdeValoracion(v) {
         tipo,
       };
     });
+  // El redondeo línea a línea puede descuadrar el total un céntimo respecto
+  // a la valoración: se ajusta en la última línea con importe.
+  const brutoValoracion = Math.round((v?.lineas ?? []).reduce((s, l) => s + (Number(l.importe) || 0), 0) * 100) / 100;
+  const brutoLineas = Math.round(lineas.reduce((s, l) => s + l.precioUnitario * 1.21, 0) * 100) / 100;
+  const diferencia = Math.round((brutoValoracion - brutoLineas) * 100) / 100;
+  if (diferencia !== 0 && lineas.length) {
+    const ultima = lineas[lineas.length - 1];
+    ultima.precioUnitario = Math.round((ultima.precioUnitario + diferencia / 1.21) * 100) / 100;
+  }
+  return lineas;
 }
 async function crearOrden(datos) {
   // Contador atómico y desacoplado del documento Empresa: evita contención
