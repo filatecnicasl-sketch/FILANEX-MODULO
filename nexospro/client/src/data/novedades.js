@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-21",
     tipo: "mejora",
+    titulo: "El asistente ya tiene nombre: Nexo",
+    detalle:
+      "El asistente con IA se llama ahora Nexo: botón, cabecera del chat y saludo renovados, con su avatar. Además sus respuestas incluyen botones «Ir a…» que abren directamente la pantalla de la que habla.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
     titulo: "El administrador del sistema ve todas las propuestas",
     detalle:
       "En Ayuda → Novedades → Propuestas, el superadministrador de la plataforma ve juntas las propuestas de TODAS las empresas, cada una con la chapa de la empresa que la envió. Ya no hace falta entrar empresa por empresa para leerlas.",

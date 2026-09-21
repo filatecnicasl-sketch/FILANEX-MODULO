@@ -30,8 +30,8 @@ export const MODULOS = {
     disponible: true,
   },
   asistente: {
-    nombre: "Asistente IA",
-    descripcion: "Asistente con inteligencia artificial dentro del programa: explica cómo hacer cualquier cosa, conoce tu configuración y te guía paso a paso.",
+    nombre: "Nexo (Asistente IA)",
+    descripcion: "Nexo, el asistente con inteligencia artificial: explica cómo hacer cualquier cosa, conoce la configuración de la empresa y guía paso a paso con enlaces directos.",
     disponible: true,
   },
   logistica: {

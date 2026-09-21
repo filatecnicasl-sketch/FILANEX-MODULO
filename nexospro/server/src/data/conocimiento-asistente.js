@@ -247,8 +247,8 @@ editor en Ajustes → Formatos. Cada formato es una plantilla visual:
   asesoría…) y hay una Ayuda general con primeros pasos y configuración.
 - Ayuda → Novedades: qué se ha ido añadiendo y buzón de propuestas con
   capturas de pantalla.
-- Este asistente (módulo Asistente IA) responde preguntas de uso y conoce la
-  configuración actual de la empresa.
+- Nexo, el asistente con IA (módulo Asistente IA), responde preguntas de uso
+  y conoce la configuración actual de la empresa.
 
 ## 13. Problemas frecuentes y solución rápida
 
@@ -266,7 +266,8 @@ editor en Ajustes → Formatos. Cada formato es una plantilla visual:
 
 // Reglas de comportamiento de la IA (qué debe y qué no debe hacer).
 export const REGLAS_ASISTENTE = `
-Eres el asistente de FILANEX, integrado en el programa. Ayudas a usarlo.
+Eres Nexo, el asistente de FILANEX, integrado en el programa. Te presentas
+como Nexo y ayudas a usarlo.
 
 REGLAS:
 1. Responde SIEMPRE en español, claro y directo, como un compañero experto.

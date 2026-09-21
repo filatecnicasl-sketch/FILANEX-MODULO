@@ -147,23 +147,23 @@ export default function AsistenteChat() {
       <button
         type="button"
         onClick={() => setAbierto((v) => !v)}
-        title="Asistente IA: pregúntame cómo hacer cualquier cosa"
+        title="Nexo: pregúntame cómo hacer cualquier cosa"
         className="no-print fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-accent text-white pl-3.5 pr-4 py-3 shadow-lg shadow-accent/30 hover:brightness-110 transition"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4L12 3z" />
-          <path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" />
-        </svg>
-        <span className="text-sm font-semibold">Asistente</span>
+        <img src="/nexo.png" alt="" className="w-6 h-6 rounded-full object-cover bg-white/90 p-0.5" />
+        <span className="text-sm font-semibold">Nexo</span>
       </button>
 
       {/* Panel de chat */}
       {abierto && (
         <div className="no-print fixed bottom-20 right-5 z-50 w-[min(24rem,calc(100vw-2.5rem))] h-[min(34rem,calc(100vh-7rem))] flex flex-col rounded-2xl border border-slate-700/60 bg-[#0d1626] shadow-2xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50 bg-[#111c30]">
-            <div>
-              <p className="text-sm font-bold text-white">Asistente FILANEX</p>
-              <p className="text-[0.6875rem] text-slate-400">Pregúntame cómo hacer cualquier cosa del programa</p>
+            <div className="flex items-center gap-2.5">
+              <img src="/nexo.png" alt="Nexo" className="w-9 h-9 rounded-full object-cover bg-white p-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-white">Nexo</p>
+                <p className="text-[0.6875rem] text-slate-400">Tu asistente en FILANEX: pregúntame lo que necesites</p>
+              </div>
             </div>
             <div className="flex items-center gap-1">
               {mensajes.length > 0 && (
@@ -196,7 +196,7 @@ export default function AsistenteChat() {
             {mensajes.length === 0 && (
               <div className="space-y-3">
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Hola, soy el asistente del programa. Conozco todos los módulos y la configuración de tu empresa.
+                  Hola, soy Nexo, tu asistente en FILANEX. Conozco todos los módulos y la configuración de tu empresa.
                   Algunas ideas:
                 </p>
                 <div className="flex flex-col gap-1.5">
