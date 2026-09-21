@@ -3,11 +3,12 @@ import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
 export default function AyudaTpvPage() {
   return (
-    <CabeceraPagina
-      titulo="Ayuda · TPV"
-      descripcion="Manual del terminal de venta. Cómo vender, usar el teclado, gestionar la caja y configurar el ticket."
-    >
-      <div className="max-w-3xl space-y-6">
+    <>
+      <CabeceraPagina
+        titulo="Ayuda · TPV"
+        descripcion="Manual del terminal de venta. Cómo vender, usar el teclado, gestionar la caja y configurar el ticket."
+      />
+      <div className="space-y-4 max-w-4xl">
         <Seccion titulo="Antes de empezar">
           <Paso n={1}>
             El TPV funciona como un punto de venta táctil o con ratón: las mismas pantallas sirven para monitor táctil y PC.
@@ -189,6 +190,6 @@ export default function AyudaTpvPage() {
           </Paso>
         </Seccion>
       </div>
-    </CabeceraPagina>
+    </>
   );
 }

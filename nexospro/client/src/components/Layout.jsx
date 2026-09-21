@@ -97,13 +97,7 @@ const gruposBase = [
     titulo: "Ayuda",
     Icono: IconAyuda,
     items: [
-      { to: "/ayuda/general", etiqueta: "General", fin: true, Icono: IconAyuda, tono: "slate" },
-      { to: "/ayuda/facturacion", etiqueta: "Facturación", Icono: IconAyuda, tono: "slate" },
-      { to: "/ayuda/taller", etiqueta: "Taller", Icono: IconAyuda, tono: "slate" },
-      { to: "/ayuda/servicio", etiqueta: "Servicio", Icono: IconAyuda, tono: "slate" },
-      { to: "/ayuda/telefonia", etiqueta: "Telefonía", Icono: IconAyuda, tono: "slate" },
-      { to: "/ayuda/asesoria", etiqueta: "Asesoría", Icono: IconAyuda, tono: "slate" },
-      { to: "/ayuda/tpv", etiqueta: "TPV", fin: true, Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/general", etiqueta: "Ayuda general", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
 ];

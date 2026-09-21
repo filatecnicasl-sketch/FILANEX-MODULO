@@ -3,38 +3,108 @@ import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
 export default function AyudaGeneralPage() {
   return (
-    <CabeceraPagina
-      titulo="Ayuda general"
-      descripcion="Conceptos básicos de FILANEX: navegación, búsquedas, documentos, seguridad y VeriFactu."
-    >
-      <div className="max-w-3xl space-y-6">
+    <>
+      <CabeceraPagina
+        titulo="Ayuda general"
+        descripcion="Conceptos básicos de FILANEX: navegación, facturación, ajustes, artículos, agenda, informes y VeriFactu."
+      />
+      <div className="space-y-4 max-w-4xl">
         <Seccion titulo="Cómo se organiza el programa">
           <Paso n={1}>
-            El menú lateral agrupa el programa en módulos: <b>Ventas, Compras, Tesorería, Taller, Servicio Técnico, Telefonía, Asesoría, TPV, Informes y Sistema</b>.
+            El menú lateral agrupa el programa en bloques: <b>Tesorería, Artículos, Agenda, Compras, Ventas, Informes, Sistema y Ajustes</b>. Si tienes activos módulos adicionales (Taller, Servicio Técnico, Telefonía, Asesoría, TPV) aparecen también en el menú.
           </Paso>
           <Paso n={2}>
-            Cada módulo tiene su propio manual en <b>Ayuda</b>. Si necesitas saber cómo funciona una pantalla específica, entra en su ayuda correspondiente.
-          </Paso>
-          <Paso n={3}>
-            La barra superior muestra el módulo activo, avisos, el nombre del usuario y un acceso a tu perfil. Desde ahí también puedes cerrar sesión.
+            La barra superior muestra el bloque activo, avisos, el nombre del usuario y un acceso a tu perfil.
           </Paso>
           <Nota titulo="Pantalla de inicio">
-            En <K>Sistema → Preferencias</K> eliges en qué pantalla arranca el programa al hacer login.
+            En <K>Ajustes → Preferencias</K> eliges en qué pantalla arranca el programa al hacer login.
           </Nota>
         </Seccion>
 
-        <Seccion titulo="Primeros pasos obligatorios">
+        <Seccion titulo="Primeros pasos">
           <Paso n={1}>
-            Revisa los datos de la empresa en <K>Sistema → Configuración</K>: nombre, NIF, dirección, teléfono y logo. Estos datos salen en documentos impresos, emails y tickets.
+            Revisa los datos de la empresa en <K>Ajustes → Configuración</K>: nombre, NIF, dirección, teléfono y logo. Estos datos salen en documentos impresos, emails y tickets.
           </Paso>
           <Paso n={2}>
-            Configura las <K>Series</K> de facturación y los contadores de presupuestos, albaranes y facturas.
+            Configura las <K>Series</K> de facturación y los contadores de presupuestos, albaranes y facturas en <K>Ajustes → Series</K>.
           </Paso>
           <Paso n={3}>
-            Sube el certificado digital en <K>Sistema → Certificado</K> para enviar facturas a Hacienda (VeriFactu).
+            Sube el certificado digital en <K>Ajustes → Certificado</K> para enviar facturas a Hacienda (VeriFactu).
           </Paso>
           <Paso n={4}>
-            Da de alta usuarios en <K>Sistema → Usuarios</K> y activa los módulos que uses en <K>Sistema → Módulos</K>.
+            Da de alta usuarios en <K>Ajustes → Usuarios</K> y activa los módulos que uses en <K>Ajustes → Módulos</K>.
+          </Paso>
+        </Seccion>
+
+        <Seccion titulo="Facturación (Ventas)">
+          <Paso n={1}>
+            En <K>Ventas → Clientes</K> das de alta clientes con sus datos fiscales. En <K>Ventas → Presupuestos</K> creas ofertas; si se aceptan, se convierten en albarán o factura sin volver a teclear.
+          </Paso>
+          <Paso n={2}>
+            <K>Ventas → Albaranes</K> registra entregas pendientes de facturar. <K>Ventas → Facturas</K> emite documentos VeriFactu con serie, número y QR.
+          </Paso>
+          <Paso n={3}>
+            Las devoluciones o anulaciones se hacen con rectificativas o registros de anulación, nunca borrando la factura original.
+          </Paso>
+          <Paso n={4}>
+            <K>Ventas → Recurrencias</K> automatiza facturas periódicas (cuotas, mantenimientos, alquileres).
+          </Paso>
+        </Seccion>
+
+        <Seccion titulo="Artículos">
+          <Paso n={1}>
+            En <K>Artículos</K> das de alta lo que vendes o compras: descripción, código, precio, IVA, familia y stock.
+          </Paso>
+          <Paso n={2}>
+            Puedes asignar foto y usar familias para agrupar artículos en el TPV.
+          </Paso>
+          <Paso n={3}>
+            El botón <K>Inventario</K> permite ajustar el stock de cada artículo y ver el valor total del almacén.
+          </Paso>
+          <Nota titulo="Stock">
+            El stock baja al cobrar un ticket del TPV o al crear un albarán/factura de venta. Sube al validar compras o hacer devoluciones. Presupuestos y pedidos no mueven stock.
+          </Nota>
+        </Seccion>
+
+        <Seccion titulo="Agenda">
+          <Paso n={1}>
+            La <K>Agenda</K> es el calendario general de la empresa: eventos, tareas y avisos.
+          </Paso>
+          <Paso n={2}>
+            Puedes crear eventos manuales o vinculados a documentos (presupuestos a revisar, vencimientos, mantenimientos).
+          </Paso>
+          <Paso n={3}>
+            Desde la agenda puedes ver el día, la semana o el mes y filtrar por usuario.
+          </Paso>
+        </Seccion>
+
+        <Seccion titulo="Informes">
+          <Paso n={1}>
+            <K>Informes → Vencimientos</K> lista facturas y documentos próximos a vencer o ya vencidos.
+          </Paso>
+          <Paso n={2}>
+            <K>Informes → Ingresos/Gastos</K> muestra el resumen de la actividad por periodos, métodos de pago y series.
+          </Paso>
+          <Paso n={3}>
+            <K>Informes → Informes</K> permite exportar listados y cuadros de mando para revisar la marcha del negocio.
+          </Paso>
+        </Seccion>
+
+        <Seccion titulo="Ajustes">
+          <Paso n={1}>
+            <K>Ajustes → Configuración</K>: datos de la empresa, logo, dirección y parámetros generales.
+          </Paso>
+          <Paso n={2}>
+            <K>Ajustes → Series</K>: numeración de documentos (presupuesto, albarán, factura, rectificativa...).
+          </Paso>
+          <Paso n={3}>
+            <K>Ajustes → Formatos</K>: editor visual para personalizar el diseño de documentos impresos y PDFs.
+          </Paso>
+          <Paso n={4}>
+            <K>Ajustes → Certificado</K>: certificado digital para VeriFactu y firma de documentos.
+          </Paso>
+          <Paso n={5}>
+            <K>Ajustes → Usuarios</K> y <K>Ajustes → Módulos</K>: creación de usuarios y activación de módulos (Solo si tienes permisos de administrador).
           </Paso>
         </Seccion>
 
@@ -50,37 +120,12 @@ export default function AyudaGeneralPage() {
           </Paso>
         </Seccion>
 
-        <Seccion titulo="Documentos: relación entre ellos">
-          <Paso n={1}>
-            En FILANEX los documentos se pueden crear solos o convertirse unos en otros:
-            <b>Presupuesto → Albarán → Factura</b> en ventas y <b>Pedido → Albarán → Factura</b> en compras.
-          </Paso>
-          <Paso n={2}>
-            Cuando conviertes un documento, las líneas se copian al siguiente y se mantiene el enlace. Así, si facturas desde un albarán, el stock no se descuenta dos veces.
-          </Paso>
-          <Paso n={3}>
-            Para anular una factura no se borra: se crea una rectificativa o un registro de anulación, según el tipo de factura.
-          </Paso>
-        </Seccion>
-
-        <Seccion titulo="Líneas de documentos">
-          <Paso n={1}>
-            En cualquier documento (presupuesto, albarán, factura, orden...) puedes añadir líneas escribiendo artículos o texto libre.
-          </Paso>
-          <Paso n={2}>
-            Si seleccionas un artículo del catálogo, se rellenan descripción, precio, IVA y se vincula el stock. Si escribes texto libre, no se vincula a ningún artículo.
-          </Paso>
-          <Paso n={3}>
-            Cada línea admite cantidad, precio unitario, descuento e IVA. El programa calcula base, cuota y total automáticamente.
-          </Paso>
-        </Seccion>
-
         <Seccion titulo="Impresión y formatos">
           <Paso n={1}>
             Los documentos se imprimen desde el icono de impresora de cada fila o desde su ficha.
           </Paso>
           <Paso n={2}>
-            En <K>Sistema → Formatos</K> puedes personalizar el diseño de documentos con el editor visual: logotipo, colores, textos fijos, campos y firma.
+            En <K>Ajustes → Formatos</K> puedes personalizar el diseño de documentos con el editor visual: logotipo, colores, textos fijos, campos y firma.
           </Paso>
           <Paso n={3}>
             También puedes descargar la factura en XML (VeriFactu) o PDF para enviarla por email o WhatsApp.
@@ -95,7 +140,7 @@ export default function AyudaGeneralPage() {
             El envío se hace en segundo plano para no bloquear la pantalla. Si falla, el sistema lo reintenta automáticamente.
           </Paso>
           <Paso n={3}>
-            En <K>Sistema → Notificaciones</K> verás si hay errores de envío o documentos por revisar.
+            En <K>Ajustes → Notificaciones</K> verás si hay errores de envío o documentos por revisar.
           </Paso>
         </Seccion>
 
@@ -110,7 +155,7 @@ export default function AyudaGeneralPage() {
             Si se inicia sesión con tu usuario en otro dispositivo, esta sesión se cierra automáticamente.
           </Paso>
           <Paso n={4}>
-            No compartas tu contraseña. Los administradores pueden crear usuarios adicionales desde <K>Sistema → Usuarios</K>.
+            No compartas tu contraseña. Los administradores pueden crear usuarios adicionales desde <K>Ajustes → Usuarios</K>.
           </Paso>
         </Seccion>
 
@@ -122,21 +167,7 @@ export default function AyudaGeneralPage() {
             Las operaciones que hagas sin conexión se encolan y se envían automáticamente cuando vuelva la red.
           </Paso>
         </Seccion>
-
-        <Seccion titulo="¿Necesitas ayuda de un módulo concreto?">
-          <p>
-            En el menú lateral, dentro de cada módulo, encontrarás su entrada de ayuda específica:
-          </p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li><K>Ventas → Ayuda facturación</K>: clientes, presupuestos, albaranes, facturas, compras, tesorería, OCR y formatos.</li>
-            <li><K>Taller → Ayuda taller</K>: agenda, citas, vehículos, órdenes, valoraciones, aseguradoras, cortesía y operarios.</li>
-            <li><K>Servicio Técnico → Ayuda servicio</K>: aparatos, órdenes y citas de servicio.</li>
-            <li><K>Telefonía → Ayuda telefonía</K>: llamadas y registros telefónicos.</li>
-            <li><K>Asesoría → Ayuda asesoría</K>: cartera, documentos, libros IVA, fiscalidad, previsión, solicitudes y cierres.</li>
-            <li><K>TPV → Ayuda TPV</K>: terminal, tickets, caja, ajustes y stock.</li>
-          </ul>
-        </Seccion>
       </div>
-    </CabeceraPagina>
+    </>
   );
 }

@@ -3,11 +3,12 @@ import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
 export default function AyudaAsesoriaPage() {
   return (
-    <CabeceraPagina
-      titulo="Ayuda · Asesoría"
-      descripcion="Manual del módulo de asesoría: cartera de clientes, documentos contables, libros de IVA, fiscalidad y cierres."
-    >
-      <div className="max-w-3xl space-y-6">
+    <>
+      <CabeceraPagina
+        titulo="Ayuda · Asesoría"
+        descripcion="Manual del módulo de asesoría: cartera de clientes, documentos contables, libros de IVA, fiscalidad y cierres."
+      />
+      <div className="space-y-4 max-w-4xl">
         <Seccion titulo="Panel de asesoría">
           <Paso n={1}>
             El panel es la pantalla de inicio del módulo. Resume documentos pendientes, clientes con vencimientos próximos, solicitudes sin responder y el estado general de la cartera.
@@ -125,6 +126,6 @@ export default function AyudaAsesoriaPage() {
           </Paso>
         </Seccion>
       </div>
-    </CabeceraPagina>
+    </>
   );
 }
