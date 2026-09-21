@@ -55,8 +55,7 @@ const gruposBase = [
       { to: "/albaranes", etiqueta: "Albaranes", Icono: IconAlbaranes, tono: "emerald" },
       { to: "/ventas", etiqueta: "Facturas", fin: true, Icono: IconVentas, tono: "violet" },
       { to: "/recurrencias", etiqueta: "Recurrencias", fin: true, Icono: IconRecurrencias, tono: "slate" },
-      { to: "/ayuda/facturacion", etiqueta: "Ayuda facturación", Icono: IconAyuda, tono: "slate" },
-      { to: "/ayuda/general", etiqueta: "Ayuda general", fin: true, Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/facturacion", etiqueta: "Ayuda facturación", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
   {
@@ -94,6 +93,19 @@ const gruposBase = [
     ],
   },
   { titulo: "Inicio", Icono: IconModulos, directo: "/inicio", tono: "cyan" },
+  {
+    titulo: "Ayuda",
+    Icono: IconAyuda,
+    items: [
+      { to: "/ayuda/general", etiqueta: "General", fin: true, Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/facturacion", etiqueta: "Facturación", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/taller", etiqueta: "Taller", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/servicio", etiqueta: "Servicio", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/telefonia", etiqueta: "Telefonía", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/asesoria", etiqueta: "Asesoría", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/tpv", etiqueta: "TPV", fin: true, Icono: IconAyuda, tono: "slate" },
+    ],
+  },
 ];
 
 // Grupos ligados a módulos activables (licencias): se insertan antes de Sistema.
@@ -111,7 +123,7 @@ const gruposModulos = {
       { to: "/taller/aseguradoras", etiqueta: "Aseguradoras", Icono: IconAseguradora, tono: "teal" },
       { to: "/taller/cortesia", etiqueta: "Cortesía", Icono: IconCortesia, tono: "rose" },
       { to: "/taller/operarios", etiqueta: "Operarios", fin: true, Icono: IconOperarios, tono: "cyan" },
-      { to: "/ayuda/taller", etiqueta: "Ayuda taller", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/taller", etiqueta: "Ayuda taller", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
   telefonia: {
@@ -119,7 +131,7 @@ const gruposModulos = {
     Icono: IconTelefono,
     items: [
       { to: "/telefonia/llamadas", etiqueta: "Llamadas", fin: true, Icono: IconTelefono, tono: "sky" },
-      { to: "/ayuda/telefonia", etiqueta: "Ayuda telefonía", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/telefonia", etiqueta: "Ayuda telefonía", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
   servicio: {
@@ -130,7 +142,7 @@ const gruposModulos = {
       { to: "/servicio/agenda", etiqueta: "Citas", Icono: IconAgenda, tono: "emerald" },
       { to: "/servicio/aparatos", etiqueta: "Aparatos", Icono: IconAparato, tono: "sky" },
       { to: "/servicio/ordenes", etiqueta: "Órdenes", fin: true, Icono: IconOrdenes, tono: "violet" },
-      { to: "/ayuda/servicio", etiqueta: "Ayuda servicio", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/servicio", etiqueta: "Ayuda servicio", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
   asesoria: {
@@ -144,7 +156,7 @@ const gruposModulos = {
       { to: "/asesoria/prevision", etiqueta: "Previsión", Icono: IconTesoreria, tono: "amber" },
       { to: "/asesoria/fiscalidad", etiqueta: "Fiscalidad", Icono: IconAgenda, tono: "rose" },
       { to: "/asesoria/solicitudes", etiqueta: "Solicitudes", Icono: IconNotificaciones, tono: "orange" },
-      { to: "/asesoria/cierres", etiqueta: "Cierres", Icono: IconPlanning, tono: "cyan" },
+      { to: "/asesoria/cierres", etiqueta: "Cierres", fin: true, Icono: IconPlanning, tono: "cyan" },
       { to: "/ayuda/asesoria", etiqueta: "Ayuda asesoría", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
@@ -156,7 +168,7 @@ const gruposModulos = {
       { to: "/tpv/tickets", etiqueta: "Tickets", Icono: IconTicket, tono: "amber" },
       { to: "/tpv/caja", etiqueta: "Caja", Icono: IconTesoreria, tono: "violet" },
       { to: "/tpv/ajustes", etiqueta: "Ajustes", fin: true, Icono: IconImprimir, tono: "sky" },
-      { to: "/ayuda/tpv", etiqueta: "Ayuda TPV", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/tpv", etiqueta: "Ayuda TPV", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
 };
