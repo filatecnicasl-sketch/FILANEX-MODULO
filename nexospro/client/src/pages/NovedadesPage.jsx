@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { CAMBIOS } from "../data/novedades.js";
 import { payloadToken } from "../lib/sesion.js";
@@ -30,9 +30,11 @@ export default function NovedadesPage() {
   const [vista, setVista] = useState("cambios");
   const [propuestas, setPropuestas] = useState(null);
   const [texto, setTexto] = useState("");
+  const [capturas, setCapturas] = useState([]); // File[] con su URL de vista previa
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState(null);
   const [error, setError] = useState(null);
+  const inputCapturasRef = useRef(null);
   const usuario = payloadToken()?.nombre ?? "";
 
   useEffect(() => {
@@ -42,6 +44,22 @@ export default function NovedadesPage() {
       .catch((e) => setError(e.message));
   }, []);
 
+  function anadirCapturas(e) {
+    const nuevas = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
+    e.target.value = "";
+    if (!nuevas.length) return;
+    setCapturas((cs) =>
+      [...cs, ...nuevas.map((archivo) => ({ archivo, vista: URL.createObjectURL(archivo) }))].slice(0, 4)
+    );
+  }
+
+  function quitarCaptura(i) {
+    setCapturas((cs) => {
+      URL.revokeObjectURL(cs[i]?.vista);
+      return cs.filter((_, j) => j !== i);
+    });
+  }
+
   async function enviar(e) {
     e.preventDefault();
     if (!texto.trim()) return;
@@ -49,15 +67,16 @@ export default function NovedadesPage() {
     setError(null);
     setAviso(null);
     try {
-      const r = await fetch("/api/propuestas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto }),
-      });
+      const fd = new FormData();
+      fd.append("texto", texto);
+      capturas.forEach((c) => fd.append("capturas", c.archivo));
+      const r = await fetch("/api/propuestas", { method: "POST", body: fd });
       if (!r.ok) throw new Error((await r.json()).error || "No se pudo enviar");
       const creada = await r.json();
       setPropuestas((ps) => [creada, ...(ps ?? [])]);
       setTexto("");
+      capturas.forEach((c) => URL.revokeObjectURL(c.vista));
+      setCapturas([]);
       setAviso("Propuesta enviada. Gracias por ayudarnos a mejorar.");
     } catch (e2) {
       setError(e2.message);
@@ -128,12 +147,46 @@ export default function NovedadesPage() {
                 placeholder="Ej.: Me gustaría poder exportar el listado de clientes a Excel…"
                 className="input w-full"
               />
+              <input
+                ref={inputCapturasRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={anadirCapturas}
+              />
+              {capturas.length > 0 && (
+                <div className="flex gap-2 flex-wrap">
+                  {capturas.map((c, i) => (
+                    <span key={c.vista} className="relative inline-block">
+                      <img
+                        src={c.vista}
+                        alt={`Captura ${i + 1}`}
+                        className="h-16 w-16 object-cover rounded-lg border border-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => quitarCaptura(i)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-700 text-white text-xs leading-none hover:bg-red-500"
+                        title="Quitar captura"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
               {error && <p className="text-sm text-red-500">{error}</p>}
               {aviso && <p className="text-sm text-emerald-600">{aviso}</p>}
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-slate-500">
-                  Se envía como <span className="font-semibold text-slate-600">{usuario || "usuario actual"}</span>
-                </p>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => inputCapturasRef.current?.click()} className="btn-ghost !py-1.5 text-sm">
+                    Adjuntar captura{capturas.length > 0 ? ` (${capturas.length}/4)` : ""}
+                  </button>
+                  <p className="text-xs text-slate-500">
+                    Se envía como <span className="font-semibold text-slate-600">{usuario || "usuario actual"}</span>
+                  </p>
+                </div>
                 <button type="submit" disabled={enviando || !texto.trim()} className="btn-primary">
                   {enviando ? "Enviando…" : "Enviar propuesta"}
                 </button>
@@ -158,6 +211,19 @@ export default function NovedadesPage() {
                     <span className="text-xs text-slate-500">{fechaTxt(p.createdAt)}</span>
                   </div>
                   <p className="text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">{p.texto}</p>
+                  {p.adjuntos?.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {p.adjuntos.map((a, j) => (
+                        <a key={a.url} href={a.url} target="_blank" rel="noreferrer" title={a.nombre || "Ver captura"}>
+                          <img
+                            src={a.url}
+                            alt={a.nombre || `Captura ${j + 1}`}
+                            className="h-16 w-16 object-cover rounded-lg border border-slate-200 hover:border-accent hover:opacity-80 transition-all"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

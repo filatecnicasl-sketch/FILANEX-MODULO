@@ -8,6 +8,8 @@ const propuestaSchema = new Schema(
     texto: { type: String, required: true, trim: true, maxlength: 1000 },
     usuarioNombre: { type: String, default: "" },
     usuarioEmail: { type: String, default: "" },
+    // Capturas de pantalla que aclaran la propuesta (hasta 4 imágenes).
+    adjuntos: { type: [{ url: String, nombre: String, _id: false }], default: [] },
   },
   { timestamps: true }
 );

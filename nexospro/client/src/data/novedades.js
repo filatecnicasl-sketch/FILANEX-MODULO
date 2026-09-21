@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-21",
     tipo: "mejora",
+    titulo: "Capturas de pantalla en las propuestas",
+    detalle:
+      "En Ayuda → Novedades → Propuestas ahora se pueden adjuntar hasta 4 capturas de pantalla a cada idea, con vista previa antes de enviar y miniaturas que se abren en grande al pulsarlas.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
     titulo: "Valoraciones completas: vehículo, bastidor, compromiso y precios por hora",
     detalle:
       "La valoración ahora guarda marca, modelo y nº de bastidor (y los pasa a la ficha del vehículo), casilla de compromiso de reparación, y las partidas llevan tipo (chapa/pintura/mecánica/material) y horas: el importe se calcula solo con el precio por hora que se configura en Ajustes → Configuración → Taller. Todo sale también en la impresión.",
