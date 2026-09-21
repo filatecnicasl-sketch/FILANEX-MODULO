@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-21",
     tipo: "mejora",
+    titulo: "El TPV ya se usa bien desde el móvil",
+    detalle:
+      "En pantallas pequeñas el terminal cambia de aspecto: las familias pasan a una fila deslizable arriba, los productos ocupan toda la pantalla y el ticket se abre a pantalla completa desde la barra flotante con el total y el botón Cobrar. La barra de acciones de abajo se desliza con el dedo. En ordenador y tablet grande sigue igual.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
     titulo: "El asistente ya tiene nombre: Nexo",
     detalle:
       "El asistente con IA se llama ahora Nexo: botón, cabecera del chat y saludo renovados, con su avatar. Además sus respuestas incluyen botones «Ir a…» que abren directamente la pantalla de la que habla.",

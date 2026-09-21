@@ -53,6 +53,7 @@ export default function TpvTerminalPage() {
   const [modalMovimiento, setModalMovimiento] = useState(false);
   const [modalResumen, setModalResumen] = useState(false);
   const [resumen, setResumen] = useState(null);
+  const [ticketMovil, setTicketMovil] = useState(false); // panel del ticket en pantalla pequeña
   const cfgHw = cargarConfigHardware();
   // Apariencia de la rejilla, configurable en TPV → Ajustes (por terminal).
   const formaCuadrada = cfgHw.vista?.formaArticulos === "cuadrado";
@@ -524,6 +525,215 @@ export default function TpvTerminalPage() {
 
   const cajaAbierta = !!estado?.caja;
 
+  // Contenido del ticket (cabecera, líneas, totales, teclado y acciones).
+  // Se usa en la columna derecha en pantallas grandes y en el panel
+  // desplegable de la vista móvil.
+  function PanelTicket() {
+    return (
+      <>
+        {/* Cabecera del ticket */}
+        <div className="bg-white border-b-2 border-rose-300 px-4 py-3 shrink-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg">
+                👤
+              </span>
+              <div>
+                <span className="inline-block bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold rounded px-2 py-0.5">
+                  VENTA NORMAL
+                </span>
+                <p className="text-xs text-slate-400 mt-1">
+                  {modoTeclado === "linea" ? `Cantidad: ${bufferTeclado}` : `Siguiente cantidad: ${bufferTeclado}`}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-500">Ticket actual</p>
+              <p className="text-xs text-slate-400">
+                {new Date().toLocaleString("es-ES", { dateStyle: "short", timeStyle: "medium" })}
+              </p>
+              <p className="text-3xl font-extrabold text-slate-900">{euros(totales.total)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Líneas */}
+        <div className="flex-1 overflow-y-auto bg-white min-h-0">
+          {lineas.map((l, i) => {
+            const totalLinea = l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100);
+            const seleccionada = lineaSeleccionada === i;
+            return (
+              <div
+                key={i}
+                onClick={() => seleccionarLinea(i)}
+                className={`flex items-center justify-between gap-3 px-4 py-3 border-b-2 cursor-pointer transition ${
+                  seleccionada ? "bg-indigo-50 border-indigo-400" : "border-rose-200 hover:bg-slate-50"
+                }`}
+              >
+                <div className="min-w-0">
+                  <p className="text-xs text-slate-500">
+                    {l.cantidad} ud. x {euros(l.precioUnitario)}
+                    {l.descuento > 0 && <span className="ml-1 text-rose-500 font-bold">−{l.descuento}%</span>}
+                  </p>
+                  <p className="font-bold text-slate-800 truncate">{l.descripcion}</p>
+                </div>
+                <p className="text-xl font-bold text-slate-900 whitespace-nowrap">{euros(totalLinea)}</p>
+              </div>
+            );
+          })}
+          {!lineas.length && (
+            <p className="text-center text-slate-400 py-10">Toca un artículo para añadirlo</p>
+          )}
+        </div>
+
+        {/* Totales */}
+        <div className="grid grid-cols-4 bg-white border-t border-slate-200 text-center shrink-0">
+          <div className="py-2 border-r border-slate-100">
+            <p className="text-[11px] text-slate-400">Total bruto:</p>
+            <p className="font-bold text-slate-700">{euros(totales.bruto)}</p>
+          </div>
+          <div className="py-2 border-r border-slate-100">
+            <p className="text-[11px] text-slate-400">Total base:</p>
+            <p className="font-bold text-slate-700">{euros(totales.base)}</p>
+          </div>
+          <div className="py-2 border-r border-slate-100">
+            <p className="text-[11px] text-slate-400">Impuestos:</p>
+            <p className="font-bold text-slate-700">{euros(totales.iva)}</p>
+          </div>
+          <div className="py-2">
+            <p className="text-[11px] text-slate-400">Total dto:</p>
+            <p className="font-bold text-slate-700">{euros(totales.descuento)}</p>
+          </div>
+        </div>
+
+        {/* Teclado + columna de acciones */}
+        <div className="flex bg-slate-100 p-1 gap-1 shrink-0">
+          <div className="flex-1 grid grid-cols-4 gap-1">
+            {["7", "8", "9", "*", "4", "5", "6", "%", "1", "2", "3", "-", "0", ".", "Del", "Enter"].map((k) => (
+              <button
+                key={k}
+                onClick={() => tecla(k)}
+                className={`py-4 rounded font-bold text-xl transition active:scale-95 ${
+                  k === "Enter"
+                    ? "bg-emerald-500 hover:bg-emerald-400 text-white"
+                    : k === "Del"
+                      ? "bg-rose-100 hover:bg-rose-200 text-rose-600"
+                      : "bg-slate-300 hover:bg-slate-400 text-slate-800"
+                }`}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+          <div className="w-14 flex flex-col gap-1">
+            <button
+              onClick={() => setMostrarEspera(true)}
+              className="flex-1 rounded bg-sky-500 hover:bg-sky-400 text-white text-xl"
+              title="Tickets en espera"
+            >
+              ⤓
+            </button>
+            <button
+              onClick={aparcarTicket}
+              disabled={!lineas.length}
+              className="flex-1 rounded bg-cyan-500 hover:bg-cyan-400 text-white text-xl disabled:opacity-40"
+              title="Aparcar ticket"
+            >
+              ⤴
+            </button>
+            <button
+              onClick={() => quitarLinea(lineaSeleccionada)}
+              disabled={lineaSeleccionada === null}
+              className="flex-1 rounded bg-rose-500 hover:bg-rose-400 text-white disabled:opacity-40 flex items-center justify-center"
+              title="Vaciar línea"
+            >
+              <IconBorrar />
+            </button>
+            <button
+              onClick={vaciarTicket}
+              disabled={!lineas.length}
+              className="flex-1 rounded bg-neutral-700 hover:bg-neutral-600 text-white text-xl disabled:opacity-40"
+              title="Borrar ticket"
+            >
+              ✕
+            </button>
+            <button
+              onClick={abrirCobro}
+              disabled={!lineas.length}
+              className="flex-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-2xl disabled:opacity-40"
+              title="Cobrar"
+            >
+              €
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Botón de categoría, usado en la columna vertical (grande) y en la fila
+  // deslizable (móvil).
+  function BotonCategoria({ c, horizontal }) {
+    const activa = familiaActiva === c.id;
+    if (horizontal) {
+      return (
+        <button
+          key={c.id}
+          onClick={() => setFamiliaActiva(c.id)}
+          className={`shrink-0 flex items-center gap-2 rounded-full pl-1.5 pr-3 py-1.5 text-sm transition ${
+            activa ? "bg-white text-neutral-900 font-bold" : "bg-white/10 text-slate-200"
+          }`}
+        >
+          <span
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs shrink-0 overflow-hidden"
+            style={{ backgroundColor: c.color }}
+          >
+            {c.imagen ? (
+              <img
+                src={urlImagen(c.imagen)}
+                alt=""
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            ) : (
+              c.icono || iniciales(c.nombre)
+            )}
+          </span>
+          {c.nombre}
+        </button>
+      );
+    }
+    return (
+      <button
+        key={c.id}
+        onClick={() => setFamiliaActiva(c.id)}
+        className={`w-full flex items-center justify-between gap-2 px-3 py-3 border-b border-neutral-800 border-l-4 transition ${
+          activa
+            ? "bg-white/10 font-bold text-white"
+            : "text-slate-300 hover:bg-white/5 border-l-transparent"
+        }`}
+        style={activa ? { borderLeftColor: c.color } : undefined}
+      >
+        <span className="text-sm text-left leading-tight">{c.nombre}</span>
+        <span
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shrink-0 overflow-hidden"
+          style={{ backgroundColor: c.color }}
+        >
+          {c.imagen ? (
+            <img
+              src={urlImagen(c.imagen)}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+          ) : (
+            c.icono || iniciales(c.nombre)
+          )}
+        </span>
+      </button>
+    );
+  }
+
   if (!cajaAbierta) {
     return (
       <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center text-slate-800 p-6">
@@ -584,7 +794,7 @@ export default function TpvTerminalPage() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-1 px-3 py-2 rounded hover:bg-white/10 text-sm font-semibold"
+            className="hidden sm:flex items-center gap-1 px-3 py-2 rounded hover:bg-white/10 text-sm font-semibold"
           >
             ↩ VOLVER
           </button>
@@ -616,53 +826,31 @@ export default function TpvTerminalPage() {
           </button>
           <button
             onClick={() => navigate("/ayuda/tpv")}
-            className="flex items-center gap-1 px-3 py-2 rounded hover:bg-white/10 text-sm font-semibold"
+            className="hidden sm:flex items-center gap-1 px-3 py-2 rounded hover:bg-white/10 text-sm font-semibold"
           >
             <IconAyuda /> AYUDA
           </button>
         </div>
       </header>
 
+      {/* Categorías en fila deslizable (solo pantallas pequeñas) */}
+      <div className="lg:hidden flex gap-2 overflow-x-auto bg-neutral-900 px-2 py-2 shrink-0">
+        {categorias.map((c) => (
+          <BotonCategoria key={c.id} c={c} horizontal />
+        ))}
+      </div>
+
       {/* Cuerpo */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Categorías */}
-        <aside className="w-36 sm:w-44 bg-neutral-900 border-r border-neutral-800 overflow-y-auto shrink-0">
-          {categorias.map((c) => {
-            const activa = familiaActiva === c.id;
-            return (
-              <button
-                key={c.id}
-                onClick={() => setFamiliaActiva(c.id)}
-                className={`w-full flex items-center justify-between gap-2 px-3 py-3 border-b border-neutral-800 border-l-4 transition ${
-                  activa
-                    ? "bg-white/10 font-bold text-white"
-                    : "text-slate-300 hover:bg-white/5 border-l-transparent"
-                }`}
-                style={activa ? { borderLeftColor: c.color } : undefined}
-              >
-                <span className="text-sm text-left leading-tight">{c.nombre}</span>
-                <span
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shrink-0 overflow-hidden"
-                  style={{ backgroundColor: c.color }}
-                >
-                  {c.imagen ? (
-                    <img
-                      src={urlImagen(c.imagen)}
-                      alt=""
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.currentTarget.style.display = "none"; }}
-                    />
-                  ) : (
-                    c.icono || iniciales(c.nombre)
-                  )}
-                </span>
-              </button>
-            );
-          })}
+        {/* Categorías en columna (solo pantallas grandes) */}
+        <aside className="hidden lg:block w-44 bg-neutral-900 border-r border-neutral-800 overflow-y-auto shrink-0">
+          {categorias.map((c) => (
+            <BotonCategoria key={c.id} c={c} />
+          ))}
         </aside>
 
         {/* Rejilla de productos */}
-        <main className="flex-1 overflow-y-auto p-4 min-w-0 bg-white">
+        <main className="flex-1 overflow-y-auto p-4 pb-24 lg:pb-4 min-w-0 bg-white">
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-x-3 gap-y-5 content-start">
             {articulosFiltrados.map((a) => {
               const img = urlImagen(a.imagen);
@@ -725,189 +913,88 @@ export default function TpvTerminalPage() {
           </div>
         </main>
 
-        {/* Ticket + teclado */}
-        <aside className="w-[360px] lg:w-[400px] flex flex-col bg-slate-50 border-l border-slate-200 shrink-0">
-          {/* Cabecera del ticket */}
-          <div className="bg-white border-b-2 border-rose-300 px-4 py-3 shrink-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg">
-                  👤
-                </span>
-                <div>
-                  <span className="inline-block bg-emerald-100 text-emerald-700 border border-emerald-300 text-xs font-bold rounded px-2 py-0.5">
-                    VENTA NORMAL
-                  </span>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {modoTeclado === "linea" ? `Cantidad: ${bufferTeclado}` : `Siguiente cantidad: ${bufferTeclado}`}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">Ticket actual</p>
-                <p className="text-xs text-slate-400">
-                  {new Date().toLocaleString("es-ES", { dateStyle: "short", timeStyle: "medium" })}
-                </p>
-                <p className="text-3xl font-extrabold text-slate-900">{euros(totales.total)}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Líneas */}
-          <div className="flex-1 overflow-y-auto bg-white min-h-0">
-            {lineas.map((l, i) => {
-              const totalLinea = l.cantidad * l.precioUnitario * (1 - (l.descuento ?? 0) / 100) * (1 + l.iva / 100);
-              const seleccionada = lineaSeleccionada === i;
-              return (
-                <div
-                  key={i}
-                  onClick={() => seleccionarLinea(i)}
-                  className={`flex items-center justify-between gap-3 px-4 py-3 border-b-2 cursor-pointer transition ${
-                    seleccionada ? "bg-indigo-50 border-indigo-400" : "border-rose-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <p className="text-xs text-slate-500">
-                      {l.cantidad} ud. x {euros(l.precioUnitario)}
-                      {l.descuento > 0 && <span className="ml-1 text-rose-500 font-bold">−{l.descuento}%</span>}
-                    </p>
-                    <p className="font-bold text-slate-800 truncate">{l.descripcion}</p>
-                  </div>
-                  <p className="text-xl font-bold text-slate-900 whitespace-nowrap">{euros(totalLinea)}</p>
-                </div>
-              );
-            })}
-            {!lineas.length && (
-              <p className="text-center text-slate-400 py-10">Toca un artículo para añadirlo</p>
-            )}
-          </div>
-
-          {/* Totales */}
-          <div className="grid grid-cols-4 bg-white border-t border-slate-200 text-center shrink-0">
-            <div className="py-2 border-r border-slate-100">
-              <p className="text-[11px] text-slate-400">Total bruto:</p>
-              <p className="font-bold text-slate-700">{euros(totales.bruto)}</p>
-            </div>
-            <div className="py-2 border-r border-slate-100">
-              <p className="text-[11px] text-slate-400">Total base:</p>
-              <p className="font-bold text-slate-700">{euros(totales.base)}</p>
-            </div>
-            <div className="py-2 border-r border-slate-100">
-              <p className="text-[11px] text-slate-400">Impuestos:</p>
-              <p className="font-bold text-slate-700">{euros(totales.iva)}</p>
-            </div>
-            <div className="py-2">
-              <p className="text-[11px] text-slate-400">Total dto:</p>
-              <p className="font-bold text-slate-700">{euros(totales.descuento)}</p>
-            </div>
-          </div>
-
-          {/* Teclado + columna de acciones */}
-          <div className="flex bg-slate-100 p-1 gap-1 shrink-0">
-            <div className="flex-1 grid grid-cols-4 gap-1">
-              {["7", "8", "9", "*", "4", "5", "6", "%", "1", "2", "3", "-", "0", ".", "Del", "Enter"].map((k) => (
-                <button
-                  key={k}
-                  onClick={() => tecla(k)}
-                  className={`py-4 rounded font-bold text-xl transition active:scale-95 ${
-                    k === "Enter"
-                      ? "bg-emerald-500 hover:bg-emerald-400 text-white"
-                      : k === "Del"
-                        ? "bg-rose-100 hover:bg-rose-200 text-rose-600"
-                        : "bg-slate-300 hover:bg-slate-400 text-slate-800"
-                  }`}
-                >
-                  {k}
-                </button>
-              ))}
-            </div>
-            <div className="w-14 flex flex-col gap-1">
-              <button
-                onClick={() => setMostrarEspera(true)}
-                className="flex-1 rounded bg-sky-500 hover:bg-sky-400 text-white text-xl"
-                title="Tickets en espera"
-              >
-                ⤓
-              </button>
-              <button
-                onClick={aparcarTicket}
-                disabled={!lineas.length}
-                className="flex-1 rounded bg-cyan-500 hover:bg-cyan-400 text-white text-xl disabled:opacity-40"
-                title="Aparcar ticket"
-              >
-                ⤴
-              </button>
-              <button
-                onClick={() => quitarLinea(lineaSeleccionada)}
-                disabled={lineaSeleccionada === null}
-                className="flex-1 rounded bg-rose-500 hover:bg-rose-400 text-white disabled:opacity-40 flex items-center justify-center"
-                title="Vaciar línea"
-              >
-                <IconBorrar />
-              </button>
-              <button
-                onClick={vaciarTicket}
-                disabled={!lineas.length}
-                className="flex-1 rounded bg-neutral-700 hover:bg-neutral-600 text-white text-xl disabled:opacity-40"
-                title="Borrar ticket"
-              >
-                ✕
-              </button>
-              <button
-                onClick={abrirCobro}
-                disabled={!lineas.length}
-                className="flex-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-2xl disabled:opacity-40"
-                title="Cobrar"
-              >
-                €
-              </button>
-            </div>
-          </div>
+        {/* Ticket + teclado (columna derecha, solo pantallas grandes) */}
+        <aside className="hidden lg:flex w-[400px] flex-col bg-slate-50 border-l border-slate-200 shrink-0">
+          <PanelTicket />
         </aside>
       </div>
 
+      {/* Barra flotante del ticket (solo pantallas pequeñas) */}
+      <div className="lg:hidden fixed bottom-16 left-3 right-3 z-40 flex gap-2">
+        <button
+          onClick={() => setTicketMovil(true)}
+          className="flex-1 flex items-center justify-between gap-2 rounded-xl bg-neutral-900 text-white px-4 py-3.5 shadow-lg"
+        >
+          <span className="text-sm font-semibold">{lineas.length ? `Ticket · ${lineas.reduce((a, l) => a + l.cantidad, 0)} ud.` : "Ticket vacío"}</span>
+          <span className="text-lg font-extrabold">{euros(totales.total)}</span>
+        </button>
+        <button
+          onClick={abrirCobro}
+          disabled={!lineas.length}
+          className="rounded-xl bg-emerald-600 text-white px-5 py-3.5 text-lg font-extrabold shadow-lg disabled:opacity-40"
+        >
+          Cobrar
+        </button>
+      </div>
+
+      {/* Panel del ticket a pantalla completa (solo pantallas pequeñas) */}
+      {ticketMovil && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col bg-slate-50">
+          <div className="flex items-center justify-between px-4 h-14 bg-neutral-900 text-white shrink-0">
+            <h2 className="text-lg font-bold">Ticket</h2>
+            <button
+              onClick={() => setTicketMovil(false)}
+              className="flex items-center gap-1 px-3 py-2 rounded bg-white/10 text-sm font-semibold"
+            >
+              ← Seguir vendiendo
+            </button>
+          </div>
+          <PanelTicket />
+        </div>
+      )}
+
       {/* Barra inferior de acciones */}
-      <footer className="grid grid-cols-7 bg-white border-t border-slate-200 shrink-0">
+      <footer className="flex overflow-x-auto lg:grid lg:grid-cols-7 lg:overflow-visible bg-white border-t border-slate-200 shrink-0">
         <button
           onClick={() => setModalMovimiento(true)}
-          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-sky-500"
+          className="min-w-[6.8rem] lg:min-w-0 shrink-0 flex-1 px-1 py-3 text-xs lg:text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-sky-500"
         >
           Movim. caja
         </button>
         <button
           onClick={cargarResumen}
-          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-neutral-700"
+          className="min-w-[6.8rem] lg:min-w-0 shrink-0 flex-1 px-1 py-3 text-xs lg:text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-neutral-700"
         >
           Informe usuario
         </button>
         <button
           onClick={imprimirProforma}
           disabled={!lineas.length}
-          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-amber-400 disabled:opacity-40"
+          className="min-w-[6.8rem] lg:min-w-0 shrink-0 flex-1 px-1 py-3 text-xs lg:text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-amber-400 disabled:opacity-40"
         >
           Imprime proforma
         </button>
         <button
           onClick={imprimirTicketRegalo}
-          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-orange-400"
+          className="min-w-[6.8rem] lg:min-w-0 shrink-0 flex-1 px-1 py-3 text-xs lg:text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-orange-400"
         >
           Ticket regalo
         </button>
         <button
           onClick={reimprimirUltimo}
-          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-yellow-400"
+          className="min-w-[6.8rem] lg:min-w-0 shrink-0 flex-1 px-1 py-3 text-xs lg:text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-yellow-400"
         >
           Copia últ.ticket
         </button>
         <button
           onClick={emailUltimoTicket}
-          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-neutral-500"
+          className="min-w-[6.8rem] lg:min-w-0 shrink-0 flex-1 px-1 py-3 text-xs lg:text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-neutral-500"
         >
           Email últ.ticket
         </button>
         <button
           onClick={abrirCajonTpv}
-          className="py-3 text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-sky-600"
+          className="min-w-[6.8rem] lg:min-w-0 shrink-0 flex-1 px-1 py-3 text-xs lg:text-sm font-bold uppercase text-slate-600 hover:bg-slate-50 border-b-4 border-sky-600"
         >
           Abrir cajón
         </button>
