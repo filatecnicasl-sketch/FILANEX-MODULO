@@ -1,0 +1,172 @@
+// Registro de cambios y mejoras del programa + propuestas para estudiar.
+// REGLA DE TRABAJO: cada vez que se hace un cambio en la aplicación, se añade
+// aquí una entrada (la más reciente PRIMERO) y se sube junto con el commit.
+// tipos: "nuevo" | "mejora" | "correccion" | "seguridad"
+
+export const CAMBIOS = [
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
+    titulo: "Alta de documentos más clara",
+    detalle:
+      "El formulario de nuevo presupuesto/albarán tiene ahora cabecera y pie fijos: los totales (Base, IVA y Total en grande) siempre visibles, botón × para cerrar y botón «Buscar artículo» junto a «Añadir línea».",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "nuevo",
+    titulo: "Ayuda general del programa",
+    detalle:
+      "Nuevo manual general accesible desde el menú Ayuda (sin necesidad de tener módulos activos): organización, primeros pasos, facturación, artículos, agenda, informes, ajustes y VeriFactu. Además se creó la ayuda del módulo Asesoría y se reescribió la del TPV.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "correccion",
+    titulo: "Impresión de tickets desde la lista",
+    detalle:
+      "Reimprimir, ticket regalo y cierres de caja ya no dan «Sesión no válida»: las ventanas de impresión abren con el token de sesión.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "correccion",
+    titulo: "Stock en conversiones de documentos",
+    detalle:
+      "Presupuesto → albarán y pedido → albarán ya mueven el stock (antes se quedaba sin actualizar). El TPV ya no descuenta stock de los servicios. El borrado de albaranes de compra ajusta el stock y se bloquea si está facturado.",
+  },
+  {
+    fecha: "2026-09-20",
+    tipo: "nuevo",
+    titulo: "Modelo de ticket configurable",
+    detalle:
+      "En TPV → Ajustes → Modelo de ticket se decide qué se imprime: logo, NIF, dirección, teléfono, línea de cabecera libre, texto de despedida, QR Veri*factu, desglose de IVA y método de pago. Con vista previa sobre el último ticket y ancho de papel 58/80 mm aplicado a todas las impresiones.",
+  },
+  {
+    fecha: "2026-09-20",
+    tipo: "nuevo",
+    titulo: "Inventario de almacén",
+    detalle:
+      "Artículos gana el botón «Inventario»: edición del stock en línea, filtro de bajo stock, valoración del almacén e impresión. Las compras suman stock (albarán y validación de factura) y las ventas lo descuentan, sin duplicar cuando se factura desde albaranes.",
+  },
+  {
+    fecha: "2026-09-20",
+    tipo: "nuevo",
+    titulo: "Rediseño completo del TPV",
+    detalle:
+      "Terminal de venta estilo retail: categorías a la izquierda con foto y color, rejilla de artículos con imagen y precio, ticket a la derecha con teclado numérico, y barra inferior con movimientos de caja, informe de usuario, proforma, ticket regalo, copia y envío del último ticket y apertura de cajón. Funciona igual con pantalla táctil o ratón.",
+  },
+  {
+    fecha: "2026-09-20",
+    tipo: "nuevo",
+    titulo: "Ajustes del TPV",
+    detalle:
+      "Nuevo apartado TPV → Ajustes: impresora (navegador o térmica ESC/POS), ancho de papel, copias, impresión automática, cajón portamonedas, escáner y apariencia de los artículos (redondos o cuadrados) por terminal.",
+  },
+  {
+    fecha: "2026-09-19",
+    tipo: "mejora",
+    titulo: "Taller: cortesía y datos del cliente a la vista",
+    detalle:
+      "En la agenda y el calendario se ve la matrícula seguida de «V. cortesía» cuando el cliente tiene coche de cortesía; también en las vistas semana y mes. El listado de vehículos y los préstamos muestran el teléfono del cliente, y se pueden ver los vehículos de cortesía libres.",
+  },
+  {
+    fecha: "2026-09-19",
+    tipo: "nuevo",
+    titulo: "Ficha de cliente con sus vehículos",
+    detalle:
+      "Los clientes del taller tienen un apartado «Vehículos» en su ficha; pulsando cada uno se abre el historial completo del vehículo.",
+  },
+  {
+    fecha: "2026-09-19",
+    tipo: "mejora",
+    titulo: "Reasignación de vehículos al cambiar de dueño",
+    detalle:
+      "Si das de alta un vehículo que ya pertenece a otro cliente (p. ej. se vendió el coche), el programa avisa y permite reasignarlo. Las citas ya no se guardan vacías sin cliente, teléfono ni matrícula.",
+  },
+  {
+    fecha: "2026-09-18",
+    tipo: "seguridad",
+    titulo: "Correcciones de la auditoría de código",
+    detalle:
+      "Aplicados los hallazgos críticos de la auditoría: actualización de dependencias con vulnerabilidades y endurecimiento del webhook de telefonía.",
+  },
+  {
+    fecha: "2026-09-18",
+    tipo: "nuevo",
+    titulo: "Justificante de cita imprimible",
+    detalle:
+      "Al crear una cita de taller se puede imprimir el justificante para el cliente, con la fecha y hora de la cita.",
+  },
+];
+
+// Ideas y mejoras pendientes de estudio. estados: "estudio" | "programada" | "cliente"
+export const PROPUESTAS = [
+  {
+    fecha: "2026-09-21",
+    estado: "programada",
+    titulo: "Fecha de operación en facturas",
+    detalle:
+      "Permitir facturar en enero trabajos de diciembre y que el IVA caiga en el trimestre correcto, sin tocar la fecha de expedición. Necesario antes de enero por la normativa VeriFactu.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "programada",
+    titulo: "Activar el envío real a la AEAT",
+    detalle:
+      "Pasados los primeros días de pruebas, subir el certificado y cambiar el entorno de Pruebas a Producción en Ajustes → Certificado para que las facturas se remitan a Hacienda.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "estudio",
+    titulo: "Capturas de pantalla en las ayudas",
+    detalle:
+      "Ilustrar cada apartado del manual con pantallazos reales de la aplicación y leyendas explicativas.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "estudio",
+    titulo: "Avisos de stock mínimo",
+    detalle:
+      "Avisar en el panel o al vender cuando un artículo baja de su stock mínimo, para reponer antes de quedarse sin existencias.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "estudio",
+    titulo: "Histórico de movimientos de stock",
+    detalle:
+      "Registro de cada entrada y salida de almacén con el documento que la originó (ticket, albarán, factura o ajuste de inventario), para trazar cualquier descuadre.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "estudio",
+    titulo: "Informe de ventas por artículo y familia",
+    detalle:
+      "Ranking de lo más vendido con importes y márgenes, filtrable por periodo, familia y artículo.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "estudio",
+    titulo: "Vigilante externo del servicio",
+    detalle:
+      "Servicio gratuito (UptimeRobot o similar) que avisa al móvil y al correo en 1-2 minutos si app.filanex.es deja de responder.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "estudio",
+    titulo: "Copias automáticas del servidor",
+    detalle:
+      "Instantánea diaria del disco completo del servidor (1-2 €/mes en UpCloud), además de las copias de la base de datos.",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "cliente",
+    titulo: "Valoraciones: ver presupuestos y peritaciones",
+    detalle:
+      "Pendiente de confirmar con la clienta qué quiere ver exactamente dentro de la valoración (¿líneas del peritaje? ¿presupuesto asociado?).",
+  },
+  {
+    fecha: "2026-09-21",
+    estado: "estudio",
+    titulo: "Etiquetas con código de barras",
+    detalle:
+      "Impresión de etiquetas de precio con código de barras desde la ficha del artículo para pegar en estantería o producto.",
+  },
+];

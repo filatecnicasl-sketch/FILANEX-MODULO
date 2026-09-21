@@ -13,6 +13,11 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Recordatorios de arquitectura / trabajo
 
+- **Apuntar cada cambio en Novedades.** Cada vez que se hace un cambio en la
+  aplicación, se añade una entrada en `client/src/data/novedades.js` (la más
+  reciente primero) y se sube en el mismo commit. Las ideas a estudiar van en
+  el array `PROPUESTAS` del mismo archivo. La página está en Ayuda → Novedades.
+
 - **Usar el editor de formatos** (`Ajustes → Formatos`) para todos los
   documentos imprimibles (facturas, presupuestos, albaranes, partes,
   contratos, etc.). Antes de crear un documento nuevo o modificar uno

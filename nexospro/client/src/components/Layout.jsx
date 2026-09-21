@@ -97,7 +97,8 @@ const gruposBase = [
     titulo: "Ayuda",
     Icono: IconAyuda,
     items: [
-      { to: "/ayuda/general", etiqueta: "Ayuda general", fin: true, Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/general", etiqueta: "Ayuda general", Icono: IconAyuda, tono: "slate" },
+      { to: "/novedades", etiqueta: "Novedades", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
 ];
