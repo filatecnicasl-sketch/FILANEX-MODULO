@@ -56,6 +56,7 @@ const gruposBase = [
       { to: "/ventas", etiqueta: "Facturas", fin: true, Icono: IconVentas, tono: "violet" },
       { to: "/recurrencias", etiqueta: "Recurrencias", fin: true, Icono: IconRecurrencias, tono: "slate" },
       { to: "/ayuda/facturacion", etiqueta: "Ayuda facturación", Icono: IconAyuda, tono: "slate" },
+      { to: "/ayuda/general", etiqueta: "Ayuda general", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
   {
@@ -144,6 +145,7 @@ const gruposModulos = {
       { to: "/asesoria/fiscalidad", etiqueta: "Fiscalidad", Icono: IconAgenda, tono: "rose" },
       { to: "/asesoria/solicitudes", etiqueta: "Solicitudes", Icono: IconNotificaciones, tono: "orange" },
       { to: "/asesoria/cierres", etiqueta: "Cierres", Icono: IconPlanning, tono: "cyan" },
+      { to: "/ayuda/asesoria", etiqueta: "Ayuda asesoría", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },
   tpv: {

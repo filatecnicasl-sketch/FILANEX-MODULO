@@ -46,6 +46,8 @@ import AyudaTallerPage from "./pages/ayuda/AyudaTallerPage.jsx";
 import AyudaTelefoniaPage from "./pages/ayuda/AyudaTelefoniaPage.jsx";
 import AyudaServicioPage from "./pages/ayuda/AyudaServicioPage.jsx";
 import AyudaTpvPage from "./pages/ayuda/AyudaTpvPage.jsx";
+import AyudaGeneralPage from "./pages/ayuda/AyudaGeneralPage.jsx";
+import AyudaAsesoriaPage from "./pages/ayuda/AyudaAsesoriaPage.jsx";
 import ServicioPanelPage from "./pages/servicio/ServicioPanelPage.jsx";
 import ServicioAgendaPage from "./pages/servicio/ServicioAgendaPage.jsx";
 import ServicioAparatosPage from "./pages/servicio/ServicioAparatosPage.jsx";
@@ -204,12 +206,14 @@ export default function App() {
           <Route path="asesoria/prevision" element={<AsesoriaPrevisionPage />} />
           <Route path="asesoria/solicitudes" element={<AsesoriaSolicitudesPage />} />
           <Route path="asesoria/cierres" element={<AsesoriaCierresPage />} />
-          <Route path="ayuda" element={<Navigate to="/ayuda/facturacion" replace />} />
+          <Route path="ayuda" element={<Navigate to="/ayuda/general" replace />} />
+          <Route path="ayuda/general" element={<AyudaGeneralPage />} />
           <Route path="ayuda/facturacion" element={<AyudaFacturacionPage />} />
           <Route path="ayuda/taller" element={<AyudaTallerPage />} />
           <Route path="ayuda/telefonia" element={<AyudaTelefoniaPage />} />
           <Route path="ayuda/servicio" element={<AyudaServicioPage />} />
           <Route path="ayuda/tpv" element={<AyudaTpvPage />} />
+          <Route path="ayuda/asesoria" element={<AyudaAsesoriaPage />} />
           <Route path="admin/tenants" element={<AdminTenantsPage />} />
           {/* Cualquier dirección desconocida vuelve al inicio en vez de quedarse en negro */}
           <Route path="*" element={<Navigate to="/" replace />} />
