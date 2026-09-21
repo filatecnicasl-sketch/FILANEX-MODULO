@@ -14,6 +14,7 @@ import AlbaranVenta from "../models/AlbaranVenta.js";
 import Presupuesto from "../models/Presupuesto.js";
 import { calcularTotales } from "../services/totales.js";
 import { tomarNumeroOrdenTrabajoAtomico } from "../services/numeracion.js";
+import { siguienteCodigoFicha } from "../services/codigoFicha.js";
 import { requiereModulo } from "../config/modulos.js";
 import { validarNIF, normalizarNIF, normalizarMatricula } from "../services/validacion.js";
 import { extraerValoracion } from "../services/ocr-gemini.js";
@@ -1320,7 +1321,45 @@ router.post("/valoraciones", async (req, res, next) => {
     const numero = `PER-${String(empresa.contadores.valoracion).padStart(6, "0")}`;
 
     const mat = normalizarMatricula(matricula);
-    const vehiculo = await Vehiculo.findOne({ matricula: mat }).lean();
+
+    // El cliente y el vehículo deben existir para que las citas y las
+    // recepciones puedan relacionarlos. Se reutiliza la ficha si ya hay una
+    // con ese nombre exacto; si no, se da de alta con el NIF pendiente
+    // («SIN NIF <código>», igual que el alta rápida de la agenda).
+    const nombreCli = (req.body.clienteNombre ?? "").trim();
+    let cliente = null;
+    if (nombreCli) {
+      cliente = await Cliente.findOne({
+        nombre: { $regex: `^${nombreCli.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+      });
+      if (!cliente) {
+        const codigo = await siguienteCodigoFicha(Cliente);
+        cliente = await Cliente.create({
+          codigo,
+          nombre: nombreCli,
+          telefono: (req.body.telefono ?? "").trim() || undefined,
+          nif: `SIN NIF ${codigo}`,
+        });
+      }
+    }
+
+    // Alta exprés del vehículo si no existe; si existe pero no tiene
+    // cliente asignado, se vincula con el de la valoración.
+    let vehiculo = await Vehiculo.findOne({ matricula: mat });
+    if (!vehiculo) {
+      vehiculo = await Vehiculo.create({
+        matricula: mat,
+        marca: req.body.marca || undefined,
+        modelo: req.body.modelo || undefined,
+        cliente: cliente?._id,
+        clienteNombre: cliente?.nombre ?? (nombreCli || undefined),
+      });
+    } else if (cliente && !vehiculo.cliente) {
+      vehiculo.cliente = cliente._id;
+      vehiculo.clienteNombre = cliente.nombre;
+      await vehiculo.save();
+    }
+
     const lineas = Array.isArray(req.body.lineas) ? req.body.lineas.filter((l) => l.descripcion) : [];
 
     // Aseguradora elegida: su nombre rellena el texto "compañía".

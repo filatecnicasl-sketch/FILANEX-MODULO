@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-21",
     tipo: "mejora",
+    titulo: "La valoración da de alta cliente y vehículo",
+    detalle:
+      "Al guardar una valoración, si el cliente o la matrícula no existen se crean solos (el cliente con el NIF pendiente de completar), para que la cita y la recepción puedan relacionarlos.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
     titulo: "Citas: valoración siempre visible y traspaso a la orden",
     detalle:
       "En la cita de taller la casilla «Viene de presupuesto» sale siempre marcada, y al recepcionar con recepción rápida las valoraciones del vehículo se enlazan con la orden creada (la orden hereda aseguradora y número de siniestro).",
