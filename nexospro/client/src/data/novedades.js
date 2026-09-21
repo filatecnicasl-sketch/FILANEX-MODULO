@@ -7,6 +7,20 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-21",
     tipo: "mejora",
+    titulo: "La orden de trabajo sale rellena al imprimir",
+    detalle:
+      "Al crear la orden (recepción rápida o «Crear OT») las líneas de la valoración pasan a la orden, así la impresión lleva los trabajos e importes. En Órdenes el menú de impresión se queda solo con «Orden de trabajo» y «Orden de trabajo PDF».",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
+    titulo: "Teléfono del cliente en la lista de presupuestos",
+    detalle:
+      "La pantalla principal de Presupuestos muestra el teléfono del cliente bajo su nombre, y el buscador también encuentra por teléfono.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
     titulo: "La valoración da de alta cliente y vehículo",
     detalle:
       "Al guardar una valoración, si el cliente o la matrícula no existen se crean solos (el cliente con el NIF pendiente de completar), para que la cita y la recepción puedan relacionarlos.",

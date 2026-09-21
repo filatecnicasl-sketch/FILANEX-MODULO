@@ -88,8 +88,7 @@ export default function MenuImprimirOrden({ orden, pequeno = false }) {
 
   function elegir(variante) {
     setAbierto(false);
-    if (variante === "entrada") imprimirHojaEntrada(orden);
-    else if (variante === "parte-pdf") descargarPdf("parte-taller", orden._id, orden.numero);
+    if (variante === "orden-pdf") descargarPdf("parte-taller", orden._id, orden.numero);
     else imprimirDocumentoRapido("parte-taller", orden._id);
   }
 
@@ -114,24 +113,17 @@ export default function MenuImprimirOrden({ orden, pequeno = false }) {
         <span className="absolute right-0 top-full z-40 mt-1 w-44 rounded-lg border border-slate-200 bg-white shadow-xl py-1 text-left">
           <button
             type="button"
-            onClick={() => elegir("entrada")}
+            onClick={() => elegir("orden")}
             className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
           >
-            Hoja de entrada
+            Orden de trabajo
           </button>
           <button
             type="button"
-            onClick={() => elegir("parte")}
+            onClick={() => elegir("orden-pdf")}
             className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
           >
-            Parte de trabajo
-          </button>
-          <button
-            type="button"
-            onClick={() => elegir("parte-pdf")}
-            className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
-          >
-            Parte de trabajo PDF
+            Orden de trabajo PDF
           </button>
         </span>
       )}

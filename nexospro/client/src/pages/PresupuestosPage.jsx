@@ -45,6 +45,7 @@ export default function PresupuestosPage() {
       p.serieNumero,
       p.cliente?.nombre,
       p.cliente?.nif,
+      p.cliente?.telefono,
       p.fecha ? new Date(p.fecha).toLocaleDateString("es-ES") : "",
       euros(p.total),
       p.total,
@@ -144,7 +145,12 @@ export default function PresupuestosPage() {
               {filtrada.map((p) => (
                 <tr key={p._id}>
                   <td className="px-3.5 py-3 text-white font-medium">{p.serieNumero}</td>
-                  <td className="px-3.5 py-3 text-slate-300">{p.cliente?.nombre ?? "—"}</td>
+                  <td className="px-3.5 py-3 text-slate-300">
+                    {p.cliente?.nombre ?? "—"}
+                    {p.cliente?.telefono && (
+                      <span className="block text-xs text-slate-500">{p.cliente.telefono}</span>
+                    )}
+                  </td>
                   <td className="px-3.5 py-3 text-slate-400">
                     {new Date(p.fecha).toLocaleDateString("es-ES")}
                   </td>

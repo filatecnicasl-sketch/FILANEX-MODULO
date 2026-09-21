@@ -656,7 +656,7 @@ router.post("/recepcion", async (req, res, next) => {
       facturarA: valReciente?.aseguradora ? "aseguradora" : undefined,
       presupuesto: pto?._id,
       presupuestoNumero: pto?.serieNumero,
-      lineas: pto ? pto.lineas.map((l) => l.toObject?.() ?? l) : undefined,
+      lineas: pto ? pto.lineas.map((l) => l.toObject?.() ?? l) : lineasDesdeValoracion(valReciente),
     });
 
     if (pto) await marcarPresupuestoAceptado(pto);
@@ -1445,6 +1445,7 @@ router.post("/valoraciones/:id/crear-orden", async (req, res, next) => {
       aseguradora: valoracion.aseguradora ?? undefined,
       numeroSiniestro: valoracion.numeroSiniestro ?? undefined,
       facturarA: valoracion.aseguradora ? "aseguradora" : "cliente",
+      lineas: lineasDesdeValoracion(valoracion),
     });
     valoracion.orden = orden._id;
     valoracion.numeroOrden = orden.numero;
@@ -1481,6 +1482,26 @@ function finDia(dia) {
 }
 function sumarLineasValoracion(lineas) {
   return Math.round(lineas.reduce((s, l) => s + (Number(l.importe) || 0), 0) * 100) / 100;
+}
+
+// Las líneas de la valoración ({descripcion, importe}) pasan a la orden como
+// líneas a facturar. El importe peritado se entiende con IVA incluido (lo
+// habitual en las compañías), así que se desglosa al 21 %.
+function lineasDesdeValoracion(v) {
+  return (v?.lineas ?? [])
+    .filter((l) => (l.descripcion ?? "").trim())
+    .map((l) => {
+      const importe = Number(l.importe) || 0;
+      const desc = l.descripcion.trim();
+      const tipo = /mano de obra/i.test(desc) ? "mano_obra" : /material/i.test(desc) ? "material" : undefined;
+      return {
+        descripcion: l.descripcion,
+        cantidad: 1,
+        precioUnitario: Math.round((importe / 1.21) * 100) / 100,
+        iva: 21,
+        tipo,
+      };
+    });
 }
 async function crearOrden(datos) {
   // Contador atómico y desacoplado del documento Empresa: evita contención
