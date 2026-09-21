@@ -50,6 +50,10 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
   );
   const totalDocumento = totales.base + totales.iva;
 
+  // Cliente seleccionado: su NIF se muestra al lado, como referencia rápida
+  // de qué cliente es (sobre todo cuando hay nombres parecidos).
+  const clienteSel = clientes.find((c) => c._id === clienteId);
+
   useEffect(() => setClientes(clientesProp), [clientesProp]);
 
   // Cerrar con Escape, como el resto de ventanas del programa.
@@ -133,38 +137,40 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
         </div>
 
         {/* Cuerpo con scroll */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-          <div>
-            <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
-              Datos del documento
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_170px] gap-3 items-end">
-              <div>
-                <label className="text-sm text-slate-300">Cliente</label>
-                <SelectorContacto
-                  tipo="cliente"
-                  contactos={clientes}
-                  valor={clienteId}
-                  onChange={elegirCliente}
-                  onCreado={(c) => setClientes((cs) => [...cs, c])}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-slate-300">Fecha</label>
-                <input
-                  type="date"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                  className="mt-1 w-full input"
-                />
-              </div>
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px_170px] gap-3 items-end">
+            <div>
+              <label className="text-sm text-slate-300">Cliente</label>
+              <SelectorContacto
+                tipo="cliente"
+                contactos={clientes}
+                valor={clienteId}
+                onChange={elegirCliente}
+                onCreado={(c) => setClientes((cs) => [...cs, c])}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300">NIF / CIF</label>
+              <input
+                value={clienteSel?.nif ?? ""}
+                readOnly
+                tabIndex={-1}
+                placeholder="Se rellena al elegir cliente"
+                className="mt-1 w-full input opacity-70"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300">Fecha</label>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="mt-1 w-full input"
+              />
             </div>
           </div>
 
           <div>
-            <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
-              Dirección de entrega
-            </p>
             <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -172,41 +178,33 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
                 onChange={(e) => setOtraEntrega(e.target.checked)}
                 className="accent-accent"
               />
-              Distinta de la fiscal
+              Dirección de entrega distinta de la fiscal
             </label>
             {otraEntrega && (
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_120px] gap-3 mt-3">
-                <div>
-                  <label className="text-sm text-slate-300">Calle y número</label>
-                  <input
-                    value={entrega.calle}
-                    onChange={(e) => setEntrega((d) => ({ ...d, calle: e.target.value }))}
-                    className="mt-1 w-full input"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-slate-300">Ciudad</label>
-                  <input
-                    value={entrega.ciudad}
-                    onChange={(e) => setEntrega((d) => ({ ...d, ciudad: e.target.value }))}
-                    className="mt-1 w-full input"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-slate-300">Código postal</label>
-                  <input
-                    value={entrega.cp}
-                    onChange={(e) => setEntrega((d) => ({ ...d, cp: e.target.value }))}
-                    className="mt-1 w-full input"
-                  />
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_120px] gap-3 mt-2">
+                <input
+                  value={entrega.calle}
+                  onChange={(e) => setEntrega((d) => ({ ...d, calle: e.target.value }))}
+                  placeholder="Calle y número"
+                  className="w-full input"
+                />
+                <input
+                  value={entrega.ciudad}
+                  onChange={(e) => setEntrega((d) => ({ ...d, ciudad: e.target.value }))}
+                  placeholder="Ciudad"
+                  className="w-full input"
+                />
+                <input
+                  value={entrega.cp}
+                  onChange={(e) => setEntrega((d) => ({ ...d, cp: e.target.value }))}
+                  placeholder="Código postal"
+                  className="w-full input"
+                />
               </div>
             )}
           </div>
 
-          <div>
-            <EditorLineas lineas={lineas} setLineas={setLineas} conDescuento />
-          </div>
+          <EditorLineas lineas={lineas} setLineas={setLineas} conDescuento />
 
           {error && <p className="text-sm text-red-400">{error}</p>}
         </div>

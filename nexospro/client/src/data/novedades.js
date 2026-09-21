@@ -6,10 +6,17 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-21",
-    tipo: "mejora",
-    titulo: "Alta de documentos más clara",
+    tipo: "nuevo",
+    titulo: "Novedades: registro de cambios y propuestas",
     detalle:
-      "El formulario de nuevo presupuesto/albarán tiene ahora cabecera y pie fijos: los totales (Base, IVA y Total en grande) siempre visibles, botón × para cerrar y botón «Buscar artículo» junto a «Añadir línea».",
+      "Nueva página Ayuda → Novedades con el registro de mejoras y cambios del programa y las propuestas pendientes de estudio. Cada cambio futuro se apuntará aquí automáticamente.",
+  },
+  {
+    fecha: "2026-09-21",
+    tipo: "mejora",
+    titulo: "Alta de documentos más intuitiva",
+    detalle:
+      "El formulario de presupuesto/albarán muestra en una fila Cliente, NIF/CIF (se rellena solo) y Fecha; la dirección de entrega es una casilla compacta; totales siempre visibles abajo con el Total en grande y botones «Añadir línea» y «Buscar artículo».",
   },
   {
     fecha: "2026-09-21",
