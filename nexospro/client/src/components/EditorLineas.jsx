@@ -54,6 +54,19 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
     return base;
   };
 
+  // "Buscar artículo": lleva el foco a una línea vacía (o crea una) y abre el
+  // desplegable del catálogo. Es el mismo gesto que escribir en descripción,
+  // pero visible para quien no conoce el atajo.
+  function buscarArticulo() {
+    const vacia = lineas.findIndex((l) => !l.descripcion?.trim() && !l.articulo);
+    if (vacia >= 0) {
+      const descs = contenedorRef.current?.querySelectorAll("input[data-editor-desc]");
+      descs?.[vacia]?.focus();
+    } else {
+      anadirLineaYFoco();
+    }
+  }
+
   // Enter en el último campo de la última línea: añade otra y le da el foco.
   function anadirLineaYFoco(grupo) {
     setLineas((ls) => [...ls, nuevaLinea(grupo)]);
@@ -410,10 +423,19 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
         : lineas.map((l, i) => filaLinea(l, i))}
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <button
-          onClick={() => anadirLineaYFoco()}
-          className="text-accent text-sm hover:underline"
-        >+ Añadir línea</button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => anadirLineaYFoco()}
+            className="btn-ghost !py-1.5 !px-3 text-sm"
+          >+ Añadir línea</button>
+          {!conGrupo && (
+            <button
+              onClick={buscarArticulo}
+              className="btn-ghost !py-1.5 !px-3 text-sm"
+              title="Abre el buscador del catálogo de artículos en una línea"
+            >Buscar artículo</button>
+          )}
+        </div>
         <p className="text-sm text-slate-400">
           Base {euros(totales.base)} · IVA {euros(totales.iva)} ·{" "}
           <span className="text-white font-semibold">Total {euros(totales.base + totales.iva)}</span>

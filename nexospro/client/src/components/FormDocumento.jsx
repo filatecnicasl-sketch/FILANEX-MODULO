@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import EditorLineas, { lineaVacia } from "./EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
+import { euros } from "./ui.jsx";
 import SelectorContacto from "./SelectorContacto.jsx";
 
 // Formulario genérico cliente + líneas (presupuestos, albaranes).
@@ -35,6 +36,19 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
   );
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+
+  // Totales en vivo (base neta de descuentos + IVA), como en la vista del alta.
+  const totales = lineas.reduce(
+    (acc, l) => {
+      const bruto = (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0);
+      const base = bruto * (1 - (Number(l.descuento) || 0) / 100);
+      acc.base += base;
+      acc.iva += (base * (Number(l.iva) || 0)) / 100;
+      return acc;
+    },
+    { base: 0, iva: 0 }
+  );
+  const totalDocumento = totales.base + totales.iva;
 
   useEffect(() => setClientes(clientesProp), [clientesProp]);
 
@@ -101,13 +115,25 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
       onClick={onCerrar}
     >
       <div
-        className="modal-panel w-full max-w-5xl max-h-[90vh] overflow-y-auto p-6"
+        className="modal-panel w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={enterComoTab}
       >
-        <h2 className="text-lg font-bold text-white mb-4">{titulo}</h2>
+        {/* Cabecera fija */}
+        <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-3 border-b border-white/5 shrink-0">
+          <h2 className="text-lg font-bold text-white">{titulo}</h2>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="text-slate-400 hover:text-white text-xl leading-none px-1"
+            title="Cerrar (Escape)"
+          >
+            ×
+          </button>
+        </div>
 
-        <div className="space-y-5">
+        {/* Cuerpo con scroll */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           <div>
             <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">
               Datos del documento
@@ -183,8 +209,22 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
+        </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-white/5">
+        {/* Pie fijo: totales siempre visibles + acciones */}
+        <div className="shrink-0 border-t border-white/10 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-baseline gap-4 text-sm">
+            <span className="text-slate-400">
+              Base <span className="num text-slate-200">{euros(totales.base)}</span>
+            </span>
+            <span className="text-slate-400">
+              IVA <span className="num text-slate-200">{euros(totales.iva)}</span>
+            </span>
+            <span className="text-base font-bold text-white">
+              Total <span className="num text-accent">{euros(totalDocumento)}</span>
+            </span>
+          </div>
+          <div className="flex gap-2">
             <button type="button" onClick={onCerrar} className="btn-ghost">
               Cancelar
             </button>
