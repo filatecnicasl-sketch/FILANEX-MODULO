@@ -8,16 +8,28 @@ import { IconImprimir } from "../../components/icons.jsx";
 import { imprimirValoracion } from "../../utils/imprimir.js";
 
 const campo = "input w-full";
-const lineaVacia = () => ({ descripcion: "", importe: 0 });
+const lineaVacia = () => ({ descripcion: "", tipo: "otro", horas: "", importe: 0 });
 const VACIO = {
   matricula: "",
+  marca: "",
+  modelo: "",
+  bastidor: "",
   clienteNombre: "",
   telefono: "",
   aseguradora: "",
   numeroSiniestro: "",
   fechaSiniestro: "",
+  compromiso: false,
   observaciones: "",
 };
+
+const TIPOS_PARTIDA = [
+  ["chapa", "Chapa"],
+  ["pintura", "Pintura"],
+  ["mecanica", "Mecánica"],
+  ["material", "Material"],
+  ["otro", "Otro"],
+];
 
 const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
@@ -46,6 +58,8 @@ export default function TallerValoracionesPage() {
   const [importando, setImportando] = useState(false);
   const [importandoAlta, setImportandoAlta] = useState(false);
   const [avisoAlta, setAvisoAlta] = useState(false);
+  const [preciosHora, setPreciosHora] = useState({ chapa: 0, pintura: 0, mecanica: 0 });
+  const [vehiculos, setVehiculos] = useState([]);
   const inputPdfRef = useRef(null);
   const inputAltaPdfRef = useRef(null);
   const [q, setQ] = useState("");
@@ -97,7 +111,63 @@ export default function TallerValoracionesPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then(setAseguradoras)
       .catch(() => setAseguradoras([]));
+    fetch("/api/empresa")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((e) => {
+        if (e?.taller) {
+          setPreciosHora({
+            chapa: Number(e.taller.precioHoraChapa) || 0,
+            pintura: Number(e.taller.precioHoraPintura) || 0,
+            mecanica: Number(e.taller.precioHoraMecanica) || 0,
+          });
+        }
+      })
+      .catch(() => {});
+    fetch("/api/taller/vehiculos")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setVehiculos)
+      .catch(() => setVehiculos([]));
   }, []);
+
+  // Al salir del campo matrícula: si el vehículo ya está dado de alta, se
+  // rellenan marca, modelo y bastidor solos (se pueden corregir a mano).
+  function rellenarDesdeVehiculo() {
+    const mat = (form.matricula ?? "").replace(/[\s-]/g, "").toUpperCase();
+    if (!mat) return;
+    const v = vehiculos.find((x) => x.matricula === mat);
+    if (!v) return;
+    setForm((f) => ({
+      ...f,
+      marca: v.marca ?? f.marca,
+      modelo: v.modelo ?? f.modelo,
+      bastidor: v.bastidor ?? f.bastidor,
+    }));
+  }
+
+  // Precio por hora según el tipo de partida (Ajustes → Configuración).
+  function precioPorTipo(tipo) {
+    if (tipo === "chapa") return preciosHora.chapa;
+    if (tipo === "pintura") return preciosHora.pintura;
+    if (tipo === "mecanica") return preciosHora.mecanica;
+    return 0;
+  }
+
+  // Cambia un campo de una partida; si hay horas y precio configurado para el
+  // tipo, el importe se calcula solo (horas × precio). Siempre editable.
+  function actualizarLinea(i, cambios) {
+    setLineas((ls) =>
+      ls.map((x, j) => {
+        if (j !== i) return x;
+        const l = { ...x, ...cambios };
+        const precio = precioPorTipo(l.tipo);
+        const horas = Number(l.horas);
+        if (precio > 0 && horas > 0) {
+          l.importe = Math.round(horas * precio * 100) / 100;
+        }
+        return l;
+      })
+    );
+  }
 
   function abrirNueva() {
     setEditando(null);
@@ -112,11 +182,15 @@ export default function TallerValoracionesPage() {
     setAvisoAlta(false);
     setForm({
       matricula: v.matricula,
+      marca: v.marca ?? "",
+      modelo: v.modelo ?? "",
+      bastidor: v.bastidor ?? "",
       clienteNombre: v.clienteNombre ?? "",
       telefono: v.telefono ?? "",
       aseguradora: v.aseguradora?._id ?? v.aseguradora ?? "",
       numeroSiniestro: v.numeroSiniestro ?? "",
       fechaSiniestro: v.fechaSiniestro ? aFechaInput(v.fechaSiniestro) : "",
+      compromiso: !!v.compromiso,
       observaciones: v.observaciones ?? "",
     });
     setLineas(v.lineas?.length > 0 ? v.lineas.map((l) => ({ ...l })) : [lineaVacia()]);
@@ -148,7 +222,11 @@ export default function TallerValoracionesPage() {
       setForm((f) => ({
         ...f,
         matricula: datos.matricula ? datos.matricula.toUpperCase() : f.matricula,
+        marca: datos.marca ?? f.marca,
+        modelo: datos.modelo ?? f.modelo,
+        bastidor: datos.bastidor ? datos.bastidor.toUpperCase() : f.bastidor,
         numeroSiniestro: datos.numeroSiniestro ?? f.numeroSiniestro,
+        fechaSiniestro: datos.fechaSiniestro ?? f.fechaSiniestro,
         aseguradora: aseg?._id ?? f.aseguradora,
         observaciones: datos.observaciones ?? f.observaciones,
       }));
@@ -305,7 +383,14 @@ export default function TallerValoracionesPage() {
                     <td className="font-bold text-white whitespace-nowrap num">{v.numero}</td>
                     <td className="text-slate-300 num">{v.matricula}</td>
                     <td className="text-slate-300">{v.clienteNombre ?? "—"}</td>
-                    <td className="text-slate-300">{v.compania ?? "—"}</td>
+                    <td className="text-slate-300">
+                      {v.compania ?? "—"}
+                      {v.compromiso && (
+                        <span className="ml-1.5 inline-block align-middle rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold">
+                          Compromiso
+                        </span>
+                      )}
+                    </td>
                     <td className="text-slate-400 num">{v.numeroSiniestro ?? "—"}</td>
                     <td>
                       <select
@@ -397,14 +482,39 @@ export default function TallerValoracionesPage() {
               </div>
             )}
             <form onSubmit={guardar} className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
                   <label className="text-sm text-slate-400 block mb-1">Matrícula *</label>
                   <input
                     className={`${campo} uppercase`}
                     value={form.matricula}
                     onChange={(e) => setForm({ ...form, matricula: e.target.value.toUpperCase() })}
+                    onBlur={rellenarDesdeVehiculo}
                     required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Marca</label>
+                  <input
+                    className={campo}
+                    value={form.marca}
+                    onChange={(e) => setForm({ ...form, marca: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Modelo</label>
+                  <input
+                    className={campo}
+                    value={form.modelo}
+                    onChange={(e) => setForm({ ...form, modelo: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Nº de bastidor</label>
+                  <input
+                    className={`${campo} uppercase`}
+                    value={form.bastidor}
+                    onChange={(e) => setForm({ ...form, bastidor: e.target.value.toUpperCase() })}
                   />
                 </div>
                 <div>
@@ -449,40 +559,70 @@ export default function TallerValoracionesPage() {
                     onChange={(e) => setForm({ ...form, fechaSiniestro: e.target.value })}
                   />
                 </div>
+                {form.aseguradora && (
+                  <label className="flex items-end gap-2 pb-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.compromiso}
+                      onChange={(e) => setForm({ ...form, compromiso: e.target.checked })}
+                      className="w-4 h-4 accent-[#0e7490]"
+                    />
+                    <span className="text-sm text-slate-300">Compromiso de reparación</span>
+                  </label>
+                )}
               </div>
 
               <div>
                 <label className="text-sm text-slate-400 block mb-2">Partidas de daños</label>
+                <div className="hidden md:grid grid-cols-12 gap-2 px-1 pb-1 text-xs text-slate-500">
+                  <span className="col-span-2">Tipo</span>
+                  <span className="col-span-5">Descripción</span>
+                  <span className="col-span-2">Horas</span>
+                  <span className="col-span-2 text-right">Importe €</span>
+                  <span className="col-span-1"></span>
+                </div>
                 <div className="space-y-2">
                   {lineas.map((l, i) => (
                     <div key={i} className="grid grid-cols-12 gap-2">
+                      <select
+                        value={l.tipo ?? "otro"}
+                        onChange={(e) => actualizarLinea(i, { tipo: e.target.value })}
+                        className="col-span-4 md:col-span-2 input"
+                      >
+                        {TIPOS_PARTIDA.map(([id, et]) => (
+                          <option key={id} value={id}>{et}</option>
+                        ))}
+                      </select>
                       <input
                         placeholder="Descripción de la partida"
                         value={l.descripcion}
-                        onChange={(e) =>
-                          setLineas((ls) => ls.map((x, j) => (j === i ? { ...x, descripcion: e.target.value } : x)))
-                        }
-                        className="col-span-9 input"
+                        onChange={(e) => actualizarLinea(i, { descripcion: e.target.value })}
+                        className="col-span-8 md:col-span-5 input"
+                      />
+                      <input
+                        type="number" min="0" step="0.25" placeholder="—"
+                        title="Horas (mano de obra: chapa, pintura, mecánica)"
+                        value={l.horas ?? ""}
+                        onChange={(e) => actualizarLinea(i, { horas: e.target.value })}
+                        className="col-span-4 md:col-span-2 input"
                       />
                       <input
                         type="number" min="0" step="0.01" placeholder="Importe"
                         value={l.importe}
-                        onChange={(e) =>
-                          setLineas((ls) => ls.map((x, j) => (j === i ? { ...x, importe: e.target.value } : x)))
-                        }
-                        className="col-span-2 input text-right"
+                        onChange={(e) => actualizarLinea(i, { importe: e.target.value })}
+                        className="col-span-6 md:col-span-2 input text-right"
                       />
                       <button
                         type="button"
                         onClick={() => setLineas((ls) => ls.filter((_, j) => j !== i))}
-                        className="col-span-1 text-slate-500 hover:text-red-300"
+                        className="col-span-2 md:col-span-1 text-slate-500 hover:text-red-300"
                         title="Quitar partida"
                       >
                         ×
                       </button>
                     </div>
                   ))}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => setLineas((ls) => [...ls, lineaVacia()])}
@@ -490,6 +630,13 @@ export default function TallerValoracionesPage() {
                     >
                       + Añadir partida
                     </button>
+                    {(preciosHora.chapa > 0 || preciosHora.pintura > 0 || preciosHora.mecanica > 0) && (
+                      <span className="text-xs text-slate-500">
+                        {preciosHora.chapa > 0 && `Chapa ${preciosHora.chapa} €/h`}
+                        {preciosHora.pintura > 0 && ` · Pintura ${preciosHora.pintura} €/h`}
+                        {preciosHora.mecanica > 0 && ` · Mecánica ${preciosHora.mecanica} €/h`}
+                      </span>
+                    )}
                     <p className="text-sm text-slate-400">
                       <span className="text-white font-semibold">Total {euros(totalForm)}</span>
                     </p>

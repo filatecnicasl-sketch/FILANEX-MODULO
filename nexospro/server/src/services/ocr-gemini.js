@@ -190,6 +190,7 @@ const esquemaValoracion = {
     matricula: { type: "STRING", description: "Matrícula sin espacios ni guiones" },
     marca: { type: "STRING" },
     modelo: { type: "STRING" },
+    bastidor: { type: "STRING", description: "Número de bastidor / VIN (17 caracteres)" },
     kilometros: { type: "NUMBER", description: "Kilómetros del vehículo, número entero" },
     numeroSiniestro: { type: "STRING", description: "Número de siniestro o expediente" },
     poliza: { type: "STRING", description: "Número de póliza" },
@@ -228,6 +229,7 @@ Reglas:
 - matricula: sin espacios ni guiones (p.ej. "1834KZK").
 - marca y modelo: del dato "VEHÍCULO" o similar (p.ej. "SEAT ARONA 2018 5P STYLE" -> marca "SEAT", modelo "ARONA 2018 5P STYLE").
 - kilometros: número entero, sin separador de miles (44.814 -> 44814).
+- bastidor: número de bastidor / VIN si aparece ("Nº BASTIDOR", "VIN", "CHASIS"); suele tener 17 caracteres alfanuméricos.
 - numeroSiniestro: la referencia del siniestro/expediente tal como aparece (p.ej. "896.945 / 2026 - AP").
 - compania: la aseguradora que emite el documento. Si el nombre comercial no aparece directamente, identifícala por el membrete, el pie de página (registro mercantil, NIF, dirección) o el formato del documento.
 - fechaSiniestro: la fecha de ocurrencia ("FECHA SINIESTRO"), NO la fecha de emisión del documento ni la de apertura. Formato YYYY-MM-DD.

@@ -30,6 +30,10 @@ export default function ConfigPage() {
     setEmpresa((e) => ({ ...e, sepa: { ...(e.sepa ?? {}), [campoNombre]: valor } }));
   }
 
+  function actualizarTaller(campoNombre, valor) {
+    setEmpresa((e) => ({ ...e, taller: { ...(e.taller ?? {}), [campoNombre]: valor } }));
+  }
+
   async function subirLogo(archivo) {
     if (!archivo) return;
     setError(null);
@@ -63,6 +67,7 @@ export default function ConfigPage() {
         email: empresa.email,
         direccion: empresa.direccion,
         sepa: empresa.sepa,
+        taller: empresa.taller,
       }),
     });
     const datos = await r.json();
@@ -187,6 +192,40 @@ export default function ConfigPage() {
       </div>
 
       <VinculoAsesoria />
+
+      <div className="panel p-6 mb-6 space-y-3">
+        <h2 className="text-white font-semibold">Taller — precios por hora</h2>
+        <p className="text-xs text-slate-500">
+          Se usan en las valoraciones: al poner las horas de una partida de chapa, pintura o mecánica,
+          el importe se calcula solo (horas × precio).
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className={etiqueta}>Hora de chapa (€)</label>
+            <input
+              type="number" min="0" step="0.5" className={campo}
+              value={empresa.taller?.precioHoraChapa ?? ""}
+              onChange={(e) => actualizarTaller("precioHoraChapa", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={etiqueta}>Hora de pintura (€)</label>
+            <input
+              type="number" min="0" step="0.5" className={campo}
+              value={empresa.taller?.precioHoraPintura ?? ""}
+              onChange={(e) => actualizarTaller("precioHoraPintura", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={etiqueta}>Hora de mecánica (€)</label>
+            <input
+              type="number" min="0" step="0.5" className={campo}
+              value={empresa.taller?.precioHoraMecanica ?? ""}
+              onChange={(e) => actualizarTaller("precioHoraMecanica", e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="panel p-6 space-y-3">
         <h2 className="text-white font-semibold">Remesas SEPA</h2>

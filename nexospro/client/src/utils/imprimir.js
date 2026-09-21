@@ -437,30 +437,42 @@ export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quie
   );
 }
 
-// Impresión de una valoración/peritaje: las líneas solo llevan descripción e
+// Impresión de una valoración/peritaje: las líneas llevan tipo, horas e
 // importe (sin cantidad/precio/iva), y el total es la suma directa.
 export async function imprimirValoracion(v) {
   const emp = await empresa();
   const lineas = v.lineas ?? [];
+  const tiposEtiqueta = { chapa: "Chapa", pintura: "Pintura", mecanica: "Mecánica", material: "Material", otro: "" };
+  const hayHoras = lineas.some((l) => Number(l.horas) > 0);
   const filas = lineas
-    .map((l) => `<tr><td>${esc(l.descripcion)}</td><td class="num">${euros(l.importe)}</td></tr>`)
+    .map((l) => {
+      const tipo = tiposEtiqueta[l.tipo] ? `<span style="color:#64748b;font-size:10px">${tiposEtiqueta[l.tipo]}</span> ` : "";
+      const horas = hayHoras ? `<td class="num">${Number(l.horas) > 0 ? l.horas : ""}</td>` : "";
+      return `<tr><td>${tipo}${esc(l.descripcion)}</td>${horas}<td class="num">${euros(l.importe)}</td></tr>`;
+    })
     .join("");
   const total = v.total != null ? v.total : lineas.reduce((s, l) => s + (Number(l.importe) || 0), 0);
+  const vehiculoTxt = [
+    `Vehículo ${v.matricula ?? ""}`,
+    [v.marca, v.modelo].filter(Boolean).join(" ") || null,
+    v.bastidor ? `Bastidor ${v.bastidor}` : null,
+  ].filter(Boolean).join(" · ");
   const detContraparte = [
     v.numeroSiniestro ? `Siniestro ${v.numeroSiniestro}` : null,
     v.compania,
     v.fechaSiniestro ? `Siniestro del ${fechaEs(v.fechaSiniestro)}` : null,
+    v.compromiso ? "COMPROMISO DE REPARACIÓN" : null,
   ].filter(Boolean).join(" · ");
   abrirVentana(
     `Valoración ${v.numero ?? ""}`,
     `${cabecera(emp, "Valoración", v.numero, v.fecha)}
      ${bloqueContraparte("Cliente / Vehículo", {
-       nombre: `${v.clienteNombre ?? ""} · Vehículo ${v.matricula ?? ""}`,
+       nombre: `${v.clienteNombre ?? ""} · ${vehiculoTxt}`,
        nif: detContraparte,
      })}
      <table>
-       <thead><tr><th>Concepto</th><th class="num">Importe</th></tr></thead>
-       <tbody>${filas || `<tr><td colspan="2" style="color:#888">Sin líneas</td></tr>`}</tbody>
+       <thead><tr><th>Concepto</th>${hayHoras ? `<th class="num">Horas</th>` : ""}<th class="num">Importe</th></tr></thead>
+       <tbody>${filas || `<tr><td colspan="${hayHoras ? 3 : 2}" style="color:#888">Sin líneas</td></tr>`}</tbody>
      </table>
      <div class="tot">
        <div class="gran"><span>TOTAL VALORACIÓN</span><b>${euros(total)}</b></div>

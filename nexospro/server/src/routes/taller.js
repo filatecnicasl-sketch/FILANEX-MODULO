@@ -1330,21 +1330,24 @@ router.post(
       if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
       const numero = `PER-${String(empresa.contadores.valoracion).padStart(6, "0")}`;
 
-      // Vehículo: alta exprés con lo leído (marca, modelo, km). Si ya existe,
-      // se completan los datos que le falten.
+      // Vehículo: alta exprés con lo leído (marca, modelo, bastidor, km). Si
+      // ya existe, se completan los datos que le falten.
       let vehiculo = await Vehiculo.findOne({ matricula: mat });
       const km = Number.isFinite(datos.kilometros) ? Math.round(datos.kilometros) : undefined;
+      const bastidor = (datos.bastidor ?? "").trim().toUpperCase() || undefined;
       if (!vehiculo) {
         vehiculo = await Vehiculo.create({
           matricula: mat,
           marca: datos.marca || undefined,
           modelo: datos.modelo || undefined,
+          bastidor,
           km,
         });
       } else {
         let tocado = false;
         if (!vehiculo.marca && datos.marca) { vehiculo.marca = datos.marca; tocado = true; }
         if (!vehiculo.modelo && datos.modelo) { vehiculo.modelo = datos.modelo; tocado = true; }
+        if (!vehiculo.bastidor && bastidor) { vehiculo.bastidor = bastidor; tocado = true; }
         if (km && vehiculo.km !== km) { vehiculo.km = km; tocado = true; }
         if (tocado) await vehiculo.save();
       }
@@ -1380,6 +1383,9 @@ router.post(
         numero,
         vehiculo: vehiculo._id,
         matricula: mat,
+        marca: vehiculo.marca || undefined,
+        modelo: vehiculo.modelo || undefined,
+        bastidor,
         compania,
         aseguradora,
         numeroSiniestro: datos.numeroSiniestro || undefined,
@@ -1438,24 +1444,33 @@ router.post("/valoraciones", async (req, res, next) => {
       }
     }
 
-    // Alta exprés del vehículo si no existe; si existe pero no tiene
-    // cliente asignado, se vincula con el de la valoración.
+    // Alta exprés del vehículo si no existe; si existe, se completan los
+    // datos que le falten (marca, modelo, bastidor) y el cliente.
+    const bastidorBody = (req.body.bastidor ?? "").trim().toUpperCase() || undefined;
     let vehiculo = await Vehiculo.findOne({ matricula: mat });
     if (!vehiculo) {
       vehiculo = await Vehiculo.create({
         matricula: mat,
         marca: req.body.marca || undefined,
         modelo: req.body.modelo || undefined,
+        bastidor: bastidorBody,
         cliente: cliente?._id,
         clienteNombre: cliente?.nombre ?? (nombreCli || undefined),
       });
-    } else if (cliente && !vehiculo.cliente) {
-      vehiculo.cliente = cliente._id;
-      vehiculo.clienteNombre = cliente.nombre;
-      await vehiculo.save();
+    } else {
+      let tocado = false;
+      if (!vehiculo.marca && req.body.marca) { vehiculo.marca = req.body.marca; tocado = true; }
+      if (!vehiculo.modelo && req.body.modelo) { vehiculo.modelo = req.body.modelo; tocado = true; }
+      if (!vehiculo.bastidor && bastidorBody) { vehiculo.bastidor = bastidorBody; tocado = true; }
+      if (cliente && !vehiculo.cliente) {
+        vehiculo.cliente = cliente._id;
+        vehiculo.clienteNombre = cliente.nombre;
+        tocado = true;
+      }
+      if (tocado) await vehiculo.save();
     }
 
-    const lineas = Array.isArray(req.body.lineas) ? req.body.lineas.filter((l) => l.descripcion) : [];
+    const lineas = limpiarLineasValoracion(req.body.lineas);
 
     // Aseguradora elegida: su nombre rellena el texto "compañía".
     let compania = req.body.compania || undefined;
@@ -1470,12 +1485,16 @@ router.post("/valoraciones", async (req, res, next) => {
       numero,
       vehiculo: vehiculo?._id,
       matricula: mat,
+      marca: vehiculo?.marca || undefined,
+      modelo: vehiculo?.modelo || undefined,
+      bastidor: vehiculo?.bastidor || undefined,
       clienteNombre: req.body.clienteNombre || undefined,
       telefono: req.body.telefono || undefined,
       compania,
       aseguradora,
       numeroSiniestro: req.body.numeroSiniestro || undefined,
       fechaSiniestro: req.body.fechaSiniestro ? new Date(req.body.fechaSiniestro) : undefined,
+      compromiso: !!req.body.compromiso,
       lineas,
       total: sumarLineasValoracion(lineas),
       observaciones: req.body.observaciones || undefined,
@@ -1493,6 +1512,7 @@ router.put("/valoraciones/:id", async (req, res, next) => {
       return res.status(400).json({ error: `Estado no válido. Válidos: ${ESTADOS_VALORACION.join(", ")}` });
     }
     const cambios = { clienteNombre, telefono, compania, numeroSiniestro, estado, observaciones };
+    if (req.body.compromiso !== undefined) cambios.compromiso = !!req.body.compromiso;
     if (req.body.aseguradora !== undefined) {
       cambios.aseguradora = req.body.aseguradora || null;
       if (cambios.aseguradora) {
@@ -1506,11 +1526,32 @@ router.put("/valoraciones/:id", async (req, res, next) => {
       const v = cambios.matricula ? await Vehiculo.findOne({ matricula: cambios.matricula }).lean() : null;
       cambios.vehiculo = v?._id;
     }
+    // Datos del vehículo editables desde la valoración: se guardan también en
+    // la ficha del vehículo para que queden para las próximas veces.
+    const bastidorBody = req.body.bastidor !== undefined ? (req.body.bastidor ?? "").trim().toUpperCase() || undefined : undefined;
+    if (req.body.marca !== undefined) cambios.marca = req.body.marca || undefined;
+    if (req.body.modelo !== undefined) cambios.modelo = req.body.modelo || undefined;
+    if (req.body.bastidor !== undefined) cambios.bastidor = bastidorBody;
+    if ((req.body.marca || req.body.modelo || bastidorBody) && cambios.matricula !== null) {
+      const matVeh = cambios.matricula ?? (await Valoracion.findById(req.params.id).lean())?.matricula;
+      if (matVeh) {
+        await Vehiculo.findOneAndUpdate(
+          { matricula: matVeh },
+          {
+            $set: {
+              ...(req.body.marca ? { marca: req.body.marca } : {}),
+              ...(req.body.modelo ? { modelo: req.body.modelo } : {}),
+              ...(bastidorBody ? { bastidor: bastidorBody } : {}),
+            },
+          }
+        );
+      }
+    }
     if (fechaSiniestro !== undefined) {
       cambios.fechaSiniestro = fechaSiniestro ? new Date(fechaSiniestro) : null;
     }
     if (Array.isArray(req.body.lineas)) {
-      cambios.lineas = req.body.lineas.filter((l) => l.descripcion);
+      cambios.lineas = limpiarLineasValoracion(req.body.lineas);
       cambios.total = sumarLineasValoracion(cambios.lineas);
     }
     const valoracion = await Valoracion.findByIdAndUpdate(req.params.id, cambios, { new: true, omitUndefined: true });
@@ -1579,6 +1620,21 @@ function sumarLineasValoracion(lineas) {
   return Math.round(lineas.reduce((s, l) => s + (Number(l.importe) || 0), 0) * 100) / 100;
 }
 
+const TIPOS_PARTIDA = ["chapa", "pintura", "mecanica", "material", "otro"];
+
+// Normaliza las partidas que llegan del formulario: descripción limpia, tipo
+// válido (otro si no cuadra), horas solo si son un número positivo.
+function limpiarLineasValoracion(lineas) {
+  return (Array.isArray(lineas) ? lineas : [])
+    .filter((l) => (l.descripcion ?? "").trim())
+    .map((l) => ({
+      descripcion: l.descripcion.trim(),
+      tipo: TIPOS_PARTIDA.includes(l.tipo) ? l.tipo : "otro",
+      horas: Number.isFinite(Number(l.horas)) && Number(l.horas) > 0 ? Number(l.horas) : undefined,
+      importe: Number(l.importe) || 0,
+    }));
+}
+
 // Las líneas de la valoración ({descripcion, importe}) pasan a la orden como
 // líneas a facturar. El importe peritado se entiende con IVA incluido (lo
 // habitual en las compañías), así que se desglosa al 21 %.
@@ -1588,7 +1644,16 @@ function lineasDesdeValoracion(v) {
     .map((l) => {
       const importe = Number(l.importe) || 0;
       const desc = l.descripcion.trim();
-      const tipo = /mano de obra/i.test(desc) ? "mano_obra" : /material/i.test(desc) ? "material" : undefined;
+      // Tipo real de la partida si lo tiene; si no, se deduce del texto.
+      const tipo = l.tipo === "material"
+        ? "material"
+        : TIPOS_PARTIDA.includes(l.tipo) && l.tipo !== "otro"
+          ? "mano_obra"
+          : /mano de obra/i.test(desc)
+            ? "mano_obra"
+            : /material/i.test(desc)
+              ? "material"
+              : undefined;
       return {
         descripcion: l.descripcion,
         cantidad: 1,

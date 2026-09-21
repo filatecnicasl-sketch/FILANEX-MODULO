@@ -95,6 +95,13 @@ const empresaSchema = new Schema(
       mostrarDesgloseIva: { type: Boolean, default: true },
       mostrarMetodoPago: { type: Boolean, default: true },
     },
+    // Precios por hora del taller (se usan en las valoraciones: horas ×
+    // precio según el tipo de trabajo). Se editan en Ajustes → Configuración.
+    taller: {
+      precioHoraChapa: { type: Number, default: 0 },
+      precioHoraPintura: { type: Number, default: 0 },
+      precioHoraMecanica: { type: Number, default: 0 },
+    },
     // Cuenta de correo de ESTA empresa. La contraseña se guarda cifrada y
     // nunca se devuelve al navegador.
     correo: {
