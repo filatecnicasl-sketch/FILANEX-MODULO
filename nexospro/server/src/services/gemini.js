@@ -361,8 +361,24 @@ async function generarTextoConCliente({ ai, historial, sistema, modelos, timeout
           setTimeout(() => rechazar(new Error(`El modelo ${modelo} tardó demasiado`)), timeoutMs + 500)
         );
         const respuesta = await Promise.race([peticion, corte]);
-        const texto = respuesta.text;
-        if (!texto) throw new Error("respuesta vacía");
+        let texto;
+        try {
+          texto = respuesta.text;
+        } catch {
+          texto = undefined;
+        }
+        if (!texto) {
+          // Respuesta vacía: suele ser transitorio (el modelo cortó o no
+          // devolvió texto). Se anota el motivo y se reintenta.
+          const motivo =
+            respuesta?.candidates?.[0]?.finishReason ??
+            respuesta?.promptFeedback?.blockReason ??
+            "sin detalle";
+          ultimoError = new Error(`respuesta vacía (${motivo})`);
+          console.warn(`${motor} ${modelo} (intento ${intento + 1}): respuesta vacía, finishReason=${motivo}`);
+          await esperar(1200 * (intento + 1));
+          continue;
+        }
         return texto;
       } catch (err) {
         ultimoError = err;
@@ -441,6 +457,11 @@ async function generarTextoConOpenAi({ historial, sistema, timeoutMs }) {
 
 /**
  * Pide a la IA una respuesta en texto (conversación con el asistente).
+ *
+ * Cadena de proveedores en orden: Vertex AI → Gemini (AI Studio) → OpenAI.
+ * Si uno falla (caída, respuesta vacía, saturación…), se prueba el siguiente
+ * configurado en vez de rendirse: así un problema puntual de Google no deja
+ * el asistente sin servicio.
  */
 export async function generarTextoIA({
   historial,
@@ -451,51 +472,44 @@ export async function generarTextoIA({
 }) {
   const proveedor = proveedorConfigurado();
   const hayVertex = Boolean(process.env.VERTEX_PROJECT_ID);
-  const usarOpenAiPrimero = proveedor === "openai" || (proveedor === "auto" && geminiBloqueado && hayOpenAi());
+  const hayGemini = Boolean(process.env.GEMINI_API_KEY);
 
-  if (!usarOpenAiPrimero && hayVertex && (proveedor === "auto" || proveedor === "vertex" || proveedor === "gemini")) {
-    try {
-      return await generarTextoConVertex({ historial, sistema, timeoutMs });
-    } catch (err) {
-      console.error("Vertex AI:", err?.message);
-      if (proveedor === "vertex" || !hayOpenAi()) {
-        throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
-      }
-    }
+  const cadena = [];
+  if (proveedor === "openai") {
+    cadena.push("openai");
+  } else if (proveedor === "vertex") {
+    cadena.push("vertex", "gemini", "openai");
+  } else if (proveedor === "gemini") {
+    cadena.push("gemini", "vertex", "openai");
+  } else {
+    // auto
+    if (geminiBloqueado) cadena.push("openai");
+    cadena.push("vertex", "gemini", "openai");
   }
 
-  if (!usarOpenAiPrimero) {
+  const intentados = new Set();
+  for (const p of cadena) {
+    if (intentados.has(p)) continue;
+    intentados.add(p);
     try {
-      return await generarTextoConGemini({ historial, sistema, modelos, timeoutMs });
+      if (p === "vertex") {
+        if (!hayVertex) continue;
+        return await generarTextoConVertex({ historial, sistema, timeoutMs });
+      }
+      if (p === "gemini") {
+        if (!hayGemini || geminiBloqueado) continue;
+        return await generarTextoConGemini({ historial, sistema, modelos, timeoutMs });
+      }
+      if (!hayOpenAi()) continue;
+      return await generarTextoConOpenAi({ historial, sistema, timeoutMs });
     } catch (err) {
-      if (esBloqueoUbicacion(err)) {
+      if (p === "gemini" && esBloqueoUbicacion(err)) {
         geminiBloqueado = true;
         console.error("Google rechaza la clave desde la IP de este servidor; se prueba la alternativa.");
-        if (!hayOpenAi() && !hayVertex) {
-          throw new Error(`${etiqueta} no está disponible: Google bloquea este servidor por ubicación.`);
-        }
-      } else if (proveedor === "gemini" || (!hayOpenAi() && !hayVertex)) {
-        console.error("IA agotada:", err?.message);
-        throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
       } else {
-        console.warn("Gemini falló, se prueba la alternativa:", String(err?.message).slice(0, 160));
+        console.error(`IA (${p}):`, String(err?.message).slice(0, 200));
       }
     }
   }
-
-  if (hayVertex) {
-    try {
-      return await generarTextoConVertex({ historial, sistema, timeoutMs });
-    } catch (err) {
-      console.error("Vertex AI:", err?.message);
-      if (!hayOpenAi()) throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
-    }
-  }
-
-  try {
-    return await generarTextoConOpenAi({ historial, sistema, timeoutMs });
-  } catch (err) {
-    console.error("IA agotada:", err?.message);
-    throw new Error(`${etiqueta} no está disponible ahora mismo: ${err.message}`);
-  }
+  throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
 }
