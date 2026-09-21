@@ -187,9 +187,12 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
   }, [conGrupo, lineas]);
 
   function filaLinea(l, i) {
+    // Total de la línea con IVA (como en el ticket/documento impreso).
+    const { base, iva } = importesLinea(l);
+    const totalLinea = base + iva;
     return (
       <div key={i} className="relative">
-        <div className="grid grid-cols-12 gap-2">
+        <div className="grid grid-cols-12 gap-2 items-center">
           <input
             data-editor="linea" data-editor-desc
             placeholder="Descripción o artículo…"
@@ -200,7 +203,7 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
               setSugerenciasEn(i);
             }}
             onKeyDown={(e) => e.key === "Escape" && setSugerenciasEn(null)}
-            className={`${conTipo ? (conDescuento ? "col-span-3" : "col-span-4") : conDescuento ? "col-span-5" : "col-span-6"} input text-base sm:text-sm`}
+            className={`${conTipo ? (conDescuento ? "col-span-3" : "col-span-4") : conDescuento ? "col-span-4" : "col-span-5"} input text-base sm:text-sm`}
             autoComplete="off"
           />
           {conTipo && (
@@ -247,9 +250,14 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
           >
             {[21, 10, 4, 0].map((v) => <option key={v} value={v}>{v}%</option>)}
           </select>
+          {!conTipo && (
+            <span className="col-span-1 text-right text-sm font-semibold text-slate-700 num whitespace-nowrap" title="Total de la línea con IVA">
+              {euros(totalLinea)}
+            </span>
+          )}
           <button
             onClick={() => setLineas((ls) => ls.filter((_, j) => j !== i))}
-            className="col-span-1 text-slate-500 hover:text-red-300"
+            className="col-span-1 text-slate-500 hover:text-red-300 text-center"
             title="Quitar línea"
           >×</button>
         </div>
@@ -395,6 +403,22 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
             <option key={g} value={g} />
           ))}
         </datalist>
+      )}
+
+      {/* Cabeceras de columna siempre visibles, como en el documento impreso. */}
+      {!conGrupo && (
+        <div className="hidden sm:grid grid-cols-12 gap-2 text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-200">
+          <span className={conTipo ? (conDescuento ? "col-span-3" : "col-span-4") : conDescuento ? "col-span-4" : "col-span-5"}>
+            Descripción
+          </span>
+          {conTipo && <span className="col-span-2">Tipo</span>}
+          <span className="col-span-2 text-right">Cant. ud.</span>
+          <span className="col-span-2 text-right">Precio</span>
+          {conDescuento && <span className="col-span-1 text-right">Dto. %</span>}
+          <span className="col-span-1">IVA %</span>
+          {!conTipo && <span className="col-span-1 text-right">Total</span>}
+          <span className="col-span-1" />
+        </div>
       )}
 
       {conGrupo
