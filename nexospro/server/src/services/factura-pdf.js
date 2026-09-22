@@ -58,7 +58,11 @@ export async function generarPdfFactura({ empresa, factura, cliente }) {
   doc.font("Helvetica").fontSize(9);
   for (const l of lineas) {
     const importe = (l.cantidad ?? 0) * (l.precioUnitario ?? 0) * (1 - (l.descuento ?? 0) / 100);
-    doc.text(l.descripcion, 50, y, { width: conDto ? 245 : 275 });
+    // La descripción puede ocupar varias líneas: se avanza la fila según
+    // su altura real para que las líneas largas no se pisen entre sí.
+    const anchoDesc = conDto ? 245 : 275;
+    const altoDesc = doc.heightOfString(l.descripcion ?? "", { width: anchoDesc });
+    doc.text(l.descripcion, 50, y, { width: anchoDesc });
     if (conDto) {
       doc.text(String(l.cantidad), 300, y, { width: 40, align: "right" });
       doc.text((l.precioUnitario ?? 0).toFixed(2), 345, y, { width: 55, align: "right" });
@@ -69,21 +73,21 @@ export async function generarPdfFactura({ empresa, factura, cliente }) {
     }
     doc.text(`${l.iva ?? 0}%`, 445, y, { width: 40, align: "right" });
     doc.text(importe.toFixed(2), 490, y, { width: 55, align: "right" });
-    y += 16;
+    y += Math.max(16, altoDesc + 6);
   }
 
-  // Totales
+  // Totales (etiqueta y cantidad con columnas separadas para que no se pisen)
   y += 10;
   doc.moveTo(350, y).lineTo(545, y).strokeColor("#cccccc").stroke();
   y += 8;
-  doc.font("Helvetica").text("Base imponible", 380, y, { width: 105, align: "right" });
-  doc.text(`${(factura.baseImponible ?? 0).toFixed(2)} EUR`, 460, y, { width: 85, align: "right" });
+  doc.font("Helvetica").text("Base imponible", 380, y, { width: 80, align: "right" });
+  doc.text(`${(factura.baseImponible ?? 0).toFixed(2)} EUR`, 463, y, { width: 82, align: "right" });
   y += 14;
-  doc.text("IVA", 380, y, { width: 105, align: "right" });
-  doc.text(`${(factura.cuotaIva ?? 0).toFixed(2)} EUR`, 460, y, { width: 85, align: "right" });
+  doc.text("IVA", 380, y, { width: 80, align: "right" });
+  doc.text(`${(factura.cuotaIva ?? 0).toFixed(2)} EUR`, 463, y, { width: 82, align: "right" });
   y += 16;
-  doc.font("Helvetica-Bold").fontSize(11).text("TOTAL", 380, y, { width: 105, align: "right" });
-  doc.text(`${(factura.total ?? 0).toFixed(2)} EUR`, 460, y, { width: 85, align: "right" });
+  doc.font("Helvetica-Bold").fontSize(11).text("TOTAL", 380, y, { width: 80, align: "right" });
+  doc.text(`${(factura.total ?? 0).toFixed(2)} EUR`, 463, y, { width: 82, align: "right" });
 
   // QR tributario (solo facturas emitidas con registro VeriFactu)
   if (!esBorrador && factura.verifactu?.qrContenido) {
@@ -118,17 +122,20 @@ export async function generarPdfFactura({ empresa, factura, cliente }) {
       remesa: "remesa bancaria",
       otro: "otro medio",
     };
+    // Bajo los totales (o a media página si la factura es corta), sin pisar
+    // la zona del QR tributario.
+    const ySello = Math.min(Math.max(y + 45, 385), 610);
     doc.save();
-    doc.rotate(-14, { origin: [300, 420] });
+    doc.rotate(-14, { origin: [300, ySello + 30] });
     doc.opacity(0.85);
-    doc.roundedRect(170, 385, 260, 58, 6).lineWidth(2).strokeColor("#1a8f4a").stroke();
-    doc.roundedRect(173, 388, 254, 52, 5).lineWidth(0.7).strokeColor("#1a8f4a").stroke();
+    doc.roundedRect(170, ySello, 260, 58, 6).lineWidth(2).strokeColor("#1a8f4a").stroke();
+    doc.roundedRect(173, ySello + 3, 254, 52, 5).lineWidth(0.7).strokeColor("#1a8f4a").stroke();
     doc.fontSize(24).font("Helvetica-Bold").fillColor("#1a8f4a")
-      .text("PAGADA", 180, 394, { width: 240, align: "center" });
+      .text("PAGADA", 180, ySello + 9, { width: 240, align: "center" });
     doc.fontSize(10).font("Helvetica")
       .text(
         `Cobrada el ${fechaDDMMYYYY(ultimo?.fecha ?? new Date())} por ${medios[ultimo?.metodo] ?? "transferencia"}`,
-        175, 422, { width: 250, align: "center" }
+        175, ySello + 37, { width: 250, align: "center" }
       );
     doc.restore();
     doc.fillColor("black").opacity(1);
