@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-22",
     tipo: "mejora",
+    titulo: "La orden nueva hereda la valoración sola",
+    detalle:
+      "Al dar de alta una orden de trabajo (desde Órdenes → Nueva orden), si la matrícula tiene una valoración pendiente —por ejemplo la importada del PDF de la compañía— la orden se rellena sola: líneas y total, compañía, nº de siniestro, «facturar a» y motivo. Ya no hay que escribir nada coche por coche, y la valoración queda enlazada con su número de orden.",
+  },
+  {
+    fecha: "2026-09-22",
+    tipo: "mejora",
     titulo: "La orden de trabajo impresa muestra la compañía",
     detalle:
       "En la impresión de la orden de trabajo, el bloque del vehículo ahora lleva una línea con la compañía de seguros y el nº de siniestro cuando la reparación va por aseguradora (si es particular, pone «Particular»). Ya estaba el dato; ahora también sale en el papel.",

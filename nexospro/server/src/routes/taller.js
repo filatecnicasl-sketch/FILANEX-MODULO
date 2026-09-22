@@ -255,14 +255,46 @@ router.post("/ordenes", async (req, res, next) => {
       if (error) return res.status(codigo).json({ error });
       ptos.push(presupuesto);
     }
+
+    // Valoraciones del vehículo sin orden todavía: si el alta manual no trae
+    // líneas ni compañía, la orden las hereda de la valoración más reciente
+    // (igual que la recepción desde la cita) y quedan enlazadas.
+    const mat = normalizarMatricula(matricula);
+    const valoracionesPendientes = await Valoracion.find({
+      matricula: mat,
+      orden: null,
+      estado: { $ne: "rechazada" },
+    }).sort({ createdAt: -1 });
+    const valReciente = valoracionesPendientes[0];
+
+    const lineasBody = Array.isArray(req.body.lineas) ? req.body.lineas.filter((l) => l.descripcion) : [];
     const orden = await crearOrden({
       ...req.body,
+      motivo:
+        req.body.motivo ||
+        (valReciente
+          ? `Siniestro ${valReciente.numeroSiniestro ?? valReciente.numero}` +
+            (valReciente.compania ? ` · ${valReciente.compania}` : "")
+          : undefined),
+      aseguradora: req.body.aseguradora ?? valReciente?.aseguradora ?? undefined,
+      numeroSiniestro: req.body.numeroSiniestro ?? valReciente?.numeroSiniestro ?? undefined,
+      facturarA: req.body.facturarA ?? (valReciente?.aseguradora ? "aseguradora" : undefined),
+      lineas: lineasBody.length ? lineasBody : lineasDesdeValoracion(valReciente),
       presupuesto: ptos[0]?._id,
       presupuestoNumero: ptos[0]?.serieNumero,
       presupuestos: ptos.map((p) => p._id),
       presupuestosNumeros: ptos.map((p) => p.serieNumero),
     });
     await Promise.all(ptos.map(marcarPresupuestoAceptado));
+
+    // Enlazar las valoraciones con la orden recién creada.
+    for (const v of valoracionesPendientes) {
+      v.orden = orden._id;
+      v.numeroOrden = orden.numero;
+      if (v.estado === "pendiente") v.estado = "valorado";
+      await v.save();
+    }
+
     res.status(201).json(orden);
   } catch (err) {
     next(err);
