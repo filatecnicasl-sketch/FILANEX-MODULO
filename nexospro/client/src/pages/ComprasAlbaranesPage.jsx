@@ -194,17 +194,6 @@ export default function ComprasAlbaranesPage() {
                   <td className="text-slate-400 num">
                       {a.numeroAlbaran ?? "—"}
                       {a.ocr && <Badge tono="slate"> IA</Badge>}
-                      {a.ocr?.ficheroUrl && (
-                        <a
-                          href={a.ocr.ficheroUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block mt-0.5 text-xs font-semibold text-accent hover:underline"
-                          title="Abrir el PDF del albarán recibido"
-                        >
-                          Ver PDF original
-                        </a>
-                      )}
                       {a.ordenesTaller?.length > 0 && (
                         <span className="block mt-0.5">
                           {[...new Set(a.ordenesTaller.map((e) => e.numeroOrden))].map((n) => (
@@ -253,6 +242,17 @@ export default function ComprasAlbaranesPage() {
                       >
                         <IconImprimir />
                       </button>
+                      {a.ocr?.ficheroUrl && (
+                        <a
+                          href={a.ocr.ficheroUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Abrir el PDF del albarán recibido"
+                          className="text-xs text-accent hover:underline mr-3"
+                        >
+                          PDF
+                        </a>
+                      )}
                       {conTaller && (
                         <button
                           onClick={() => setEnvio(a)}
