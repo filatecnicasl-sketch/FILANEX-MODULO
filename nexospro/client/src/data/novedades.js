@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-22",
     tipo: "nuevo",
+    titulo: "Sello PAGADA en el PDF de las facturas cobradas",
+    detalle:
+      "Cuando una factura está totalmente cobrada, su PDF (descargar o imprimir) sale con un sello verde «PAGADA — Cobrada el día… por transferencia/efectivo…», con la fecha y el medio del último cobro. Sirve como justificante de pago para subvenciones y trámites. Además se han corregido las descripciones largas de las líneas, que se montaban unas sobre otras, y la columna del total.",
+  },
+  {
+    fecha: "2026-09-22",
+    tipo: "nuevo",
     titulo: "Al finalizar la orden: entrega, fotos y aviso al cliente",
     detalle:
       "Al pasar una orden de trabajo a «Finalizado» se abre una ventana para anotar la fecha y hora de entrega, subir fotos del vehículo terminado y marcar si el cliente ya está avisado para la recogida (y por qué medio: teléfono, WhatsApp…). En el tablero y la lista se ve la hora de entrega y la chapa «Avisado» o «Sin avisar».",
