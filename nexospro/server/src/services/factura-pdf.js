@@ -104,6 +104,36 @@ export async function generarPdfFactura({ empresa, factura, cliente }) {
     doc.fillColor("black");
   }
 
+  // Sello PAGADA: solo cuando la factura está totalmente cobrada. Muestra
+  // la fecha y el medio del último cobro (lo que suelen pedir para
+  // subvenciones y justificantes de pago).
+  const cobros = factura.cobros ?? [];
+  const cobrado = cobros.reduce((s, c) => s + (c.importe ?? 0), 0);
+  if (factura.estado !== "anulada" && cobrado > 0 && cobrado + 0.005 >= (factura.total ?? 0)) {
+    const ultimo = cobros[cobros.length - 1];
+    const medios = {
+      transferencia: "transferencia",
+      efectivo: "efectivo",
+      tarjeta: "tarjeta",
+      remesa: "remesa bancaria",
+      otro: "otro medio",
+    };
+    doc.save();
+    doc.rotate(-14, { origin: [300, 420] });
+    doc.opacity(0.85);
+    doc.roundedRect(170, 385, 260, 58, 6).lineWidth(2).strokeColor("#1a8f4a").stroke();
+    doc.roundedRect(173, 388, 254, 52, 5).lineWidth(0.7).strokeColor("#1a8f4a").stroke();
+    doc.fontSize(24).font("Helvetica-Bold").fillColor("#1a8f4a")
+      .text("PAGADA", 180, 394, { width: 240, align: "center" });
+    doc.fontSize(10).font("Helvetica")
+      .text(
+        `Cobrada el ${fechaDDMMYYYY(ultimo?.fecha ?? new Date())} por ${medios[ultimo?.metodo] ?? "transferencia"}`,
+        175, 422, { width: 250, align: "center" }
+      );
+    doc.restore();
+    doc.fillColor("black").opacity(1);
+  }
+
   doc.end();
   await terminado;
   return Buffer.concat(chunks);
