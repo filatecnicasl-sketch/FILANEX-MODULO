@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-09-22",
+    tipo: "mejora",
+    titulo: "La orden de trabajo impresa muestra la compañía",
+    detalle:
+      "En la impresión de la orden de trabajo, el bloque del vehículo ahora lleva una línea con la compañía de seguros y el nº de siniestro cuando la reparación va por aseguradora (si es particular, pone «Particular»). Ya estaba el dato; ahora también sale en el papel.",
+  },
+  {
     fecha: "2026-09-21",
     tipo: "mejora",
     titulo: "El TPV ya se usa bien desde el móvil",

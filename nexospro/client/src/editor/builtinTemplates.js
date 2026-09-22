@@ -280,15 +280,16 @@ export function buildParteTaller() {
       tx("{{cliente.nif}}", 23, 54, 74, 5, 8, false, "left", "#374151"),
       tx("{{cliente.telefono}}", 23, 59, 74, 5, 8, false, "left", "#374151"),
 
-      box(110, 38, 80, 26, 0.4, "#e5e7eb"),
+      box(110, 38, 80, 30, 0.4, "#e5e7eb"),
       tx("VEHÍCULO", 113, 41, 74, 5, 7, true, "left", "#6b7280"),
       tx("{{vehiculo.matricula}}", 113, 47, 74, 6, 10, true),
       tx("{{vehiculo.marca}} {{vehiculo.modelo}}", 113, 54, 74, 5, 8, false, "left", "#374151"),
       tx("{{vehiculo.km}} km", 113, 59, 74, 5, 8, false, "left", "#374151"),
+      tx("{{seguro.texto}}", 113, 64, 74, 5, 8, true, "left", "#1e40af"),
 
-      tx("Trabajo solicitado", 20, 70, 170, 5, 8, true, "left", "#6b7280"),
-      box(20, 76, 170, 22, 0.4, "#e5e7eb"),
-      tx("{{trabajos.motivo}}", 23, 80, 164, 15, 9, false, "left", "#374151"),
+      tx("Trabajo solicitado", 20, 74, 170, 5, 8, true, "left", "#6b7280"),
+      box(20, 80, 170, 22, 0.4, "#e5e7eb"),
+      tx("{{trabajos.motivo}}", 23, 84, 164, 15, 9, false, "left", "#374151"),
 
       t,
 

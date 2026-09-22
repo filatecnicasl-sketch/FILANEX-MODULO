@@ -185,6 +185,10 @@ async function datosOrdenTrabajo(id) {
     "vehiculo.entregaPrevista": fechaEs(o.fechaEntregaPrevista),
     "seguro.compania": aseg.nombre ?? "",
     "seguro.siniestro": o.numeroSiniestro ?? "",
+    // Línea compuesta para la plantilla: "AXA · Siniestro 1234" o "Particular".
+    "seguro.texto": aseg.nombre
+      ? `Compañía: ${aseg.nombre}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}`
+      : "Particular",
     "trabajos.tipo": (o.trabajos ?? []).join(", "),
     "trabajos.motivo": o.motivo ?? "",
     "totales.total": euros((o.lineas ?? []).reduce((s, l) => s + netoLinea(l) * (1 + (Number(l.iva) || 0) / 100), 0)),
