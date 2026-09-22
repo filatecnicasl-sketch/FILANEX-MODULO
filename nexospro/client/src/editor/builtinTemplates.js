@@ -289,7 +289,8 @@ export function buildParteTaller() {
 
       tx("Trabajo solicitado", 20, 74, 170, 5, 8, true, "left", "#6b7280"),
       box(20, 80, 170, 22, 0.4, "#e5e7eb"),
-      tx("{{trabajos.motivo}}", 23, 84, 164, 15, 9, false, "left", "#374151"),
+      // El motivo va grande y en negrita: es lo que leen los operarios.
+      tx("{{trabajos.motivo}}", 23, 84, 164, 15, 14, true, "left", "#111827"),
 
       t,
 

@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-22",
+    tipo: "mejora",
+    titulo: "El trabajo a realizar del parte, con letra grande",
+    detalle:
+      "En el parte de trabajo impreso (taller), el texto del «Trabajo solicitado» pasa de letra 9 a letra 14 en negrita, para que los operarios lo lean bien de un vistazo. Solo cambia ese texto; el resto del parte sigue igual. Como es una plantilla del editor de formatos, cada empresa puede ajustarlo más en Ajustes → Formatos.",
+  },
+  {
+    fecha: "2026-09-22",
     tipo: "nuevo",
     titulo: "Peritación adjunta en las citas de peritaje",
     detalle:
