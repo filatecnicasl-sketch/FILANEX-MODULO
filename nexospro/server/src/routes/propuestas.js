@@ -47,6 +47,30 @@ router.get("/todas", requiereSuperAdmin, async (req, res, next) => {
   }
 });
 
+const ESTADOS = ["pendiente", "realizada", "descartada"];
+
+// El superadministrador archiva una propuesta (realizada / descartada) o la
+// reabre (pendiente). La propuesta vive en la base de datos de SU empresa,
+// así que se actualiza por slug.
+router.patch("/todas/:slug/:id/estado", requiereSuperAdmin, async (req, res, next) => {
+  try {
+    const estado = String(req.body?.estado ?? "");
+    if (!ESTADOS.includes(estado)) {
+      return res.status(400).json({ error: "Estado no válido" });
+    }
+    const tenant = await Tenant.findOne({ slug: req.params.slug }).select("dbName").lean();
+    if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+    const doc = await conexionTenant(tenant.dbName)
+      .model("Propuesta")
+      .findByIdAndUpdate(req.params.id, { estado }, { new: true })
+      .lean();
+    if (!doc) return res.status(404).json({ error: "Propuesta no encontrada" });
+    res.json(doc);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/", async (req, res, next) => {
   try {
     const propuestas = await Propuesta.find()

@@ -14,6 +14,7 @@ import {
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import AsistenteChat from "./AsistenteChat.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
+import BotonActualizar from "./BotonActualizar.jsx";
 import { cerrarSesion, esSuperAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
 
 // Nodo de la barra superior donde CabeceraPagina inserta (portal) el
@@ -565,6 +566,7 @@ export default function Layout() {
             </div>
 
             <PendientesSubida />
+            <BotonActualizar />
 
             {/* Sesión: usuario conectado y salir */}
             {usuario && (

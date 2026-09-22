@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSync } from "../hooks/useSync.js";
 import { registrarSW } from "../lib/pwa.js";
+import { comprobarActualizacion, aplicarActualizacion } from "../lib/actualizacion.js";
 
 // Avisos discretos abajo a la derecha: falta de conexión, cola pendiente y versión nueva.
 export default function AvisoConexion() {
@@ -9,6 +10,23 @@ export default function AvisoConexion() {
 
   useEffect(() => {
     registrarSW((activar) => setActivarNueva(() => activar));
+  }, []);
+
+  // Vigilante de versión: aunque el usuario no cierre nunca la app, a los
+  // pocos minutos de un despliegue le sale el aviso para actualizar.
+  useEffect(() => {
+    let cancelado = false;
+    const mirar = async () => {
+      if (cancelado) return;
+      if (await comprobarActualizacion()) setActivarNueva(() => aplicarActualizacion);
+    };
+    const primera = setTimeout(mirar, 8000);
+    const periodica = setInterval(mirar, 10 * 60 * 1000);
+    return () => {
+      cancelado = true;
+      clearTimeout(primera);
+      clearInterval(periodica);
+    };
   }, []);
 
   const mostrarOffline = !online || deCache;

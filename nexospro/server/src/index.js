@@ -88,6 +88,27 @@ const responderHealth = (req, res) => {
 app.get("/health", responderHealth);
 app.get("/api/health", responderHealth);
 
+// Versión del cliente compilado: el hash del bundle principal que se está
+// sirviendo. La app lo consulta para avisar al usuario cuando hay un
+// despliegue nuevo, aunque lleve días con la aplicación abierta.
+let versionBuildCache = { t: 0, build: "dev" };
+app.get("/api/version", (req, res) => {
+  try {
+    if (Date.now() - versionBuildCache.t > 30000) {
+      const html = fs.readFileSync(
+        path.resolve(__dirname, "../../client/dist/index.html"),
+        "utf8",
+      );
+      const m = html.match(/\/assets\/index-([A-Za-z0-9_-]+)\.js/);
+      versionBuildCache = { t: Date.now(), build: m ? m[1] : "dev" };
+    }
+  } catch {
+    // Sin build del cliente (desarrollo): se responde "dev".
+  }
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ build: versionBuildCache.build });
+});
+
 // API protegida por rate limiting general.
 app.use("/api", limitadorApi, apiRouter);
 

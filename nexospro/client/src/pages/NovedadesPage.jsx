@@ -10,6 +10,12 @@ const TIPOS = {
   seguridad: { etiqueta: "Seguridad", clases: "bg-red-100 text-red-700 border-red-200" },
 };
 
+const ESTADOS = {
+  pendiente: { etiqueta: "Pendiente", clases: "bg-amber-100 text-amber-700 border-amber-200" },
+  realizada: { etiqueta: "Realizada", clases: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  descartada: { etiqueta: "Descartada", clases: "bg-slate-100 text-slate-500 border-slate-200" },
+};
+
 function fechaTxt(iso) {
   return new Date(iso).toLocaleDateString("es-ES", {
     day: "numeric",
@@ -29,6 +35,8 @@ function Chip({ texto, clases }) {
 export default function NovedadesPage() {
   const [vista, setVista] = useState("cambios");
   const [propuestas, setPropuestas] = useState(null);
+  const [filtroEstado, setFiltroEstado] = useState("pendiente");
+  const [archivando, setArchivando] = useState(null);
   const [texto, setTexto] = useState("");
   const [capturas, setCapturas] = useState([]); // File[] con su URL de vista previa
   const [enviando, setEnviando] = useState(false);
@@ -45,6 +53,30 @@ export default function NovedadesPage() {
       .then(setPropuestas)
       .catch((e) => setError(e.message));
   }, [superadmin]);
+
+  // El superadministrador archiva propuestas (realizada/descartada) o las reabre.
+  async function marcarEstado(p, estado) {
+    setArchivando(p._id);
+    setError(null);
+    try {
+      const r = await fetch(`/api/propuestas/todas/${p.empresaSlug}/${p._id}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado }),
+      });
+      if (!r.ok) throw new Error((await r.json()).error || "No se pudo actualizar");
+      setPropuestas((ps) => ps.map((x) => (x._id === p._id ? { ...x, estado } : x)));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setArchivando(null);
+    }
+  }
+
+  const pendientes = (propuestas ?? []).filter((p) => (p.estado ?? "pendiente") === "pendiente").length;
+  const propuestasVisibles = superadmin
+    ? (propuestas ?? []).filter((p) => (p.estado ?? "pendiente") === filtroEstado)
+    : (propuestas ?? []);
 
   function anadirCapturas(e) {
     const nuevas = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
@@ -106,7 +138,7 @@ export default function NovedadesPage() {
             onClick={() => setVista("propuestas")}
             className={vista === "propuestas" ? "btn-primary !py-1.5 text-sm" : "btn-ghost !py-1.5 text-sm"}
           >
-            Propuestas{propuestas ? ` (${propuestas.length})` : ""}
+            Propuestas{propuestas ? (superadmin ? ` (${pendientes} pendientes)` : ` (${propuestas.length})`) : ""}
           </button>
         </div>
 
@@ -196,15 +228,39 @@ export default function NovedadesPage() {
             </form>
 
             <div className="space-y-3">
+              {superadmin && (
+                <div className="flex gap-2 flex-wrap">
+                  {Object.entries(ESTADOS).map(([clave, info]) => {
+                    const n = (propuestas ?? []).filter((p) => (p.estado ?? "pendiente") === clave).length;
+                    return (
+                      <button
+                        key={clave}
+                        onClick={() => setFiltroEstado(clave)}
+                        className={
+                          filtroEstado === clave
+                            ? "btn-primary !py-1 !px-3 text-xs"
+                            : "btn-ghost !py-1 !px-3 text-xs"
+                        }
+                      >
+                        {info.etiqueta}s ({n})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               {propuestas === null && !error && (
                 <p className="text-sm text-slate-500">Cargando propuestas…</p>
               )}
-              {propuestas?.length === 0 && (
+              {propuestasVisibles.length === 0 && propuestas !== null && (
                 <p className="text-sm text-slate-500">
-                  Todavía no hay propuestas. Sé el primero en escribir una.
+                  {superadmin
+                    ? `No hay propuestas ${ESTADOS[filtroEstado].etiqueta.toLowerCase()}s.`
+                    : "Todavía no hay propuestas. Sé el primero en escribir una."}
                 </p>
               )}
-              {propuestas?.map((p) => (
+              {propuestasVisibles.map((p) => {
+                const estadoInfo = ESTADOS[p.estado ?? "pendiente"] ?? ESTADOS.pendiente;
+                return (
                 <div key={p._id} className="panel p-4">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-slate-800 text-sm">
@@ -216,6 +272,7 @@ export default function NovedadesPage() {
                         clases="bg-violet-100 text-violet-700 border-violet-200"
                       />
                     )}
+                    <Chip texto={estadoInfo.etiqueta} clases={estadoInfo.clases} />
                     <span className="text-xs text-slate-500">{fechaTxt(p.createdAt)}</span>
                   </div>
                   <p className="text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">{p.texto}</p>
@@ -232,8 +289,40 @@ export default function NovedadesPage() {
                       ))}
                     </div>
                   )}
+                  {superadmin && (
+                    <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                      {(p.estado ?? "pendiente") !== "realizada" && (
+                        <button
+                          onClick={() => marcarEstado(p, "realizada")}
+                          disabled={archivando === p._id}
+                          className="btn-ghost !py-1 !px-2.5 text-xs !text-emerald-600 hover:!bg-emerald-50 disabled:opacity-50"
+                        >
+                          ✓ Marcar realizada
+                        </button>
+                      )}
+                      {(p.estado ?? "pendiente") !== "descartada" && (
+                        <button
+                          onClick={() => marcarEstado(p, "descartada")}
+                          disabled={archivando === p._id}
+                          className="btn-ghost !py-1 !px-2.5 text-xs !text-slate-500 hover:!bg-slate-100 disabled:opacity-50"
+                        >
+                          ✕ Descartar
+                        </button>
+                      )}
+                      {(p.estado ?? "pendiente") !== "pendiente" && (
+                        <button
+                          onClick={() => marcarEstado(p, "pendiente")}
+                          disabled={archivando === p._id}
+                          className="btn-ghost !py-1 !px-2.5 text-xs !text-amber-600 hover:!bg-amber-50 disabled:opacity-50"
+                        >
+                          ↩ Reabrir
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

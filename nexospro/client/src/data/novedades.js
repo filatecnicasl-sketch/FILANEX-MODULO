@@ -6,6 +6,20 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-22",
+    tipo: "nuevo",
+    titulo: "Actualización del programa sin cerrar la aplicación",
+    detalle:
+      "Nuevo botón «Actualizar» en la barra superior, junto a Salir: comprueba si hay una versión nueva y la aplica al momento, sin cerrar sesión ni salir y entrar. Además, la aplicación revisa sola cada 10 minutos si hay versión nueva y muestra el aviso abajo a la derecha. Pensado para pantallas que se quedan abiertas todo el día (TPV, recepción…).",
+  },
+  {
+    fecha: "2026-09-22",
+    tipo: "nuevo",
+    titulo: "Archivo de propuestas: pendientes, realizadas y descartadas",
+    detalle:
+      "En Novedades → Propuestas, el administrador de la plataforma puede archivar cada propuesta como «Realizada» o «Descartada» (y reabrirla si hace falta). La pestaña muestra cuántas quedan pendientes y hay un filtro para ver cada grupo. Los usuarios ven la marca de estado en sus propuestas.",
+  },
+  {
+    fecha: "2026-09-22",
     tipo: "mejora",
     titulo: "La orden nueva hereda la valoración sola",
     detalle:
