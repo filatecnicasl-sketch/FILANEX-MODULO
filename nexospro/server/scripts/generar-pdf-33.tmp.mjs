@@ -4,6 +4,7 @@ import fs from "node:fs";
 import mongoose from "mongoose";
 import { conContexto } from "../src/models/tenant.js";
 import FacturaVenta from "../src/models/FacturaVenta.js";
+import Cliente from "../src/models/Cliente.js";
 import Empresa from "../src/models/Empresa.js";
 import { generarPdfFactura } from "../src/services/factura-pdf.js";
 
