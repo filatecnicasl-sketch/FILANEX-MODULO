@@ -365,6 +365,22 @@ router.put("/ordenes/:id", async (req, res, next) => {
       const ref = cambios.aseguradora ?? (await OrdenTrabajo.findById(req.params.id).lean())?.aseguradora;
       if (!ref) return res.status(400).json({ error: "Para facturar a la compañía primero elige la aseguradora" });
     }
+    // Entrega del vehículo terminado: fecha/hora, fotos y aviso al cliente.
+    if (req.body.entrega !== undefined) {
+      const e = req.body.entrega ?? {};
+      const MEDIOS = ["telefono", "whatsapp", "sms", "email", "en_persona"];
+      cambios.entrega = {
+        ...(e.fecha ? { fecha: new Date(e.fecha) } : {}),
+        clienteAvisado: !!e.clienteAvisado,
+        ...(e.clienteAvisado
+          ? {
+              avisoFecha: e.avisoFecha ? new Date(e.avisoFecha) : new Date(),
+              ...(MEDIOS.includes(e.avisoMedio) ? { avisoMedio: e.avisoMedio } : {}),
+            }
+          : {}),
+        fotos: Array.isArray(e.fotos) ? e.fotos : [],
+      };
+    }
     const orden = await OrdenTrabajo.findByIdAndUpdate(req.params.id, cambios, { new: true, omitUndefined: true });
     if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
     res.json(orden);
@@ -615,6 +631,49 @@ router.post("/ordenes/:id/recepcion/firma", async (req, res, next) => {
     };
     await orden.save();
     res.json(orden.recepcionDigital.firma);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Fotos del vehículo ya terminado (al pasar a finalizado): documentan el
+// trabajo hecho y quedan junto a la entrega.
+router.post("/ordenes/:id/entrega/fotos", rutasFotosRecepcion, async (req, res, next) => {
+  try {
+    const orden = await OrdenTrabajo.findById(req.params.id);
+    if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
+    if (!req.files?.length) return res.status(400).json({ error: "No llegó ninguna foto" });
+    const slug = slugActual();
+    const rutas = [];
+    for (const f of req.files) {
+      if (!f.mimetype.startsWith("image/")) continue;
+      const ext = f.mimetype === "image/png" ? ".png" : ".jpg";
+      const archivo = `ot-ent-${orden._id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+      const remoto = `uploads/${slug}/taller/${archivo}`;
+      await guardarArchivo(remoto, f.buffer, f.mimetype);
+      rutas.push(urlPublica(remoto));
+    }
+    orden.entrega = orden.entrega ?? {};
+    orden.entrega.fotos = [...(orden.entrega.fotos ?? []), ...rutas];
+    await orden.save();
+    res.status(201).json(orden.entrega);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Quita una foto de la entrega (body: { ruta }).
+router.delete("/ordenes/:id/entrega/fotos", async (req, res, next) => {
+  try {
+    const { ruta } = req.body;
+    const orden = await OrdenTrabajo.findById(req.params.id);
+    if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
+    const fotos = orden.entrega?.fotos ?? [];
+    if (!fotos.includes(ruta)) return res.status(404).json({ error: "Foto no encontrada" });
+    orden.entrega.fotos = fotos.filter((f) => f !== ruta);
+    await orden.save();
+    await borrarSubida(ruta).catch(() => {});
+    res.json(orden.entrega);
   } catch (err) {
     next(err);
   }

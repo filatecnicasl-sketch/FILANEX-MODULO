@@ -194,6 +194,17 @@ export default function ComprasAlbaranesPage() {
                   <td className="text-slate-400 num">
                       {a.numeroAlbaran ?? "—"}
                       {a.ocr && <Badge tono="slate"> IA</Badge>}
+                      {a.ocr?.ficheroUrl && (
+                        <a
+                          href={a.ocr.ficheroUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block mt-0.5 text-xs font-semibold text-accent hover:underline"
+                          title="Abrir el PDF del albarán recibido"
+                        >
+                          Ver PDF original
+                        </a>
+                      )}
                       {a.ordenesTaller?.length > 0 && (
                         <span className="block mt-0.5">
                           {[...new Set(a.ordenesTaller.map((e) => e.numeroOrden))].map((n) => (

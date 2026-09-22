@@ -7,6 +7,46 @@ import RecepcionRapida from "./RecepcionRapida.jsx";
 import FormOrden from "./FormOrden.jsx";
 import MenuImprimirOrden from "../../components/MenuImprimirOrden.jsx";
 import ModalRecepcion from "./ModalRecepcion.jsx";
+import FinalizarOrdenModal from "./FinalizarOrdenModal.jsx";
+
+const fechaHora = (iso) =>
+  iso
+    ? new Date(iso).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "—";
+
+// Aviso de entrega en las tarjetas y la lista: hora de entrega y si el
+// cliente ya está avisado para la recogida.
+function BadgeEntrega({ orden }) {
+  if (!orden.entrega) return null;
+  const { fecha: f, clienteAvisado, avisoMedio, fotos } = orden.entrega;
+  const medios = { telefono: "teléfono", whatsapp: "WhatsApp", sms: "SMS", email: "email", en_persona: "en persona" };
+  return (
+    <p className="mt-1 flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-[0.6875rem]">
+      {f && (
+        <span className="text-slate-500 num" title="Fecha y hora de entrega">
+          Entrega: {fechaHora(f)}
+        </span>
+      )}
+      {fotos?.length > 0 && (
+        <span className="text-slate-400" title={`${fotos.length} foto(s) del vehículo terminado`}>
+          📷 {fotos.length}
+        </span>
+      )}
+      {clienteAvisado ? (
+        <span
+          className="rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 px-1.5 py-px font-semibold"
+          title={`Cliente avisado${avisoMedio ? ` por ${medios[avisoMedio] ?? avisoMedio}` : ""}`}
+        >
+          Avisado
+        </span>
+      ) : (
+        <span className="rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-px font-semibold" title="Aún no se ha avisado al cliente">
+          Sin avisar
+        </span>
+      )}
+    </p>
+  );
+}
 
 // Icono de cámara para la recepción digital (fotos del estado + firma).
 function IconCamara() {
@@ -90,6 +130,7 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion }) 
                   {o.trabajos?.length > 0 && (
                     <p className="text-[0.6875rem] text-slate-400 mt-1 truncate">{o.trabajos.join(", ")}</p>
                   )}
+                  <BadgeEntrega orden={o} />
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                     <span className="text-[0.6875rem] text-slate-400 num">{fecha(o.fechaEntrada)}</span>
                     <span className="flex items-center gap-2">
@@ -144,6 +185,7 @@ export default function TallerOrdenesPage() {
   // undefined = cerrado · null = orden nueva · objeto = edición
   const [ordenForm, setOrdenForm] = useState(undefined);
   const [recepcionOT, setRecepcionOT] = useState(undefined); // orden en recepción digital
+  const [finalizando, setFinalizando] = useState(undefined); // orden en el modal de finalizar
   const [recepcionNueva, setRecepcionNueva] = useState(false); // recién creada (flujo recepción rápida)
   const [vista, setVista] = useState("tablero"); // "tablero" (kanban) | "lista"
   const [params, setParams] = useSearchParams();
@@ -177,6 +219,11 @@ export default function TallerOrdenesPage() {
   }, []);
 
   async function cambiarEstado(o, estado) {
+    // Al finalizar se recoge la entrega (fecha/hora, fotos y aviso).
+    if (estado === "finalizado") {
+      setFinalizando(o);
+      return;
+    }
     const r = await fetch(`/api/taller/ordenes/${o._id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -310,7 +357,10 @@ export default function TallerOrdenesPage() {
                       )}
                     </td>
                     <td className="text-slate-400">{o.trabajos?.length > 0 ? o.trabajos.join(", ") : "—"}</td>
-                    <td className="text-slate-400 whitespace-nowrap num">{fecha(o.fechaEntrada)}</td>
+                    <td className="text-slate-400 whitespace-nowrap num">
+                      {fecha(o.fechaEntrada)}
+                      <BadgeEntrega orden={o} />
+                    </td>
                     <td>
                       <select
                         value={o.estado}
@@ -406,6 +456,17 @@ export default function TallerOrdenesPage() {
             setRecepcionNueva(false);
           }}
           onGuardada={cargar}
+        />
+      )}
+
+      {finalizando !== undefined && (
+        <FinalizarOrdenModal
+          orden={finalizando}
+          onCerrar={() => setFinalizando(undefined)}
+          onFinalizada={() => {
+            setFinalizando(undefined);
+            cargar();
+          }}
         />
       )}
     </>

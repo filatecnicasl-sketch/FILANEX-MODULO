@@ -6,6 +6,20 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-22",
+    tipo: "nuevo",
+    titulo: "Al finalizar la orden: entrega, fotos y aviso al cliente",
+    detalle:
+      "Al pasar una orden de trabajo a «Finalizado» se abre una ventana para anotar la fecha y hora de entrega, subir fotos del vehículo terminado y marcar si el cliente ya está avisado para la recogida (y por qué medio: teléfono, WhatsApp…). En el tablero y la lista se ve la hora de entrega y la chapa «Avisado» o «Sin avisar».",
+  },
+  {
+    fecha: "2026-09-22",
+    tipo: "mejora",
+    titulo: "El PDF del albarán importado, visible en Compras",
+    detalle:
+      "En Compras → Albaranes, los albaranes importados por IA muestran ahora el enlace «Ver PDF original» para abrir el documento que mandó el proveedor. Así se puede cotejar lo escaneado con el albarán real en el control diario de recepciones.",
+  },
+  {
+    fecha: "2026-09-22",
     tipo: "mejora",
     titulo: "El trabajo a realizar del parte, con letra grande",
     detalle:

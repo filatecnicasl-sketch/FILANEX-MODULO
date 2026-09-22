@@ -30,6 +30,15 @@ const ordenTrabajoSchema = new Schema(
     estado: { type: String, enum: ESTADOS_OT, default: "recepcion", index: true },
     fechaEntrada: { type: Date, default: Date.now, index: true },
     fechaEntregaPrevista: Date,
+    // Entrega del vehículo terminado: se rellena al pasar la orden a
+    // finalizado (momento, fotos del trabajo hecho y aviso al cliente).
+    entrega: {
+      fecha: Date, // día y hora de la entrega
+      clienteAvisado: { type: Boolean, default: false },
+      avisoFecha: Date, // cuándo se le avisó
+      avisoMedio: { type: String, enum: ["telefono", "whatsapp", "sms", "email", "en_persona", undefined] },
+      fotos: { type: [String], default: [] }, // rutas /uploads/...
+    },
     // Presupuesto de venta del que nace la orden: sus líneas se cargan en
     // la OT al vincularlo y queda marcado aceptado/facturado con ella.
     presupuesto: { type: Schema.Types.ObjectId, ref: "Presupuesto", index: true },
