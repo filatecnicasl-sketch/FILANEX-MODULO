@@ -1112,6 +1112,66 @@ router.delete("/citas/:id", async (req, res, next) => {
   }
 });
 
+// Adjunta documentos a la cita (la peritación de la compañía en PDF o
+// fotos de los daños). Máximo 4 archivos de 15 MB por subida.
+const subidaAdjuntosCita = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024, files: 4 },
+});
+router.post(
+  "/citas/:id/adjuntos",
+  [subidaAdjuntosCita.array("archivos", 4), contextoTrasSubida],
+  async (req, res, next) => {
+    try {
+      const cita = await Cita.findOne({ _id: req.params.id, ambito: "taller" });
+      if (!cita) return res.status(404).json({ error: "Cita no encontrada" });
+      if (!req.files?.length) return res.status(400).json({ error: "No llegó ningún archivo" });
+      const slug = slugActual();
+      const nuevos = [];
+      for (const f of req.files) {
+        const esPdf = f.mimetype === "application/pdf";
+        if (!esPdf && !f.mimetype.startsWith("image/")) continue;
+        const ext = esPdf
+          ? ".pdf"
+          : f.mimetype === "image/png"
+            ? ".png"
+            : f.mimetype === "image/webp"
+              ? ".webp"
+              : ".jpg";
+        const archivo = `cita-${cita._id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+        const remoto = `uploads/${slug}/taller/peritaciones/${archivo}`;
+        await guardarArchivo(remoto, f.buffer, f.mimetype);
+        nuevos.push({ url: urlPublica(remoto), nombre: f.originalname || archivo });
+      }
+      if (!nuevos.length) {
+        return res.status(400).json({ error: "Solo se admiten archivos PDF o imágenes" });
+      }
+      cita.adjuntos = [...(cita.adjuntos ?? []), ...nuevos];
+      await cita.save();
+      res.status(201).json(cita.adjuntos);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Quita un adjunto de la cita (body: { url }) y borra el archivo guardado.
+router.delete("/citas/:id/adjuntos", async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    const cita = await Cita.findOne({ _id: req.params.id, ambito: "taller" });
+    if (!cita) return res.status(404).json({ error: "Cita no encontrada" });
+    const antes = (cita.adjuntos ?? []).length;
+    cita.adjuntos = (cita.adjuntos ?? []).filter((a) => a.url !== url);
+    if (cita.adjuntos.length === antes) return res.status(404).json({ error: "Adjunto no encontrado" });
+    await cita.save();
+    await borrarSubida(url).catch(() => {});
+    res.json(cita.adjuntos);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ---------- Vehículos de cortesía (préstamos) ----------
 router.get("/cortesia", async (req, res, next) => {
   try {

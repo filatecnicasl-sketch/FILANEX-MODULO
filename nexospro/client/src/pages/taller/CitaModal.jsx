@@ -163,6 +163,11 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const [error, setError] = useState(null);
   const [conflictoVehiculo, setConflictoVehiculo] = useState(null);
   const [reasignarCliente, setReasignarCliente] = useState(false);
+  // Peritación adjunta: documentos ya guardados (cita existente) y el
+  // archivo elegido cuando la cita aún es nueva (se sube tras guardar).
+  const [adjuntos, setAdjuntos] = useState(cita?.adjuntos ?? []);
+  const [adjuntoPendiente, setAdjuntoPendiente] = useState(null);
+  const [subiendoAdjunto, setSubiendoAdjunto] = useState(false);
 
   useEffect(() => {
     fetch("/api/clientes")
@@ -285,6 +290,56 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const ocupados = new Set(prestamos.filter((p) => p.estado === "activo").map((p) => String(p.vehiculo)));
   const cortesiaLibres = vehiculos.filter((v) => v.tipo === "cortesia" && !ocupados.has(String(v._id)));
 
+  // Sube archivos a una cita ya existente y devuelve la lista actualizada.
+  async function subirAdjuntos(idCita, archivos) {
+    const datos = new FormData();
+    for (const a of archivos) datos.append("archivos", a);
+    const r = await fetch(`/api/taller/citas/${idCita}/adjuntos`, { method: "POST", body: datos });
+    const lista = await r.json();
+    if (!r.ok) throw new Error(lista.error || "No se pudo subir el documento");
+    return lista;
+  }
+
+  // Elegir archivo: si la cita existe se sube al momento; si es nueva,
+  // se guarda la elección y se sube justo después de crear la cita.
+  async function elegirAdjunto(e) {
+    const archivos = [...(e.target.files ?? [])];
+    e.target.value = "";
+    if (!archivos.length) return;
+    setError(null);
+    if (!cita) {
+      setAdjuntoPendiente(archivos[0]);
+      return;
+    }
+    setSubiendoAdjunto(true);
+    try {
+      setAdjuntos(await subirAdjuntos(cita._id, archivos));
+    } catch (e2) {
+      setError(e2.message);
+    } finally {
+      setSubiendoAdjunto(false);
+    }
+  }
+
+  async function quitarAdjunto(a) {
+    setError(null);
+    setSubiendoAdjunto(true);
+    try {
+      const r = await fetch(`/api/taller/citas/${cita._id}/adjuntos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: a.url }),
+      });
+      const lista = await r.json();
+      if (!r.ok) throw new Error(lista.error || "No se pudo quitar el documento");
+      setAdjuntos(lista);
+    } catch (e2) {
+      setError(e2.message);
+    } finally {
+      setSubiendoAdjunto(false);
+    }
+  }
+
   async function guardarCita(imprimirDespues = false) {
     const duracion = aMinutos(form.horaFin) - aMinutos(form.hora);
     if (duracion <= 0) {
@@ -321,6 +376,14 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo guardar la cita");
+      // Cita nueva con peritación elegida: se adjunta justo después de crearla.
+      if (!cita && adjuntoPendiente) {
+        try {
+          await subirAdjuntos(datos._id, [adjuntoPendiente]);
+        } catch {
+          alert("La cita se ha guardado, pero la peritación no se pudo adjuntar. Ábrela y súbela de nuevo.");
+        }
+      }
       if (imprimirDespues) {
         const cliente =
           clientes.find((item) => String(item._id) === String(form.cliente)) || undefined;
@@ -707,6 +770,56 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
                 <p className="text-xs text-violet-300/80 self-end pb-1">
                   El cliente deja el vehículo y el perito de la compañía vendrá a valorarlo en el taller.
                 </p>
+              </div>
+
+              {/* Peritación adjunta: el PDF que manda la compañía o fotos */}
+              <div className="border-t border-violet-500/15 pt-2">
+                <label className="text-xs text-slate-400 block mb-1">Peritación adjunta</label>
+                {adjuntos.length > 0 && (
+                  <ul className="space-y-1 mb-2">
+                    {adjuntos.map((a) => (
+                      <li key={a.url} className="flex items-center gap-2 text-sm">
+                        <a
+                          href={a.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 truncate text-violet-300 hover:underline"
+                          title="Abrir el documento en una pestaña nueva"
+                        >
+                          {a.nombre || "Ver documento"}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => quitarAdjunto(a)}
+                          disabled={subiendoAdjunto}
+                          className="text-xs text-rose-400 hover:underline disabled:opacity-50"
+                        >
+                          Quitar
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {!cita && adjuntoPendiente && (
+                  <p className="text-xs text-violet-300/80 mb-1 truncate">
+                    {adjuntoPendiente.name} — se adjuntará al guardar la cita
+                  </p>
+                )}
+                <label className="inline-flex items-center gap-2 text-xs font-semibold text-violet-300 hover:underline cursor-pointer">
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    multiple
+                    className="hidden"
+                    onChange={elegirAdjunto}
+                    disabled={subiendoAdjunto}
+                  />
+                  {subiendoAdjunto
+                    ? "Subiendo…"
+                    : adjuntos.length
+                      ? "Adjuntar otro documento"
+                      : "Adjuntar peritación (PDF o foto)"}
+                </label>
               </div>
             </div>
           )}

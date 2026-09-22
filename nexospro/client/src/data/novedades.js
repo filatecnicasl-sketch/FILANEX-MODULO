@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-22",
     tipo: "nuevo",
+    titulo: "Peritación adjunta en las citas de peritaje",
+    detalle:
+      "En la cita de peritaje se puede adjuntar la peritación que manda la compañía (PDF o fotos, hasta 4 documentos). Se sube desde el propio modal —si la cita es nueva, se adjunta sola al guardar— y queda guardada con la cita. En Taller → Citas peritaje hay una columna «Peritación» para abrir el documento directamente.",
+  },
+  {
+    fecha: "2026-09-22",
+    tipo: "nuevo",
     titulo: "Actualización del programa sin cerrar la aplicación",
     detalle:
       "Nuevo botón «Actualizar» en la barra superior, junto a Salir: comprueba si hay una versión nueva y la aplica al momento, sin cerrar sesión ni salir y entrar. Además, la aplicación revisa sola cada 10 minutos si hay versión nueva y muestra el aviso abajo a la derecha. Pensado para pantallas que se quedan abiertas todo el día (TPV, recepción…).",

@@ -174,6 +174,7 @@ export default function TallerAgendaPage() {
                 <th>Teléfono</th>
                 <th>Compañía</th>
                 <th>Siniestro</th>
+                <th>Peritación</th>
                 <th>Estado</th>
                 <th className="text-right">Acciones</th>
               </tr>
@@ -192,6 +193,22 @@ export default function TallerAgendaPage() {
                       <td className="text-slate-500 num">{c.telefono ?? "—"}</td>
                       <td className="text-slate-600">{c.aseguradoraNombre ?? "—"}</td>
                       <td className="text-slate-500 num">{c.numeroSiniestro ?? "—"}</td>
+                      <td>
+                        {c.adjuntos?.length ? (
+                          <a
+                            href={c.adjuntos[0].url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs font-semibold text-violet-600 hover:underline"
+                            title={c.adjuntos[0].nombre || "Abrir la peritación"}
+                          >
+                            Ver{c.adjuntos.length > 1 ? ` (${c.adjuntos.length})` : ""}
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
                       <td>
                         <span className="text-xs" style={{ color: est?.color ?? "#64748b" }}>{est?.nombre ?? c.estado}</span>
                       </td>
@@ -215,7 +232,7 @@ export default function TallerAgendaPage() {
                 })}
               {citasFiltradas.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center text-slate-500 py-8">
+                  <td colSpan={10} className="text-center text-slate-500 py-8">
                     {q.trim() ? `Sin resultados para «${q}».` : "No hay citas de peritaje en este periodo."}
                   </td>
                 </tr>

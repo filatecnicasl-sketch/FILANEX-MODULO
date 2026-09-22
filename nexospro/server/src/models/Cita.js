@@ -28,6 +28,9 @@ const citaSchema = new Schema(
     // para que venga el perito de la compañía a valorar los daños.
     tipo: { type: String, enum: ["normal", "peritaje"], default: "normal", index: true },
     numeroSiniestro: String, // peritaje: nº de siniestro de la compañía
+    // Documentos adjuntos a la cita (la peritación de la compañía en PDF,
+    // fotos de los daños…). Se suben desde el modal de la cita.
+    adjuntos: { type: [{ url: String, nombre: String, _id: false }], default: [] },
     // Las citas del taller suelen venir de un presupuesto aceptado.
     presupuesto: { type: Boolean, default: false },
     // Si la reparación va por compañía de seguros.
