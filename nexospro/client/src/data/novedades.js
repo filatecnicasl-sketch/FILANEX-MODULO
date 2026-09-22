@@ -9,7 +9,7 @@ export const CAMBIOS = [
     tipo: "nuevo",
     titulo: "Sello PAGADA en el PDF de las facturas cobradas",
     detalle:
-      "Cuando una factura está totalmente cobrada, su PDF (descargar o imprimir) sale con un sello verde «PAGADA — Cobrada el día… por transferencia/efectivo…», con la fecha y el medio del último cobro. Sirve como justificante de pago para subvenciones y trámites. Además se han corregido las descripciones largas de las líneas, que se montaban unas sobre otras, y la columna del total.",
+      "Cuando una factura está totalmente cobrada, su PDF (descargar o imprimir) sale con un sello verde «PAGADA» estampado en el hueco bajo las líneas, con la fecha y el medio del último cobro (ej.: «Cobrada el 22/09/2026 por transferencia»). Sirve como justificante de pago para subvenciones y trámites. El formato de la factura no cambia en nada más: si no está cobrada, no sale ningún sello.",
   },
   {
     fecha: "2026-09-22",
