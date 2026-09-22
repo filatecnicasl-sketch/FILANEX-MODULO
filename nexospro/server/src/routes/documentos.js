@@ -5,6 +5,7 @@ import { datosParaPdf } from "../services/documentoPdfData.js";
 import { formatoToHtml, expandirLineasEnCeldas, resolverPlantillaParaImpresion, pageDimensions } from "../services/formatoToHtml.js";
 import { renderPdf } from "../services/pdfRenderer.js";
 import { generarPdfFactura } from "../services/factura-pdf.js";
+import { elementosSelloPagada } from "../services/selloPagada.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import Cliente from "../models/Cliente.js";
 import Empresa from "../models/Empresa.js";
@@ -62,6 +63,14 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
     const { formData, logoUrl, firma, qrContenido } = await datosParaPdf(tipo, id);
     const signatures = firma?.imagen ? { cliente: firma.imagen } : {};
 
+    // Sello PAGADA: si la factura está totalmente cobrada, se añade la
+    // imagen del sello en el hueco bajo las líneas (sin tocar la plantilla).
+    if (tipo === "factura-venta") {
+      const factura = await FacturaVenta.findById(id).lean();
+      const sello = elementosSelloPagada(factura);
+      if (sello) plantilla.elements = [...(plantilla.elements ?? []), ...sello];
+    }
+
     let { html, css, pageSize, pageOrientation } = formatoToHtml(plantilla, formData, signatures, {
       logoUrl,
     });
@@ -97,6 +106,14 @@ router.get("/:tipo/:id/formato", async (req, res, next) => {
       : null;
 
     const resuelta = resolverPlantillaParaImpresion(plantilla, formData, logoUrl);
+
+    // Sello PAGADA también en la impresión rápida, cuando está cobrada.
+    if (tipo === "factura-venta") {
+      const factura = await FacturaVenta.findById(id).lean();
+      const sello = elementosSelloPagada(factura);
+      if (sello) resuelta.elements = [...resuelta.elements, ...sello];
+    }
+
     if (qr) {
       // El QR tributario debe salir también en la impresión rápida,
       // arriba a la derecha (esquina superior derecha de la zona útil).
