@@ -129,18 +129,18 @@ y desplegado (commit `1759ab0`, 10/09 ~04:10):
 
 ## Cuanto antes (a raíz de la caída del 31/08)
 
-- [ ] **IA de lectura de facturas: robustecerla (ES LO MÁS VENDIBLE).**
-      El 23/09 falló en producción porque faltaba la llave de Google
-      (`/opt/filanex/secrets/filanex-ia-b261c2ef600a.json`) y el usuario solo
-      veía que "no funciona" (se arregló subiendo la llave desde D:\FILANEX).
-      Hacer:
-      1. Al arrancar el servidor, comprobar que la llave existe y el OCR
-         responde; si falta, registrarlo y avisar por correo al administrador.
-      2. En la app, cuando el OCR falle, mensaje claro ("servicio de lectura
-         no disponible, avisa al administrador") en vez de error genérico.
-      3. Copia de la llave en dos sitios seguros fuera del servidor.
-      4. Prueba automática diaria del OCR (imagen de test) para enterarnos
-         nosotros antes que los clientes.
+- [x] **IA de lectura de facturas: robustecida (23/09/2026).** Causa real del
+      fallo encontrada: los despliegues con `git stash -u` retiraban la carpeta
+      `/opt/filanex/secrets` (no estaba en el repo); ya está en `.gitignore`.
+      Hecho: (1) vigilante al arrancar que comprueba que la llave existe y hace
+      una prueba en vivo (`services/ia-salud.js`); (2) autotest diario a las
+      08:15; (3) mensaje claro al usuario cuando es problema de configuración
+      ("avisa al administrador"); (4) `/api/health` incluye `"ia":"ok|error"`
+      para el vigilante externo; (5) copias de la llave en D:\FILANEX y en
+      C:\FILANEX-MODULO\secrets (gitignored).
+      FALTA: configurar SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS y
+      AVISO_ADMIN_EMAIL en el .env del servidor para que el aviso llegue
+      también por correo (de momento queda registrado en el log del servidor).
 
 Esa noche el servidor estuvo caído desde ~22:00 hasta las 00:51 y nos enteramos
 porque se vio en una demo delante de un cliente. Causa: se acabó la prueba
