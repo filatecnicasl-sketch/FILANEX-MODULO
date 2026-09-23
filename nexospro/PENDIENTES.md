@@ -4,7 +4,9 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Recordatorios de estilo (no olvidar)
 
-- **Grabado a fuego (23/09/2026, día de la demo ganada):**
+- **Grabado a fuego (23/09/2026, día de la demo ganada).** Estas cuatro
+  reglas aplican a TODOS los ámbitos del programa (taller, TPV, facturación,
+  tesorería, agenda, asesoría...), no solo a la IA:
   1. Cuando el usuario afirma algo ("esto funcionaba", "esto está mal"),
      parte de que es VERDAD: busca el fallo en otra parte, nunca en su
      palabra. Él es quien más interés tiene en que el programa funcione.
