@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-09-23",
+    tipo: "mejora",
+    titulo: "Aviso al cliente y fecha de entrega, editables en las finalizadas",
+    detalle:
+      "Las órdenes en «Finalizado» (y «Entregado») tienen ahora una campanita en la tarjeta y en la lista: abre la ventana de entrega para marcar el cliente como avisado (teléfono, WhatsApp, SMS, email o en persona), corregir la fecha y hora de entrega y subir fotos, también después de haber finalizado la orden. La campanita sale en ámbar si falta avisar y en verde cuando el cliente ya está avisado.",
+  },
+  {
     fecha: "2026-09-22",
     tipo: "nuevo",
     titulo: "Sello PAGADA en el PDF de las facturas cobradas",

@@ -58,6 +58,16 @@ function IconCamara() {
   );
 }
 
+// Campanita: entrega y aviso al cliente (órdenes finalizadas/entregadas).
+function IconCampana() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+
 const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
 // Nº del presupuesto vinculado a la orden (píldora violeta).
@@ -83,7 +93,7 @@ const CLASES_PILL_ESTADO = {
 
 // Vista kanban (referencia RO App /orders/board): una columna por estado,
 // tarjetas arrastrables que cambian el estado de la orden al soltarse.
-function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion }) {
+function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, onEntrega }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
       {ESTADOS_OT.map((col) => {
@@ -135,6 +145,23 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion }) 
                     <span className="text-[0.6875rem] text-slate-400 num">{fecha(o.fechaEntrada)}</span>
                     <span className="flex items-center gap-2">
                       <MenuImprimirOrden orden={o} pequeno />
+                      {["finalizado", "entregado"].includes(o.estado) && (
+                        <button
+                          onClick={() => onEntrega(o)}
+                          title={
+                            o.entrega?.clienteAvisado
+                              ? "Cliente avisado — abrir entrega y aviso"
+                              : "Entrega y aviso al cliente (fecha, fotos, avisar para la recogida)"
+                          }
+                          className={`inline-flex items-center transition-colors ${
+                            o.entrega?.clienteAvisado
+                              ? "text-emerald-500 hover:text-emerald-600"
+                              : "text-amber-500 hover:text-amber-600"
+                          }`}
+                        >
+                          <IconCampana />
+                        </button>
+                      )}
                       <button
                         onClick={() => onRecepcion(o)}
                         title="Recepción digital (fotos + firma)"
@@ -316,6 +343,7 @@ export default function TallerOrdenesPage() {
             onEditar={setOrdenForm}
             onFacturar={facturar}
             onRecepcion={setRecepcionOT}
+            onEntrega={setFinalizando}
           />
         )
       ) : (
@@ -382,6 +410,23 @@ export default function TallerOrdenesPage() {
                     <td className="text-right text-slate-300 whitespace-nowrap num">{euros(o.total)}</td>
                     <td className="text-right whitespace-nowrap">
                       <MenuImprimirOrden orden={o} />
+                      {["finalizado", "entregado"].includes(o.estado) && (
+                        <button
+                          onClick={() => setFinalizando(o)}
+                          title={
+                            o.entrega?.clienteAvisado
+                              ? "Cliente avisado — abrir entrega y aviso"
+                              : "Entrega y aviso al cliente (fecha, fotos, avisar para la recogida)"
+                          }
+                          className={`inline-flex items-center justify-center w-7 h-7 rounded-lg transition-colors align-middle mx-1 ${
+                            o.entrega?.clienteAvisado
+                              ? "text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+                              : "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                          }`}
+                        >
+                          <IconCampana />
+                        </button>
+                      )}
                       <button
                         onClick={() => setRecepcionOT(o)}
                         title="Recepción digital (fotos + firma)"

@@ -13,10 +13,14 @@ function fechaLocalInput(d = new Date()) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// Se abre al pasar una orden a «finalizado»: recoge el momento de la
+// Se abre al pasar una orden a «finalizado» (recoge el momento de la
 // entrega, las fotos del vehículo terminado y si el cliente ya está
-// avisado para la recogida.
+// avisado) y también desde las órdenes ya finalizadas, para marcar el
+// aviso o corregir la fecha a posteriori.
 export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
+  // Si la orden ya está finalizada/entregada, el modal solo edita la entrega:
+  // no se vuelve a tocar el estado (para no bajar una orden "entregada").
+  const yaFinalizada = ["finalizado", "entregado"].includes(orden.estado);
   const [fecha, setFecha] = useState(() =>
     orden.entrega?.fecha ? fechaLocalInput(new Date(orden.entrega.fecha)) : fechaLocalInput()
   );
@@ -65,7 +69,7 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          estado: "finalizado",
+          ...(yaFinalizada ? {} : { estado: "finalizado" }),
           entrega: {
             fecha: fecha ? new Date(fecha).toISOString() : undefined,
             clienteAvisado,
@@ -75,7 +79,7 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
         }),
       });
       const datos = await r.json();
-      if (!r.ok) throw new Error(datos.error || "No se pudo finalizar la orden");
+      if (!r.ok) throw new Error(datos.error || "No se pudo guardar la entrega");
       onFinalizada();
     } catch (e2) {
       setError(e2.message);
@@ -87,7 +91,7 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div className="modal-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">
-          Finalizar {orden.numero} · {orden.matricula}
+          {yaFinalizada ? "Entrega y aviso" : "Finalizar"} · {orden.numero} · {orden.matricula}
         </h2>
         <div className="space-y-4">
         {error && (
@@ -168,7 +172,7 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
             Cancelar
           </button>
           <button type="button" className="btn-primary" onClick={finalizar} disabled={guardando || subiendo}>
-            {guardando ? "Finalizando…" : "Finalizar orden"}
+            {guardando ? "Guardando…" : yaFinalizada ? "Guardar" : "Finalizar orden"}
           </button>
         </div>
       </div>
