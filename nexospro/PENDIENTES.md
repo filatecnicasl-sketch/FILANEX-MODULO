@@ -4,6 +4,18 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Recordatorios de estilo (no olvidar)
 
+- **Grabado a fuego (23/09/2026, día de la demo ganada):**
+  1. Cuando el usuario afirma algo ("esto funcionaba", "esto está mal"),
+     parte de que es VERDAD: busca el fallo en otra parte, nunca en su
+     palabra. Él es quien más interés tiene en que el programa funcione.
+  2. Verificar antes de entregar, siempre: primero lo compruebo yo
+     (imagen, PDF, dato, despliegue), luego se lo enseño. Nunca al revés.
+  3. Cuidado con los efectos colaterales de las herramientas: un
+     `git stash -u` borró la llave de la IA dos veces. Antes de ejecutar
+     comandos de despliegue o limpieza, pensar qué más tocan.
+  4. Lo más vendible debe ser lo más vigilado: la IA de lectura ahora tiene
+     vigilante propio; cualquier función estrella nueva, igual.
+
 - **La marca es intocable: usar SIEMPRE los recursos corporativos reales.**
   Logo oficial: `nexospro/client/public/icono-512.png` (Fx blanca sobre
   cuadrado negro redondeado con punto turquesa). Colores: navy `#060B16` /
