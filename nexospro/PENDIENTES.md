@@ -4,6 +4,17 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Recordatorios de estilo (no olvidar)
 
+- **La marca es intocable: usar SIEMPRE los recursos corporativos reales.**
+  Logo oficial: `nexospro/client/public/icono-512.png` (Fx blanca sobre
+  cuadrado negro redondeado con punto turquesa). Colores: navy `#060B16` /
+  `#131B30` y turquesa `#22D3EE`. Fuente: Poppins.
+  Las imágenes generadas por IA INVENTAN logos parecidos pero falsos: en
+  cualquier imagen o documento donde aparezca la marca, el logo hay que
+  componerlo pegando el archivo real encima (nunca el dibujado por la IA) y
+  VERIFICARLO visualmente antes de entregarlo al usuario. Esto ya falló una
+  vez (fondo de Meet, 23/09/2026) y no puede repetirse: verificar primero,
+  entregar después.
+
 - **Los modales y bloques de la app son de tema CLARO.** Nunca usar fondos
   oscuros (`bg-slate-800`, `bg-slate-700`) ni texto oscuro sobre ellos dentro
   de un modal: no se ve. Usar fondos claros (`bg-slate-50`, `bg-white`) y texto
@@ -117,6 +128,19 @@ y desplegado (commit `1759ab0`, 10/09 ~04:10):
       `filanex_gasen` no tiene datos. Todas las matrículas están sin espacios.
 
 ## Cuanto antes (a raíz de la caída del 31/08)
+
+- [ ] **IA de lectura de facturas: robustecerla (ES LO MÁS VENDIBLE).**
+      El 23/09 falló en producción porque faltaba la llave de Google
+      (`/opt/filanex/secrets/filanex-ia-b261c2ef600a.json`) y el usuario solo
+      veía que "no funciona" (se arregló subiendo la llave desde D:\FILANEX).
+      Hacer:
+      1. Al arrancar el servidor, comprobar que la llave existe y el OCR
+         responde; si falta, registrarlo y avisar por correo al administrador.
+      2. En la app, cuando el OCR falle, mensaje claro ("servicio de lectura
+         no disponible, avisa al administrador") en vez de error genérico.
+      3. Copia de la llave en dos sitios seguros fuera del servidor.
+      4. Prueba automática diaria del OCR (imagen de test) para enterarnos
+         nosotros antes que los clientes.
 
 Esa noche el servidor estuvo caído desde ~22:00 hasta las 00:51 y nos enteramos
 porque se vio en una demo delante de un cliente. Causa: se acabó la prueba

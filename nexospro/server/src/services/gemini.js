@@ -79,6 +79,22 @@ export function esBloqueoUbicacion(err) {
   return msg.includes("User location is not supported") || msg.includes("FAILED_PRECONDITION");
 }
 
+// Error de configuración rota (la llave de Vertex no está en disco o es
+// inválida). No es transitorio: reintentar no sirve y el mensaje al usuario
+// debe decir que avise al administrador, no que lo intente más tarde.
+export function esErrorCredenciales(err) {
+  const msg = String(err?.message ?? "");
+  return (
+    msg.includes("GOOGLE_APPLICATION_CREDENTIALS") ||
+    msg.includes("credential file") ||
+    msg.includes("Could not load the default credentials") ||
+    msg.includes("ENOENT")
+  );
+}
+
+const MENSAJE_CONFIG_ROTA =
+  "está fuera de servicio por un problema de configuración del servidor. Avisa al administrador para que lo revise.";
+
 // Se recuerda el bloqueo para no perder tiempo intentando Google en cada
 // petición: el usuario está esperando delante de la pantalla.
 let geminiBloqueado = false;
@@ -261,6 +277,9 @@ export async function generarJsonGemini({
   const proveedor = proveedorConfigurado();
   const hayVertex = Boolean(process.env.VERTEX_PROJECT_ID);
   const usarOpenAiPrimero = proveedor === "openai" || (proveedor === "auto" && geminiBloqueado && hayOpenAi());
+  // Si algún proveedor falla por credenciales rotas, el mensaje final debe
+  // ser de configuración, no "inténtalo más tarde" (eso despista al usuario).
+  let credencialesRotas = false;
 
   // Prioridad: Vertex AI si está configurado (motor directo y estable);
   // después AI Studio; y OpenAI como reserva si Google bloquea el servidor.
@@ -269,8 +288,13 @@ export async function generarJsonGemini({
       return await generarConVertex({ contents, esquema, timeoutMs });
     } catch (err) {
       console.error("Vertex AI:", err?.message);
+      if (esErrorCredenciales(err)) credencialesRotas = true;
       if (proveedor === "vertex" || !hayOpenAi()) {
-        throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+        throw new Error(
+          credencialesRotas
+            ? `${etiqueta} ${MENSAJE_CONFIG_ROTA}`
+            : `${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`
+        );
       }
     }
   }
@@ -292,6 +316,11 @@ export async function generarJsonGemini({
       } else if (proveedor === "gemini" || (!hayOpenAi() && !hayVertex)) {
         console.error("IA agotada:", err?.message);
         throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+      } else if (credencialesRotas && !hayOpenAi()) {
+        // Vertex roto por credenciales y Gemini bloqueado por ubicación: es
+        // un problema de configuración, no algo transitorio.
+        console.error("IA agotada:", err?.message);
+        throw new Error(`${etiqueta} ${MENSAJE_CONFIG_ROTA}`);
       } else {
         console.warn("Gemini falló, se prueba la alternativa:", String(err?.message).slice(0, 160));
       }
@@ -303,7 +332,14 @@ export async function generarJsonGemini({
       return await generarConVertex({ contents, esquema, timeoutMs });
     } catch (err) {
       console.error("Vertex AI:", err?.message);
-      if (!hayOpenAi()) throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
+      if (esErrorCredenciales(err)) credencialesRotas = true;
+      if (!hayOpenAi()) {
+        throw new Error(
+          credencialesRotas
+            ? `${etiqueta} ${MENSAJE_CONFIG_ROTA}`
+            : `${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`
+        );
+      }
     }
   }
 
@@ -311,6 +347,7 @@ export async function generarJsonGemini({
     return await generarConOpenAi({ contents, esquema, timeoutMs });
   } catch (err) {
     console.error("IA agotada:", err?.message);
+    if (credencialesRotas) throw new Error(`${etiqueta} ${MENSAJE_CONFIG_ROTA}`);
     throw new Error(`${etiqueta} no está disponible ahora mismo: ${err.message}`);
   }
 }
@@ -488,6 +525,7 @@ export async function generarTextoIA({
   }
 
   const intentados = new Set();
+  let credencialesRotas = false;
   for (const p of cadena) {
     if (intentados.has(p)) continue;
     intentados.add(p);
@@ -507,9 +545,11 @@ export async function generarTextoIA({
         geminiBloqueado = true;
         console.error("Google rechaza la clave desde la IP de este servidor; se prueba la alternativa.");
       } else {
+        if (p === "vertex" && esErrorCredenciales(err)) credencialesRotas = true;
         console.error(`IA (${p}):`, String(err?.message).slice(0, 200));
       }
     }
   }
+  if (credencialesRotas) throw new Error(`${etiqueta} ${MENSAJE_CONFIG_ROTA}`);
   throw new Error(`${etiqueta} no está disponible ahora mismo: inténtalo de nuevo en unos minutos.`);
 }

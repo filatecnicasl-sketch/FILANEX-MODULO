@@ -13,6 +13,7 @@ import backupsAgente from "./routes/backups-agente.js";
 import { iniciarReintentoVerifactu } from "./services/verifactu-reintento.js";
 import { iniciarColaWhatsApp } from "./services/whatsapp-cola.js";
 import { iniciarCopiasSeguridad } from "./services/backup.js";
+import { iniciarVigilanciaIa, estadoSaludIa } from "./services/ia-salud.js";
 import { asegurarTareaCopiaWindows, asegurarArranqueWindows } from "./services/backup-tarea.js";
 
 import { cerrarPoolPdf } from "./services/pdfRenderer.js";
@@ -78,11 +79,16 @@ app.use(uploadsRouter);
 // `entorno` permite al cliente avisar cuando no está en producción (local o
 // pruebas), para que nadie trabaje por error sobre datos que no son reales.
 const responderHealth = (req, res) => {
+  // "ia" refleja la última comprobación del vigilante (arranque o diaria):
+  // ok / error / pendiente (aún no se ha probado). Un vigilante externo puede
+  // alertar buscando "ia":"error".
+  const ia = estadoSaludIa();
   res.json({
     ok: true,
     servicio: "nexospro-api",
     version: "0.1.0",
     entorno: process.env.ENTORNO || "local",
+    ia: ia.ok === null ? "pendiente" : ia.ok ? "ok" : "error",
   });
 };
 app.get("/health", responderHealth);
@@ -162,6 +168,7 @@ connectDB()
     iniciarReintentoVerifactu();
     iniciarColaWhatsApp();
     iniciarCopiasSeguridad();
+    iniciarVigilanciaIa();
     asegurarTareaCopiaWindows();
     asegurarArranqueWindows();
   })
