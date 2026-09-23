@@ -23,8 +23,8 @@ function BadgeEntrega({ orden }) {
   return (
     <p className="mt-1 flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-[0.6875rem]">
       {f && (
-        <span className="text-slate-500 num" title="Fecha y hora de entrega">
-          Entrega: {fechaHora(f)}
+        <span className="text-slate-500 num" title={orden.estado === "entregado" ? "Fecha y hora de entrega" : "Fecha y hora de finalización"}>
+          {orden.estado === "entregado" ? "Entregado" : "Finalizado"}: {fechaHora(f)}
         </span>
       )}
       {fotos?.length > 0 && (
@@ -246,9 +246,10 @@ export default function TallerOrdenesPage() {
   }, []);
 
   async function cambiarEstado(o, estado) {
-    // Al finalizar se recoge la entrega (fecha/hora, fotos y aviso).
-    if (estado === "finalizado") {
-      setFinalizando(o);
+    // Al finalizar (trabajo terminado) o entregar (coche al cliente) se
+    // abre la ventana de entrega con la fecha correspondiente.
+    if (estado === "finalizado" || estado === "entregado") {
+      setFinalizando({ orden: o, destino: estado });
       return;
     }
     const r = await fetch(`/api/taller/ordenes/${o._id}`, {
@@ -343,7 +344,7 @@ export default function TallerOrdenesPage() {
             onEditar={setOrdenForm}
             onFacturar={facturar}
             onRecepcion={setRecepcionOT}
-            onEntrega={setFinalizando}
+            onEntrega={(o) => setFinalizando({ orden: o, destino: o.estado })}
           />
         )
       ) : (
@@ -412,7 +413,7 @@ export default function TallerOrdenesPage() {
                       <MenuImprimirOrden orden={o} />
                       {["finalizado", "entregado"].includes(o.estado) && (
                         <button
-                          onClick={() => setFinalizando(o)}
+                          onClick={() => setFinalizando({ orden: o, destino: o.estado })}
                           title={
                             o.entrega?.clienteAvisado
                               ? "Cliente avisado — abrir entrega y aviso"
@@ -506,7 +507,8 @@ export default function TallerOrdenesPage() {
 
       {finalizando !== undefined && (
         <FinalizarOrdenModal
-          orden={finalizando}
+          orden={finalizando.orden}
+          destino={finalizando.destino}
           onCerrar={() => setFinalizando(undefined)}
           onFinalizada={() => {
             setFinalizando(undefined);

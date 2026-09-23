@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-23",
+    tipo: "correccion",
+    titulo: "Finalizado y entregado: cada uno con su fecha",
+    detalle:
+      "Al pasar la orden a «Finalizado» la ventana pide la fecha y hora de finalización (trabajo terminado), y al pasar a «Entregado» pide la fecha y hora de entrega al cliente — antes pedía «fecha de entrega» en los dos casos. La chapa de la orden también lo distingue: «Finalizado: fecha» o «Entregado: fecha».",
+  },
+  {
+    fecha: "2026-09-23",
     tipo: "mejora",
     titulo: "Aviso al cliente y fecha de entrega, editables en las finalizadas",
     detalle:

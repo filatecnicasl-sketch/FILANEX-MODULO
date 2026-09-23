@@ -13,14 +13,16 @@ function fechaLocalInput(d = new Date()) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// Se abre al pasar una orden a «finalizado» (recoge el momento de la
-// entrega, las fotos del vehículo terminado y si el cliente ya está
-// avisado) y también desde las órdenes ya finalizadas, para marcar el
-// aviso o corregir la fecha a posteriori.
-export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
-  // Si la orden ya está finalizada/entregada, el modal solo edita la entrega:
-  // no se vuelve a tocar el estado (para no bajar una orden "entregada").
-  const yaFinalizada = ["finalizado", "entregado"].includes(orden.estado);
+// Se abre al pasar una orden a «finalizado» (trabajo terminado) o a
+// «entregado» (coche entregado al cliente): recoge la fecha del momento,
+// las fotos y si el cliente está avisado. También desde la campanita de
+// las órdenes ya finalizadas/entregadas, para corregir a posteriori.
+export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinalizada }) {
+  // destino: estado al que se está pasando ("finalizado" | "entregado").
+  // Si no hay destino o coincide con el actual (campanita), solo se edita
+  // la entrega sin tocar el estado.
+  const transicion = destino && destino !== orden.estado ? destino : null;
+  const esEntrega = (transicion ?? orden.estado) === "entregado";
   const [fecha, setFecha] = useState(() =>
     orden.entrega?.fecha ? fechaLocalInput(new Date(orden.entrega.fecha)) : fechaLocalInput()
   );
@@ -69,7 +71,7 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(yaFinalizada ? {} : { estado: "finalizado" }),
+          ...(transicion ? { estado: transicion } : {}),
           entrega: {
             fecha: fecha ? new Date(fecha).toISOString() : undefined,
             clienteAvisado,
@@ -91,7 +93,7 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div className="modal-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">
-          {yaFinalizada ? "Entrega y aviso" : "Finalizar"} · {orden.numero} · {orden.matricula}
+          {transicion ? (esEntrega ? "Entregar" : "Finalizar") : "Entrega y aviso"} · {orden.numero} · {orden.matricula}
         </h2>
         <div className="space-y-4">
         {error && (
@@ -100,7 +102,9 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Fecha de entrega</label>
+            <label className="text-xs text-slate-400 block mb-1">
+              {esEntrega ? "Fecha de entrega" : "Fecha de finalización"}
+            </label>
             <input
               type="date"
               className="input"
@@ -109,7 +113,9 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
             />
           </div>
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Hora de entrega</label>
+            <label className="text-xs text-slate-400 block mb-1">
+              {esEntrega ? "Hora de entrega" : "Hora de finalización"}
+            </label>
             <input
               type="time"
               className="input"
@@ -172,7 +178,7 @@ export default function FinalizarOrdenModal({ orden, onCerrar, onFinalizada }) {
             Cancelar
           </button>
           <button type="button" className="btn-primary" onClick={finalizar} disabled={guardando || subiendo}>
-            {guardando ? "Guardando…" : yaFinalizada ? "Guardar" : "Finalizar orden"}
+            {guardando ? "Guardando…" : transicion ? (esEntrega ? "Entregar orden" : "Finalizar orden") : "Guardar"}
           </button>
         </div>
       </div>
