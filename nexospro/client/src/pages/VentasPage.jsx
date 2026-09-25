@@ -473,7 +473,7 @@ export default function VentasPage() {
   const [error, setError] = useState(null);
   // Filtros del listado (inspirado en RO App).
   const [buscar, setBuscar] = useState("");
-  const [filtroEstado, setFiltroEstado] = useState("todas");
+  const [filtroSerie, setFiltroSerie] = useState("todas");
   const [soloVencidas, setSoloVencidas] = useState(false);
   const [envioAeat, setEnvioAeat] = useState(null);
   const [params, setParams] = useSearchParams();
@@ -504,8 +504,19 @@ export default function VentasPage() {
     f.vencimiento &&
     new Date(f.vencimiento) < new Date(new Date().toDateString());
 
+  // Serie de la factura a partir de su numero completo: "3-2026-33" -> "3-2026",
+  // "T-2026-1" -> "T-2026". Los borradores aun no tienen serie.
+  const serieDe = (f) => {
+    const sn = f.serieNumero ?? "";
+    const i = sn.lastIndexOf("-");
+    return i > 0 ? sn.slice(0, i) : "";
+  };
+
+  // Series que tiene la empresa en sus facturas (ordenadas, sin repetir).
+  const seriesDisponibles = [...new Set(facturas.map(serieDe).filter(Boolean))].sort();
+
   const facturasFiltradas = facturas.filter((f) => {
-    if (filtroEstado !== "todas" && f.estado !== filtroEstado) return false;
+    if (filtroSerie !== "todas" && serieDe(f) !== filtroSerie) return false;
     if (soloVencidas && !esVencida(f)) return false;
     return coincideBusqueda(
       buscar,
@@ -637,15 +648,14 @@ export default function VentasPage() {
               className="input w-64"
             />
             <select
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
+              value={filtroSerie}
+              onChange={(e) => setFiltroSerie(e.target.value)}
               className="input"
             >
-              <option value="todas">Todas</option>
-              <option value="borrador">Borradores</option>
-              <option value="emitida">Emitidas</option>
-              <option value="anulada">Anuladas</option>
-              <option value="rectificada">Rectificadas</option>
+              <option value="todas">Serie: todas</option>
+              {seriesDisponibles.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
             <label className="flex items-center gap-1.5 text-sm text-slate-600 cursor-pointer select-none">
               <input
