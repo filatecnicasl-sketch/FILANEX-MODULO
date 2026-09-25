@@ -516,6 +516,11 @@ export default function Layout() {
             ENTORNO LOCAL — PRUEBAS · los datos de aquí NO son los reales (los reales están en app.filanex.es)
           </div>
         )}
+        {empresa?.demo && (
+          <div className="no-print shrink-0 bg-rose-500 text-white text-center text-xs sm:text-sm font-bold tracking-wide py-1.5 px-3">
+            MODO DEMO — estás en una empresa de demostración: todo lo que hagas aquí es de prueba, no toca ninguna empresa real
+          </div>
+        )}
         {!amplia && (
           <header className="no-print sticky top-0 z-20 flex items-center flex-wrap content-center gap-x-3 sm:gap-x-6 gap-y-2 px-3 sm:px-6 py-3 min-h-[64px] lg:min-h-[104px] shrink-0 bg-[#0B1220] border-b border-white/[0.07]">
             {/* Abrir menú (solo móvil) */}

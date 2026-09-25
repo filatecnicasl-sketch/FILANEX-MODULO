@@ -31,6 +31,16 @@ router.get("/", async (req, res, next) => {
     const obj = empresa.toObject();
     asegurarSeries(obj); // decora sin guardar: series migradas al vuelo
     asegurarMetodosPago(obj); // ídem con los métodos de pago
+    // Marca "demo" para que el cliente avise en pantalla (evita meter datos
+    // de prueba en una empresa real, y viceversa). Es demo si el tenant tiene
+    // ese estado o si su slug lo indica.
+    try {
+      const tenant = await Tenant.findOne({ slug: req.contextoEmpresa?.slug }).lean();
+      const slug = String(tenant?.slug ?? req.contextoEmpresa?.slug ?? "").toLowerCase();
+      obj.demo = tenant?.estado === "demo" || slug.startsWith("demo") || slug.includes("demo");
+    } catch {
+      obj.demo = false;
+    }
     res.json(obj);
   } catch (err) {
     next(err);
