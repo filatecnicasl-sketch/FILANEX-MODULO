@@ -453,9 +453,11 @@ export default function TallerOrdenesPage() {
                           </button>
                         )
                       )}
-                      <button onClick={() => borrar(o)} className="text-xs text-rose-400 hover:underline">
-                        Borrar
-                      </button>
+                      {!o.factura && (
+                        <button onClick={() => borrar(o)} className="text-xs text-rose-400 hover:underline">
+                          Borrar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
