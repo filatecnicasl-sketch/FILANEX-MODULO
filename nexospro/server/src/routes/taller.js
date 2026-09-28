@@ -483,6 +483,7 @@ router.post("/ordenes/:id/facturar", async (req, res, next) => {
       lineas,
       ...totales,
       descripcion: detalleFactura,
+      matricula: orden.matricula || undefined,
       vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       origen: {
         ordenTrabajo: orden._id,

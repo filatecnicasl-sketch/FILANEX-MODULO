@@ -50,6 +50,8 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
   // Métodos de pago del catálogo de la empresa (Sistema → Series).
   const [metodosPago, setMetodosPago] = useState([]);
   const [metodoPago, setMetodoPago] = useState(inicial?.metodoPago ?? "");
+  // Matrícula del vehículo (taller): viene rellena al facturar una OT.
+  const [matricula, setMatricula] = useState(inicial?.matricula ?? "");
   const [otraEntrega, setOtraEntrega] = useState(Boolean(inicial?.direccionEntrega?.calle));
   const [entrega, setEntrega] = useState({
     calle: inicial?.direccionEntrega?.calle ?? "",
@@ -119,6 +121,7 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
           cliente: clienteId,
           vencimiento: vencimiento || undefined,
           metodoPago,
+          matricula: matricula.trim() || undefined,
           direccionEntrega: otraEntrega && entrega.calle.trim()
             ? { calle: entrega.calle.trim(), ciudad: entrega.ciudad.trim(), cp: entrega.cp.trim() }
             : undefined,
@@ -167,7 +170,7 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
               onChange={elegirCliente}
               onCreado={(c) => setClientes((cs) => [...cs, c])}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
               <div>
                 <label className="text-sm text-slate-300">Vencimiento</label>
                 <input
@@ -190,6 +193,15 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="text-sm text-slate-300">Matrícula (vehículo)</label>
+                <input
+                  value={matricula}
+                  onChange={(e) => setMatricula(e.target.value.toUpperCase())}
+                  placeholder="1234ABC"
+                  className="mt-1 w-full input uppercase"
+                />
               </div>
             </div>
           </div>
@@ -329,8 +341,13 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar }) {
           </div>
         </div>
 
-        {(f.metodoPago || (f.plazos ?? []).length > 0 || f.direccionEntrega?.calle) && (
+        {(f.metodoPago || (f.plazos ?? []).length > 0 || f.direccionEntrega?.calle || f.matricula) && (
           <div className="rounded-xl border border-white/5 p-4 space-y-2 text-sm">
+            {f.matricula && (
+              <p className="text-slate-400">
+                Matrícula: <span className="text-white font-medium uppercase">{f.matricula}</span>
+              </p>
+            )}
             {f.metodoPago && (
               <p className="text-slate-400">
                 Método de pago: <span className="text-white font-medium">{f.metodoPago}</span>

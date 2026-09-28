@@ -126,6 +126,7 @@ router.put("/:id", async (req, res, next) => {
       lineas,
       ...totales,
       metodoPago: req.body.metodoPago,
+      matricula: req.body.matricula,
       direccionEntrega: req.body.direccionEntrega,
       vencimiento: req.body.vencimiento ? new Date(req.body.vencimiento) : factura.vencimiento,
       plazos: [],

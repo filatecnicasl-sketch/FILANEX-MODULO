@@ -51,6 +51,10 @@ const facturaVentaSchema = new Schema(
       cp: String,
     },
     descripcion: String, // operación (DescripcionOperacion en el registro VeriFactu)
+    // Matrícula del vehículo al que corresponde la factura (taller). Se
+    // rellena sola al facturar una orden de trabajo y también se puede
+    // escribir a mano en cualquier factura.
+    matricula: { type: String, uppercase: true, trim: true, index: true },
     lineas: [lineaSchema],
     baseImponible: { type: Number, default: 0 },
     cuotaIva: { type: Number, default: 0 },
