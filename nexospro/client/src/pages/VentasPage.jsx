@@ -274,6 +274,50 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
   );
 }
 
+// Abre el PDF de la factura en pestaña nueva pidiéndolo con fetch: un
+// enlace directo no lleva la sesión y el servidor responde 401.
+async function abrirPdfFactura(id) {
+  const r = await fetch(`/api/facturas-venta/${id}/pdf`);
+  if (!r.ok) {
+    let mensaje = `No se pudo generar el PDF (${r.status})`;
+    try {
+      const datos = await r.json();
+      if (datos?.error) mensaje = datos.error;
+    } catch {
+      // respuesta sin JSON
+    }
+    alert(mensaje);
+    return;
+  }
+  const url = URL.createObjectURL(await r.blob());
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+// Descarga el XML VeriFactu con fetch por el mismo motivo de sesión.
+async function descargarXmlFactura(f) {
+  const r = await fetch(`/api/facturas-venta/${f._id}/xml`);
+  if (!r.ok) {
+    let mensaje = `No se pudo descargar el XML (${r.status})`;
+    try {
+      const datos = await r.json();
+      if (datos?.error) mensaje = datos.error;
+    } catch {
+      // respuesta sin JSON
+    }
+    alert(mensaje);
+    return;
+  }
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `verifactu-${f.serieNumero ?? f._id}.xml`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar }) {
   const vf = f.verifactu ?? {};
   const fecha = (d) => (d ? new Date(d).toLocaleDateString("es-ES") : "—");
@@ -449,13 +493,13 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar }) {
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
           {f.estado !== "borrador" && (
-            <a href={`/api/facturas-venta/${f._id}/xml`} className="btn-ghost">
+            <button onClick={() => descargarXmlFactura(f)} className="btn-ghost">
               XML VeriFactu
-            </a>
+            </button>
           )}
-          <a href={`/api/facturas-venta/${f._id}/pdf`} target="_blank" rel="noreferrer" className="btn-ghost">
+          <button onClick={() => abrirPdfFactura(f._id)} className="btn-ghost">
             Imprimir / PDF
-          </a>
+          </button>
           {f.estado === "emitida" && !f.rectifica && (
             <button
               onClick={() => { onRectificar(); onCerrar(); }}
@@ -790,13 +834,13 @@ export default function VentasPage() {
                         <IconPdf />
                       </button>
                       {f.estado !== "borrador" && (
-                        <a
-                          href={`/api/facturas-venta/${f._id}/xml`}
+                        <button
+                          onClick={() => descargarXmlFactura(f)}
                           title="Descargar XML VeriFactu"
                           className={btnIcono}
                         >
                           <IconXml />
-                        </a>
+                        </button>
                       )}
                       {f.estado === "borrador" && (
                         <button
