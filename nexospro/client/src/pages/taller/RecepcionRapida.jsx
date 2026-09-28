@@ -193,6 +193,8 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
           motivo: form.motivo || undefined,
           presupuestoId: presupuestoId || undefined,
           reasignarCliente: reasignarCliente || undefined,
+          // La orden hereda de la cita compañía, siniestro y franquicia.
+          citaId: citaElegida?._id || undefined,
         }),
       });
       const datos = await r.json();

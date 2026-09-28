@@ -148,6 +148,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     motivo: cita?.motivo ?? "",
     tipo: cita?.tipo ?? tipoInicial ?? "normal",
     numeroSiniestro: cita?.numeroSiniestro ?? "",
+    franquicia: cita?.franquicia ?? "",
     // Siempre marcada al abrir la cita: el cliente quiere ver de entrada
     // la valoración y el presupuesto del vehículo sin tener que señalarla.
     presupuesto: true,
@@ -366,6 +367,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           modelo: form.vehiculoNuevo && !matriculaExiste ? (form.modelo || undefined) : undefined,
           tipo: form.tipo,
           numeroSiniestro: form.tipo === "peritaje" ? (form.numeroSiniestro || undefined) : undefined,
+          franquicia: form.franquicia ? Number(form.franquicia) : 0,
           presupuesto: Boolean(form.presupuesto),
           aseguradora: form.aseguradora || null,
           cortesia: Boolean(form.cortesia),
@@ -722,7 +724,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           )}
 
           {/* Compañía de seguros (si la reparación va por aseguradora) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-sm text-slate-400 block mb-1">
                 Por compañía de seguros{form.tipo === "peritaje" ? " *" : ""}
@@ -739,6 +741,20 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
               {form.aseguradoraNombre && !form.aseguradora && (
                 <p className="text-[11px] text-slate-500 mt-1">Se dará de alta la compañía al guardar.</p>
               )}
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Franquicia (€, IVA incl.)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className={campo}
+                value={form.franquicia}
+                onChange={(e) => actualizar("franquicia", e.target.value)}
+                placeholder="0,00"
+                disabled={!form.aseguradora && !form.aseguradoraNombre}
+              />
+              <p className="text-[11px] text-slate-500 mt-1">La paga el cliente; se descuenta de la factura a la compañía.</p>
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Coche de cortesía</label>

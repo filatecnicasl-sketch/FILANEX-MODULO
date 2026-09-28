@@ -51,6 +51,9 @@ const ordenTrabajoSchema = new Schema(
     // negociadas (precio hora MO, descuentos) que se aplican al facturar.
     aseguradora: { type: Schema.Types.ObjectId, ref: "Aseguradora", index: true },
     numeroSiniestro: String,
+    // Franquicia del seguro (€, IVA incluido) a cargo del cliente. Al
+    // facturar a la aseguradora se descuenta con una línea negativa.
+    franquicia: { type: Number, default: 0 },
     facturarA: { type: String, enum: ["cliente", "aseguradora"], default: "cliente" },
     factura: { type: Schema.Types.ObjectId, ref: "FacturaVenta", index: true },
     numeroFactura: String, // se rellena al emitir la factura

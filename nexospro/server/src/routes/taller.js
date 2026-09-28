@@ -355,6 +355,9 @@ router.put("/ordenes/:id", async (req, res, next) => {
     if (req.body.numeroSiniestro !== undefined) {
       cambios.numeroSiniestro = req.body.numeroSiniestro?.trim() || null;
     }
+    if (req.body.franquicia !== undefined) {
+      cambios.franquicia = Math.max(0, Number(req.body.franquicia) || 0);
+    }
     if (req.body.facturarA !== undefined) {
       if (!["cliente", "aseguradora"].includes(req.body.facturarA)) {
         return res.status(400).json({ error: "facturarA debe ser cliente o aseguradora" });
@@ -458,6 +461,21 @@ router.post("/ordenes/:id/facturar", async (req, res, next) => {
       detalleFactura += orden.numeroSiniestro
         ? ` · Siniestro ${orden.numeroSiniestro} (${aseguradora.nombre})`
         : ` · ${aseguradora.nombre}`;
+
+      // Franquicia del seguro: la paga el cliente, así que se descuenta de
+      // la factura a la compañía con una línea negativa (IVA incluido).
+      if (Number(orden.franquicia) > 0) {
+        const franquicia = Number(orden.franquicia);
+        const baseFranquicia = Math.round((franquicia / 1.21) * 100) / 100;
+        lineas.push({
+          descripcion: `Franquicia a cargo del cliente${orden.numeroSiniestro ? ` (siniestro ${orden.numeroSiniestro})` : ""}`,
+          detalle: `El cliente abona ${franquicia.toFixed(2)} € (IVA incluido) de franquicia; la compañía paga el resto.`,
+          cantidad: 1,
+          precioUnitario: -baseFranquicia,
+          iva: 21,
+        });
+        detalleFactura += ` · Franquicia cliente ${franquicia.toFixed(2)} €`;
+      }
     }
 
     // Cliente: el vinculado o alta mínima por nombre (misma filosofía que el OCR).
@@ -710,8 +728,16 @@ router.delete("/ordenes/:id/entrega/fotos", async (req, res, next) => {
  */
 router.post("/recepcion", async (req, res, next) => {
   try {
-    const { matricula, marca, modelo, km, clienteId, nombreCliente, telefono, trabajos, motivo, presupuestoId, reasignarCliente } = req.body;
+    const { matricula, marca, modelo, km, clienteId, nombreCliente, telefono, trabajos, motivo, presupuestoId, reasignarCliente, citaId } = req.body;
     if (!matricula) return res.status(400).json({ error: "La matrícula es obligatoria" });
+
+    // Si la recepción nace de una cita, la orden hereda de ella la
+    // compañía, el siniestro y la franquicia (salvo que la valoración
+    // del vehículo mande, que es dato más completo).
+    let citaOrigen = null;
+    if (citaId) {
+      citaOrigen = await Cita.findOne({ _id: citaId, ambito: "taller" }).lean();
+    }
 
     let nombreFinal = nombreCliente || undefined;
     if (clienteId) {
@@ -767,9 +793,10 @@ router.post("/recepcion", async (req, res, next) => {
       trabajos,
       motivo,
       km,
-      aseguradora: valReciente?.aseguradora ?? undefined,
-      numeroSiniestro: valReciente?.numeroSiniestro ?? undefined,
-      facturarA: valReciente?.aseguradora ? "aseguradora" : undefined,
+      aseguradora: valReciente?.aseguradora ?? citaOrigen?.aseguradora ?? undefined,
+      numeroSiniestro: valReciente?.numeroSiniestro ?? citaOrigen?.numeroSiniestro ?? undefined,
+      facturarA: (valReciente?.aseguradora || citaOrigen?.aseguradora) ? "aseguradora" : undefined,
+      franquicia: Number(req.body.franquicia) > 0 ? Number(req.body.franquicia) : (citaOrigen?.franquicia || undefined),
       presupuesto: pto?._id,
       presupuestoNumero: pto?.serieNumero,
       lineas: pto ? pto.lineas.map((l) => l.toObject?.() ?? l) : lineasDesdeValoracion(valReciente),
@@ -1094,6 +1121,7 @@ router.post("/citas", async (req, res, next) => {
       motivo: req.body.motivo || undefined,
       tipo: req.body.tipo === "peritaje" ? "peritaje" : "normal",
       numeroSiniestro: req.body.numeroSiniestro || undefined,
+      franquicia: Number(req.body.franquicia) > 0 ? Number(req.body.franquicia) : undefined,
       presupuesto: Boolean(req.body.presupuesto),
       aseguradora: aseguradoraId,
       aseguradoraNombre,
@@ -1124,6 +1152,9 @@ router.put("/citas/:id", async (req, res, next) => {
     }
     if (req.body.numeroSiniestro !== undefined) {
       cambios.numeroSiniestro = req.body.numeroSiniestro || null;
+    }
+    if (req.body.franquicia !== undefined) {
+      cambios.franquicia = Math.max(0, Number(req.body.franquicia) || 0);
     }
     if (req.body.cliente !== undefined) cambios.cliente = req.body.cliente || null;
     if (req.body.aseguradora !== undefined || req.body.aseguradoraNombre !== undefined) {
@@ -1891,6 +1922,7 @@ async function crearOrden(datos) {
     total: lineas.length ? calcularTotales(lineas).total : 0,
     aseguradora: datos.aseguradora || undefined,
     numeroSiniestro: datos.numeroSiniestro,
+    franquicia: Number(datos.franquicia) > 0 ? Number(datos.franquicia) : 0,
     facturarA: datos.aseguradora && datos.facturarA === "aseguradora" ? "aseguradora" : "cliente",
     presupuesto: datos.presupuesto || undefined,
     presupuestoNumero: datos.presupuestoNumero || undefined,

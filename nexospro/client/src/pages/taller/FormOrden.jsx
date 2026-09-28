@@ -145,6 +145,7 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
     notasInternas: orden?.notasInternas ?? "",
     aseguradora: orden?.aseguradora?._id ?? orden?.aseguradora ?? "",
     numeroSiniestro: orden?.numeroSiniestro ?? "",
+    franquicia: orden?.franquicia ?? "",
     facturarA: orden?.facturarA ?? "cliente",
     presupuestos: [...new Set([
       ...(orden?.presupuestos ?? []).map((p) => String(p?._id ?? p)),
@@ -268,6 +269,7 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
         lineas: lineas.filter((l) => l.descripcion),
         aseguradora: form.aseguradora || null,
         numeroSiniestro: form.numeroSiniestro.trim() || undefined,
+        franquicia: form.aseguradora && form.franquicia ? Number(form.franquicia) : 0,
         facturarA: form.aseguradora ? form.facturarA : "cliente",
         presupuesto: form.presupuestos[0] || null,
         presupuestos: form.presupuestos,
@@ -473,7 +475,7 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
 
           <fieldset className="rounded-xl border border-white/10 p-3">
             <legend className="text-xs uppercase tracking-wider text-slate-500 px-1">Compañía aseguradora</legend>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
                 <label className="text-xs text-slate-500 block mb-1">Aseguradora</label>
                 <select
@@ -507,6 +509,20 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
                   <option value="cliente">Cliente</option>
                   <option value="aseguradora">Compañía</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Franquicia (€, IVA incl.)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className={campo}
+                  value={form.franquicia}
+                  onChange={(e) => poner("franquicia", e.target.value)}
+                  placeholder="0,00"
+                  disabled={!form.aseguradora}
+                  title="La paga el cliente; se descuenta de la factura a la compañía"
+                />
               </div>
             </div>
           </fieldset>
