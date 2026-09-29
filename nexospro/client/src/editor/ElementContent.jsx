@@ -36,7 +36,7 @@ export function ElementContent(props) {
     case "checkbox":
       return <CheckboxView el={el} {...sub} />;
     case "image":
-      return <ImageView el={el} />;
+      return <ImageView el={el} print={print} />;
     case "line":
       return <LineView el={el} mm={mm} />;
     case "rect":
@@ -204,8 +204,11 @@ function CheckboxView({ el, variant, formData, onFormValue, fs, mm, scale }) {
 }
 
 // ---------- Imagen ----------
-function ImageView({ el }) {
+function ImageView({ el, print }) {
   if (el.src === "{{empresa.logo}}") {
+    // En papel no se imprime la caja de muestra: el hueco queda vacío. La
+    // sustitución por el logo real se hace en imprimir-formato.jsx.
+    if (print) return null;
     return (
       <div className="flex h-full w-full items-center justify-center border border-dashed border-slate-400 bg-slate-100 text-[0.625rem] text-slate-500">
         LOGO EMPRESA

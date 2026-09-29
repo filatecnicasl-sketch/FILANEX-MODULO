@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-29",
     tipo: "correccion",
+    titulo: "El logo de la empresa ya sale al imprimir documentos",
+    detalle:
+      "El elemento «Logo empresa» del editor de formatos imprimía una caja gris de muestra en vez del logo real. Ahora se sustituye por el logo subido en Ajustes → Configuración al imprimir cualquier documento (hoja de entrada, orden, cortesía…). Si la empresa no tiene logo, el hueco sale vacío.",
+  },
+  {
+    fecha: "2026-09-29",
+    tipo: "correccion",
     titulo: "Editor de formatos: imágenes que no llegan a guardarse y aviso de errores",
     detalle:
       "Las imágenes subidas al editor se reducen automáticamente antes de guardarse (una foto de móvil tal cual podía superar el límite del servidor y perderse sin avisar). Y si el formato no llega a guardarse en el servidor, ahora salta un aviso en pantalla en vez de fallar en silencio.",
