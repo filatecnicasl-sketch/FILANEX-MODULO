@@ -75,6 +75,11 @@ const esquemaDocumento = {
   type: "OBJECT",
   properties: {
     tipoDocumento: { type: "STRING", enum: ["factura", "albaran"] },
+    esGasto: {
+      type: "BOOLEAN",
+      description:
+        "true si el documento es un ticket o factura de GASTO corriente (bar, restaurante, gasolinera, hotel, parking, peaje...) y no una compra de mercancía o servicios para el negocio",
+    },
     proveedor: {
       type: "OBJECT",
       properties: {
@@ -116,6 +121,7 @@ const esquemaDocumento = {
 
 const PROMPT = `Analiza el documento adjunto (factura o albarán de COMPRA recibido por una empresa española) y extrae sus datos.
 Reglas:
+- esGasto: true si es un ticket o factura de gasto corriente (comida de restaurante, combustible, hotel, parking, peaje, taxi...). Esos gastos no generan artículos de inventario. false si es compra de mercancía, material o servicios del negocio (lo habitual en facturas de proveedores).
 - lineas[].tipo: "servicio" si no es un bien físico almacenable (telefonía, luz, agua, alquiler, consultoría, reparaciones, seguros...); "articulo" si son unidades de un producto.
 - Fecha en formato YYYY-MM-DD. Importes numéricos sin símbolo de moneda ni separador de miles.
 - iva como porcentaje (21, 10, 4, 0). Si una línea no indica IVA, usa el tipo general del documento.

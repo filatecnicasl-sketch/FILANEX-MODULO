@@ -134,7 +134,16 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
         });
       }
 
-      const sugerenciasLineas = await sugerirArticulos(proveedor?._id, extraccion.lineas ?? []);
+      // Un ticket de restaurante, gasolinera u hotel no es mercancía: las
+      // líneas no deben acabar dadas de alta como artículos de venta.
+      if (extraccion.esGasto) {
+        avisos.push(
+          "Parece un gasto (restaurante, combustible, hotel...): las líneas no se darán de alta como artículos. Para llevarlo con categoría usa Compras → Gastos → Importar ticket."
+        );
+      }
+      const sugerenciasLineas = extraccion.esGasto
+        ? (extraccion.lineas ?? []).map(() => ({ articuloId: null, crear: false }))
+        : await sugerirArticulos(proveedor?._id, extraccion.lineas ?? []);
       const factura = await FacturaCompra.create({
         proveedor: proveedor?._id ?? null,
         numeroFacturaProveedor: extraccion.numeroDocumento ?? null,
@@ -281,6 +290,9 @@ router.post("/:id/validar", async (req, res, next) => {
 
     const sugerencias = extra.sugerenciasLineas ?? [];
     for (let i = 0; i < fc.lineas.length; i++) {
+      // esGasto (restaurante, gasolinera...): jamás se crean artículos de
+      // estas líneas, aunque la sugerencia dijera lo contrario.
+      if (extra.esGasto) continue;
       if (sugerencias[i]?.crear !== false && sugerencias[i]?.articuloId == null) {
         const l = fc.lineas[i];
         const tipo = extra.lineas?.[i]?.tipo === "servicio" ? "servicio" : "articulo";
