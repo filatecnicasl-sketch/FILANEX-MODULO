@@ -16,6 +16,7 @@ import { uploadMemoria } from "../middleware/upload.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
 import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 import { moverStock } from "../services/stock.js";
+import Empresa from "../models/Empresa.js";
 
 const router = Router();
 
@@ -289,6 +290,10 @@ router.post("/:id/validar", async (req, res, next) => {
     }
 
     const sugerencias = extra.sugerenciasLineas ?? [];
+    // Margen configurado en Ajustes → Configuración: los artículos nuevos
+    // nacen ya con precio de venta = coste × (1 + margen/100).
+    const empresaCfg = await Empresa.findOne().select("compras").lean();
+    const margenPct = Number(empresaCfg?.compras?.margenVentaPct) || 0;
     for (let i = 0; i < fc.lineas.length; i++) {
       // esGasto (restaurante, gasolinera...): jamás se crean artículos de
       // estas líneas, aunque la sugerencia dijera lo contrario.
@@ -301,6 +306,7 @@ router.post("/:id/validar", async (req, res, next) => {
           tipo,
           codigo: await siguienteCodigoArticulo(),
           precioCompra: l.precioUnitario,
+          precioVenta: Math.round(l.precioUnitario * (1 + margenPct / 100) * 100) / 100,
           iva: l.iva,
           proveedor: fc.proveedor ?? undefined,
           origen: "ocr",

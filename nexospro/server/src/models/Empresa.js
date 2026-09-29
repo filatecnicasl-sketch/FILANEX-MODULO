@@ -102,6 +102,11 @@ const empresaSchema = new Schema(
       precioHoraPintura: { type: Number, default: 0 },
       precioHoraMecanica: { type: Number, default: 0 },
     },
+    // Compras: margen sobre el precio de coste para calcular el precio de
+    // venta de los artículos que se dan de alta al validar una factura.
+    compras: {
+      margenVentaPct: { type: Number, default: 30 },
+    },
     // Cuenta de correo de ESTA empresa. La contraseña se guarda cifrada y
     // nunca se devuelve al navegador.
     correo: {

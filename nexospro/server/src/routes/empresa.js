@@ -148,7 +148,7 @@ router.put("/", async (req, res, next) => {
   try {
     let empresa = await Empresa.findOne();
     if (!empresa) empresa = new Empresa();
-    const { nombre, nif, telefono, email, direccion, logoUrl, sepa, modulos, moduloInicio, taller } = req.body;
+    const { nombre, nif, telefono, email, direccion, logoUrl, sepa, modulos, moduloInicio, taller, compras } = req.body;
     if (nombre !== undefined) empresa.nombre = nombre;
     if (nif !== undefined) empresa.nif = nif;
     if (telefono !== undefined) empresa.telefono = telefono;
@@ -203,6 +203,12 @@ router.put("/", async (req, res, next) => {
         precioHoraChapa: numero(taller.precioHoraChapa),
         precioHoraPintura: numero(taller.precioHoraPintura),
         precioHoraMecanica: numero(taller.precioHoraMecanica),
+      };
+    }
+    if (compras !== undefined) {
+      const margen = Number(compras.margenVentaPct);
+      empresa.compras = {
+        margenVentaPct: Number.isFinite(margen) && margen >= 0 ? margen : 0,
       };
     }
     // Se valida después de aplicar "modulos": permite activar un sistema y

@@ -34,6 +34,10 @@ export default function ConfigPage() {
     setEmpresa((e) => ({ ...e, taller: { ...(e.taller ?? {}), [campoNombre]: valor } }));
   }
 
+  function actualizarCompras(campoNombre, valor) {
+    setEmpresa((e) => ({ ...e, compras: { ...(e.compras ?? {}), [campoNombre]: valor } }));
+  }
+
   async function subirLogo(archivo) {
     if (!archivo) return;
     setError(null);
@@ -68,6 +72,7 @@ export default function ConfigPage() {
         direccion: empresa.direccion,
         sepa: empresa.sepa,
         taller: empresa.taller,
+        compras: empresa.compras,
       }),
     });
     const datos = await r.json();
@@ -222,6 +227,25 @@ export default function ConfigPage() {
               type="number" min="0" step="0.5" className={campo}
               value={empresa.taller?.precioHoraMecanica ?? ""}
               onChange={(e) => actualizarTaller("precioHoraMecanica", e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="panel p-6 mb-6 space-y-3">
+        <h2 className="text-white font-semibold">Compras — margen de venta</h2>
+        <p className="text-xs text-slate-500">
+          Al validar una factura de compra, los artículos nuevos se dan de alta con el precio de
+          venta ya calculado: <span className="text-slate-300">precio de venta = coste × (1 + margen/100)</span>.
+          Ejemplo: con 30 %, algo que te cuesta 100 € se pone a la venta a 130 €.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className={etiqueta}>Margen sobre el coste (%)</label>
+            <input
+              type="number" min="0" step="1" className={campo}
+              value={empresa.compras?.margenVentaPct ?? ""}
+              onChange={(e) => actualizarCompras("margenVentaPct", e.target.value)}
             />
           </div>
         </div>
