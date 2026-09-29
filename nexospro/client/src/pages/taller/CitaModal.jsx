@@ -140,6 +140,8 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const [vehiculos, setVehiculos] = useState([]);
   const [aseguradoras, setAseguradoras] = useState([]);
   const [valoraciones, setValoraciones] = useState([]);
+  const [presupuestos, setPresupuestos] = useState([]);
+  const [textoLocalizar, setTextoLocalizar] = useState("");
   const [prestamos, setPrestamos] = useState([]);
   const [prestamo, setPrestamo] = useState(null); // préstamo activo de cortesía
   const [form, setForm] = useState({
@@ -197,6 +199,10 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
       .then((r) => (r.ok ? r.json() : []))
       .then(setValoraciones)
       .catch(() => setValoraciones([]));
+    fetch("/api/presupuestos")
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setPresupuestos)
+      .catch(() => setPresupuestos([]));
     fetch("/api/taller/cortesia")
       .then((r) => (r.ok ? r.json() : []))
       .then(setPrestamos)
@@ -294,6 +300,61 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   }
 
   const matriculaExiste = vehiculos.some((v) => v.matricula?.toUpperCase() === form.matricula?.toUpperCase());
+
+  // Localizador al crear la cita: busca valoraciones (PER) y presupuestos
+  // por número, matrícula, compañía o cliente y rellena la cita con ellos.
+  const opcionesLocalizar = [
+    ...valoraciones.map((v) => ({
+      _id: `val-${v._id}`,
+      nombre: `Valoración ${v.numero} · ${v.matricula}`,
+      secundario: [v.compania || "particular", nombreEstadoValoracion(v.estado)].filter(Boolean).join(" · "),
+      _tipo: "valoracion",
+      _ref: v,
+    })),
+    ...presupuestos.map((p) => ({
+      _id: `pto-${p._id}`,
+      nombre: `Presupuesto ${p.serieNumero}`,
+      secundario: [p.cliente?.nombre, p.estado].filter(Boolean).join(" · "),
+      _tipo: "presupuesto",
+      _ref: p,
+    })),
+  ];
+
+  function elegirLocalizado(op) {
+    if (!op) return;
+    setTextoLocalizar(op.nombre);
+    if (op._tipo === "valoracion") {
+      const v = op._ref;
+      // Como al elegir la matrícula a mano: también intenta rellenar cliente.
+      const veh = vehiculos.find((x) => x.matricula?.toUpperCase() === v.matricula?.toUpperCase());
+      const cli = clientes.find((c) => String(c._id) === String(veh?.cliente) || c.nombre === veh?.clienteNombre);
+      setForm((f) => ({
+        ...f,
+        matricula: v.matricula,
+        marca: veh?.marca ?? v.marca ?? f.marca,
+        modelo: veh?.modelo ?? v.modelo ?? f.modelo,
+        cliente: f.cliente || cli?._id || "",
+        clienteNombre: f.clienteNombre || veh?.clienteNombre || f.clienteNombre,
+        telefono: f.telefono || cli?.telefono || f.telefono,
+        aseguradora: v.aseguradora?._id ?? v.aseguradora ?? f.aseguradora,
+        aseguradoraNombre: v.compania ?? f.aseguradoraNombre,
+        numeroSiniestro: v.numeroSiniestro ?? f.numeroSiniestro,
+        motivo: f.motivo || `Valoración ${v.numero}${v.compania ? ` · ${v.compania}` : ""}`,
+        presupuesto: true,
+      }));
+    } else {
+      const p = op._ref;
+      const cli = clientes.find((c) => String(c._id) === String(p.cliente?._id ?? p.cliente));
+      setForm((f) => ({
+        ...f,
+        cliente: cli?._id ?? f.cliente,
+        clienteNombre: cli?.nombre ?? p.cliente?.nombre ?? f.clienteNombre,
+        telefono: f.telefono || cli?.telefono || p.cliente?.telefono || f.telefono,
+        motivo: f.motivo || `Presupuesto ${p.serieNumero}`,
+        presupuesto: true,
+      }));
+    }
+  }
   // Valoraciones del vehículo de la cita (o las de la cita ya cargada).
   const valoracionesCita = (cita?.valoraciones?.length ? cita.valoraciones : valoraciones)
     .filter((v) => v.matricula?.toUpperCase() === form.matricula?.toUpperCase());
@@ -622,6 +683,19 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
                 required
               />
             </div>
+          </div>
+          <div>
+            <label className="text-sm text-slate-400 block mb-1">Localizar valoración o presupuesto</label>
+            <BuscadorEntidad
+              opciones={opcionesLocalizar}
+              valorTexto={textoLocalizar}
+              onTexto={setTextoLocalizar}
+              onElegir={elegirLocalizado}
+              placeholder="PER-000012, matrícula, compañía, P-3…"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Al elegirla rellena matrícula, compañía, siniestro y cliente de la cita.
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

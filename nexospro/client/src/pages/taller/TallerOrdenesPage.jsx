@@ -289,7 +289,13 @@ export default function TallerOrdenesPage() {
       !q ||
       o.numero.toLowerCase().includes(q) ||
       o.matricula.toLowerCase().includes(q) ||
-      (o.clienteNombre ?? "").toLowerCase().includes(q)
+      (o.clienteNombre ?? "").toLowerCase().includes(q) ||
+      (o.cliente?.telefono ?? "").includes(q) ||
+      (o.telefono ?? "").includes(q) ||
+      (o.aseguradora?.nombre ?? o.aseguradoraNombre ?? "").toLowerCase().includes(q) ||
+      (o.numeroSiniestro ?? "").toLowerCase().includes(q) ||
+      (o.presupuestoNumero ?? "").toLowerCase().includes(q) ||
+      (o.estado ?? "").replace(/_/g, " ").includes(q)
   );
 
   return (
@@ -330,7 +336,7 @@ export default function TallerOrdenesPage() {
       <div className="mb-4">
         <input
           className="input w-full max-w-sm"
-          placeholder="Buscar por nº, matrícula o cliente…"
+          placeholder="Buscar por nº, matrícula, cliente, teléfono, compañía o siniestro…"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />

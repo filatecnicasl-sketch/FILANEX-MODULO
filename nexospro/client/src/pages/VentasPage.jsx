@@ -584,6 +584,7 @@ export default function VentasPage() {
       f.serieNumero,
       f.cliente?.nombre,
       f.cliente?.nif,
+      f.matricula,
       f.descripcion,
       f.fecha ? new Date(f.fecha).toLocaleDateString("es-ES") : "",
       f.vencimiento ? new Date(f.vencimiento).toLocaleDateString("es-ES") : "",
