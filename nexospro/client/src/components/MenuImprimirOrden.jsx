@@ -59,8 +59,9 @@ export async function imprimirHojaEntrada(o) {
   if (tabla) {
     (o.lineas ?? []).slice(0, tabla.rows).forEach((l, r) => {
       formData[`tbl_${tabla.id}_${r}_0`] = l.descripcion ?? "";
-      if (l.tipo === "mano_obra") formData[`tbl_${tabla.id}_${r}_1`] = "X";
-      if (l.tipo === "material") formData[`tbl_${tabla.id}_${r}_2`] = "X";
+      // Valores reales si los hay; compat con el formato antiguo (tipo → "X").
+      formData[`tbl_${tabla.id}_${r}_1`] = l.manoObra ?? (l.tipo === "mano_obra" ? "X" : "");
+      formData[`tbl_${tabla.id}_${r}_2`] = l.materiales ?? (l.tipo === "material" ? "X" : "");
     });
   }
 

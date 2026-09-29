@@ -27,6 +27,13 @@ const citaSchema = new Schema(
     aparatoDescripcion: String,
     direccion: String,
     motivo: String,
+    // Reparaciones a realizar: salen rellenas en la tabla de la hoja de
+    // entrada (DESCRIPCIÓN / MANO DE OBRA / MATERIALES). Se pueden traer
+    // de la valoración enlazada y corregir en el momento de imprimir.
+    lineas: {
+      type: [{ descripcion: String, manoObra: String, materiales: String, _id: false }],
+      default: [],
+    },
     // "normal": recepción/entrega · "peritaje": el cliente deja el coche
     // para que venga el perito de la compañía a valorar los daños.
     tipo: { type: String, enum: ["normal", "peritaje"], default: "normal", index: true },

@@ -1144,6 +1144,17 @@ router.get("/citas", async (req, res, next) => {
   }
 });
 
+// Reparaciones a realizar de la hoja de entrada: texto libre por celda.
+const saneaLineasCita = (ls) =>
+  (Array.isArray(ls) ? ls : [])
+    .map((l) => ({
+      descripcion: String(l?.descripcion ?? "").trim(),
+      manoObra: String(l?.manoObra ?? "").trim(),
+      materiales: String(l?.materiales ?? "").trim(),
+    }))
+    .filter((l) => l.descripcion || l.manoObra || l.materiales)
+    .slice(0, 30);
+
 router.post("/citas", async (req, res, next) => {
   try {
     const { fecha, hora } = req.body;
@@ -1199,6 +1210,7 @@ router.post("/citas", async (req, res, next) => {
       vehiculo: vehiculoId,
       matricula: normalizarMatricula(req.body.matricula) || undefined,
       motivo: req.body.motivo || undefined,
+      lineas: saneaLineasCita(req.body.lineas),
       tipo: req.body.tipo === "peritaje" ? "peritaje" : "normal",
       numeroSiniestro: req.body.numeroSiniestro || undefined,
       franquicia: Number(req.body.franquicia) > 0 ? Number(req.body.franquicia) : undefined,
@@ -1228,6 +1240,7 @@ router.put("/citas/:id", async (req, res, next) => {
     const anterior = await Cita.findOne({ _id: req.params.id, ambito: "taller" }).lean();
     if (!anterior) return res.status(404).json({ error: "Cita no encontrada" });
     const cambios = { hora, duracion, clienteNombre, telefono, motivo, estado, notas };
+    if (req.body.lineas !== undefined) cambios.lineas = saneaLineasCita(req.body.lineas);
     if (req.body.tipo !== undefined) {
       cambios.tipo = req.body.tipo === "peritaje" ? "peritaje" : "normal";
     }

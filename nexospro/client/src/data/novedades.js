@@ -7,9 +7,9 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-29",
     tipo: "nuevo",
-    titulo: "Hoja de entrada desde la cita, con descripción de la avería al imprimir",
+    titulo: "Hoja de entrada desde la cita, con descripción y tabla de reparaciones rellenas",
     detalle:
-      "La hoja de entrada se imprime desde la cita (también al crearla, sin guardar antes). Al pulsar «Imprimir hoja de entrada» se abre un cuadro para escribir o corregir la descripción de la avería / trabajos del cliente: ese texto sale en el bloque grande de la hoja y queda guardado en la cita. Además, el antiguo campo «Motivo» de la cita es ahora un cuadro amplio de «Descripción de la avería».",
+      "La hoja de entrada se imprime desde la cita (también al crearla, sin guardar antes). Al pulsar «Imprimir hoja de entrada» se abre un cuadro con dos apartados: la descripción de la avería (sale en el bloque grande de la hoja) y las reparaciones a realizar, que rellenan la tabla del impreso con descripción, mano de obra y materiales. Si la cita tiene valoración enlazada, las reparaciones vienen ya escritas de sus partidas. Todo queda guardado en la cita. Además, el antiguo campo «Motivo» de la cita es ahora un cuadro amplio de «Descripción de la avería».",
   },
   {
     fecha: "2026-09-29",

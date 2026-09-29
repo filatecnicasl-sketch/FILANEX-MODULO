@@ -186,6 +186,9 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const [dialogoEntrada, setDialogoEntrada] = useState(false);
   const [textoEntrada, setTextoEntrada] = useState("");
   const [imprimiendoEntrada, setImprimiendoEntrada] = useState(false);
+  // Reparaciones a realizar: salen en la tabla de la hoja de entrada
+  // (descripción / mano de obra / materiales) y se guardan con la cita.
+  const [lineasEntrada, setLineasEntrada] = useState(cita?.lineas ?? []);
 
   useEffect(() => {
     fetch("/api/clientes")
@@ -438,6 +441,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           ...form,
           duracion,
           horaFin: undefined,
+          lineas: lineasEntrada,
           matricula: form.matricula || undefined,
           marca: form.vehiculoNuevo && !matriculaExiste ? (form.marca || undefined) : undefined,
           modelo: form.vehiculoNuevo && !matriculaExiste ? (form.modelo || undefined) : undefined,
@@ -506,11 +510,34 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     await guardarCita(true);
   }
 
+  // Convierte las partidas de una valoración en reparaciones de la hoja.
+  const lineasDesdeValoracion = (v) =>
+    (v?.lineas ?? [])
+      .map((l) => ({
+        descripcion: l.descripcion ?? "",
+        manoObra: l.horas ? `${String(l.horas).replace(".", ",")} h` : "",
+        materiales:
+          l.tipo === "material" && Number(l.importe) > 0 ? `${Number(l.importe).toFixed(2)} €` : "",
+      }))
+      .filter((l) => l.descripcion);
+
+  const ponerLinea = (i, campo, valor) =>
+    setLineasEntrada((ls) => ls.map((l, j) => (j === i ? { ...l, [campo]: valor } : l)));
+  const quitarLinea = (i) => setLineasEntrada((ls) => ls.filter((_, j) => j !== i));
+  const anadirLinea = () =>
+    setLineasEntrada((ls) => [...ls, { descripcion: "", manoObra: "", materiales: "" }]);
+
   function abrirDialogoEntrada() {
     const base = cita
       ? [cita.motivo, cita.notas].filter(Boolean).join(". ")
       : [form.motivo, form.notas].filter(Boolean).join(". ");
     setTextoEntrada(base);
+    // Si la cita no tiene reparaciones aún pero hay valoración enlazada,
+    // se traen sus partidas ya escritas (luego se pueden corregir).
+    if (lineasEntrada.length === 0) {
+      const v = valoracionesCita.find((x) => x.lineas?.length);
+      if (v) setLineasEntrada(lineasDesdeValoracion(v));
+    }
     setDialogoEntrada(true);
   }
 
@@ -518,14 +545,16 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     setImprimiendoEntrada(true);
     try {
       const texto = textoEntrada.trim();
-      // Lo escrito aquí queda guardado como motivo de la cita.
+      const lineas = lineasEntrada.filter((l) => l.descripcion || l.manoObra || l.materiales);
+      // Lo escrito aquí queda guardado en la cita (descripción y reparaciones).
       if (cita) {
         const actual = [cita.motivo, cita.notas].filter(Boolean).join(". ");
-        if (texto !== actual) {
+        const mismasLineas = JSON.stringify(cita.lineas ?? []) === JSON.stringify(lineas);
+        if (texto !== actual || !mismasLineas) {
           await fetch(`/api/taller/citas/${cita._id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ motivo: texto }),
+            body: JSON.stringify({ motivo: texto, lineas }),
           }).catch(() => {});
         }
       }
@@ -558,7 +587,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
         clienteNombre: (cita?.clienteNombre ?? form.clienteNombre) || cliente?.nombre || "",
         telefono: (cita?.telefono ?? form.telefono) || cliente?.telefono || "",
         vehiculo: vehiculo ? { marca: vehiculo.marca, modelo: vehiculo.modelo } : undefined,
-        lineas: [],
+        lineas,
       });
 
       // Si no hay plantilla configurada, se imprime un resguardo básico para que
@@ -1132,7 +1161,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
         className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
         onClick={() => setDialogoEntrada(false)}
       >
-        <div className="modal-panel w-full max-w-lg p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-panel w-full max-w-2xl p-5" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-base font-bold text-white mb-1">
             Hoja de entrada · {(cita?.matricula ?? form.matricula ?? "").toUpperCase()}
           </h3>
@@ -1142,12 +1171,66 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           </p>
           <textarea
             autoFocus
-            rows={5}
+            rows={3}
             className="input w-full resize-none"
             placeholder="Ej.: El cliente dice que frena mal y suena un ruido delante; revisar frenos y cambiar bombilla del faro derecho…"
             value={textoEntrada}
             onChange={(e) => setTextoEntrada(e.target.value)}
           />
+
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-slate-300">Reparaciones a realizar</span>
+              <button
+                type="button"
+                onClick={anadirLinea}
+                className="text-xs text-accent hover:underline"
+              >
+                + Añadir línea
+              </button>
+            </div>
+            <p className="text-[0.6875rem] text-slate-500 mb-2">
+              Salen rellenas en la tabla de la hoja (descripción / mano de obra / materiales). Si la
+              cita tiene valoración enlazada, vienen ya escritas.
+            </p>
+            {lineasEntrada.length > 0 && (
+              <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                {lineasEntrada.map((l, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <input
+                      className="input flex-1"
+                      placeholder="Reparar aleta delantera derecha…"
+                      value={l.descripcion}
+                      onChange={(e) => ponerLinea(i, "descripcion", e.target.value)}
+                    />
+                    <input
+                      className="input w-20"
+                      placeholder="M.O."
+                      title="Mano de obra"
+                      value={l.manoObra}
+                      onChange={(e) => ponerLinea(i, "manoObra", e.target.value)}
+                    />
+                    <input
+                      className="input w-20"
+                      placeholder="Mater."
+                      title="Materiales"
+                      value={l.materiales}
+                      onChange={(e) => ponerLinea(i, "materiales", e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => quitarLinea(i)}
+                      className="btn-ghost px-2"
+                      title="Quitar línea"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" onClick={() => setDialogoEntrada(false)} className="btn-ghost">
               Cancelar
