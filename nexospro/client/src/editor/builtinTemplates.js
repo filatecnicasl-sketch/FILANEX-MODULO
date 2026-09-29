@@ -732,7 +732,7 @@ export function buildFacturaVentaTaller() {
     { title: "IVA", width: 0.08 },
     { title: "IMPORTE", width: 0.16 },
   ];
-  const t = tabla(20, 95, 170, 122, "DETALLE DE LA REPARACIÓN", cols, 20);
+  const t = tabla(20, 101, 170, 116, "DETALLE DE LA REPARACIÓN", cols, 19);
   return {
     id: id(),
     builtin: "factura-venta-taller",
@@ -757,6 +757,11 @@ export function buildFacturaVentaTaller() {
       tx("{{cliente.nombre}}", 113, 51, 74, 8, 10, true),
       tx("{{cliente.nif}}", 113, 60, 74, 5, 8, false, "left", "#374151"),
       tx("{{cliente.direccion}}", 113, 65, 74, 7, 8, false, "left", "#374151"),
+
+      box(20, 77, 170, 20, 0.4, "#e5e7eb"),
+      tx("DATOS DEL TRABAJO", 23, 80, 164, 4, 7, true, "left", "#6b7280"),
+      tx("Matrícula: {{taller.matricula}}    Vehículo: {{taller.vehiculo}}    KM: {{taller.km}}    Orden: {{taller.orden}}", 23, 85, 164, 4.5, 8, false, "left", "#111827"),
+      tx("Compañía: {{taller.aseguradora}}    Siniestro: {{taller.siniestro}}    Entrada: {{taller.fechaEntrada}}", 23, 90.5, 164, 4.5, 8, false, "left", "#111827"),
 
       t,
 

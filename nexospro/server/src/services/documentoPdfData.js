@@ -96,6 +96,16 @@ async function datosFacturaVenta(id) {
     0
   );
 
+  // Datos del taller cuando la factura nace de una orden de trabajo:
+  // matrícula, vehículo, orden, compañía y siniestro para la cabecera.
+  let ot = null;
+  if (f.origen?.ordenTrabajo) {
+    ot = await OrdenTrabajo.findById(f.origen.ordenTrabajo)
+      .populate("vehiculo", "marca modelo matricula")
+      .populate("aseguradora", "nombre")
+      .lean();
+  }
+
   const formData = {
     "empresa.nombre": emp.nombre,
     "empresa.nif": emp.nif,
@@ -112,6 +122,13 @@ async function datosFacturaVenta(id) {
     "cliente.direccion": dirTexto(c.direccion),
     "cliente.telefono": c.telefono ?? "",
     "cliente.email": c.email ?? "",
+    "taller.orden": ot?.numero ?? "",
+    "taller.matricula": ot?.matricula ?? f.matricula ?? "",
+    "taller.vehiculo": [ot?.vehiculo?.marca, ot?.vehiculo?.modelo].filter(Boolean).join(" "),
+    "taller.km": ot?.km ? `${Number(ot.km).toLocaleString("es-ES")} km` : "",
+    "taller.aseguradora": ot?.aseguradora?.nombre ?? "",
+    "taller.siniestro": ot?.numeroSiniestro ?? "",
+    "taller.fechaEntrada": ot ? fechaEs(ot.fechaEntrada) : "",
     "totales.base": euros(f.baseImponible),
     "totales.iva": euros(f.cuotaIva),
     "totales.total": euros(f.total),
