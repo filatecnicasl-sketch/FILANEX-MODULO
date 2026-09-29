@@ -120,6 +120,7 @@ const gruposModulos = {
       { to: "/taller/aseguradoras", etiqueta: "Aseguradoras", Icono: IconAseguradora, tono: "teal" },
       { to: "/taller/cortesia", etiqueta: "Cortesía", Icono: IconCortesia, tono: "rose" },
       { to: "/taller/operarios", etiqueta: "Operarios", fin: true, Icono: IconOperarios, tono: "cyan" },
+      { to: "/taller/conceptos", etiqueta: "Conceptos", Icono: IconSeries, tono: "sky" },
       { to: "/ayuda/taller", etiqueta: "Ayuda taller", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },

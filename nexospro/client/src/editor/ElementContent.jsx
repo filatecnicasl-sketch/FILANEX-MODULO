@@ -316,7 +316,63 @@ function TableView({ el, variant, formData, onFormValue, fs, mm }) {
             </td>
           ))}
         </tr>
-        {Array.from({ length: el.rows }, (_, r) => (
+        {Array.from({ length: el.rows }, (_, r) => {
+          // Filas especiales de la factura de taller (cabecera de bloque y
+          // subtotal): viajan marcadas desde el servidor.
+          const estiloFila = formData[`tbl_${el.id}_${r}_estilo`];
+          if (variant !== "fill" && estiloFila === "cabecera") {
+            return (
+              <tr key={r}>
+                <td
+                  colSpan={el.columns.length + (el.showRowNumbers ? 1 : 0)}
+                  style={{
+                    border,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    fontSize: fs(el.headerFontSize),
+                    background: "#f1f5f9",
+                    borderTop: "1.5px solid #94a3b8",
+                    padding: "0 2px",
+                  }}
+                >
+                  {String(formData[cellKey(r, 0)] ?? "")}
+                </td>
+              </tr>
+            );
+          }
+          if (variant !== "fill" && estiloFila === "subtotal") {
+            return (
+              <tr key={r}>
+                <td
+                  colSpan={el.columns.length - 1 + (el.showRowNumbers ? 1 : 0)}
+                  style={{
+                    border,
+                    textAlign: "right",
+                    fontWeight: 600,
+                    fontStyle: "italic",
+                    color: "#475569",
+                    fontSize: fs(el.headerFontSize),
+                    padding: "0 2px",
+                  }}
+                >
+                  {String(formData[cellKey(r, 0)] ?? "")}
+                </td>
+                <td
+                  style={{
+                    border,
+                    borderBottom: "1.5px solid #94a3b8",
+                    textAlign: "right",
+                    fontWeight: 700,
+                    fontSize: fs(el.headerFontSize),
+                    padding: "0 2px",
+                  }}
+                >
+                  {String(formData[cellKey(r, el.columns.length - 1)] ?? "")}
+                </td>
+              </tr>
+            );
+          }
+          return (
           <tr key={r}>
             {el.showRowNumbers && (
               <td style={{ border, textAlign: "center", fontSize: fs(el.headerFontSize), padding: 0, height: mm(rowH) }}>{r + 1}</td>
@@ -362,7 +418,8 @@ function TableView({ el, variant, formData, onFormValue, fs, mm }) {
               </td>
             ))}
           </tr>
-        ))}
+          );
+        })}
       </tbody>
     </table>
   );

@@ -24,6 +24,12 @@ export const lineaSchema = new Schema(
     // línea (p.ej. "Chapa aleta derecha"). Permite subtotales por trabajo
     // en la orden y en el parte impreso.
     grupo: String,
+    // Taller: código del concepto (catálogo de conceptos, p.ej. "1" =
+    // Reparar) y sección de la factura de taller a la que pertenece la
+    // línea. La sección agrupa el impreso en Piezas sustituidas / Mano de
+    // obra chapa / Mano de obra pintura-material.
+    codigo: String,
+    seccion: { type: String, enum: ["piezas", "mo_chapa", "mo_pintura"] },
     // TPV: artículo vendido, para descontar/reponer stock al cobrar o
     // devolver el ticket.
     articulo: { type: Schema.Types.ObjectId, ref: "Articulo" },

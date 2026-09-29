@@ -40,6 +40,7 @@ import OperariosPage from "./pages/taller/OperariosPage.jsx";
 import PlanningPage from "./pages/taller/PlanningPage.jsx";
 import TallerValoracionesPage from "./pages/taller/TallerValoracionesPage.jsx";
 import TallerAseguradorasPage from "./pages/taller/TallerAseguradorasPage.jsx";
+import TallerConceptosPage from "./pages/taller/TallerConceptosPage.jsx";
 import LlamadasPage from "./pages/LlamadasPage.jsx";
 import AyudaFacturacionPage from "./pages/ayuda/AyudaFacturacionPage.jsx";
 import AyudaTallerPage from "./pages/ayuda/AyudaTallerPage.jsx";
@@ -190,6 +191,7 @@ export default function App() {
           <Route path="taller/ordenes" element={<TallerOrdenesPage />} />
           <Route path="taller/valoraciones" element={<TallerValoracionesPage />} />
           <Route path="taller/aseguradoras" element={<TallerAseguradorasPage />} />
+          <Route path="taller/conceptos" element={<TallerConceptosPage />} />
           <Route path="taller/cortesia" element={<TallerCortesiaPage />} />
           <Route path="taller/operarios" element={<OperariosPage />} />
           <Route path="taller/planning" element={<PlanningPage />} />

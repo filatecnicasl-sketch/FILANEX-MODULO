@@ -7,6 +7,7 @@ import PrestamoCortesia from "../models/PrestamoCortesia.js";
 import Valoracion, { ESTADOS_VALORACION } from "../models/Valoracion.js";
 import Operario from "../models/Operario.js";
 import Aseguradora from "../models/Aseguradora.js";
+import ConceptoTaller from "../models/ConceptoTaller.js";
 import Cliente from "../models/Cliente.js";
 import Empresa from "../models/Empresa.js";
 import FacturaVenta from "../models/FacturaVenta.js";
@@ -40,6 +41,85 @@ const subidaPdf = multer({
 
 router.use(requiereModulo("taller"));
 router.use("/aseguradoras", aseguradoras);
+
+// ---------- Conceptos de taller (catálogo con código) ----------
+// Operaciones habituales ("1" = Reparar…): al teclear el código en las
+// líneas de la orden/factura se rellena la descripción y la sección.
+const CONCEPTOS_SEMILLA = [
+  { codigo: "1", descripcion: "Reparar", seccion: "mo_chapa" },
+  { codigo: "2", descripcion: "Resanar", seccion: "mo_chapa" },
+  { codigo: "3", descripcion: "Pintar", seccion: "mo_pintura" },
+  { codigo: "4", descripcion: "Ajustar", seccion: "mo_chapa" },
+  { codigo: "5", descripcion: "Sustituir", seccion: "mo_chapa" },
+  { codigo: "6", descripcion: "Desmontar y montar", seccion: "mo_chapa" },
+  { codigo: "7", descripcion: "Pulir", seccion: "mo_pintura" },
+  { codigo: "8", descripcion: "Material de pintura", seccion: "mo_pintura" },
+  { codigo: "9", descripcion: "Pieza / repuesto", seccion: "piezas" },
+];
+
+router.get("/conceptos", async (req, res, next) => {
+  try {
+    // Primera vez: se precarga el catálogo típico de chapa y pintura.
+    if ((await ConceptoTaller.countDocuments()) === 0) {
+      await ConceptoTaller.insertMany(CONCEPTOS_SEMILLA.map((c, i) => ({ ...c, orden: i })));
+    }
+    const lista = await ConceptoTaller.find().sort({ orden: 1, codigo: 1 }).lean();
+    res.json(lista);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/conceptos", async (req, res, next) => {
+  try {
+    const { codigo, descripcion, seccion } = req.body;
+    if (!codigo?.trim() || !descripcion?.trim()) {
+      return res.status(400).json({ error: "Código y descripción son obligatorios" });
+    }
+    const orden = (await ConceptoTaller.countDocuments()) + 1;
+    const creado = await ConceptoTaller.create({
+      codigo: codigo.trim(),
+      descripcion: descripcion.trim(),
+      seccion,
+      orden,
+    });
+    res.status(201).json(creado);
+  } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ error: "Ya existe un concepto con ese código" });
+    next(err);
+  }
+});
+
+router.put("/conceptos/:id", async (req, res, next) => {
+  try {
+    const { codigo, descripcion, seccion, orden } = req.body;
+    const doc = await ConceptoTaller.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(codigo !== undefined && { codigo: String(codigo).trim() }),
+        ...(descripcion !== undefined && { descripcion: String(descripcion).trim() }),
+        ...(seccion !== undefined && { seccion }),
+        ...(orden !== undefined && { orden: Number(orden) || 0 }),
+      },
+      { new: true, runValidators: true }
+    );
+    if (!doc) return res.status(404).json({ error: "Concepto no encontrado" });
+    res.json(doc);
+  } catch (err) {
+    if (err?.code === 11000) return res.status(409).json({ error: "Ya existe un concepto con ese código" });
+    next(err);
+  }
+});
+
+router.delete("/conceptos/:id", async (req, res, next) => {
+  try {
+    const doc = await ConceptoTaller.findByIdAndDelete(req.params.id);
+    if (!doc) return res.status(404).json({ error: "Concepto no encontrado" });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ---------- Vehículos ----------
 router.get("/vehiculos", async (req, res, next) => {

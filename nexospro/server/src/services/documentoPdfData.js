@@ -18,6 +18,54 @@ function netoLinea(l) {
   return (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0) * (1 - (Number(l.descuento) || 0) / 100);
 }
 
+const ivaLinea = (l) => netoLinea(l) * ((Number(l.iva) || 0) / 100);
+const totalLineaConIva = (l) => netoLinea(l) + ivaLinea(l);
+
+// Franquicia del seguro: viaja como línea negativa en la factura a la
+// aseguradora ("Franquicia a cargo del cliente…"). En el impreso de taller
+// se saca de las líneas y se muestra en los totales.
+const esLineaFranquicia = (l) =>
+  Number(l.precioUnitario) < 0 && String(l.descripcion ?? "").toLowerCase().startsWith("franquicia");
+
+// Secciones de la factura de taller, en el orden en que se imprimen.
+const SECCIONES_TALLER = [
+  { clave: "piezas", titulo: "PIEZAS SUSTITUIDAS" },
+  { clave: "mo_chapa", titulo: "MANO DE OBRA CHAPA" },
+  { clave: "mo_pintura", titulo: "MANO DE OBRA PINTURA / MATERIAL" },
+];
+
+// Convierte las líneas de la factura en filas de impresión. Si alguna línea
+// tiene sección de taller, el impreso se agrupa en bloques con cabecera y
+// subtotal por bloque; si no, sale plano como siempre.
+function filasImpresion(lineas, conDto) {
+  const fila = (l) => ({
+    concepto: `${l.codigo ? `${l.codigo} · ` : ""}${l.descripcion ?? ""}${l.detalle ? `\n${l.detalle}` : ""}`,
+    cantidad: l.cantidad ?? "",
+    precio: euros(l.precioUnitario),
+    dto: conDto ? ((Number(l.descuento) || 0) > 0 ? `${l.descuento}%` : "") : null,
+    iva: `${l.iva ?? 0}%`,
+    importe: euros(netoLinea(l)),
+  });
+
+  const agrupar = lineas.some((l) => l.seccion);
+  if (!agrupar) return lineas.map(fila);
+
+  const filas = [];
+  const sinSeccion = lineas.filter((l) => !l.seccion);
+  const grupos = [
+    ...SECCIONES_TALLER.map((s) => ({ ...s, lineas: lineas.filter((l) => l.seccion === s.clave) })),
+    { clave: "_otros", titulo: "OTROS CONCEPTOS", lineas: sinSeccion },
+  ].filter((g) => g.lineas.length > 0);
+
+  for (const g of grupos) {
+    filas.push({ concepto: g.titulo, _fila: "cabecera" });
+    for (const l of g.lineas) filas.push(fila(l));
+    const subtotal = g.lineas.reduce((acc, l) => acc + totalLineaConIva(l), 0);
+    filas.push({ concepto: `Subtotal ${g.titulo.toLowerCase()}`, importe: euros(subtotal), _fila: "subtotal" });
+  }
+  return filas;
+}
+
 async function datosEmpresa() {
   const e = await Empresa.findOne().lean();
   return {
@@ -35,7 +83,18 @@ async function datosFacturaVenta(id) {
   if (!f) throw new Error("Factura no encontrada");
   const emp = await datosEmpresa();
   const c = f.cliente ?? {};
-  const conDto = (f.lineas ?? []).some((l) => (Number(l.descuento) || 0) > 0);
+  const todas = f.lineas ?? [];
+  const conDto = todas.some((l) => (Number(l.descuento) || 0) > 0);
+
+  // Franquicia: línea negativa interna que en el impreso pasa a los totales.
+  const lineaFranquicia = todas.find(esLineaFranquicia);
+  const lineas = todas.filter((l) => l !== lineaFranquicia);
+  const franquicia = lineaFranquicia ? Math.abs(totalLineaConIva(lineaFranquicia)) : 0;
+  const totalReparacion = lineas.reduce((acc, l) => acc + totalLineaConIva(l), 0);
+  const descuentoTotal = todas.reduce(
+    (acc, l) => acc + (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0) * ((Number(l.descuento) || 0) / 100),
+    0
+  );
 
   const formData = {
     "empresa.nombre": emp.nombre,
@@ -56,20 +115,21 @@ async function datosFacturaVenta(id) {
     "totales.base": euros(f.baseImponible),
     "totales.iva": euros(f.cuotaIva),
     "totales.total": euros(f.total),
+    // Totales de taller: etiqueta y valor van juntos; si no aplica, vacío.
+    "totales.totalReparacion": franquicia > 0 ? euros(totalReparacion) : "",
+    "totales.totalReparacionLabel": franquicia > 0 ? "Total reparación" : "",
+    "totales.franquicia": franquicia > 0 ? `− ${euros(franquicia)}` : "",
+    "totales.franquiciaLabel": franquicia > 0 ? "Franquicia a cargo del cliente" : "",
+    "totales.descuento": descuentoTotal > 0 ? `− ${euros(descuentoTotal)}` : "",
+    "totales.descuentoLabel": descuentoTotal > 0 ? "Descuento" : "",
     "pago.metodo": f.metodoPago ?? "",
     "pago.vencimiento": fechaEs(f.vencimiento),
     "notas": f.descripcion ?? "",
   };
 
-  // Tabla de líneas: usamos la primera tabla de la plantilla
-  formData.lineas = (f.lineas ?? []).map((l) => ({
-    concepto: l.detalle ? `${l.descripcion ?? ""}\n${l.detalle}` : (l.descripcion ?? ""),
-    cantidad: l.cantidad ?? "",
-    precio: euros(l.precioUnitario),
-    dto: conDto ? ((Number(l.descuento) || 0) > 0 ? `${l.descuento}%` : "") : null,
-    iva: `${l.iva ?? 0}%`,
-    importe: euros(netoLinea(l)),
-  }));
+  // Tabla de líneas: usamos la primera tabla de la plantilla. Con secciones
+  // de taller sale agrupada en bloques con cabecera y subtotal.
+  formData.lineas = filasImpresion(lineas, conDto);
 
   return { formData, logoUrl: emp.logoUrl, qrContenido: f.verifactu?.qrContenido, estado: f.estado };
 }

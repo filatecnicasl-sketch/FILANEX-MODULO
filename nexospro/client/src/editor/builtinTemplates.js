@@ -719,8 +719,74 @@ export function buildContratoCortesia() {
   };
 }
 
+// Factura de taller (chapa y pintura): las líneas llegan ya agrupadas del
+// servidor en bloques (PIEZAS SUSTITUIDAS / MANO DE OBRA CHAPA / MANO DE OBRA
+// PINTURA-MATERIAL) con cabecera y subtotal por bloque, y los totales
+// muestran Total reparación, Franquicia y Descuento solo cuando aplican.
+export function buildFacturaVentaTaller() {
+  const cols = [
+    { title: "CONCEPTO", width: 0.46 },
+    { title: "CANT.", width: 0.09 },
+    { title: "PRECIO", width: 0.13 },
+    { title: "DTO", width: 0.08 },
+    { title: "IVA", width: 0.08 },
+    { title: "IMPORTE", width: 0.16 },
+  ];
+  const t = tabla(20, 95, 170, 122, "DETALLE DE LA REPARACIÓN", cols, 20);
+  return {
+    id: id(),
+    builtin: "factura-venta-taller",
+    name: "Factura Taller",
+    tipoDocumento: "factura-venta",
+    porDefecto: false,
+    page: { size: "A4", orientation: "portrait" },
+    elements: [
+      logo(20, 14, 45, 22),
+      tx("FACTURA", 102, 16, 60, 10, 18, true, "right", "#111827"),
+      tx("{{documento.numero}}", 102, 27, 60, 6, 11, false, "right", "#4b5563"),
+      tx("Fecha: {{documento.fecha}}", 102, 34, 60, 5, 9, false, "right", "#6b7280"),
+
+      box(20, 42, 80, 32, 0.4, "#e5e7eb"),
+      tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
+      tx("{{empresa.nombre}}", 23, 51, 74, 8, 10, true),
+      tx("{{empresa.nif}}", 23, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.direccion}}", 23, 65, 74, 7, 8, false, "left", "#374151"),
+
+      box(110, 42, 80, 32, 0.4, "#e5e7eb"),
+      tx("CLIENTE", 113, 45, 74, 5, 7, true, "left", "#6b7280"),
+      tx("{{cliente.nombre}}", 113, 51, 74, 8, 10, true),
+      tx("{{cliente.nif}}", 113, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.direccion}}", 113, 65, 74, 7, 8, false, "left", "#374151"),
+
+      t,
+
+      box(120, 222, 70, 52, 0.4, "#e5e7eb"),
+      tx("{{totales.totalReparacionLabel}}", 124, 226, 42, 5, 9, false, "left", "#4b5563"),
+      tx("{{totales.totalReparacion}}", 166, 226, 20, 5, 9, true, "right"),
+      tx("{{totales.franquiciaLabel}}", 124, 233, 42, 5, 9, false, "left", "#4b5563"),
+      tx("{{totales.franquicia}}", 166, 233, 20, 5, 9, true, "right"),
+      tx("{{totales.descuentoLabel}}", 124, 240, 42, 5, 9, false, "left", "#4b5563"),
+      tx("{{totales.descuento}}", 166, 240, 20, 5, 9, true, "right"),
+      tx("Base imponible", 124, 249, 42, 5, 9, false, "left", "#4b5563"),
+      tx("{{totales.base}}", 166, 249, 20, 5, 9, true, "right"),
+      tx("IVA", 124, 256, 42, 5, 9, false, "left", "#4b5563"),
+      tx("{{totales.iva}}", 166, 256, 20, 5, 9, true, "right"),
+      linea(124, 263, 62, "#9ca3af"),
+      tx("TOTAL", 124, 267, 42, 7, 11, true, "left"),
+      tx("{{totales.total}}", 166, 267, 20, 7, 11, true, "right"),
+
+      tx("Forma de pago: {{pago.metodo}}", 20, 226, 90, 5, 9, false, "left", "#4b5563"),
+      tx("Vencimiento: {{pago.vencimiento}}", 20, 234, 90, 5, 9, false, "left", "#4b5563"),
+      tx("{{notas}}", 20, 244, 95, 20, 8, false, "left", "#6b7280"),
+
+      tx("Gracias por confiar en nosotros", 20, 282, 170, 5, 8, false, "center", "#9ca3af"),
+    ],
+  };
+}
+
 export const BUILTIN_TEMPLATES = [
   buildFacturaVenta,
+  buildFacturaVentaTaller,
   buildPresupuestoVenta,
   buildAlbaranVenta,
   buildPedidoCliente,

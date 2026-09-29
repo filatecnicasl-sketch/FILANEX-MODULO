@@ -166,7 +166,20 @@ function renderTable(el, formData) {
   // Con líneas reales del documento se pintan solo esas filas; si no, se
   // respetan las filas en blanco de la plantilla (hojas para rellenar a mano).
   const total = lineas ? Math.max(lineas.length, 1) : rows;
+  const totalCols = cols.length + (el.showRowNumbers ? 1 : 0);
   for (let r = 0; r < total; r++) {
+    // Filas especiales de la factura de taller: cabecera de bloque (piezas,
+    // mano de obra chapa/pintura) y subtotal del bloque.
+    const especial = lineas?.[r]?._fila;
+    if (especial === "cabecera") {
+      html += `<tr><td colspan="${totalCols}" style="padding:1mm;font-weight:700;text-transform:uppercase;font-size:7pt;background:#f1f5f9;border-top:0.4mm solid #94a3b8;">${esc(lineas[r].concepto)}</td></tr>`;
+      continue;
+    }
+    if (especial === "subtotal") {
+      html += `<tr><td colspan="${totalCols - 1}" style="padding:1mm;text-align:right;font-weight:600;font-style:italic;color:#475569;">${esc(lineas[r].concepto)}</td>`;
+      html += `<td style="padding:1mm;text-align:right;font-weight:700;border-bottom:0.4mm solid #94a3b8;">${esc(lineas[r].importe ?? "")}</td></tr>`;
+      continue;
+    }
     html += `<tr style="border-bottom:0.3mm solid #ddd;">`;
     if (el.showRowNumbers) html += `<td style="padding:1mm;">${lineas && r >= lineas.length ? "" : r + 1}</td>`;
     for (let c = 0; c < cols.length; c++) {
@@ -215,6 +228,9 @@ export function expandirLineasEnCeldas(template, formData) {
   const claves = (tabla.columns ?? []).map((c, i) => claveColumna(c, i));
   const datos = { ...formData };
   lineas.forEach((linea, r) => {
+    // Filas especiales (cabecera/subtotal de bloque de taller): la marca
+    // viaja en una clave aparte para que la tabla las dibuje distinto.
+    if (linea._fila) datos[`tbl_${tabla.id}_${r}_estilo`] = linea._fila;
     claves.forEach((clave, c) => {
       const val = linea[clave];
       if (val != null && val !== "") datos[`tbl_${tabla.id}_${r}_${c}`] = String(val);

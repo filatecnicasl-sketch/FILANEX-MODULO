@@ -17,6 +17,7 @@ export const lineaVacia = () => ({ descripcion: "", cantidad: 1, precioUnitario:
 // el importe de la línea y los totales salen ya netos.
 export default function EditorLineas({ lineas, setLineas, precio = "venta", conTipo = false, conGrupo = false, gruposSugeridos = [], conDescuento = false }) {
   const [articulos, setArticulos] = useState([]);
+  const [conceptos, setConceptos] = useState([]);
   const [sugerenciasEn, setSugerenciasEn] = useState(null); // índice de línea con el desplegable abierto
   const [creando, setCreando] = useState(null); // { indice, descripcion, precio, iva }
   const [errorAlta, setErrorAlta] = useState(null);
@@ -28,7 +29,14 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
       .then((r) => r.json())
       .then((lista) => setArticulos(Array.isArray(lista) ? lista : []))
       .catch(() => setArticulos([]));
-  }, []);
+    // Taller: catálogo de conceptos con código ("1" = Reparar…).
+    if (conTipo) {
+      fetch("/api/taller/conceptos")
+        .then((r) => (r.ok ? r.json() : []))
+        .then((lista) => setConceptos(Array.isArray(lista) ? lista : []))
+        .catch(() => setConceptos([]));
+    }
+  }, [conTipo]);
 
   // Cierra el desplegable al hacer clic fuera.
   useEffect(() => {
@@ -132,6 +140,50 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
       .slice(0, 6);
   }
 
+  // Conceptos de taller que coinciden por código ("1") o por texto ("reparar").
+  function conceptosCoincidentes(texto) {
+    const q = texto.trim().toLowerCase();
+    if (!q) return conceptos.slice(0, 4);
+    return conceptos
+      .filter((c) => c.codigo?.toLowerCase() === q || c.descripcion?.toLowerCase().startsWith(q))
+      .slice(0, 4);
+  }
+
+  // Al elegir un concepto se rellena la descripción y la sección; el cursor
+  // queda al final para seguir escribiendo el detalle ("Reparar aleta dcha.").
+  function aplicarConcepto(i, c) {
+    setLineas((ls) =>
+      ls.map((l, j) =>
+        j === i
+          ? {
+              ...l,
+              codigo: c.codigo,
+              descripcion: `${c.descripcion} `,
+              seccion: c.seccion,
+              tipo: c.seccion === "piezas" ? "material" : "mano_obra",
+            }
+          : l
+      )
+    );
+  }
+
+  // Sección de la factura de taller: decide el bloque del impreso y, de
+  // paso, el tipo (material/mano de obra) que usan los descuentos de la
+  // aseguradora.
+  function cambiarSeccion(i, valor) {
+    setLineas((ls) =>
+      ls.map((l, j) =>
+        j === i
+          ? {
+              ...l,
+              seccion: valor || undefined,
+              ...(valor === "piezas" ? { tipo: "material" } : valor ? { tipo: "mano_obra" } : {}),
+            }
+          : l
+      )
+    );
+  }
+
   const importesLinea = (l) => {
     const bruto = (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0);
     const base = bruto * (1 - (Number(l.descuento) || 0) / 100);
@@ -193,29 +245,41 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
     return (
       <div key={i} className="relative">
         <div className="grid grid-cols-12 gap-2 items-center">
-          <input
-            data-editor="linea" data-editor-desc
-            placeholder="Descripción o artículo…"
-            value={l.descripcion}
-            onFocus={() => setSugerenciasEn(i)}
-            onChange={(e) => {
-              cambiar(i, "descripcion", e.target.value);
-              setSugerenciasEn(i);
-            }}
-            onKeyDown={(e) => e.key === "Escape" && setSugerenciasEn(null)}
-            className={`${conTipo ? (conDescuento ? "col-span-3" : "col-span-4") : conDescuento ? "col-span-4" : "col-span-5"} input text-base sm:text-sm`}
-            autoComplete="off"
-          />
+          <div className={`${conTipo ? (conDescuento ? "col-span-3" : "col-span-4") : conDescuento ? "col-span-4" : "col-span-5"} relative`}>
+            {conTipo && l.codigo && (
+              <span
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 rounded bg-slate-200 px-1 leading-4 text-[0.625rem] font-bold text-slate-600 num"
+                title="Código del concepto de taller"
+              >
+                {l.codigo}
+              </span>
+            )}
+            <input
+              data-editor="linea" data-editor-desc
+              placeholder={conTipo ? "Código, descripción o artículo…" : "Descripción o artículo…"}
+              value={l.descripcion}
+              onFocus={() => setSugerenciasEn(i)}
+              onChange={(e) => {
+                cambiar(i, "descripcion", e.target.value);
+                setSugerenciasEn(i);
+              }}
+              onKeyDown={(e) => e.key === "Escape" && setSugerenciasEn(null)}
+              className={`input w-full text-base sm:text-sm ${conTipo && l.codigo ? "!pl-8" : ""}`}
+              autoComplete="off"
+            />
+          </div>
           {conTipo && (
             <select
               data-editor="linea"
-              value={l.tipo ?? "mano_obra"}
-              onChange={(e) => cambiar(i, "tipo", e.target.value)}
+              value={l.seccion ?? (l.tipo === "material" ? "piezas" : "")}
+              onChange={(e) => cambiarSeccion(i, e.target.value)}
               className="col-span-2 input !px-2"
-              title="Mano de obra o material (decide el descuento de la aseguradora)"
+              title="Bloque de la factura de taller (piezas / mano de obra chapa / pintura)"
             >
-              <option value="mano_obra">M. obra</option>
-              <option value="material">Material</option>
+              <option value="">M. obra</option>
+              <option value="mo_chapa">M.O. chapa</option>
+              <option value="mo_pintura">M.O. pintura</option>
+              <option value="piezas">Piezas</option>
             </select>
           )}
           <input
@@ -299,6 +363,31 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
         {/* Sugerencias del catálogo + alta rápida de artículo */}
         {sugerenciasEn === i && creando?.indice !== i && (
           <div className="absolute left-0 top-full z-30 mt-1 w-full sm:w-[46%] min-w-[280px] rounded-lg border border-slate-200 bg-white shadow-xl overflow-hidden">
+            {conTipo && conceptosCoincidentes(l.descripcion).length > 0 && (
+              <>
+                <p className="px-3 pt-2 pb-1 text-[0.625rem] font-bold uppercase tracking-wider text-slate-400">
+                  Conceptos de taller
+                </p>
+                {conceptosCoincidentes(l.descripcion).map((c) => (
+                  <button
+                    key={c._id}
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      aplicarConcepto(i, c);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-[0.9375rem] sm:text-sm hover:bg-accent/10 transition-colors"
+                  >
+                    <span className="shrink-0 rounded bg-slate-200 px-1.5 leading-5 text-xs font-bold text-slate-600 num">{c.codigo}</span>
+                    <span className="truncate text-slate-700">{c.descripcion}</span>
+                    <span className="ml-auto shrink-0 text-[0.625rem] font-semibold uppercase text-slate-400">
+                      {c.seccion === "piezas" ? "Piezas" : c.seccion === "mo_pintura" ? "Pintura" : "Chapa"}
+                    </span>
+                  </button>
+                ))}
+                <div className="border-t border-slate-100" />
+              </>
+            )}
             {coincidencias(l.descripcion).map((a) => (
               <button
                 key={a._id}
