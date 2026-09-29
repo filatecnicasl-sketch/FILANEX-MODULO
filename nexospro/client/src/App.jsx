@@ -137,8 +137,15 @@ function GuardSetup({ children }) {
 }
 
 export default function App() {
-  // Textos legales: página pública, accesible sin sesión.
-  if (location.pathname === "/legal") return <LegalPage />;
+  // Textos legales: página pública, accesible sin sesión. El fondo oscuro se
+  // pone aquí: dentro de la app la página hereda el tema (claro u oscuro).
+  if (location.pathname === "/legal") {
+    return (
+      <div className="min-h-screen bg-slate-950 py-10 px-4">
+        <LegalPage />
+      </div>
+    );
+  }
   // Sin sesión no hay aplicación: solo la pantalla de acceso.
   if (!obtenerToken()) return <LoginPage />;
   return (

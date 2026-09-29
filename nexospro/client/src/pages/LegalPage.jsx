@@ -53,32 +53,32 @@ const SECCIONES = [
 ];
 
 export default function LegalPage() {
+  // Sin fondo propio: dentro de la app hereda el tema (claro u oscuro) del
+  // layout; en público, App.jsx la envuelve con el fondo oscuro.
   return (
-    <div className="min-h-screen bg-slate-950 py-10 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <a href="/" className="text-accent text-sm hover:underline">← Volver a FILANEX</a>
-          <h1 className="text-2xl font-bold text-white mt-4">Aviso legal, privacidad y cookies</h1>
-          <p className="text-sm text-slate-400 mt-1">Filatecnica S.L. · app.filanex.es · Última actualización: septiembre de 2026</p>
-        </div>
-
-        <div className="space-y-6">
-          {SECCIONES.map((s) => (
-            <section key={s.titulo} className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-accent mb-3">{s.titulo}</h2>
-              <div className="space-y-2">
-                {s.parrafos.map((p, i) => (
-                  <p key={i} className="text-sm text-slate-300 leading-relaxed text-justify">{p}</p>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-
-        <p className="text-center text-xs text-slate-500 mt-8">
-          Filatecnica S.L. · info@filatecnica.com · app.filanex.es
-        </p>
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-8">
+        <a href="/" className="text-accent text-sm hover:underline">← Volver a FILANEX</a>
+        <h1 className="text-2xl font-bold text-white mt-4">Aviso legal, privacidad y cookies</h1>
+        <p className="text-sm text-slate-400 mt-1">Filatecnica S.L. · app.filanex.es · Última actualización: septiembre de 2026</p>
       </div>
+
+      <div className="space-y-6">
+        {SECCIONES.map((s) => (
+          <section key={s.titulo} className="bg-white/[0.03] border border-white/10 rounded-2xl p-6">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-accent mb-3">{s.titulo}</h2>
+            <div className="space-y-2">
+              {s.parrafos.map((p, i) => (
+                <p key={i} className="text-sm text-slate-300 leading-relaxed text-justify">{p}</p>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <p className="text-center text-xs text-slate-500 mt-8">
+        Filatecnica S.L. · info@filatecnica.com · app.filanex.es
+      </p>
     </div>
   );
 }
