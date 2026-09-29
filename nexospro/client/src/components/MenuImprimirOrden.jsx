@@ -86,9 +86,6 @@ export async function imprimirHojaEntrada(o) {
 
 export default function MenuImprimirOrden({ orden, pequeno = false }) {
   const [abierto, setAbierto] = useState(false);
-  const [hojaEntrada, setHojaEntrada] = useState(false);
-  const [textoHoja, setTextoHoja] = useState("");
-  const [imprimiendoHoja, setImprimiendoHoja] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -104,32 +101,6 @@ export default function MenuImprimirOrden({ orden, pequeno = false }) {
     setAbierto(false);
     if (variante === "orden-pdf") descargarPdf("parte-taller", orden._id, orden.numero);
     else imprimirDocumentoRapido("parte-taller", orden._id);
-  }
-
-  function abrirHojaEntrada() {
-    setAbierto(false);
-    setTextoHoja(orden.motivo ?? "");
-    setHojaEntrada(true);
-  }
-
-  async function confirmarHojaEntrada() {
-    setImprimiendoHoja(true);
-    try {
-      const texto = textoHoja.trim();
-      // Lo que se escriba aquí queda guardado como descripción de la orden.
-      if (orden._id && texto !== (orden.motivo ?? "")) {
-        await fetch(`/api/taller/ordenes/${orden._id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ motivo: texto }),
-        }).catch(() => {});
-      }
-      const ok = await imprimirHojaEntrada({ ...orden, motivo: texto });
-      if (!ok) alert("No hay plantilla de hoja de entrada configurada.");
-      setHojaEntrada(false);
-    } finally {
-      setImprimiendoHoja(false);
-    }
   }
 
   return (
@@ -165,53 +136,6 @@ export default function MenuImprimirOrden({ orden, pequeno = false }) {
           >
             Orden de trabajo PDF
           </button>
-          <button
-            type="button"
-            onClick={abrirHojaEntrada}
-            className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
-          >
-            Hoja de entrada
-          </button>
-        </span>
-      )}
-      {hojaEntrada && (
-        <span
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setHojaEntrada(false)}
-        >
-          <span
-            className="modal-panel block w-full max-w-lg p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="block text-base font-bold text-white mb-1">
-              Hoja de entrada · {orden.numero ?? orden.matricula}
-            </span>
-            <span className="block text-xs text-slate-400 mb-3">
-              Escribe la descripción de la avería / trabajos que pide el cliente. Sale impresa en
-              el cuadro grande de la hoja y queda guardada en la orden.
-            </span>
-            <textarea
-              autoFocus
-              rows={5}
-              className="input w-full resize-none"
-              placeholder="Ej.: El cliente dice que frena mal y suena un ruido delante; revisar frenos y cambiar bombilla del faro derecho…"
-              value={textoHoja}
-              onChange={(e) => setTextoHoja(e.target.value)}
-            />
-            <span className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setHojaEntrada(false)} className="btn-ghost">
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={confirmarHojaEntrada}
-                disabled={imprimiendoHoja}
-                className="btn-primary disabled:opacity-50"
-              >
-                {imprimiendoHoja ? "Preparando…" : "Imprimir hoja de entrada"}
-              </button>
-            </span>
-          </span>
         </span>
       )}
     </span>

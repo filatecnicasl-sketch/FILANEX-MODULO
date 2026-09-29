@@ -181,6 +181,11 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const [adjuntos, setAdjuntos] = useState(cita?.adjuntos ?? []);
   const [adjuntoPendiente, setAdjuntoPendiente] = useState(null);
   const [subiendoAdjunto, setSubiendoAdjunto] = useState(false);
+  // Diálogo de la hoja de entrada: escribir/corregir la descripción de la
+  // avería justo antes de imprimir (queda guardada en la cita).
+  const [dialogoEntrada, setDialogoEntrada] = useState(false);
+  const [textoEntrada, setTextoEntrada] = useState("");
+  const [imprimiendoEntrada, setImprimiendoEntrada] = useState(false);
 
   useEffect(() => {
     fetch("/api/clientes")
@@ -501,46 +506,76 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     await guardarCita(true);
   }
 
-  async function imprimirEntrada() {
-    if (!cita) return;
-    const cliente = clientes.find((c) => String(c._id) === String(cita.cliente?._id ?? cita.cliente)) || cita.cliente;
-    const vehiculo = vehiculos.find((v) => v.matricula?.toUpperCase() === (cita.matricula ?? "").toUpperCase());
-    // Compañía/siniestro/franquicia de la propia cita: salen en la hoja de
-    // entrada para que el cliente sepa qué paga él de su bolsillo.
-    const aseguradoraNombre =
-      cita.aseguradoraNombre ||
-      aseguradoras.find((a) => String(a._id) === String(cita.aseguradora?._id ?? cita.aseguradora))?.nombre ||
-      "";
+  function abrirDialogoEntrada() {
+    const base = cita
+      ? [cita.motivo, cita.notas].filter(Boolean).join(". ")
+      : [form.motivo, form.notas].filter(Boolean).join(". ");
+    setTextoEntrada(base);
+    setDialogoEntrada(true);
+  }
 
-    const ok = await imprimirHojaEntrada({
-      numero: `CITA-${cita._id.slice(-6).toUpperCase()}`,
-      fechaEntrada: cita.fecha,
-      // Solo sale la fecha de entrega si el taller la ha puesto; nunca se inventa.
-      fechaEntregaPrevista: cita.entregaPrevista ? aFechaInput(cita.entregaPrevista) : undefined,
-      matricula: cita.matricula ?? "",
-      km: vehiculo?.km ?? "",
-      motivo: [cita.motivo, cita.notas].filter(Boolean).join(". ") || "Recepción desde cita",
-      aseguradora: aseguradoraNombre,
-      numeroSiniestro: cita.numeroSiniestro ?? "",
-      franquicia: Number(cita.franquicia) > 0 ? Number(cita.franquicia) : 0,
-      cliente: cliente || undefined,
-      clienteNombre: cita.clienteNombre || cliente?.nombre || "",
-      telefono: cita.telefono || cliente?.telefono || "",
-      vehiculo: vehiculo ? { marca: vehiculo.marca, modelo: vehiculo.modelo } : undefined,
-      lineas: [],
-    });
+  async function confirmarDialogoEntrada() {
+    setImprimiendoEntrada(true);
+    try {
+      const texto = textoEntrada.trim();
+      // Lo escrito aquí queda guardado como motivo de la cita.
+      if (cita) {
+        const actual = [cita.motivo, cita.notas].filter(Boolean).join(". ");
+        if (texto !== actual) {
+          await fetch(`/api/taller/citas/${cita._id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ motivo: texto }),
+          }).catch(() => {});
+        }
+      }
+      const clienteId = cita?.cliente?._id ?? cita?.cliente ?? form.cliente;
+      const matricula = (cita?.matricula ?? form.matricula ?? "").toUpperCase();
+      const cliente =
+        clientes.find((c) => String(c._id) === String(clienteId)) ||
+        (cita?.cliente && typeof cita.cliente === "object" ? cita.cliente : null);
+      const vehiculo = vehiculos.find((v) => v.matricula?.toUpperCase() === matricula);
+      // Compañía/siniestro/franquicia de la propia cita: salen en la hoja de
+      // entrada para que el cliente sepa qué paga él de su bolsillo.
+      const aseguradoraNombre =
+        (cita?.aseguradoraNombre ?? form.aseguradoraNombre) ||
+        aseguradoras.find((a) => String(a._id) === String(cita?.aseguradora?._id ?? cita?.aseguradora ?? form.aseguradora))?.nombre ||
+        "";
+      const franquicia = Number(cita?.franquicia ?? form.franquicia) || 0;
 
-    // Si no hay plantilla configurada, se imprime un resguardo básico para que
-    // nunca se quede sin documento.
-    if (!ok) {
-      const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
-      const html = hojaEntradaHtml(emp, cita, cliente, vehiculo);
-      const ventana = window.open("", "_blank", "width=900,height=700");
-      if (!ventana) return alert("Permite las ventanas emergentes para imprimir");
-      ventana.document.write(html);
-      ventana.document.close();
-      ventana.focus();
-      setTimeout(() => ventana.print(), 250);
+      const ok = await imprimirHojaEntrada({
+        numero: cita ? `CITA-${cita._id.slice(-6).toUpperCase()}` : "CITA NUEVA",
+        fechaEntrada: cita?.fecha ?? form.fecha,
+        // Solo sale la fecha de entrega si el taller la ha puesto; nunca se inventa.
+        fechaEntregaPrevista: (cita?.entregaPrevista ?? form.entregaPrevista) || undefined,
+        matricula,
+        km: vehiculo?.km ?? "",
+        motivo: texto || "Recepción desde cita",
+        aseguradora: aseguradoraNombre,
+        numeroSiniestro: cita?.numeroSiniestro ?? form.numeroSiniestro ?? "",
+        franquicia,
+        cliente: cliente || undefined,
+        clienteNombre: (cita?.clienteNombre ?? form.clienteNombre) || cliente?.nombre || "",
+        telefono: (cita?.telefono ?? form.telefono) || cliente?.telefono || "",
+        vehiculo: vehiculo ? { marca: vehiculo.marca, modelo: vehiculo.modelo } : undefined,
+        lineas: [],
+      });
+
+      // Si no hay plantilla configurada, se imprime un resguardo básico para que
+      // nunca se quede sin documento.
+      if (!ok) {
+        const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+        const html = hojaEntradaHtml(emp, cita ?? { ...form, motivo: texto }, cliente, vehiculo);
+        const ventana = window.open("", "_blank", "width=900,height=700");
+        if (!ventana) return alert("Permite las ventanas emergentes para imprimir");
+        ventana.document.write(html);
+        ventana.document.close();
+        ventana.focus();
+        setTimeout(() => ventana.print(), 250);
+      }
+      setDialogoEntrada(false);
+    } finally {
+      setImprimiendoEntrada(false);
     }
   }
 
@@ -616,15 +651,15 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
             </span>
           </button>
         )}
-        {cita && cita.matricula && (
+        {(cita?.matricula || form.matricula) && (
           <button
             type="button"
-            onClick={imprimirEntrada}
+            onClick={abrirDialogoEntrada}
             className="w-full mb-4 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-900 hover:bg-white transition border border-slate-300"
           >
             Imprimir hoja de entrada
             <span className="block text-[0.6875rem] font-normal text-slate-600 mt-0.5">
-              Documento oficial de entrada en taller, sin crear aún la orden
+              Documento oficial de entrada en taller, con la descripción de la avería
             </span>
           </button>
         )}
@@ -1004,13 +1039,19 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           )}
 
           <div>
-            <label className="text-sm text-slate-400 block mb-1">Motivo</label>
-            <input
-              className={campo}
+            <label className="text-sm text-slate-400 block mb-1">
+              Descripción de la avería / trabajos solicitados por el cliente
+            </label>
+            <textarea
+              className={`${campo} resize-none`}
+              rows={3}
               value={form.motivo}
               onChange={(e) => actualizar("motivo", e.target.value)}
-              placeholder="Revisión, golpe aleta, ITV…"
+              placeholder="Ej.: El cliente dice que frena mal y suena un ruido delante; revisar frenos y cambiar bombilla del faro derecho…"
             />
+            <p className="text-[0.6875rem] text-slate-500 mt-1">
+              Este texto sale impreso en el cuadro grande de la hoja de entrada.
+            </p>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
             <input
@@ -1084,6 +1125,44 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
         onCerrar={() => setCortesiaAbierta(false)}
         onCreado={() => setCortesiaAbierta(false)}
       />
+    )}
+
+    {dialogoEntrada && (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+        onClick={() => setDialogoEntrada(false)}
+      >
+        <div className="modal-panel w-full max-w-lg p-5" onClick={(e) => e.stopPropagation()}>
+          <h3 className="text-base font-bold text-white mb-1">
+            Hoja de entrada · {(cita?.matricula ?? form.matricula ?? "").toUpperCase()}
+          </h3>
+          <p className="text-xs text-slate-400 mb-3">
+            Escribe la descripción de la avería / trabajos que pide el cliente. Sale impresa en el
+            cuadro grande de la hoja{cita ? " y queda guardada en la cita" : ""}.
+          </p>
+          <textarea
+            autoFocus
+            rows={5}
+            className="input w-full resize-none"
+            placeholder="Ej.: El cliente dice que frena mal y suena un ruido delante; revisar frenos y cambiar bombilla del faro derecho…"
+            value={textoEntrada}
+            onChange={(e) => setTextoEntrada(e.target.value)}
+          />
+          <div className="mt-4 flex justify-end gap-2">
+            <button type="button" onClick={() => setDialogoEntrada(false)} className="btn-ghost">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={confirmarDialogoEntrada}
+              disabled={imprimiendoEntrada}
+              className="btn-primary disabled:opacity-50"
+            >
+              {imprimiendoEntrada ? "Preparando…" : "Imprimir hoja de entrada"}
+            </button>
+          </div>
+        </div>
+      </div>
     )}
     </>
   );

@@ -7,9 +7,9 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-29",
     tipo: "nuevo",
-    titulo: "Hoja de entrada desde la orden, con descripción editable al imprimir",
+    titulo: "Hoja de entrada desde la cita, con descripción de la avería al imprimir",
     detalle:
-      "El menú de impresión de la orden (icono impresora) ya tiene la opción «Hoja de entrada» — antes solo se podía imprimir desde la cita. Al elegirla se abre un cuadro para escribir o corregir la descripción de la avería / trabajos del cliente: ese texto sale en el bloque grande de la hoja y queda guardado en la orden.",
+      "La hoja de entrada se imprime desde la cita (también al crearla, sin guardar antes). Al pulsar «Imprimir hoja de entrada» se abre un cuadro para escribir o corregir la descripción de la avería / trabajos del cliente: ese texto sale en el bloque grande de la hoja y queda guardado en la cita. Además, el antiguo campo «Motivo» de la cita es ahora un cuadro amplio de «Descripción de la avería».",
   },
   {
     fecha: "2026-09-29",
