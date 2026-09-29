@@ -2,6 +2,25 @@
 
 Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
+## Modelo comercial / precios (acordado 29/09/2026)
+
+- **Base facturación: 30 €/mes** (1 usuario, sin oferta). Oferta de captación:
+  250 € el primer año solo sobre la base, nunca sobre módulos.
+- **Usuario adicional: +5 €/mes.** Los operarios de taller que solo consultan
+  su orden o registran tiempo NO cuentan como usuarios.
+- **Módulos:** Taller +39 €/mes (chapa/pintura incluido) · TPV +19 €/mes ·
+  Asesoría +29 €/mes · Nexo (IA) +9 €/mes.
+- **Servicios pago único:** importación de datos 250 € · formación 120 €.
+- **Descuento por pago anual:** 10 cuotas por 12 meses (2 meses gratis).
+- **Descuento a asesorías partner (acordado):** −1 €/mes por cada cliente
+  activo y al corriente de pago vinculado a la asesoría. Reglas: se aplica
+  SOLO sobre la cuota del módulo Asesoría y con tope en su precio (el módulo
+  puede quedar a 0 €, nunca negativo); si el cliente se da de baja o deja de
+  pagar, ese euro se pierde ese mes.
+- [ ] **Automatizar el descuento partner**: en la ficha/cuota de la asesoría
+      mostrar "X clientes vinculados = −X €/mes" y aplicarlo al generar su
+      facturación periódica (futura facturación a partners).
+
 ## Recordatorios de estilo (no olvidar)
 
 - **Grabado a fuego (23/09/2026, día de la demo ganada).** Estas cuatro
