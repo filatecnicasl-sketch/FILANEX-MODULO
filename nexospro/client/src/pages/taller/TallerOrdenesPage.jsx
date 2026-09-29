@@ -93,7 +93,7 @@ const CLASES_PILL_ESTADO = {
 
 // Vista kanban (referencia RO App /orders/board): una columna por estado,
 // tarjetas arrastrables que cambian el estado de la orden al soltarse.
-function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, onEntrega }) {
+function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, onEntrega, onBorrar }) {
   // Auto-scroll de la ventana mientras se arrastra: sin esto, las tarjetas
   // que están abajo del todo no se pueden llevar a las columnas de arriba
   // (el navegador no desplaza la página al arrastrar en todos los casos).
@@ -233,6 +233,13 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, on
                           Facturar
                         </button>
                       )}
+                      <button
+                        onClick={() => onBorrar(o)}
+                        title="Borrar orden"
+                        className="text-[0.6875rem] text-rose-400 hover:text-rose-600 hover:underline"
+                      >
+                        Borrar
+                      </button>
                     </span>
                   </div>
                 </div>
@@ -403,6 +410,7 @@ export default function TallerOrdenesPage() {
             onFacturar={facturar}
             onRecepcion={setRecepcionOT}
             onEntrega={(o) => setFinalizando({ orden: o, destino: o.estado })}
+            onBorrar={borrar}
           />
         )
       ) : (
@@ -511,11 +519,9 @@ export default function TallerOrdenesPage() {
                           </button>
                         )
                       )}
-                      {!o.factura && (
-                        <button onClick={() => borrar(o)} className="text-xs text-rose-400 hover:underline">
-                          Borrar
-                        </button>
-                      )}
+                      <button onClick={() => borrar(o)} className="text-xs text-rose-400 hover:underline">
+                        Borrar
+                      </button>
                     </td>
                   </tr>
                 ))}

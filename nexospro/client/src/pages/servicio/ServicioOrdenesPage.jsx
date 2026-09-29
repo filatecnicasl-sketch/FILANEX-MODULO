@@ -56,7 +56,7 @@ const CLASES_PILL_ESTADO = {
 
 // Vista kanban (referencia RO App /orders/board): una columna por estado,
 // tarjetas arrastrables que cambian el estado de la orden al soltarse.
-function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion }) {
+function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, onBorrar }) {
   // Auto-scroll de la ventana mientras se arrastra: sin esto, las tarjetas
   // que están abajo del todo no se pueden llevar a las columnas de arriba.
   useEffect(() => {
@@ -177,6 +177,13 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion }) 
                           Facturar
                         </button>
                       )}
+                      <button
+                        onClick={() => onBorrar(o)}
+                        title="Borrar orden"
+                        className="text-[0.6875rem] text-rose-400 hover:text-rose-600 hover:underline"
+                      >
+                        Borrar
+                      </button>
                     </span>
                   </div>
                 </div>
@@ -313,6 +320,7 @@ export default function ServicioOrdenesPage() {
             onEditar={setOrdenForm}
             onFacturar={facturar}
             onRecepcion={setRecepcionOS}
+            onBorrar={borrar}
           />
         )
       ) : (

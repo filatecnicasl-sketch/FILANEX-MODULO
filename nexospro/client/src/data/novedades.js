@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-29",
     tipo: "mejora",
+    titulo: "Borrar órdenes también desde el tablero",
+    detalle:
+      "Las tarjetas del tablero de órdenes (taller y servicio técnico) llevan ahora el botón «Borrar», con el mismo aviso del listado: si la orden tiene factura, queda claro que la factura no se borra.",
+  },
+  {
+    fecha: "2026-09-29",
+    tipo: "mejora",
     titulo: "Cualquier orden se puede borrar, también las facturadas",
     detalle:
       "El borrado de órdenes (taller y servicio técnico) ya no tiene restricciones. Si la orden tiene factura, el aviso lo deja claro antes de confirmar: la factura NO se borra (es un documento legal) y se reimprime igual, porque desde ahora guarda su propia copia de los datos de la reparación (vehículo, nº de orden, compañía, siniestro). Se borra solo la orden, con sus fotos, el historial del vehículo y los tiempos de operarios.",
