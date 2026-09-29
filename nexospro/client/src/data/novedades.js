@@ -5,6 +5,97 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-09-29",
+    tipo: "nuevo",
+    titulo: "Factura Taller: códigos de conceptos, bloques y franquicia en totales",
+    detalle:
+      "Nueva plantilla «Factura Taller» (Ajustes → Formatos). En las líneas se puede teclear el código del concepto (1 Reparar, 2 Resanar, 3 Pintar, 4 Ajustar…) y el texto se escribe solo — los códigos son editables por empresa en Taller → Conceptos. El PDF agrupa las líneas en tres bloques (Piezas sustituidas, Mano de obra chapa y Mano de obra pintura/material) con su subtotal, y en los totales aparecen Total reparación, Franquicia y Descuento solo cuando aplican. Arriba salen los datos del trabajo: matrícula, vehículo, nº de orden, compañía y siniestro.",
+  },
+  {
+    fecha: "2026-09-29",
+    tipo: "mejora",
+    titulo: "Hoja de entrada con sitio de verdad para describir la avería",
+    detalle:
+      "La hoja de entrada del taller estrena un bloque grande «Descripción de la avería / trabajos solicitados por el cliente»: sale impreso lo anotado en la recepción o la cita y, si está vacío, queda el espacio para escribir a mano. El seguro y la franquicia pasan a su propio cuadro («Seguro / franquicia»), ya no se mezclan con la descripción.",
+  },
+  {
+    fecha: "2026-09-29",
+    tipo: "mejora",
+    titulo: "Tablero de órdenes: cambio de estado sin arrastrar",
+    detalle:
+      "Cada tarjeta del tablero (taller y servicio técnico) lleva ahora un selector de estado con colores: se cambia de columna con un clic, sin arrastrar — imprescindible cuando la tarjeta está abajo del todo. Y al arrastrar, la columna se desplaza sola al acercarse al borde.",
+  },
+  {
+    fecha: "2026-09-29",
+    tipo: "nuevo",
+    titulo: "Aviso legal, privacidad y cookies publicado",
+    detalle:
+      "Los textos legales (LSSI, política de privacidad y cookies) están disponibles en Ayuda → Aviso legal y también sin iniciar sesión en app.filanex.es/legal, enlazado desde la pantalla de acceso.",
+  },
+  {
+    fecha: "2026-09-29",
+    tipo: "mejora",
+    titulo: "Recepción de taller afinada: valoración localizable, orden sin precios",
+    detalle:
+      "Al crear la cita se puede localizar y enlazar la valoración/presupuesto del vehículo. La orden de trabajo impresa va sin precios (solo trabajos y cantidades) y la hoja de entrada ya no inventa la fecha de entrega. El buscador de órdenes encuentra por compañía, siniestro y teléfono, y en Vehículos se ve el teléfono del cliente aunque la ficha aún no esté enlazada.",
+  },
+  {
+    fecha: "2026-09-29",
+    tipo: "nuevo",
+    titulo: "Compras: editar y borrar facturas, y margen de venta automático",
+    detalle:
+      "Las facturas de compra se pueden editar y borrar en cualquier estado (el stock se ajusta solo). Al validar una factura o albarán, los artículos nuevos nacen con precio de venta calculado con el margen configurado — margen general y también por familias de artículos. Los tickets de gasto (restaurante, gasolinera…) ya no crean artículos al validar, y las facturas sin validar llevan marca de agua «BORRADOR» para evitar confusiones.",
+  },
+  {
+    fecha: "2026-09-28",
+    tipo: "nuevo",
+    titulo: "Matrícula en las facturas de venta",
+    detalle:
+      "Las facturas tienen campo matrícula: al facturar una orden de taller se rellena sola con la del vehículo y sale en el PDF de la factura. También se puede escribir a mano en cualquier factura.",
+  },
+  {
+    fecha: "2026-09-28",
+    tipo: "nuevo",
+    titulo: "Franquicia del seguro de punta a punta",
+    detalle:
+      "La franquicia se anota en la cita, viaja a la orden y, al facturar a la aseguradora, se descuenta sola del total (línea negativa) — la compañía paga su parte y el cliente ve la suya. También aparece en la hoja de entrada que firma el cliente.",
+  },
+  {
+    fecha: "2026-09-28",
+    tipo: "mejora",
+    titulo: "Borrado de órdenes de trabajo, con protección",
+    detalle:
+      "Las órdenes se pueden borrar (se llevan por delante sus fotos y el historial asociado), pero no si ya están facturadas: esas quedan protegidas para no romper la facturación.",
+  },
+  {
+    fecha: "2026-09-28",
+    tipo: "correccion",
+    titulo: "Descargar PDF o XML en ventas pedía sesión de nuevo",
+    detalle:
+      "Los botones de imprimir PDF y descargar XML de las facturas de venta daban error 401 al abrirse como enlace directo. Ahora se descargan con la sesión iniciada y funcionan a la primera.",
+  },
+  {
+    fecha: "2026-09-25",
+    tipo: "nuevo",
+    titulo: "Aviso MODO DEMO bien visible",
+    detalle:
+      "Cuando la empresa es de demostración, la aplicación muestra un aviso claro en pantalla. Así, al enseñar el programa, es imposible liarla metiendo datos de prueba en una empresa real.",
+  },
+  {
+    fecha: "2026-09-25",
+    tipo: "mejora",
+    titulo: "Filtro por serie en las facturas de venta",
+    detalle:
+      "El listado de facturas se filtra ahora por serie (las que tenga dadas de alta la empresa), en sustitución del antiguo filtro por estados que no aportaba.",
+  },
+  {
+    fecha: "2026-09-24",
+    tipo: "seguridad",
+    titulo: "Vigilante de la IA de escaneo de facturas",
+    detalle:
+      "La integración con la IA que lee facturas, albaranes y tickets se vigila sola: comprobación al arrancar el servidor, autotest diario, aviso al administrador si falla y estado visible en /api/health. Se acabó el enterarnos de que no escanea en mitad de una demostración.",
+  },
+  {
     fecha: "2026-09-23",
     tipo: "correccion",
     titulo: "Finalizado y entregado: cada uno con su fecha",
