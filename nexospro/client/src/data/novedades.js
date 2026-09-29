@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-29",
+    tipo: "correccion",
+    titulo: "El alta de cliente nuevo daba error y no abría la ficha",
+    detalle:
+      "Al pulsar «Nuevo cliente» la pantalla se rompía con el mensaje «Cannot read properties of null (reading '_id')». Era una consulta de vehículos que se preparaba antes de saber si había cliente seleccionado. Ya se puede dar de alta sin problema.",
+  },
+  {
+    fecha: "2026-09-29",
     tipo: "nuevo",
     titulo: "Factura Taller: códigos de conceptos, bloques y franquicia en totales",
     detalle:

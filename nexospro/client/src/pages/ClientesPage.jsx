@@ -66,7 +66,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [] }) {
       .catch(() => setVehiculos([]))
       .finally(() => setCargandoVehiculos(false));
     return () => { vivo = false; };
-  }, [tallerActivo, editando, tab, inicial._id]);
+  }, [tallerActivo, editando, tab, inicial?._id]);
 
   async function verHistorial(v) {
     setVehiculoActivo(v);
