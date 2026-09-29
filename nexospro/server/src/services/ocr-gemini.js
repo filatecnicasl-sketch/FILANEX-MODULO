@@ -100,6 +100,11 @@ const esquemaDocumento = {
         properties: {
           descripcion: { type: "STRING" },
           tipo: { type: "STRING", enum: ["articulo", "servicio"] },
+          familia: {
+            type: "STRING",
+            description:
+              "Categoría comercial corta en minúsculas (informatica, telefonia, perifericos, componentes, papeleria, fontaneria, electricidad, ferreteria, alimentacion...). Vacío si no se puede deducir.",
+          },
           cantidad: { type: "NUMBER" },
           precioUnitario: { type: "NUMBER" },
           descuento: {
@@ -123,6 +128,7 @@ const PROMPT = `Analiza el documento adjunto (factura o albarán de COMPRA recib
 Reglas:
 - esGasto: true si es un ticket o factura de gasto corriente (comida de restaurante, combustible, hotel, parking, peaje, taxi...). Esos gastos no generan artículos de inventario. false si es compra de mercancía, material o servicios del negocio (lo habitual en facturas de proveedores).
 - lineas[].tipo: "servicio" si no es un bien físico almacenable (telefonía, luz, agua, alquiler, consultoría, reparaciones, seguros...); "articulo" si son unidades de un producto.
+- lineas[].familia: categoría comercial corta en minúsculas y sin acentos (informatica, telefonia, perifericos, componentes, papeleria, fontaneria, electricidad, ferreteria, alimentacion...). Sirve para aplicar el margen de venta por familia. Vacío si no está claro.
 - Fecha en formato YYYY-MM-DD. Importes numéricos sin símbolo de moneda ni separador de miles.
 - iva como porcentaje (21, 10, 4, 0). Si una línea no indica IVA, usa el tipo general del documento.
 - descuento: si la línea lleva descuento (columnas "dto", "%", "desc.", bonificaciones...), pon en precioUnitario el precio BRUTO (antes del descuento) y en descuento el porcentaje. Si el precio impreso ya es neto o no hay descuento, pon descuento 0. Así cantidad × precio × (1 - descuento/100) debe cuadrar con el importe de la línea.

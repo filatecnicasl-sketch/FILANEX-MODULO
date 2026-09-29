@@ -209,6 +209,12 @@ router.put("/", async (req, res, next) => {
       const margen = Number(compras.margenVentaPct);
       empresa.compras = {
         margenVentaPct: Number.isFinite(margen) && margen >= 0 ? margen : 0,
+        margenesPorFamilia: (compras.margenesPorFamilia ?? [])
+          .filter((m) => m?.familia?.trim())
+          .map((m) => ({
+            familia: m.familia.trim(),
+            margenPct: Number.isFinite(Number(m.margenPct)) && Number(m.margenPct) >= 0 ? Number(m.margenPct) : 0,
+          })),
       };
     }
     // Se valida después de aplicar "modulos": permite activar un sistema y

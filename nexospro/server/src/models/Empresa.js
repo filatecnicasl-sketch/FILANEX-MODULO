@@ -104,8 +104,15 @@ const empresaSchema = new Schema(
     },
     // Compras: margen sobre el precio de coste para calcular el precio de
     // venta de los artículos que se dan de alta al validar una factura.
+    // margenesPorFamilia pisa al general cuando el artículo tiene familia.
     compras: {
       margenVentaPct: { type: Number, default: 30 },
+      margenesPorFamilia: [
+        {
+          familia: { type: String, required: true, trim: true },
+          margenPct: { type: Number, default: 0 },
+        },
+      ],
     },
     // Cuenta de correo de ESTA empresa. La contraseña se guarda cifrada y
     // nunca se devuelve al navegador.

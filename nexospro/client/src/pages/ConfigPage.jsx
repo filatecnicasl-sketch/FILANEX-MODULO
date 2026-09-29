@@ -38,6 +38,34 @@ export default function ConfigPage() {
     setEmpresa((e) => ({ ...e, compras: { ...(e.compras ?? {}), [campoNombre]: valor } }));
   }
 
+  function actualizarMargenFamilia(indice, campoNombre, valor) {
+    setEmpresa((e) => {
+      const lista = [...(e.compras?.margenesPorFamilia ?? [])];
+      lista[indice] = { ...lista[indice], [campoNombre]: valor };
+      return { ...e, compras: { ...(e.compras ?? {}), margenesPorFamilia: lista } };
+    });
+  }
+
+  function anadirMargenFamilia() {
+    setEmpresa((e) => ({
+      ...e,
+      compras: {
+        ...(e.compras ?? {}),
+        margenesPorFamilia: [...(e.compras?.margenesPorFamilia ?? []), { familia: "", margenPct: "" }],
+      },
+    }));
+  }
+
+  function quitarMargenFamilia(indice) {
+    setEmpresa((e) => ({
+      ...e,
+      compras: {
+        ...(e.compras ?? {}),
+        margenesPorFamilia: (e.compras?.margenesPorFamilia ?? []).filter((_, i) => i !== indice),
+      },
+    }));
+  }
+
   async function subirLogo(archivo) {
     if (!archivo) return;
     setError(null);
@@ -241,13 +269,41 @@ export default function ConfigPage() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className={etiqueta}>Margen sobre el coste (%)</label>
+            <label className={etiqueta}>Margen general sobre el coste (%)</label>
             <input
               type="number" min="0" step="1" className={campo}
               value={empresa.compras?.margenVentaPct ?? ""}
               onChange={(e) => actualizarCompras("margenVentaPct", e.target.value)}
             />
           </div>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 mb-2">
+            Márgenes por familia: si una familia tiene margen propio, se usa ese en vez del general.
+            Los nombres tienen que coincidir con la familia del artículo (p. ej. <span className="text-slate-300">informatica</span>, <span className="text-slate-300">telefonia</span>, <span className="text-slate-300">alimentacion</span>).
+          </p>
+          {(empresa.compras?.margenesPorFamilia ?? []).map((m, i) => (
+            <div key={i} className="grid grid-cols-[1fr_120px_90px] gap-3 items-center mb-2 max-w-xl">
+              <input
+                className={campo}
+                placeholder="Familia (p. ej. informatica)"
+                value={m.familia ?? ""}
+                onChange={(e) => actualizarMargenFamilia(i, "familia", e.target.value)}
+              />
+              <input
+                type="number" min="0" step="1" className={campo}
+                placeholder="%"
+                value={m.margenPct ?? ""}
+                onChange={(e) => actualizarMargenFamilia(i, "margenPct", e.target.value)}
+              />
+              <button type="button" onClick={() => quitarMargenFamilia(i)} className="btn-ghost text-rose-400">
+                Quitar
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={anadirMargenFamilia} className="btn-ghost">
+            + Añadir familia
+          </button>
         </div>
       </div>
 

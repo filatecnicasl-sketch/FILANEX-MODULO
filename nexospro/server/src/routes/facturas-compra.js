@@ -291,9 +291,19 @@ router.post("/:id/validar", async (req, res, next) => {
 
     const sugerencias = extra.sugerenciasLineas ?? [];
     // Margen configurado en Ajustes → Configuración: los artículos nuevos
-    // nacen ya con precio de venta = coste × (1 + margen/100).
+    // nacen ya con precio de venta = coste × (1 + margen/100). Si la
+    // familia tiene margen propio, manda sobre el general.
     const empresaCfg = await Empresa.findOne().select("compras").lean();
-    const margenPct = Number(empresaCfg?.compras?.margenVentaPct) || 0;
+    const margenGeneral = Number(empresaCfg?.compras?.margenVentaPct) || 0;
+    const margenesFamilia = empresaCfg?.compras?.margenesPorFamilia ?? [];
+    const margenParaFamilia = (familia) => {
+      const buscada = String(familia ?? "").trim().toLowerCase();
+      if (!buscada) return margenGeneral;
+      const propia = margenesFamilia.find(
+        (m) => String(m.familia).trim().toLowerCase() === buscada
+      );
+      return propia ? propia.margenPct : margenGeneral;
+    };
     for (let i = 0; i < fc.lineas.length; i++) {
       // esGasto (restaurante, gasolinera...): jamás se crean artículos de
       // estas líneas, aunque la sugerencia dijera lo contrario.
@@ -301,10 +311,13 @@ router.post("/:id/validar", async (req, res, next) => {
       if (sugerencias[i]?.crear !== false && sugerencias[i]?.articuloId == null) {
         const l = fc.lineas[i];
         const tipo = extra.lineas?.[i]?.tipo === "servicio" ? "servicio" : "articulo";
+        const familia = String(extra.lineas?.[i]?.familia ?? "").trim().toLowerCase();
+        const margenPct = margenParaFamilia(familia);
         const creado = await Articulo.create({
           descripcion: l.descripcion,
           tipo,
           codigo: await siguienteCodigoArticulo(),
+          familia: familia || undefined,
           precioCompra: l.precioUnitario,
           precioVenta: Math.round(l.precioUnitario * (1 + margenPct / 100) * 100) / 100,
           iva: l.iva,
