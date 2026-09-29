@@ -117,6 +117,10 @@ export default function LoginPage() {
             {cargando ? "Entrando…" : esBootstrap ? "Crear administrador y entrar" : "Entrar"}
           </button>
         </form>
+
+        <p className="text-center text-xs text-slate-500 mt-6">
+          <a href="/legal" className="hover:text-slate-300 transition-colors">Aviso legal · Privacidad · Cookies</a>
+        </p>
       </div>
     </div>
   );

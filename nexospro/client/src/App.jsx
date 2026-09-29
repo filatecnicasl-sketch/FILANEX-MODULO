@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Layout from "./components/Layout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import LegalPage from "./pages/LegalPage.jsx";
 import SetupWizard from "./pages/SetupWizard.jsx";
 import { obtenerToken } from "./lib/sesion.js";
 import VentasPage from "./pages/VentasPage.jsx";
@@ -136,6 +137,8 @@ function GuardSetup({ children }) {
 }
 
 export default function App() {
+  // Textos legales: página pública, accesible sin sesión.
+  if (location.pathname === "/legal") return <LegalPage />;
   // Sin sesión no hay aplicación: solo la pantalla de acceso.
   if (!obtenerToken()) return <LoginPage />;
   return (
@@ -218,6 +221,7 @@ export default function App() {
           <Route path="ayuda/tpv" element={<AyudaTpvPage />} />
           <Route path="ayuda/asesoria" element={<AyudaAsesoriaPage />} />
           <Route path="novedades" element={<NovedadesPage />} />
+          <Route path="legal" element={<LegalPage />} />
           <Route path="admin/tenants" element={<AdminTenantsPage />} />
           {/* Cualquier dirección desconocida vuelve al inicio en vez de quedarse en negro */}
           <Route path="*" element={<Navigate to="/" replace />} />
