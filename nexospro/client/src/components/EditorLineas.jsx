@@ -512,8 +512,11 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
 
       {conGrupo
         ? secciones.map((sec) => (
-            <div key={sec.nombre || "_sin"} className="rounded-lg border border-slate-200 overflow-hidden">
-              <div className="flex items-center justify-between gap-2 bg-slate-50 px-3 py-1.5 border-b border-slate-200">
+            /* Sin overflow-hidden: recortaba el desplegable de sugerencias
+               de las últimas líneas del grupo. Las esquinas redondeadas las
+               dan la cabecera (arriba) y el propio borde (abajo). */
+            <div key={sec.nombre || "_sin"} className="rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between gap-2 bg-slate-50 px-3 py-1.5 border-b border-slate-200 rounded-t-[0.45rem]">
                 <span className="text-[0.6875rem] font-bold uppercase tracking-wider text-slate-600 truncate">
                   {sec.nombre || "Sin imputación"}
                 </span>
