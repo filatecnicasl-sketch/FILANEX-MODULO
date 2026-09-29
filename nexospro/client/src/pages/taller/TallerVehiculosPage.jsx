@@ -28,7 +28,15 @@ export default function TallerVehiculosPage() {
     prestamos.filter((p) => p.estado === "activo" && p.clienteNombre).map((p) => [p.clienteNombre, p])
   );
 
-  const telefonoCliente = (v) => clientes.find((c) => String(c._id) === String(v.cliente))?.telefono;
+  // Busca el teléfono por el cliente vinculado y, si el vehículo solo tiene
+  // el nombre (recepción rápida, valoración importada...), por coincidencia
+  // de nombre con la cartera de clientes.
+  const normalizar = (s) => (s ?? "").trim().toLowerCase();
+  const telefonoCliente = (v) =>
+    clientes.find((c) => String(c._id) === String(v.cliente))?.telefono ??
+    (v.clienteNombre
+      ? clientes.find((c) => normalizar(c.nombre) === normalizar(v.clienteNombre))?.telefono
+      : undefined);
 
   // Filtra por todos los campos visibles de la tabla.
   const filtrada = (lista ?? []).filter((v) =>
