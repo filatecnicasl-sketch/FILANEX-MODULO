@@ -94,6 +94,36 @@ const CLASES_PILL_ESTADO = {
 // Vista kanban (referencia RO App /orders/board): una columna por estado,
 // tarjetas arrastrables que cambian el estado de la orden al soltarse.
 function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, onEntrega }) {
+  // Auto-scroll de la ventana mientras se arrastra: sin esto, las tarjetas
+  // que están abajo del todo no se pueden llevar a las columnas de arriba
+  // (el navegador no desplaza la página al arrastrar en todos los casos).
+  useEffect(() => {
+    const MARGEN = 90;
+    const VELOCIDAD = 20;
+    let raf = null;
+    let dy = 0;
+    const paso = () => {
+      window.scrollBy(0, dy);
+      raf = dy !== 0 ? requestAnimationFrame(paso) : null;
+    };
+    const alArrastrar = (e) => {
+      if (e.clientY > 0 && e.clientY < MARGEN) dy = -VELOCIDAD;
+      else if (e.clientY > window.innerHeight - MARGEN) dy = VELOCIDAD;
+      else dy = 0;
+      if (dy !== 0 && raf === null) raf = requestAnimationFrame(paso);
+    };
+    const alSoltar = () => { dy = 0; };
+    window.addEventListener("dragover", alArrastrar);
+    window.addEventListener("drop", alSoltar);
+    window.addEventListener("dragend", alSoltar);
+    return () => {
+      window.removeEventListener("dragover", alArrastrar);
+      window.removeEventListener("drop", alSoltar);
+      window.removeEventListener("dragend", alSoltar);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
       {ESTADOS_OT.map((col) => {
@@ -141,6 +171,22 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, on
                     <p className="text-[0.6875rem] text-slate-400 mt-1 truncate">{o.trabajos.join(", ")}</p>
                   )}
                   <BadgeEntrega orden={o} />
+                  {/* Cambio de estado sin arrastrar: imprescindible cuando la
+                      tarjeta está abajo del todo en columnas largas */}
+                  <select
+                    value={o.estado}
+                    onChange={(e) => e.target.value !== o.estado && onMover(o, e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    draggable={false}
+                    className={`mt-2 w-full rounded-full border text-[0.6875rem] font-semibold px-2 py-1 cursor-pointer ${
+                      CLASES_PILL_ESTADO[tonoEstado(o.estado)] ?? CLASES_PILL_ESTADO.slate
+                    }`}
+                    title="Cambiar de estado sin arrastrar"
+                  >
+                    {ESTADOS_OT.map((col) => (
+                      <option key={col.clave} value={col.clave}>{col.nombre}</option>
+                    ))}
+                  </select>
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
                     <span className="text-[0.6875rem] text-slate-400 num">{fecha(o.fechaEntrada)}</span>
                     <span className="flex items-center gap-2">
