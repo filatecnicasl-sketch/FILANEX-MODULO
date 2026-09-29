@@ -123,6 +123,16 @@ export async function saveTemplate(template) {
     return template;
   } catch (err) {
     console.error("[formatos] Guardado fallido:", err.message);
+    // Si hay conexión y aun así no se ha podido guardar en el servidor (por
+    // ejemplo, plantilla demasiado grande), hay que avisar: guardar en
+    // silencio solo en este navegador sería perder el trabajo sin saberlo.
+    if (typeof navigator !== "undefined" && navigator.onLine) {
+      alert(
+        "No se pudo guardar el formato en el servidor (" + err.message + "). " +
+        "Los cambios solo quedan en este navegador. Si has añadido una imagen muy grande, " +
+        "prueba con una más pequeña."
+      );
+    }
     // Fallback offline.
     const all = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
     const idx = all.findIndex((t) => t.id === template.id);

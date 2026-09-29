@@ -117,7 +117,32 @@ function ElementProps({ element: el, onUpdate, onRemove, onDuplicate, onReorder 
     const f = e.target.files?.[0];
     if (!f || el.type !== "image") return;
     const reader = new FileReader();
-    reader.onload = () => onUpdate({ src: String(reader.result) });
+    reader.onload = () => {
+      // La imagen viaja dentro de la propia plantilla (base64). Se reduce a
+      // un tamaño razonable para no reventar el límite de 2 MB del servidor:
+      // una foto de móvil tal cual no llegaría a guardarse.
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1000;
+        const escala = Math.min(1, MAX / Math.max(img.width, img.height));
+        if (escala >= 1 && f.type === "image/png") {
+          onUpdate({ src: String(reader.result) });
+          return;
+        }
+        const lienzo = document.createElement("canvas");
+        lienzo.width = Math.round(img.width * escala);
+        lienzo.height = Math.round(img.height * escala);
+        lienzo.getContext("2d").drawImage(img, 0, 0, lienzo.width, lienzo.height);
+        // PNG conserva la transparencia (logos); el resto, JPEG comprimido.
+        const src =
+          f.type === "image/png"
+            ? lienzo.toDataURL("image/png")
+            : lienzo.toDataURL("image/jpeg", 0.85);
+        onUpdate({ src });
+      };
+      img.onerror = () => onUpdate({ src: String(reader.result) });
+      img.src = String(reader.result);
+    };
     reader.readAsDataURL(f);
   };
 

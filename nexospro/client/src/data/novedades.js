@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-29",
+    tipo: "correccion",
+    titulo: "Editor de formatos: imágenes que no llegan a guardarse y aviso de errores",
+    detalle:
+      "Las imágenes subidas al editor se reducen automáticamente antes de guardarse (una foto de móvil tal cual podía superar el límite del servidor y perderse sin avisar). Y si el formato no llega a guardarse en el servidor, ahora salta un aviso en pantalla en vez de fallar en silencio.",
+  },
+  {
+    fecha: "2026-09-29",
     tipo: "nuevo",
     titulo: "Hoja de entrada desde la cita, con descripción y tabla de reparaciones rellenas",
     detalle:
