@@ -173,15 +173,17 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
   }
 });
 
-// Corregir una factura pendiente de revisión (pantalla de verificación OCR):
-// proveedor, nº del proveedor, fecha, notas y líneas. Los totales se
-// recalculan de las líneas corregidas.
+// Corregir una factura: proveedor, nº del proveedor, fecha, notas y líneas.
+// En "pendiente_revision" es la verificación del OCR; en "validada" sirve
+// para corregir errores (duplicados, proveedor equivocado...). Los totales
+// se recalculan de las líneas y, si cambian las líneas de una validada,
+// el stock se ajusta revirtiendo el movimiento original.
 router.put("/:id", async (req, res, next) => {
   try {
     const fc = await FacturaCompra.findById(req.params.id);
     if (!fc) return res.status(404).json({ error: "Factura no encontrada" });
-    if (fc.estado !== "pendiente_revision") {
-      return res.status(409).json({ error: `La factura ya está ${fc.estado}` });
+    if (fc.estado === "rechazada") {
+      return res.status(409).json({ error: "La factura está rechazada" });
     }
     const anoEdit = new Date(fc.fechaExpedicion ?? Date.now()).getFullYear();
     if (await ejercicioCerrado(anoEdit)) {
@@ -200,6 +202,17 @@ router.put("/:id", async (req, res, next) => {
       const lineas = req.body.lineas.filter((l) => l.descripcion);
       if (lineas.length === 0) {
         return res.status(400).json({ error: "La factura necesita al menos una línea" });
+      }
+      if (fc.estado === "validada" && (fc.pagos ?? []).length > 0) {
+        return res.status(409).json({
+          error: "La factura tiene pagos registrados: cambiar las líneas descuadraría los cobros. Corrige solo proveedor, número o fecha, o borra la factura.",
+        });
+      }
+      if (fc.estado === "validada" && !fc.albaranes?.length) {
+        // El stock entró con esta factura: se revierte lo anterior y se
+        // aplica lo nuevo. Si vino de albaranes, el stock lo mueven ellos.
+        await moverStock(fc.lineas, -1);
+        await moverStock(lineas, +1);
       }
       fc.lineas = lineas;
       Object.assign(fc, calcularTotales(lineas));
@@ -389,17 +402,21 @@ router.post("/:id/pagos", async (req, res, next) => {
   }
 });
 
-// Borrar: solo si aún no está validada. Libera los albaranes conciliados.
+// Borrar: revierte la entrada de stock (si la movió esta factura) y libera
+// los albaranes conciliados. Las facturas de compra no son VeriFactu: un
+// duplicado o un error se puede eliminar sin más trámite.
 router.delete("/:id", async (req, res, next) => {
   try {
     const fc = await FacturaCompra.findById(req.params.id);
     if (!fc) return res.status(404).json({ error: "Factura no encontrada" });
-    if (fc.estado === "validada") {
-      return res.status(409).json({ error: "Una factura validada no se puede borrar" });
-    }
     const anoDel = new Date(fc.fechaExpedicion ?? Date.now()).getFullYear();
     if (await ejercicioCerrado(anoDel)) {
       return res.status(409).json({ error: errorEjercicioCerrado(anoDel) });
+    }
+    if (fc.estado === "validada" && !fc.albaranes?.length) {
+      // El stock entró con esta factura: se devuelve. Si vino de albaranes,
+      // el stock es de los albaranes y no hay que tocarlo.
+      await moverStock(fc.lineas, -1);
     }
     if (fc.albaranes?.length > 0) {
       await AlbaranCompra.updateMany(

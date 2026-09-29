@@ -93,6 +93,9 @@ function TextView({ el, fs, print }) {
         color: el.color,
         lineHeight: 1.25,
         whiteSpace: "pre-wrap",
+        // Efectos opcionales (marca de agua BORRADOR de las facturas).
+        transform: el.rotate ? `rotate(${el.rotate}deg)` : undefined,
+        opacity: el.opacity ?? undefined,
       }}
     >
       {el.text}

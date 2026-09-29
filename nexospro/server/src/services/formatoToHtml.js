@@ -53,13 +53,15 @@ function sustituir(texto, formData) {
 function renderElement(el, formData, signatures, opts) {
   const style = `position:absolute;left:${mm(el.x)};top:${mm(el.y)};width:${mm(el.w)};height:${mm(el.h)};`;
   const common = `font-size:${el.fontSize ?? 9}pt;color:${el.color || "#000000"};text-align:${el.align || "left"};`;
+  // Efectos opcionales (p. ej. la marca de agua BORRADOR de las facturas).
+  const efectos = `${el.rotate ? `transform:rotate(${el.rotate}deg);` : ""}${el.opacity != null ? `opacity:${el.opacity};` : ""}`;
   const box = el.boxed ? `border:0.4mm solid ${el.borderColor || "#999"};padding:1.5mm;border-radius:1mm;` : "";
 
   switch (el.type) {
     case "text":
       // data-fit: un script de la página reduce la fuente si el texto no cabe
       // en su caja, para que no se solape con el elemento de debajo.
-      return `<div data-fit="1" style="${style}${common}${el.bold ? "font-weight:700;" : ""}line-height:1.15;white-space:pre-wrap;overflow:hidden;">${esc(sustituir(el.text, formData))}</div>`;
+      return `<div data-fit="1" style="${style}${common}${efectos}${el.bold ? "font-weight:700;" : ""}line-height:1.15;white-space:pre-wrap;overflow:hidden;">${esc(sustituir(el.text, formData))}</div>`;
 
     case "field": {
       const val = formData[el.fieldKey] ?? "";

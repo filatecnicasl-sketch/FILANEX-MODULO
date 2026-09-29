@@ -28,6 +28,29 @@ async function plantillaPorTipo(tipo) {
   );
 }
 
+// Marca de agua BORRADOR: una factura sin validar no debe parecer definitiva
+// cuando se imprime (no lleva número, QR ni registro VeriFactu todavía).
+function elementosBorrador(factura) {
+  if (factura?.estado !== "borrador") return null;
+  return [
+    {
+      id: "marca-borrador",
+      type: "text",
+      x: 10,
+      y: 110,
+      w: 190,
+      h: 40,
+      text: "BORRADOR",
+      fontSize: 56,
+      bold: true,
+      align: "center",
+      color: "#b91c1c",
+      opacity: 0.15,
+      rotate: -28,
+    },
+  ];
+}
+
 // Bloque de QR tributario VeriFactu, arriba a la derecha. Se añade al HTML
 // de la plantilla para que la factura entregada al cliente lleve siempre el
 // QR obligatorio, aunque el usuario haya personalizado el diseño.
@@ -69,6 +92,8 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
       const factura = await FacturaVenta.findById(id).lean();
       const sello = elementosSelloPagada(factura);
       if (sello) plantilla.elements = [...(plantilla.elements ?? []), ...sello];
+      const borrador = elementosBorrador(factura);
+      if (borrador) plantilla.elements = [...(plantilla.elements ?? []), ...borrador];
     }
 
     let { html, css, pageSize, pageOrientation } = formatoToHtml(plantilla, formData, signatures, {
@@ -112,6 +137,8 @@ router.get("/:tipo/:id/formato", async (req, res, next) => {
       const factura = await FacturaVenta.findById(id).lean();
       const sello = elementosSelloPagada(factura);
       if (sello) resuelta.elements = [...resuelta.elements, ...sello];
+      const borrador = elementosBorrador(factura);
+      if (borrador) resuelta.elements = [...resuelta.elements, ...borrador];
     }
 
     if (qr) {

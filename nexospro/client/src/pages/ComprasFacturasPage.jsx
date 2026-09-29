@@ -3,7 +3,7 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import FormDocumentoCompra from "../components/FormDocumentoCompra.jsx";
 import ModalVerificacionOCR from "../components/ModalVerificacionOCR.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
-import { IconImprimir, IconBorrar } from "../components/icons.jsx";
+import { IconImprimir, IconBorrar, IconEditar } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
 
 const TONO = { pendiente_revision: "amber", validada: "green", rechazada: "red" };
@@ -136,6 +136,7 @@ export default function ComprasFacturasPage() {
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [formManual, setFormManual] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [conciliando, setConciliando] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
   const [verificando, setVerificando] = useState(null); // { tipo, documento }
@@ -203,7 +204,14 @@ export default function ComprasFacturasPage() {
   }
 
   async function borrar(f) {
-    if (!window.confirm(`¿Borrar la factura ${f.numeroFacturaProveedor ?? ""}? Los albaranes conciliados quedarán liberados.`)) return;
+    const avisos = [];
+    if (f.estado === "validada" && !(f.albaranes ?? []).length) {
+      avisos.push("se devolverá la entrada de stock que hizo");
+    }
+    if ((f.albaranes ?? []).length) avisos.push("los albaranes conciliados quedarán liberados");
+    if ((f.pagos ?? []).length) avisos.push("también se borrarán sus pagos registrados");
+    const extra = avisos.length ? `\n\nOjo: ${avisos.join("; ")}.` : "";
+    if (!window.confirm(`¿Borrar la factura ${f.numeroFacturaProveedor ?? ""}?${extra}`)) return;
     const r = await fetch(`/api/facturas-compra/${f._id}`, { method: "DELETE" });
     if (r.ok) cargar();
     else alert((await r.json()).error || "No se pudo borrar");
@@ -350,15 +358,22 @@ export default function ComprasFacturasPage() {
                           Validar
                         </button>
                       )}
-                      {f.estado !== "validada" && (
+                      {f.estado !== "rechazada" && (
                         <button
-                          onClick={() => borrar(f)}
-                          title="Borrar factura"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle"
+                          onClick={() => setEditando(f)}
+                          title="Editar factura"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors align-middle mr-2"
                         >
-                          <IconBorrar />
+                          <IconEditar />
                         </button>
                       )}
+                      <button
+                        onClick={() => borrar(f)}
+                        title="Borrar factura"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle"
+                      >
+                        <IconBorrar />
+                      </button>
                     </td>
                   </tr>
                   );
@@ -385,6 +400,27 @@ export default function ComprasFacturasPage() {
           campoNumero="numeroFacturaProveedor"
           onGuardado={() => { setFormManual(false); cargar(); }}
           onCerrar={() => setFormManual(false)}
+        />
+      )}
+      {editando && (
+        <FormDocumentoCompra
+          titulo={`Editar factura ${editando.numeroFacturaProveedor ?? ""}`}
+          url={`/api/facturas-compra/${editando._id}`}
+          metodo="PUT"
+          conNumeroProveedor
+          etiquetaNumero="Nº factura del proveedor"
+          campoNumero="numeroFacturaProveedor"
+          inicial={{
+            proveedor: editando.proveedor?._id ?? editando.proveedor ?? "",
+            fecha: editando.fechaExpedicion
+              ? new Date(editando.fechaExpedicion).toISOString().slice(0, 10)
+              : new Date().toISOString().slice(0, 10),
+            numeroFacturaProveedor: editando.numeroFacturaProveedor ?? "",
+            notas: editando.notas ?? "",
+            lineas: editando.lineas ?? [],
+          }}
+          onGuardado={() => { setEditando(null); cargar(); }}
+          onCerrar={() => setEditando(null)}
         />
       )}
       {conciliando && (
