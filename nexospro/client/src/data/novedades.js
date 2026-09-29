@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-29",
+    tipo: "correccion",
+    titulo: "Tesorería: las facturas rectificativas ya no salen como cobro pendiente",
+    detalle:
+      "Una factura rectificativa (total negativo, en negativo a favor del cliente) aparecía como «pendiente de cobro» y restaba en el neto previsto del panel de Tesorería, dando números confusos. Ahora se considera saldada: no es algo que haya que cobrar, sino una devolución que se gestiona aparte.",
+  },
+  {
+    fecha: "2026-09-29",
     tipo: "mejora",
     titulo: "Borrar órdenes también desde el tablero",
     detalle:

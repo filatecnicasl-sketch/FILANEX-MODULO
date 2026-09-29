@@ -142,6 +142,10 @@ facturaVentaSchema.methods.cobrado = function () {
 };
 facturaVentaSchema.methods.estadoCobro = function () {
   if (this.estado === "anulada") return "anulada";
+  // Una rectificativa (total negativo) no es un cobro pendiente: si algo,
+  // es una devolución a favor del cliente. Tratarla como saldada para que
+  // no ensucie la tesorería con importes en negativo.
+  if ((this.total ?? 0) <= 0) return "cobrada";
   const c = this.cobrado();
   if (c <= 0) return "pendiente";
   if (c + 0.005 < (this.total ?? 0)) return "parcial";
