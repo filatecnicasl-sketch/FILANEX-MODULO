@@ -309,7 +309,13 @@ export default function TallerOrdenesPage() {
   }
 
   async function borrar(o) {
-    if (!window.confirm(`¿Borrar la orden ${o.numero}?`)) return;
+    const texto = o.factura
+      ? `La orden ${o.numero} tiene la factura ${o.numeroFactura ?? "asociada"}.\n\n` +
+        `La factura NO se borra: es un documento legal y queda registrada (se reimprime igual, con los datos de la reparación).\n` +
+        `Se borra solo la orden: sus fotos, el historial del vehículo y los tiempos de los operarios.\n\n` +
+        `¿Borrar la orden?`
+      : `¿Borrar la orden ${o.numero}?\nSe borran también sus fotos, el historial del vehículo y los tiempos de los operarios.`;
+    if (!window.confirm(texto)) return;
     const r = await fetch(`/api/taller/ordenes/${o._id}`, { method: "DELETE" });
     if (r.ok) cargar();
     else alert((await r.json()).error || "No se pudo borrar");

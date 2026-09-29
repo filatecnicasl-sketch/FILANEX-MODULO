@@ -575,6 +575,12 @@ router.post("/ordenes/:id/facturar", async (req, res, next) => {
 
     const empresa = await Empresa.findOne();
     const totales = calcularTotales(lineas);
+    // Copia de los datos del taller dentro de la factura: si la orden se
+    // borra en el futuro, la factura se reimprime igual de completa.
+    const vehDoc = orden.vehiculo ? await Vehiculo.findById(orden.vehiculo).lean() : null;
+    const asegNombre =
+      aseguradora?.nombre ??
+      (orden.aseguradora ? (await Aseguradora.findById(orden.aseguradora).lean())?.nombre : undefined);
     const factura = await FacturaVenta.create({
       empresa: empresa?._id,
       cliente: clienteId,
@@ -582,6 +588,14 @@ router.post("/ordenes/:id/facturar", async (req, res, next) => {
       ...totales,
       descripcion: detalleFactura,
       matricula: orden.matricula || undefined,
+      taller: {
+        vehiculo: vehDoc ? [vehDoc.marca, vehDoc.modelo].filter(Boolean).join(" ") : undefined,
+        orden: orden.numero,
+        aseguradora: asegNombre || undefined,
+        siniestro: orden.numeroSiniestro || undefined,
+        km: orden.km ?? undefined,
+        fechaEntrada: orden.fechaEntrada ?? undefined,
+      },
       vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       origen: {
         ordenTrabajo: orden._id,
@@ -618,13 +632,10 @@ router.delete("/ordenes/:id", async (req, res, next) => {
   try {
     const orden = await OrdenTrabajo.findById(req.params.id);
     if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
-    // Una orden facturada no se borra: rompería la trazabilidad con la
-    // factura (y con VeriFactu). Primero hay que rectificar la factura.
-    if (orden.factura) {
-      return res.status(409).json({
-        error: `La orden ${orden.numero} tiene la factura ${orden.numeroFactura ?? ""} y no se puede borrar. Si fue un error, rectifica primero la factura desde Ventas.`,
-      });
-    }
+    // Cualquier orden se puede borrar, también las facturadas: la factura NO
+    // se toca (es un documento legal registrado en VeriFactu) y guarda su
+    // propia copia de los datos del taller, así que se reimprime igual. La
+    // app avisa de esto antes de confirmar el borrado.
     // Limpieza: fotos de recepción/entrega y firma guardadas en el storage.
     const rutas = [
       ...(orden.recepcionDigital?.fotos ?? []),
@@ -642,7 +653,7 @@ router.delete("/ordenes/:id", async (req, res, next) => {
       ).catch(() => {});
     }
     await orden.deleteOne();
-    res.json({ ok: true });
+    res.json({ ok: true, teniaFactura: Boolean(orden.factura) });
   } catch (err) {
     next(err);
   }

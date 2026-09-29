@@ -233,7 +233,13 @@ export default function ServicioOrdenesPage() {
   }
 
   async function borrar(o) {
-    if (!window.confirm(`¿Borrar la orden ${o.numero}?`)) return;
+    const texto = o.factura
+      ? `La orden ${o.numero} tiene una factura asociada (${o.numeroFactura ?? "borrador"}).\n\n` +
+        `La factura NO se borra: es un documento legal y queda registrada.\n` +
+        `Se borra solo la orden, con sus fotos y su historial.\n\n` +
+        `¿Borrar la orden?`
+      : `¿Borrar la orden ${o.numero}? Se borran también sus fotos y su historial.`;
+    if (!window.confirm(texto)) return;
     const r = await fetch(`/api/servicio/ordenes/${o._id}`, { method: "DELETE" });
     if (r.ok) cargar();
     else alert((await r.json()).error || "No se pudo borrar");

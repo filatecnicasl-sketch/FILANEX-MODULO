@@ -122,13 +122,25 @@ async function datosFacturaVenta(id) {
     "cliente.direccion": dirTexto(c.direccion),
     "cliente.telefono": c.telefono ?? "",
     "cliente.email": c.email ?? "",
-    "taller.orden": ot?.numero ?? "",
+    // Si la orden se borró después de facturar, se usa la copia que la
+    // factura guardó al crearse (f.taller): la reimpresión sale igual.
+    "taller.orden": ot?.numero ?? f.taller?.orden ?? "",
     "taller.matricula": ot?.matricula ?? f.matricula ?? "",
-    "taller.vehiculo": [ot?.vehiculo?.marca, ot?.vehiculo?.modelo].filter(Boolean).join(" "),
-    "taller.km": ot?.km ? `${Number(ot.km).toLocaleString("es-ES")} km` : "",
-    "taller.aseguradora": ot?.aseguradora?.nombre ?? "",
-    "taller.siniestro": ot?.numeroSiniestro ?? "",
-    "taller.fechaEntrada": ot ? fechaEs(ot.fechaEntrada) : "",
+    "taller.vehiculo": ot
+      ? [ot.vehiculo?.marca, ot.vehiculo?.modelo].filter(Boolean).join(" ")
+      : (f.taller?.vehiculo ?? ""),
+    "taller.km": ot?.km
+      ? `${Number(ot.km).toLocaleString("es-ES")} km`
+      : f.taller?.km
+        ? `${Number(f.taller.km).toLocaleString("es-ES")} km`
+        : "",
+    "taller.aseguradora": ot?.aseguradora?.nombre ?? f.taller?.aseguradora ?? "",
+    "taller.siniestro": ot?.numeroSiniestro ?? f.taller?.siniestro ?? "",
+    "taller.fechaEntrada": ot
+      ? fechaEs(ot.fechaEntrada)
+      : f.taller?.fechaEntrada
+        ? fechaEs(f.taller.fechaEntrada)
+        : "",
     "totales.base": euros(f.baseImponible),
     "totales.iva": euros(f.cuotaIva),
     "totales.total": euros(f.total),

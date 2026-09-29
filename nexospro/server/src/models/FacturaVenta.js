@@ -61,6 +61,17 @@ const facturaVentaSchema = new Schema(
     // rellena sola al facturar una orden de trabajo y también se puede
     // escribir a mano en cualquier factura.
     matricula: { type: String, uppercase: true, trim: true, index: true },
+    // Copia de los datos del taller en el momento de facturar: si la orden
+    // se borra después, la factura se sigue reimprimiendo con todos sus
+    // datos (vehículo, nº de orden, compañía, siniestro…).
+    taller: {
+      vehiculo: String,
+      orden: String,
+      aseguradora: String,
+      siniestro: String,
+      km: Number,
+      fechaEntrada: Date,
+    },
     lineas: [lineaSchema],
     baseImponible: { type: Number, default: 0 },
     cuotaIva: { type: Number, default: 0 },
