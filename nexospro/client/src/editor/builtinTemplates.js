@@ -378,13 +378,13 @@ function firma(label, sublabel, x, y, w, h) {
 
 export function buildRecepcionVehiculo() {
   const tablaReparaciones = {
-    id: id(), type: "table", x: 18, y: 62, w: 132, h: 112,
+    id: id(), type: "table", x: 18, y: 62, w: 132, h: 78,
     columns: [
       { title: "DESCRIPCIÓN", width: 0.67 },
       { title: "MANO DE OBRA", width: 0.165 },
       { title: "MATERIALES", width: 0.165 },
     ],
-    rows: 21, headerFontSize: 6, showRowNumbers: true,
+    rows: 14, headerFontSize: 6, showRowNumbers: true,
     groupTitle: "REPARACIONES A REALIZAR",
   };
 
@@ -425,8 +425,12 @@ export function buildRecepcionVehiculo() {
       chk("1/2", "vehiculo.comb12", 230, 78, 11, 5),
       chk("3/4", "vehiculo.comb34", 242, 78, 11, 5),
       chk("1", "vehiculo.comb1", 254, 78, 9, 5),
-      area("OBSERVACIONES", "vehiculo.observaciones", 183, 85, 101, 9),
+      area("SEGURO / FRANQUICIA", "seguro.detalle", 183, 85, 101, 9),
       tablaReparaciones,
+      // Bloque amplio para describir la avería (impreso o a mano): era la
+      // carencia que señalaba el taller — el antiguo cuadro de observaciones
+      // de 9 mm no daba para nada.
+      area("DESCRIPCIÓN DE LA AVERÍA / TRABAJOS SOLICITADOS POR EL CLIENTE", "vehiculo.descripcion", 18, 144, 132, 30),
       box2(152, 97, 132, 53, 2),
       tx2("RENUNCIA A LA ELABORACIÓN", 156, 99, 124, 6, 12, true, "center"),
       tx2("DE PRESUPUESTO PREVIO", 156, 105.5, 124, 6, 12, true, "center"),

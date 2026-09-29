@@ -21,6 +21,12 @@ export async function imprimirHojaEntrada(o) {
   if (!plantilla) return false;
   const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
 
+  const textoSeguro = o.aseguradora
+    ? `Compañía: ${o.aseguradora}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}${Number(o.franquicia) > 0 ? ` · Franquicia a cargo del cliente: ${Number(o.franquicia).toFixed(2)} € (IVA incluido)` : ""}`
+    : Number(o.franquicia) > 0
+      ? `Franquicia a cargo del cliente: ${Number(o.franquicia).toFixed(2)} € (IVA incluido)`
+      : "";
+
   const formData = {
     "taller.nombre": emp.nombre,
     "taller.cif": emp.nif,
@@ -40,15 +46,12 @@ export async function imprimirHojaEntrada(o) {
     "vehiculo.km": o.km != null ? Number(o.km).toLocaleString("es-ES") : "",
     "vehiculo.seguroSi": Boolean(o.aseguradora),
     "vehiculo.seguroNo": !o.aseguradora,
-    // El cliente se lleva en su copia compañía, siniestro y franquicia.
-    "vehiculo.observaciones": [
-      o.motivo,
-      o.aseguradora
-        ? `Compañía: ${o.aseguradora}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}${Number(o.franquicia) > 0 ? ` · Franquicia a cargo del cliente: ${Number(o.franquicia).toFixed(2)} € (IVA incluido)` : ""}`
-        : Number(o.franquicia) > 0
-          ? `Franquicia a cargo del cliente: ${Number(o.franquicia).toFixed(2)} € (IVA incluido)`
-          : "",
-    ].filter(Boolean).join(". "),
+    // Bloque grande de la hoja: la avería / trabajos que pide el cliente.
+    "vehiculo.descripcion": o.motivo ?? "",
+    "seguro.detalle": textoSeguro,
+    // Compat con plantillas antiguas: allí el motivo y el seguro compartían
+    // el cuadro pequeño de observaciones.
+    "vehiculo.observaciones": [o.motivo, textoSeguro].filter(Boolean).join(". "),
     "entrega.fechaPrevista": fechaEs(o.fechaEntregaPrevista),
   };
 
