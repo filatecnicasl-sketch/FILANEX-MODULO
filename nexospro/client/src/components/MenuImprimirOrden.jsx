@@ -40,7 +40,15 @@ export async function imprimirHojaEntrada(o) {
     "vehiculo.km": o.km != null ? Number(o.km).toLocaleString("es-ES") : "",
     "vehiculo.seguroSi": Boolean(o.aseguradora),
     "vehiculo.seguroNo": !o.aseguradora,
-    "vehiculo.observaciones": o.motivo,
+    // El cliente se lleva en su copia compañía, siniestro y franquicia.
+    "vehiculo.observaciones": [
+      o.motivo,
+      o.aseguradora
+        ? `Compañía: ${o.aseguradora}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}${Number(o.franquicia) > 0 ? ` · Franquicia a cargo del cliente: ${Number(o.franquicia).toFixed(2)} € (IVA incluido)` : ""}`
+        : Number(o.franquicia) > 0
+          ? `Franquicia a cargo del cliente: ${Number(o.franquicia).toFixed(2)} € (IVA incluido)`
+          : "",
+    ].filter(Boolean).join(". "),
     "entrega.fechaPrevista": fechaEs(o.fechaEntregaPrevista),
   };
 

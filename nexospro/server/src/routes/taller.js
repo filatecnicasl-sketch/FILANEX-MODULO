@@ -1122,6 +1122,7 @@ router.post("/citas", async (req, res, next) => {
       tipo: req.body.tipo === "peritaje" ? "peritaje" : "normal",
       numeroSiniestro: req.body.numeroSiniestro || undefined,
       franquicia: Number(req.body.franquicia) > 0 ? Number(req.body.franquicia) : undefined,
+      entregaPrevista: req.body.entregaPrevista ? new Date(req.body.entregaPrevista) : undefined,
       presupuesto: Boolean(req.body.presupuesto),
       aseguradora: aseguradoraId,
       aseguradoraNombre,
@@ -1155,6 +1156,9 @@ router.put("/citas/:id", async (req, res, next) => {
     }
     if (req.body.franquicia !== undefined) {
       cambios.franquicia = Math.max(0, Number(req.body.franquicia) || 0);
+    }
+    if (req.body.entregaPrevista !== undefined) {
+      cambios.entregaPrevista = req.body.entregaPrevista ? new Date(req.body.entregaPrevista) : null;
     }
     if (req.body.cliente !== undefined) cambios.cliente = req.body.cliente || null;
     if (req.body.aseguradora !== undefined || req.body.aseguradoraNombre !== undefined) {

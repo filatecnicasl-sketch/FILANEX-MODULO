@@ -185,23 +185,25 @@ async function datosOrdenTrabajo(id) {
     "vehiculo.entregaPrevista": fechaEs(o.fechaEntregaPrevista),
     "seguro.compania": aseg.nombre ?? "",
     "seguro.siniestro": o.numeroSiniestro ?? "",
+    "seguro.franquicia": Number(o.franquicia) > 0 ? euros(o.franquicia) : "",
     // Línea compuesta para la plantilla: "AXA · Siniestro 1234" o "Particular".
     "seguro.texto": aseg.nombre
-      ? `Compañía: ${aseg.nombre}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}`
+      ? `Compañía: ${aseg.nombre}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}${Number(o.franquicia) > 0 ? ` · Franquicia cliente: ${euros(o.franquicia)}` : ""}`
       : "Particular",
     "trabajos.tipo": (o.trabajos ?? []).join(", "),
     "trabajos.motivo": o.motivo ?? "",
-    "totales.total": euros((o.lineas ?? []).reduce((s, l) => s + netoLinea(l) * (1 + (Number(l.iva) || 0) / 100), 0)),
+    // La orden impresa va al taller: trabajos y cantidades, nunca precios.
+    "totales.total": "",
   };
 
   formData.lineas = (o.lineas ?? []).map((l) => ({
     concepto: l.detalle ? `${l.descripcion ?? ""}\n${l.detalle}` : (l.descripcion ?? ""),
     tipo: l.tipo === "mano_obra" ? "Mano de obra" : l.tipo === "material" ? "Material" : "",
     cantidad: l.cantidad ?? "",
-    precio: euros(l.precioUnitario),
-    dto: (Number(l.descuento) || 0) > 0 ? `${l.descuento}%` : "",
-    iva: `${l.iva ?? 0}%`,
-    importe: euros(netoLinea(l)),
+    precio: "",
+    dto: "",
+    iva: "",
+    importe: "",
   }));
 
   return { formData, logoUrl: emp.logoUrl };

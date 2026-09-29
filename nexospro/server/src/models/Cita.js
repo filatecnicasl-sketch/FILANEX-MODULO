@@ -12,6 +12,9 @@ const citaSchema = new Schema(
     fecha: { type: Date, required: true }, // día de la cita (medianoche local)
     hora: { type: String, required: true }, // "09:30"
     duracion: { type: Number, default: 60 }, // minutos
+    // Entrega prevista que sale en la hoja de entrada. Opcional: el taller
+    // la pone solo si la sabe; si está vacía, el impreso sale sin fecha.
+    entregaPrevista: Date,
     cliente: { type: Schema.Types.ObjectId, ref: "Cliente" }, // agenda general
     clienteNombre: String,
     telefono: String,

@@ -21,8 +21,8 @@ const dirTexto = (d) => [d?.calle, d?.cp, d?.ciudad, d?.provincia].filter(Boolea
 
 function hojaEntradaHtml(emp, cita, cliente, vehiculo) {
   const hoy = fechaEs(cita.fecha);
-  const manana = new Date(cita.fecha);
-  manana.setDate(manana.getDate() + 1);
+  // Solo si el taller la ha indicado en la cita; nunca se inventa.
+  const entrega = fechaEs(cita.entregaPrevista);
   return `
 <!doctype html>
 <html lang="es">
@@ -88,10 +88,19 @@ function hojaEntradaHtml(emp, cita, cliente, vehiculo) {
     <div class="motivo">${[cita.motivo, cita.notas].filter(Boolean).join(". ") || "—"}</div>
   </div>
 
+  ${cita.aseguradoraNombre || cita.numeroSiniestro || Number(cita.franquicia) > 0 ? `
+  <div class="caja">
+    <div class="fila">
+      <div class="col"><span class="label">Compañía</span><div class="dato">${cita.aseguradoraNombre || ""}</div></div>
+      <div class="col"><span class="label">Siniestro</span><div class="dato">${cita.numeroSiniestro || ""}</div></div>
+      <div class="col"><span class="label">Franquicia a cargo del cliente</span><div class="dato">${Number(cita.franquicia) > 0 ? `${Number(cita.franquicia).toFixed(2)} € (IVA incluido)` : ""}</div></div>
+    </div>
+  </div>` : ""}
+
   <div class="caja">
     <div class="fila">
       <div class="col"><span class="label">Fecha de entrada</span><div class="dato">${hoy}</div></div>
-      <div class="col"><span class="label">Fecha prevista de entrega</span><div class="dato">${fechaEs(manana)}</div></div>
+      <div class="col"><span class="label">Fecha prevista de entrega</span><div class="dato">${entrega}</div></div>
       <div class="col"><span class="label">Cita</span><div>${cita.de ? cita.de.slice(0,5) : ""} - ${cita.a ? cita.a.slice(0,5) : ""}</div></div>
     </div>
   </div>
@@ -137,6 +146,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     fecha: cita ? aFechaInput(cita.fecha) : fechaInicial,
     hora: cita?.hora ?? "07:00",
     horaFin: cita ? aHora(aMinutos(cita.hora) + (cita.duracion ?? 60)) : "10:00",
+    entregaPrevista: cita?.entregaPrevista ? aFechaInput(cita.entregaPrevista) : "",
     cliente: cita?.cliente?._id ?? cita?.cliente ?? "",
     clienteNombre: cita?.clienteNombre ?? "",
     telefono: cita?.telefono ?? "",
@@ -368,6 +378,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           tipo: form.tipo,
           numeroSiniestro: form.tipo === "peritaje" ? (form.numeroSiniestro || undefined) : undefined,
           franquicia: form.franquicia ? Number(form.franquicia) : 0,
+          entregaPrevista: form.entregaPrevista || null,
           presupuesto: Boolean(form.presupuesto),
           aseguradora: form.aseguradora || null,
           cortesia: Boolean(form.cortesia),
@@ -433,18 +444,24 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     if (!cita) return;
     const cliente = clientes.find((c) => String(c._id) === String(cita.cliente?._id ?? cita.cliente)) || cita.cliente;
     const vehiculo = vehiculos.find((v) => v.matricula?.toUpperCase() === (cita.matricula ?? "").toUpperCase());
-
-    const manana = new Date(cita.fecha);
-    manana.setDate(manana.getDate() + 1);
+    // Compañía/siniestro/franquicia de la propia cita: salen en la hoja de
+    // entrada para que el cliente sepa qué paga él de su bolsillo.
+    const aseguradoraNombre =
+      cita.aseguradoraNombre ||
+      aseguradoras.find((a) => String(a._id) === String(cita.aseguradora?._id ?? cita.aseguradora))?.nombre ||
+      "";
 
     const ok = await imprimirHojaEntrada({
       numero: `CITA-${cita._id.slice(-6).toUpperCase()}`,
       fechaEntrada: cita.fecha,
-      fechaEntregaPrevista: manana.toISOString().slice(0, 10),
+      // Solo sale la fecha de entrega si el taller la ha puesto; nunca se inventa.
+      fechaEntregaPrevista: cita.entregaPrevista ? aFechaInput(cita.entregaPrevista) : undefined,
       matricula: cita.matricula ?? "",
       km: vehiculo?.km ?? "",
       motivo: [cita.motivo, cita.notas].filter(Boolean).join(". ") || "Recepción desde cita",
-      aseguradora: vehiculo?.aseguradora?.nombre ?? "",
+      aseguradora: aseguradoraNombre,
+      numeroSiniestro: cita.numeroSiniestro ?? "",
+      franquicia: Number(cita.franquicia) > 0 ? Number(cita.franquicia) : 0,
       cliente: cliente || undefined,
       clienteNombre: cita.clienteNombre || cliente?.nombre || "",
       telefono: cita.telefono || cliente?.telefono || "",
@@ -755,6 +772,16 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
                 disabled={!form.aseguradora && !form.aseguradoraNombre}
               />
               <p className="text-[11px] text-slate-500 mt-1">La paga el cliente; se descuenta de la factura a la compañía.</p>
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Entrega prevista (opcional)</label>
+              <input
+                type="date"
+                className={campo}
+                value={form.entregaPrevista}
+                onChange={(e) => actualizar("entregaPrevista", e.target.value)}
+              />
+              <p className="text-[11px] text-slate-500 mt-1">Solo si la sabes: sale en la hoja de entrada.</p>
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Coche de cortesía</label>
