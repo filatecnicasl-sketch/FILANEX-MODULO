@@ -396,6 +396,7 @@ export default function ComprasFacturasPage() {
           titulo="Nueva factura de compra (manual)"
           url="/api/facturas-compra"
           conNumeroProveedor
+          conTotalReal
           etiquetaNumero="Nº factura del proveedor"
           campoNumero="numeroFacturaProveedor"
           onGuardado={() => { setFormManual(false); cargar(); }}
@@ -408,6 +409,7 @@ export default function ComprasFacturasPage() {
           url={`/api/facturas-compra/${editando._id}`}
           metodo="PUT"
           conNumeroProveedor
+          conTotalReal
           etiquetaNumero="Nº factura del proveedor"
           campoNumero="numeroFacturaProveedor"
           inicial={{
@@ -418,6 +420,7 @@ export default function ComprasFacturasPage() {
             numeroFacturaProveedor: editando.numeroFacturaProveedor ?? "",
             notas: editando.notas ?? "",
             lineas: editando.lineas ?? [],
+            total: editando.total,
           }}
           onGuardado={() => { setEditando(null); cargar(); }}
           onCerrar={() => setEditando(null)}

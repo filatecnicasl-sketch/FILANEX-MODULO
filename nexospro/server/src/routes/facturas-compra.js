@@ -28,6 +28,30 @@ function conPagos(f) {
   return { ...obj, pagado: f.pagado(), estadoPago: f.estadoPago() };
 }
 
+// La factura del PROVEEDOR es la verdad: si su programa redondeó distinto,
+// el total del papel puede diferir unos céntimos del calculado. Se guarda
+// como ajusteRedondeo (total = base + IVA + ajuste). Más de 0,50 € de
+// diferencia ya no es un redondeo: es un error en las líneas.
+const MAX_AJUSTE_REDONDEO = 0.5;
+
+// Devuelve null si se aplicó bien, o el mensaje de error si la diferencia
+// es demasiado grande. Espera los totales ya calculados en `fc`.
+function aplicarTotalReal(fc, totalReal) {
+  const calculado = Math.round(((fc.baseImponible ?? 0) + (fc.cuotaIva ?? 0)) * 100) / 100;
+  const diff = Math.round((totalReal - calculado) * 100) / 100;
+  if (Math.abs(diff) < 0.005) {
+    fc.ajusteRedondeo = 0;
+    fc.total = calculado;
+    return null;
+  }
+  if (Math.abs(diff) > MAX_AJUSTE_REDONDEO) {
+    return `El total indicado difiere en ${diff.toFixed(2)} € del calculado (${calculado.toFixed(2)} €). Solo se puede ajustar unos céntimos por redondeo: revisa las líneas.`;
+  }
+  fc.ajusteRedondeo = diff;
+  fc.total = Math.round((calculado + diff) * 100) / 100;
+  return null;
+}
+
 router.get("/", async (req, res, next) => {
   try {
     const filtro = req.query.estado ? { estado: req.query.estado } : {};
@@ -70,6 +94,11 @@ router.post("/", async (req, res, next) => {
       estado: "pendiente_revision",
       origen: "manual",
     });
+    if (req.body.totalReal !== undefined && req.body.totalReal !== null && req.body.totalReal !== "") {
+      const errorAjuste = aplicarTotalReal(factura, Number(req.body.totalReal));
+      if (errorAjuste) return res.status(400).json({ error: errorAjuste });
+      await factura.save();
+    }
     res.status(201).json(await factura.populate("proveedor", "nombre nif"));
   } catch (err) {
     next(err);
@@ -145,6 +174,12 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
       const sugerenciasLineas = extraccion.esGasto
         ? (extraccion.lineas ?? []).map(() => ({ articuloId: null, crear: false }))
         : await sugerirArticulos(proveedor?._id, extraccion.lineas ?? []);
+      // Si el total del papel no cuadra con base + IVA por unos céntimos
+      // (el proveedor redondeó distinto), se anota como ajuste por redondeo.
+      const ajusteOcr =
+        Math.round(
+          ((extraccion.total ?? 0) - (extraccion.baseImponible ?? 0) - (extraccion.cuotaIva ?? 0)) * 100
+        ) / 100;
       const factura = await FacturaCompra.create({
         proveedor: proveedor?._id ?? null,
         numeroFacturaProveedor: extraccion.numeroDocumento ?? null,
@@ -153,6 +188,7 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
         baseImponible: extraccion.baseImponible ?? 0,
         cuotaIva: extraccion.cuotaIva ?? 0,
         total: extraccion.total ?? 0,
+        ajusteRedondeo: Math.abs(ajusteOcr) <= MAX_AJUSTE_REDONDEO ? ajusteOcr : 0,
         estado: "pendiente_revision",
         origen: "ocr",
         ocr: {
@@ -226,6 +262,11 @@ router.put("/:id", async (req, res, next) => {
       }
       fc.lineas = lineas;
       Object.assign(fc, calcularTotales(lineas));
+      fc.ajusteRedondeo = 0;
+    }
+    if (req.body.totalReal !== undefined && req.body.totalReal !== null && req.body.totalReal !== "") {
+      const errorAjuste = aplicarTotalReal(fc, Number(req.body.totalReal));
+      if (errorAjuste) return res.status(400).json({ error: errorAjuste });
     }
     await fc.save();
     res.json(

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import EditorLineas from "./EditorLineas.jsx";
+import EditorLineas, { totalesDeLineas } from "./EditorLineas.jsx";
 import SelectorContacto from "./SelectorContacto.jsx";
-import { Badge } from "./ui.jsx";
+import { Badge, euros } from "./ui.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 
 // Verificación al terminar una importación OCR (factura o albarán de compra):
@@ -34,6 +34,15 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
   );
   const [ocupado, setOcupado] = useState(null); // "guardar" | "validar" | "descartar"
   const [error, setError] = useState(null);
+  // Total que pone en la factura del proveedor (el papel manda): si difiere
+  // unos céntimos del calculado, se guarda como ajuste por redondeo.
+  const [totalReal, setTotalReal] = useState(doc.total != null ? String(doc.total) : "");
+  const calculado = totalesDeLineas(lineas);
+  const totalRealNum = parseFloat(String(totalReal).replace(",", "."));
+  const ajuste =
+    esFactura && Number.isFinite(totalRealNum)
+      ? Math.round((totalRealNum - calculado.total) * 100) / 100
+      : 0;
 
   useEffect(() => {
     fetch("/api/proveedores")
@@ -60,6 +69,7 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
     if (proveedorId) cuerpo.proveedor = proveedorId;
     if (esFactura) cuerpo.numeroFacturaProveedor = numero || undefined;
     else cuerpo.numeroAlbaran = numero || undefined;
+    if (esFactura && Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum;
 
     const r = await fetch(urlDoc, {
       method: "PUT",
@@ -186,6 +196,29 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
           </div>
 
           <EditorLineas lineas={lineas} setLineas={setLineas} precio="compra" conDescuento />
+
+          {esFactura && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-600/40 px-4 py-3">
+              <span className="text-sm text-slate-400">
+                Total calculado: <strong className="text-slate-200">{euros(calculado.total)}</strong>
+              </span>
+              <label className="text-sm text-slate-400 flex items-center gap-2">
+                Total en la factura del proveedor:
+                <input
+                  value={totalReal}
+                  onChange={(e) => setTotalReal(e.target.value)}
+                  className="input w-28 text-right"
+                  inputMode="decimal"
+                />
+              </label>
+              {Math.abs(ajuste) >= 0.005 && (
+                <span className="text-xs text-amber-300">
+                  Se guardará un ajuste por redondeo de {ajuste > 0 ? "+" : ""}
+                  {ajuste.toFixed(2)} €
+                </span>
+              )}
+            </div>
+          )}
 
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex items-center justify-between gap-2 pt-1">

@@ -13,6 +13,10 @@ const facturaCompraSchema = new Schema(
     baseImponible: { type: Number, default: 0 },
     cuotaIva: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
+    // Diferencia en céntimos entre el total calculado (base + IVA) y el total
+    // que el proveedor imprimió en SU factura, cuando redondeó distinto.
+    // Invariante: total = baseImponible + cuotaIva + ajusteRedondeo.
+    ajusteRedondeo: { type: Number, default: 0 },
     estado: {
       type: String,
       enum: ["pendiente_revision", "validada", "rechazada"],

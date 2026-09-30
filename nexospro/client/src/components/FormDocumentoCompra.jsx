@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import EditorLineas, { lineaVacia } from "./EditorLineas.jsx";
+import EditorLineas, { lineaVacia, totalesDeLineas } from "./EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import SelectorContacto from "./SelectorContacto.jsx";
+import { euros } from "./ui.jsx";
 
 // Formulario genérico de documento de COMPRA: proveedor + fecha + líneas.
 // Espejo de FormDocumento (ventas) pero con proveedores.
@@ -9,10 +10,11 @@ export default function FormDocumentoCompra({
   titulo,
   url,
   metodo = "POST",
-  inicial = null, // { proveedor, fecha, numeroAlbaran, notas, lineas }
+  inicial = null, // { proveedor, fecha, numeroAlbaran, notas, lineas, total }
   conNumeroProveedor = false,
   etiquetaNumero = "Nº albarán del proveedor",
   campoNumero = "numeroAlbaran",
+  conTotalReal = false, // solo facturas: permite cuadrar el total del papel
   onGuardado,
   onCerrar,
 }) {
@@ -24,8 +26,17 @@ export default function FormDocumentoCompra({
   const [lineas, setLineas] = useState(
     inicial?.lineas?.length > 0 ? inicial.lineas.map((l) => ({ ...l })) : [lineaVacia()]
   );
+  // Total que pone en la factura del proveedor (el papel manda): si difiere
+  // unos céntimos del calculado, se guarda como ajuste por redondeo.
+  const [totalReal, setTotalReal] = useState(inicial?.total != null ? String(inicial.total) : "");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  const calculado = totalesDeLineas(lineas);
+  const totalRealNum = parseFloat(String(totalReal).replace(",", "."));
+  const ajuste =
+    conTotalReal && Number.isFinite(totalRealNum)
+      ? Math.round((totalRealNum - calculado.total) * 100) / 100
+      : 0;
 
   useEffect(() => {
     fetch("/api/proveedores")
@@ -54,6 +65,7 @@ export default function FormDocumentoCompra({
           })),
       };
       if (conNumeroProveedor) cuerpo[campoNumero] = numeroProveedor || undefined;
+      if (conTotalReal && Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum;
       const r = await fetch(url, {
         method: metodo,
         headers: { "Content-Type": "application/json" },
@@ -110,6 +122,30 @@ export default function FormDocumentoCompra({
           </div>
 
           <EditorLineas lineas={lineas} setLineas={setLineas} precio="compra" conDescuento />
+
+          {conTotalReal && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-600/40 px-4 py-3">
+              <span className="text-sm text-slate-400">
+                Total calculado: <strong className="text-slate-200">{euros(calculado.total)}</strong>
+              </span>
+              <label className="text-sm text-slate-400 flex items-center gap-2">
+                Total en la factura del proveedor:
+                <input
+                  value={totalReal}
+                  onChange={(e) => setTotalReal(e.target.value)}
+                  placeholder={calculado.total.toFixed(2)}
+                  className="input w-28 text-right"
+                  inputMode="decimal"
+                />
+              </label>
+              {Math.abs(ajuste) >= 0.005 && (
+                <span className="text-xs text-amber-300">
+                  Se guardará un ajuste por redondeo de {ajuste > 0 ? "+" : ""}
+                  {ajuste.toFixed(2)} €
+                </span>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Notas</label>

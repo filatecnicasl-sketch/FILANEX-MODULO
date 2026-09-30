@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-09-30",
+    tipo: "correccion",
+    titulo: "Compras: el total ya cuadra con el papel del proveedor",
+    detalle:
+      "Dos arreglos en facturas de compra. 1) El total que se veía mientras se editaban las líneas podía salir un céntimo por encima del guardado (se sumaba sin redondear antes): ahora la pantalla y el dato guardado coinciden siempre. 2) Si la factura del proveedor trae un total distinto por SU redondeo (p. ej. base 273,39 + IVA 57,41 = 330,80), en la revisión de la IA y en el alta/edición manual hay un campo «Total en la factura del proveedor» para escribir el del papel: la diferencia de céntimos se guarda como ajuste por redondeo y los libros de IVA siguen cuadrando.",
+  },
+  {
     fecha: "2026-09-29",
     tipo: "correccion",
     titulo: "Tesorería: las facturas rectificativas ya no salen como cobro pendiente",

@@ -2,6 +2,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { euros } from "./ui.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 
+// Totales del documento con el mismo redondeo que el servidor
+// (services/totales.js): base e IVA se redondean a céntimos ANTES de
+// sumarse, para que el total en pantalla coincida con el guardado.
+export function totalesDeLineas(lineas) {
+  let base = 0;
+  let iva = 0;
+  for (const l of lineas ?? []) {
+    if (!l?.descripcion) continue;
+    const bruto = (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0);
+    const b = bruto * (1 - (Number(l.descuento) || 0) / 100);
+    base += b;
+    iva += (b * (Number(l.iva) || 0)) / 100;
+  }
+  base = Math.round(base * 100) / 100;
+  iva = Math.round(iva * 100) / 100;
+  return { base, iva, total: Math.round((base + iva) * 100) / 100 };
+}
+
 export const lineaVacia = () => ({ descripcion: "", cantidad: 1, precioUnitario: 0, iva: 21 });
 
 // Editor de líneas de documento. El campo descripción busca en el catálogo
@@ -190,15 +208,8 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
     return { base, iva: (base * (Number(l.iva) || 0)) / 100 };
   };
 
-  const totales = lineas.reduce(
-    (acc, l) => {
-      const { base, iva } = importesLinea(l);
-      acc.base += base;
-      acc.iva += iva;
-      return acc;
-    },
-    { base: 0, iva: 0 }
-  );
+  // Totales del pie: mismo cálculo que se guardará en el servidor.
+  const totales = totalesDeLineas(lineas);
 
   // Imputaciones: nombres sugeridos (trabajos de la orden + ya usados).
   const opcionesGrupo = useMemo(() => {
