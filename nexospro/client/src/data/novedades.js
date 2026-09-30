@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-01",
+    tipo: "mejora",
+    titulo: "Energía: panel renovado y listas bien alineadas",
+    detalle:
+      "El panel de Energía pasa a tarjetas de colores con icono, dato grande y detalle (suministros activos, trámites en curso, luz, gas, comercializadoras e inactivos), como el resto de paneles del programa, y cada tarjeta lleva a su apartado. Además, las listas de Suministros, Trámites y Comercializadoras se han rehecho: los filtros van en una sola fila con los botones de acción a la derecha, y las tablas ya no se cortan ni se montan sobre el menú lateral — era un fallo de la cabecera de página que afectaba a todo el programa y también queda corregido.",
+  },
+  {
+    fecha: "2026-10-01",
     tipo: "nuevo",
     titulo: "Energía: trámites de alta, cambio, titular y baja",
     detalle:
