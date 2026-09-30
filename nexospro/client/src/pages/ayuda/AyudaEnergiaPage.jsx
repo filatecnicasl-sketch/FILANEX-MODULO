@@ -79,6 +79,24 @@ export default function AyudaEnergiaPage() {
           </Paso>
         </Seccion>
 
+        <Seccion titulo="Comisiones (Energía → Comisiones)">
+          <p>
+            Es la caja del canal: lo que te debe cada comercializadora por tu cartera. Elige el mes y
+            pulsa <K>Generar mes</K>: el programa calcula solo, suministro a suministro, tres cosas:
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><b>Mensual</b>: cada contrato activo devenga su €/mes.</li>
+            <li><b>Pago por alta</b>: el alta (o portabilidad) cuya fecha cae en ese mes devenga el pago único.</li>
+            <li><b>Anual</b>: en el mes del aniversario del alta, el recurrente anual.</li>
+          </ul>
+          <p>
+            Generar el mismo mes dos veces no duplica nada: cada comisión es única por suministro,
+            concepto y mes. Cuando la comercializadora te paga, marcas la comisión como
+            <b> cobrada</b> con la flecha verde; el panel muestra siempre lo pendiente de cobrar.
+            Para un bono puntual o un pacto especial fuera de la ficha, usa <K>Nueva manual</K>.
+          </p>
+        </Seccion>
+
         <Seccion titulo="Grupos de empresas">
           <p>
             Muchos clientes son <b>grupos de empresas</b>: varias sociedades del mismo dueño, cada una con
@@ -102,8 +120,8 @@ export default function AyudaEnergiaPage() {
         <Seccion titulo="Lo que viene">
           <p>
             Este módulo está en crecimiento. Próximamente: estudios de ahorro (situación
-            actual frente a la propuesta), cálculo de comisiones devengadas por comercializadora,
-            registro de autofacturas e histórico de consumos de los clientes.
+            actual frente a la propuesta), registro de autofacturas e histórico de
+            consumos de los clientes.
           </p>
           <Nota titulo="Sugerencia">
             Si echas en falta algo, proponlo desde <b>Ayuda → Novedades → Propuestas</b>: las propuestas

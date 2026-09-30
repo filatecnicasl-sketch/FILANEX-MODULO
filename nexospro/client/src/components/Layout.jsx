@@ -178,6 +178,7 @@ const gruposModulos = {
       { to: "/energia/suministros", etiqueta: "Suministros", fin: true, Icono: IconEnergia, tono: "amber" },
       { to: "/energia/tramites", etiqueta: "Trámites", fin: true, Icono: IconFirma, tono: "sky" },
       { to: "/energia/comercializadoras", etiqueta: "Comercializadoras", fin: true, Icono: IconAseguradora, tono: "teal" },
+      { to: "/energia/comisiones", etiqueta: "Comisiones", fin: true, Icono: IconCobros, tono: "emerald" },
       { to: "/ayuda/energia", etiqueta: "Ayuda energía", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
-import { IconEnergia, IconFirma, IconAseguradora } from "../../components/icons.jsx";
+import { IconEnergia, IconFirma, IconAseguradora, IconCobros } from "../../components/icons.jsx";
 
 const TONOS = {
   emerald: { fondo: "bg-emerald-50", borde: "border-emerald-200", texto: "text-emerald-700", icono: "bg-emerald-100 text-emerald-600" },
@@ -9,8 +9,12 @@ const TONOS = {
   amber: { fondo: "bg-amber-50", borde: "border-amber-200", texto: "text-amber-700", icono: "bg-amber-100 text-amber-600" },
   indigo: { fondo: "bg-indigo-50", borde: "border-indigo-200", texto: "text-indigo-700", icono: "bg-indigo-100 text-indigo-600" },
   violet: { fondo: "bg-violet-50", borde: "border-violet-200", texto: "text-violet-700", icono: "bg-violet-100 text-violet-600" },
+  teal: { fondo: "bg-teal-50", borde: "border-teal-200", texto: "text-teal-700", icono: "bg-teal-100 text-teal-600" },
   slate: { fondo: "bg-slate-50", borde: "border-slate-200", texto: "text-slate-600", icono: "bg-slate-100 text-slate-500" },
 };
+
+const fmtEuro = (n) =>
+  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(n ?? 0);
 
 function Tarjeta({ titulo, valor, detalle, tono, to, Icono }) {
   const t = TONOS[tono];
@@ -38,6 +42,7 @@ export default function EnergiaPage() {
   const [suministros, setSuministros] = useState(null);
   const [comercializadoras, setComercializadoras] = useState(null);
   const [tramites, setTramites] = useState([]);
+  const [resumenComisiones, setResumenComisiones] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -56,6 +61,10 @@ export default function EnergiaPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setTramites(Array.isArray(d) ? d : []))
       .catch(() => setTramites([]));
+    fetch("/api/energia/comisiones/resumen")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setResumenComisiones)
+      .catch(() => setResumenComisiones(null));
   }, []);
 
   if (suministros === null || comercializadoras === null) {
@@ -89,6 +98,14 @@ export default function EnergiaPage() {
     { titulo: "Luz", valor: luz, detalle: "puntos de luz activos", tono: "amber", to: "/energia/suministros", Icono: IconEnergia },
     { titulo: "Gas", valor: gas, detalle: "puntos de gas activos", tono: "indigo", to: "/energia/suministros", Icono: IconEnergia },
     { titulo: "Comercializadoras", valor: comercializadoras.length, detalle: "con condiciones de comisión", tono: "violet", to: "/energia/comercializadoras", Icono: IconAseguradora },
+    {
+      titulo: "Comisiones pendientes",
+      valor: fmtEuro(resumenComisiones?.pendiente.total ?? 0),
+      detalle: `cobradas este mes: ${fmtEuro(resumenComisiones?.cobradasMes.total ?? 0)}`,
+      tono: "teal",
+      to: "/energia/comisiones",
+      Icono: IconCobros,
+    },
     { titulo: "Inactivos / baja", valor: inactivos, detalle: "suspendidos o dados de baja", tono: "slate", to: "/energia/suministros", Icono: IconEnergia },
   ];
 
@@ -108,7 +125,7 @@ export default function EnergiaPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 mb-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 mb-4">
           {tarjetas.map((t) => (
             <Tarjeta key={t.titulo} {...t} />
           ))}

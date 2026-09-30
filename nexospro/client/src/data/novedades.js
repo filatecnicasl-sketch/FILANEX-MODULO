@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-01",
+    tipo: "nuevo",
+    titulo: "Energía: comisiones del canal",
+    detalle:
+      "Nuevo apartado Comisiones en el módulo de Energía. Con el botón «Generar mes» el programa calcula solo lo que devenga tu cartera ese mes: la mensualidad de cada contrato activo, el pago único de las altas y portabilidades conseguidas, y el recurrente anual en el mes del aniversario. Generar el mismo mes dos veces no duplica nada. Cada comisión se marca como cobrada cuando la comercializadora paga, se pueden dar de alta comisiones manuales (bonos, pactos especiales) y el panel muestra siempre lo pendiente de cobrar. Además, el contenido de todas las páginas vuelve a ir pegado al menú lateral, sin el hueco que había quedado en pantallas anchas.",
+  },
+  {
+    fecha: "2026-10-01",
     tipo: "mejora",
     titulo: "Energía: panel renovado y listas bien alineadas",
     detalle:
