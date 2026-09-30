@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-30",
+    tipo: "correccion",
+    titulo: "Tesorería: los abonos de proveedor ya no salen como pago pendiente",
+    detalle:
+      "Las facturas de compra con total cero o en negativo (abonos del proveedor, como los de IONOS) aparecían en Pagos pendientes con 0,00 € o importe negativo y no había forma de quitarlas. Ahora se consideran saldadas y desaparecen de la lista: un abono no es algo que haya que pagar. Es el mismo criterio que ya se aplicó a las facturas rectificativas de venta.",
+  },
+  {
+    fecha: "2026-09-30",
     tipo: "nuevo",
     titulo: "Ventas: se puede quitar un cobro registrado por error",
     detalle:

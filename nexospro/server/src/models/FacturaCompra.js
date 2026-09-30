@@ -59,6 +59,10 @@ facturaCompraSchema.methods.pagado = function () {
 };
 facturaCompraSchema.methods.estadoPago = function () {
   if (this.estado === "rechazada") return "rechazada";
+  // Una factura en negativo (abono del proveedor) o de total cero no es algo
+  // que haya que pagar: se considera saldada para que no aparezca como
+  // pago pendiente en tesorería.
+  if ((this.total ?? 0) <= 0) return "pagada";
   const p = this.pagado();
   if (p <= 0) return "pendiente";
   if (p + 0.005 < (this.total ?? 0)) return "parcial";
