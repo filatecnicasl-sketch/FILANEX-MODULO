@@ -265,17 +265,18 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
                 {l.codigo}
               </span>
             )}
-            <input
+            <textarea
               data-editor="linea" data-editor-desc
               placeholder={conTipo ? "Código, descripción o artículo…" : "Descripción o artículo…"}
               value={l.descripcion}
+              rows={Math.min(6, Math.max(1, (l.descripcion ?? "").split("\n").length))}
               onFocus={() => setSugerenciasEn(i)}
               onChange={(e) => {
                 cambiar(i, "descripcion", e.target.value);
                 setSugerenciasEn(i);
               }}
               onKeyDown={(e) => e.key === "Escape" && setSugerenciasEn(null)}
-              className={`input w-full text-base sm:text-sm ${conTipo && l.codigo ? "!pl-8" : ""}`}
+              className={`input w-full text-base sm:text-sm resize-none ${conTipo && l.codigo ? "!pl-8" : ""}`}
               autoComplete="off"
             />
           </div>

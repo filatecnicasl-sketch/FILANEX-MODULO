@@ -80,6 +80,16 @@ export default function PresupuestosPage() {
     await cargar();
   }
 
+  // Borrar: solo presupuestos sin convertir (los facturados o con albarán
+  // están bloqueados por trazabilidad).
+  async function borrar(p) {
+    if (!window.confirm(`¿Eliminar el presupuesto ${p.serieNumero ?? ""}? Esta acción no se puede deshacer.`)) return;
+    setError(null);
+    const r = await fetch(`/api/presupuestos/${p._id}`, { method: "DELETE" });
+    if (!r.ok) setError((await r.json()).error ?? "No se pudo eliminar");
+    await cargar();
+  }
+
   async function facturar(id) {
     const r = await fetch(`/api/presupuestos/${id}/facturar`, { method: "POST" });
     if (r.ok) await cargar();
@@ -204,6 +214,14 @@ export default function PresupuestosPage() {
                         className="text-xs bg-slate-400/10 text-slate-300 px-2 py-1 rounded-lg hover:bg-slate-400/20"
                       >
                         Editar
+                      </button>
+                    )}
+                    {p.estado !== "facturado" && !p.albaranVenta && (
+                      <button
+                        onClick={() => borrar(p)}
+                        className="text-xs text-rose-400 hover:underline px-1"
+                      >
+                        Borrar
                       </button>
                     )}
                     {["borrador", "enviado"].includes(p.estado) && (

@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-30",
     tipo: "nuevo",
+    titulo: "Presupuestos: se pueden borrar y las descripciones de varias líneas se editan bien",
+    detalle:
+      "Dos mejoras. 1) En Ventas → Presupuestos hay botón «Borrar» para eliminar los que ya no sirven (los ya convertidos en factura o albarán quedan protegidos por trazabilidad). 2) El campo de descripción de las líneas de cualquier documento (presupuesto, factura, albarán…) admite ahora varias líneas de texto visibles al escribir y al editar: con Enter se baja de línea y el cuadro crece solo, así los textos largos como «durante los primeros meses tendréis la ayuda…» se ven y se corrigen enteros.",
+  },
+  {
+    fecha: "2026-09-30",
+    tipo: "nuevo",
     titulo: "Ventas: los presupuestos ya se pueden editar",
     detalle:
       "Cada presupuesto tiene ahora un botón «Editar» para cambiar cliente, fecha, líneas, precios y dirección de entrega. Como los presupuestos no son documentos fiscales, se pueden modificar libremente; solo quedan bloqueados cuando ya se convirtieron en factura o albarán (entonces el botón desaparece).",

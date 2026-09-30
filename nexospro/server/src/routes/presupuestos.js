@@ -63,6 +63,26 @@ router.post("/:id/estado", async (req, res, next) => {
   }
 });
 
+// Borra un presupuesto. No es documento fiscal (sin VeriFactu ni stock), así
+// que se puede eliminar; solo se bloquea si ya se convirtió en albarán o
+// factura, para no romper la trazabilidad de esos documentos.
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const p = await Presupuesto.findById(req.params.id);
+    if (!p) return res.status(404).json({ error: "Presupuesto no encontrado" });
+    if (p.facturaVenta || p.estado === "facturado") {
+      return res.status(409).json({ error: "El presupuesto ya está facturado: no se puede borrar" });
+    }
+    if (p.albaranVenta) {
+      return res.status(409).json({ error: "El presupuesto ya tiene un albarán creado: no se puede borrar" });
+    }
+    await p.deleteOne();
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Edita un presupuesto. Los presupuestos no tienen registro VeriFactu ni
 // mueven stock, así que se pueden modificar libremente; eso sí, uno ya
 // convertido (facturado o con albarán creado) queda bloqueado.
