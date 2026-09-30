@@ -29,6 +29,11 @@ export const MODULOS = {
     descripcion: "Terminal punto de venta táctil: tickets con VeriFactu, caja con arqueo y devoluciones.",
     disponible: true,
   },
+  energia: {
+    nombre: "Energía",
+    descripcion: "Canal directo de comercializadoras: suministros (CUPS) de luz y gas, trámites, comisiones y estudios de ahorro.",
+    disponible: true,
+  },
   asistente: {
     nombre: "Nexo (Asistente IA)",
     descripcion: "Nexo, el asistente con inteligencia artificial: explica cómo hacer cualquier cosa, conoce la configuración de la empresa y guía paso a paso con enlaces directos.",

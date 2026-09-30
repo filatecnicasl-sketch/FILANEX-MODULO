@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-09-30",
     tipo: "nuevo",
+    titulo: "Nuevo módulo: Energía",
+    detalle:
+      "Módulo para agencias de energía (canal directo de comercializadoras). Panel con la cartera de suministros, ficha de cada punto de suministro (CUPS) de luz o gas con cliente, comercializadora, tarifa, potencia y consumo anual, y ficha de comercializadoras con sus condiciones de comisión distintas para luz y gas (pago único por alta, €/mes por contrato activo y €/año recurrente). Además, los clientes pueden agruparse por grupo de empresas (varias sociedades del mismo dueño) y filtrar los suministros por grupo. Es un módulo de pago: se contrata desde FILANEX y se activa en Ajustes → Módulos. En camino: lectura de facturas de luz y gas con IA, estudios de ahorro, trámites y cálculo de comisiones.",
+  },
+  {
+    fecha: "2026-09-30",
+    tipo: "nuevo",
     titulo: "Presupuestos: se pueden borrar y las descripciones de varias líneas se editan bien",
     detalle:
       "Dos mejoras. 1) En Ventas → Presupuestos hay botón «Borrar» para eliminar los que ya no sirven (los ya convertidos en factura o albarán quedan protegidos por trazabilidad). 2) El campo de descripción de las líneas de cualquier documento (presupuesto, factura, albarán…) admite ahora varias líneas de texto visibles al escribir y al editar: con Enter se baja de línea y el cuadro crece solo, así los textos largos como «durante los primeros meses tendréis la ayuda…» se ven y se corrigen enteros.",

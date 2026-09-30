@@ -398,3 +398,10 @@ export const IconAparato = () => (
     <path d="M2 19h20" />
   </Svg>
 );
+
+// Energía (rayo).
+export const IconEnergia = () => (
+  <Svg>
+    <path d="M13 2L4.5 13.5H11L9.5 22L19 10h-6.5L13 2z" />
+  </Svg>
+);

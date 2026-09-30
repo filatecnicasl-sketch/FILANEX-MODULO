@@ -6,7 +6,7 @@ import { imprimirFicha } from "../utils/imprimir.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 
 const VACIO = {
-  codigo: "", fechaAlta: "", nombre: "", nif: "", telefono: "", email: "",
+  codigo: "", fechaAlta: "", nombre: "", nif: "", grupo: "", telefono: "", email: "",
   calle: "", ciudad: "", cp: "", provincia: "",
   iban: "", banco: "", bic: "",
   entregaCalle: "", entregaCiudad: "", entregaCp: "",
@@ -16,7 +16,7 @@ const VACIO = {
 const aFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 const aInputFecha = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
 
-function FormCliente({ inicial, onGuardado, onCerrar, modulos = [] }) {
+function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] }) {
   const editando = Boolean(inicial?._id);
   const [form, setForm] = useState(() => {
     if (!editando) return VACIO;
@@ -25,6 +25,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [] }) {
       fechaAlta: aInputFecha(inicial.fechaAlta),
       nombre: inicial.nombre ?? "",
       nif: inicial.nif ?? "",
+      grupo: inicial.grupo ?? "",
       telefono: inicial.telefono ?? "",
       email: inicial.email ?? "",
       calle: inicial.direccion?.calle ?? "",
@@ -102,6 +103,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [] }) {
       const cuerpo = {
         nombre: form.nombre,
         nif: form.nif,
+        grupo: form.grupo.trim() || undefined,
         telefono: form.telefono,
         email: form.email,
         codigo: form.codigo.trim() || undefined, // si va vacío, el servidor asigna el siguiente
@@ -196,6 +198,27 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [] }) {
                   <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
                   <input value={form.telefono} onChange={poner("telefono")} className="input" />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">
+                  Grupo de empresas
+                  <span className="ml-2 text-xs font-normal text-slate-600">
+                    Sociedades del mismo grupo: mismo nombre aquí
+                  </span>
+                </label>
+                <input
+                  value={form.grupo}
+                  onChange={poner("grupo")}
+                  className="input"
+                  placeholder="P. ej. Grupo XYZ (opcional)"
+                  list="grupos-clientes"
+                />
+                <datalist id="grupos-clientes">
+                  {grupos.map((g) => (
+                    <option key={g} value={g} />
+                  ))}
+                </datalist>
               </div>
 
               <div>
@@ -539,6 +562,11 @@ export default function ClientesPage() {
                                 FACe
                               </span>
                             )}
+                            {c.grupo && (
+                              <span className="ml-2 text-[0.625rem] font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 align-middle">
+                                {c.grupo}
+                              </span>
+                            )}
                           </p>
                           <p className="text-[0.6875rem] text-slate-400 truncate">{c.email || "Sin email"}</p>
                         </div>
@@ -627,6 +655,7 @@ export default function ClientesPage() {
           onGuardado={() => { setForm(null); cargar(); }}
           onCerrar={() => setForm(null)}
           modulos={modulos}
+          grupos={[...new Set((lista ?? []).map((c) => c.grupo).filter(Boolean))].sort()}
         />
       )}
     </>

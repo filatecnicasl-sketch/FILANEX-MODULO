@@ -48,6 +48,10 @@ import AyudaTallerPage from "./pages/ayuda/AyudaTallerPage.jsx";
 import AyudaTelefoniaPage from "./pages/ayuda/AyudaTelefoniaPage.jsx";
 import AyudaServicioPage from "./pages/ayuda/AyudaServicioPage.jsx";
 import AyudaTpvPage from "./pages/ayuda/AyudaTpvPage.jsx";
+import AyudaEnergiaPage from "./pages/ayuda/AyudaEnergiaPage.jsx";
+import EnergiaPage from "./pages/energia/EnergiaPage.jsx";
+import EnergiaSuministrosPage from "./pages/energia/EnergiaSuministrosPage.jsx";
+import EnergiaComercializadorasPage from "./pages/energia/EnergiaComercializadorasPage.jsx";
 import AyudaGeneralPage from "./pages/ayuda/AyudaGeneralPage.jsx";
 import AyudaAsesoriaPage from "./pages/ayuda/AyudaAsesoriaPage.jsx";
 import NovedadesPage from "./pages/NovedadesPage.jsx";
@@ -160,6 +164,9 @@ export default function App() {
           <Route path="tpv/caja" element={<TpvCajaPage />} />
           <Route path="tpv/ajustes" element={<TpvConfigPage />} />
           <Route path="tpv/perifericos" element={<Navigate to="/tpv/ajustes" replace />} />
+          <Route path="energia" element={<EnergiaPage />} />
+          <Route path="energia/suministros" element={<EnergiaSuministrosPage />} />
+          <Route path="energia/comercializadoras" element={<EnergiaComercializadorasPage />} />
           <Route path="ventas" element={<VentasPage />} />
           <Route path="presupuestos" element={<PresupuestosPage />} />
           <Route path="albaranes" element={<AlbaranesPage />} />
@@ -226,6 +233,7 @@ export default function App() {
           <Route path="ayuda/telefonia" element={<AyudaTelefoniaPage />} />
           <Route path="ayuda/servicio" element={<AyudaServicioPage />} />
           <Route path="ayuda/tpv" element={<AyudaTpvPage />} />
+          <Route path="ayuda/energia" element={<AyudaEnergiaPage />} />
           <Route path="ayuda/asesoria" element={<AyudaAsesoriaPage />} />
           <Route path="novedades" element={<NovedadesPage />} />
           <Route path="legal" element={<LegalPage />} />

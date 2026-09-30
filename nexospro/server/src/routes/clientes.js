@@ -14,7 +14,7 @@ const upload = multer({
 });
 
 const CAMPOS = [
-  "codigo", "fechaAlta", "nombre", "nif", "email", "telefono", "iban", "banco", "bic",
+  "codigo", "fechaAlta", "nombre", "nif", "grupo", "email", "telefono", "iban", "banco", "bic",
   "direccion", "direccionEntrega", "esAdministracionPublica", "comunicaciones", "notas",
 ];
 
@@ -48,6 +48,7 @@ router.get("/", async (req, res, next) => {
             { nif: { $regex: q, $options: "i" } },
             { email: { $regex: q, $options: "i" } },
             { codigo: { $regex: q, $options: "i" } },
+            { grupo: { $regex: q, $options: "i" } },
           ],
         }
       : {};

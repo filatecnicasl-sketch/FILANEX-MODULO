@@ -9,6 +9,10 @@ const clienteSchema = new Schema(
     fechaAlta: { type: Date, default: Date.now, index: true },
     nombre: { type: String, required: true, index: true },
     nif: { type: String, required: true, index: true },
+    // Grupo de empresas al que pertenece la sociedad (p. ej. "Grupo XYZ"):
+    // una misma familia de empresas puede tener varias sociedades como
+    // clientes, y el grupo permite verlas juntas.
+    grupo: { type: String, trim: true, index: true, sparse: true },
     email: { type: String, index: true, sparse: true },
     telefono: { type: String, index: true, sparse: true },
     iban: String, // para domiciliación en remesas SEPA
