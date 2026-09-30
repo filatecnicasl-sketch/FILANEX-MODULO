@@ -30,7 +30,7 @@ const ESTADOS = {
 
 function Badge({ tono, children }) {
   return (
-    <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${tono}`}>
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${tono}`}>
       {children}
     </span>
   );
@@ -208,19 +208,19 @@ export default function EnergiaTramitesPage() {
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <InputBusqueda value={q} onChange={setQ} placeholder="Buscar por CUPS, cliente, comercializadora…" />
-            <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="input">
+            <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="input w-auto">
               <option value="todos">Tipo: todos</option>
               {Object.entries(TIPOS).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
-            <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="input">
+            <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="input w-auto">
               <option value="todos">Estado: todos</option>
               {Object.entries(ESTADOS).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
-            <button onClick={abrirNuevo} className="btn-primary whitespace-nowrap">Nuevo trámite</button>
+            <button onClick={abrirNuevo} className="btn-primary whitespace-nowrap ms-auto">Nuevo trámite</button>
           </div>
 
           <div className="panel overflow-x-auto">
@@ -247,8 +247,8 @@ export default function EnergiaTramitesPage() {
                   <tr key={t._id}>
                     <td><Badge tono={TIPOS[t.tipo].tono}>{TIPOS[t.tipo].label}</Badge></td>
                     <td>
-                      <p className="num text-[0.8rem] text-slate-200">{t.cups}</p>
-                      <p className="text-xs text-slate-500">{t.clienteNombre ?? t.cliente?.nombre ?? "—"}</p>
+                      <p className="num text-[0.8rem] text-slate-200 whitespace-nowrap">{t.cups}</p>
+                      <p className="text-xs text-slate-500 whitespace-nowrap">{t.clienteNombre ?? t.cliente?.nombre ?? "—"}</p>
                     </td>
                     <td className="text-slate-300 text-sm">
                       {t.tipo === "titular" ? (
@@ -264,7 +264,7 @@ export default function EnergiaTramitesPage() {
                       )}
                     </td>
                     <td><Badge tono={ESTADOS[t.estado].tono}>{ESTADOS[t.estado].label}</Badge></td>
-                    <td className="text-xs text-slate-400 num">
+                    <td className="text-xs text-slate-400 num whitespace-nowrap">
                       <p>Solicitud: {fmtFecha(t.fechaSolicitud ?? t.createdAt)}</p>
                       {t.fechaPrevista && <p>Prevista: {fmtFecha(t.fechaPrevista)}</p>}
                       {t.fechaActivacion && <p className="text-emerald-400">Activado: {fmtFecha(t.fechaActivacion)}</p>}

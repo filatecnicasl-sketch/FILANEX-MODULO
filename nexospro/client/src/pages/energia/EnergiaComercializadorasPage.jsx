@@ -150,28 +150,28 @@ export default function EnergiaComercializadorasPage() {
                 {filtrada.map((c) => (
                   <tr key={c._id}>
                     <td>
-                      <p className="font-medium text-slate-200">{c.nombre}</p>
-                      <p className="num text-xs text-slate-500">{c.nif ?? ""} {c.ciudad ? `· ${c.ciudad}` : ""}</p>
+                      <p className="font-medium text-slate-200 whitespace-nowrap">{c.nombre}</p>
+                      <p className="num text-xs text-slate-500 whitespace-nowrap">{c.nif ?? ""} {c.ciudad ? `· ${c.ciudad}` : ""}</p>
                     </td>
                     <td className="text-slate-300">
                       {c.contacto || c.telefono || c.email ? (
                         <>
                           {c.contacto && <p>{c.contacto}</p>}
-                          <p className="num text-xs text-slate-500">{c.telefono ?? ""} {c.email ?? ""}</p>
+                          <p className="num text-xs text-slate-500 whitespace-nowrap">{c.telefono ?? ""} {c.email ?? ""}</p>
                         </>
                       ) : (
                         "—"
                       )}
                     </td>
-                    <td className="num text-slate-300">
+                    <td className="num text-slate-300 whitespace-nowrap">
                       <p>Alta: {eurosSi(c.condiciones?.luz?.alta)}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 whitespace-nowrap">
                         {eurosSi(c.condiciones?.luz?.mensual)}/mes · {eurosSi(c.condiciones?.luz?.anual)}/año
                       </p>
                     </td>
-                    <td className="num text-slate-300">
+                    <td className="num text-slate-300 whitespace-nowrap">
                       <p>Alta: {eurosSi(c.condiciones?.gas?.alta)}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 whitespace-nowrap">
                         {eurosSi(c.condiciones?.gas?.mensual)}/mes · {eurosSi(c.condiciones?.gas?.anual)}/año
                       </p>
                     </td>

@@ -176,27 +176,29 @@ export default function EnergiaSuministrosPage() {
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <InputBusqueda value={q} onChange={setQ} placeholder="Buscar por CUPS, cliente, grupo, comercializadora…" />
-            <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="input">
+            <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="input w-auto">
               <option value="todos">Tipo: todos</option>
               <option value="luz">Luz</option>
               <option value="gas">Gas</option>
             </select>
-            <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="input">
+            <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="input w-auto">
               <option value="todos">Estado: todos</option>
               <option value="activo">Activos</option>
               <option value="inactivo">Inactivos</option>
               <option value="baja">Bajas</option>
             </select>
             {grupos.length > 0 && (
-              <select value={filtroGrupo} onChange={(e) => setFiltroGrupo(e.target.value)} className="input">
+              <select value={filtroGrupo} onChange={(e) => setFiltroGrupo(e.target.value)} className="input w-auto">
                 <option value="">Grupo: todos</option>
                 {grupos.map((g) => (
                   <option key={g} value={g}>{g}</option>
                 ))}
               </select>
             )}
-            <button onClick={() => setImportar(true)} className="btn-ghost whitespace-nowrap">Importar factura (IA)</button>
-            <button onClick={abrirNuevo} className="btn-primary whitespace-nowrap">Nuevo suministro</button>
+            <div className="flex gap-2 ms-auto">
+              <button onClick={() => setImportar(true)} className="btn-ghost whitespace-nowrap">Importar factura (IA)</button>
+              <button onClick={abrirNuevo} className="btn-primary whitespace-nowrap">Nuevo suministro</button>
+            </div>
           </div>
 
           <div className="panel overflow-x-auto">
@@ -223,23 +225,23 @@ export default function EnergiaSuministrosPage() {
                 {filtrada.map((s) => (
                   <tr key={s._id}>
                     <td>
-                      <p className="num text-[0.8rem] text-slate-200">{s.cups}</p>
+                      <p className="num text-[0.8rem] text-slate-200 whitespace-nowrap">{s.cups}</p>
                       <p className="mt-0.5"><Badge tono={TONO_TIPO[s.tipo]}>{s.tipo.toUpperCase()}</Badge></p>
                     </td>
                     <td>
                       <p className="text-slate-300">{s.clienteNombre ?? s.cliente?.nombre ?? "—"}</p>
                       {(s.cliente?.grupo) && (
-                        <p className="text-xs text-slate-500">Grupo {s.cliente.grupo}</p>
+                        <p className="text-xs text-slate-500 whitespace-nowrap">{s.cliente.grupo}</p>
                       )}
                     </td>
                     <td className="text-slate-300">{s.comercializadoraNombre ?? s.comercializadora?.nombre ?? "—"}</td>
-                    <td className="num text-slate-300">
+                    <td className="num text-slate-300 whitespace-nowrap">
                       {s.tarifa || "—"}
                       {s.consumoAnual > 0 && (
                         <p className="text-xs text-slate-500">{Number(s.consumoAnual).toLocaleString("es-ES")} kWh/año</p>
                       )}
                     </td>
-                    <td className="num text-slate-300">
+                    <td className="num text-slate-300 whitespace-nowrap">
                       {s.tipo === "luz"
                         ? [s.potenciaPunta, s.potenciaValle].filter((p) => Number(p) > 0).map((p) => `${p} kW`).join(" / ") || "—"
                         : "—"}

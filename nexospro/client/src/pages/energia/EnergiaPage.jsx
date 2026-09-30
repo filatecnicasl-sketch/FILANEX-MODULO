@@ -1,6 +1,36 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
+import { IconEnergia, IconFirma, IconAseguradora } from "../../components/icons.jsx";
+
+const TONOS = {
+  emerald: { fondo: "bg-emerald-50", borde: "border-emerald-200", texto: "text-emerald-700", icono: "bg-emerald-100 text-emerald-600" },
+  sky: { fondo: "bg-sky-50", borde: "border-sky-200", texto: "text-sky-700", icono: "bg-sky-100 text-sky-600" },
+  amber: { fondo: "bg-amber-50", borde: "border-amber-200", texto: "text-amber-700", icono: "bg-amber-100 text-amber-600" },
+  indigo: { fondo: "bg-indigo-50", borde: "border-indigo-200", texto: "text-indigo-700", icono: "bg-indigo-100 text-indigo-600" },
+  violet: { fondo: "bg-violet-50", borde: "border-violet-200", texto: "text-violet-700", icono: "bg-violet-100 text-violet-600" },
+  slate: { fondo: "bg-slate-50", borde: "border-slate-200", texto: "text-slate-600", icono: "bg-slate-100 text-slate-500" },
+};
+
+function Tarjeta({ titulo, valor, detalle, tono, to, Icono }) {
+  const t = TONOS[tono];
+  return (
+    <Link to={to} className="block group">
+      <div className={`rounded-2xl border ${t.borde} ${t.fondo} p-5 transition-all duration-150 group-hover:shadow-md group-hover:-translate-y-0.5`}>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500">{titulo}</p>
+          <span className={`flex items-center justify-center w-9 h-9 rounded-xl ${t.icono}`}>
+            <Icono />
+          </span>
+        </div>
+        <p className={`text-[1.875rem] leading-tight font-extrabold tracking-tight mt-3 tabular-nums ${t.texto}`}>
+          {valor}
+        </p>
+        <p className="text-xs text-slate-500 mt-1.5">{detalle}</p>
+      </div>
+    </Link>
+  );
+}
 
 // Panel de Energía: foto de la cartera de suministros. Solo datos reales:
 // totales, luz/gas, estados y distribución por comercializadora.
@@ -54,12 +84,12 @@ export default function EnergiaPage() {
   ).sort((a, b) => b[1] - a[1]);
 
   const tarjetas = [
-    { etiqueta: "Suministros activos", valor: activos.length, tono: "text-emerald-300", enlace: "/energia/suministros" },
-    { etiqueta: "Trámites en curso", valor: tramitesEnCurso, tono: "text-sky-300", enlace: "/energia/tramites" },
-    { etiqueta: "Luz", valor: luz, tono: "text-amber-300", enlace: "/energia/suministros" },
-    { etiqueta: "Gas", valor: gas, tono: "text-sky-300", enlace: "/energia/suministros" },
-    { etiqueta: "Inactivos / baja", valor: inactivos, tono: "text-slate-400", enlace: "/energia/suministros" },
-    { etiqueta: "Comercializadoras", valor: comercializadoras.length, tono: "text-violet-300", enlace: "/energia/comercializadoras" },
+    { titulo: "Suministros activos", valor: activos.length, detalle: `${luz} de luz · ${gas} de gas`, tono: "emerald", to: "/energia/suministros", Icono: IconEnergia },
+    { titulo: "Trámites en curso", valor: tramitesEnCurso, detalle: "altas, cambios y bajas en marcha", tono: "sky", to: "/energia/tramites", Icono: IconFirma },
+    { titulo: "Luz", valor: luz, detalle: "puntos de luz activos", tono: "amber", to: "/energia/suministros", Icono: IconEnergia },
+    { titulo: "Gas", valor: gas, detalle: "puntos de gas activos", tono: "indigo", to: "/energia/suministros", Icono: IconEnergia },
+    { titulo: "Comercializadoras", valor: comercializadoras.length, detalle: "con condiciones de comisión", tono: "violet", to: "/energia/comercializadoras", Icono: IconAseguradora },
+    { titulo: "Inactivos / baja", valor: inactivos, detalle: "suspendidos o dados de baja", tono: "slate", to: "/energia/suministros", Icono: IconEnergia },
   ];
 
   return (
@@ -78,29 +108,26 @@ export default function EnergiaPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6 mb-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 mb-4">
           {tarjetas.map((t) => (
-            <Link key={t.etiqueta} to={t.enlace} className="panel px-4 py-4 hover:border-sky-500/40 transition-colors">
-              <p className="text-xs uppercase tracking-wider text-slate-500">{t.etiqueta}</p>
-              <p className={`text-3xl font-bold num mt-1 ${t.tono}`}>{t.valor}</p>
-            </Link>
+            <Tarjeta key={t.titulo} {...t} />
           ))}
         </div>
       )}
 
       {porComercializadora.length > 0 && (
-        <div className="panel p-5">
-          <h2 className="text-sm font-bold text-slate-200 mb-3">Suministros activos por comercializadora</h2>
+        <div className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-slate-800 mb-3">Suministros activos por comercializadora</h2>
           <div className="space-y-2">
             {porComercializadora.map(([nombre, n]) => {
               const pct = activos.length > 0 ? Math.round((n / activos.length) * 100) : 0;
               return (
                 <div key={nombre} className="flex items-center gap-3 text-sm">
-                  <span className="w-48 truncate text-slate-300">{nombre}</span>
-                  <div className="flex-1 h-2 rounded-full bg-slate-700/50 overflow-hidden">
-                    <div className="h-full rounded-full bg-sky-500/70" style={{ width: `${pct}%` }} />
+                  <span className="w-48 truncate text-slate-600">{nombre}</span>
+                  <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="h-full rounded-full bg-sky-500" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="num text-slate-400 w-16 text-right">{n} ({pct} %)</span>
+                  <span className="num text-slate-500 w-16 text-right whitespace-nowrap">{n} ({pct} %)</span>
                 </div>
               );
             })}
