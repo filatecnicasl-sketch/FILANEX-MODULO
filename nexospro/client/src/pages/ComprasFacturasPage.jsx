@@ -133,6 +133,11 @@ function ModalConciliar({ factura, onGuardado, onCerrar }) {
 export default function ComprasFacturasPage() {
   const [lista, setLista] = useState(null);
   const [q, setQ] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("todas");
+  const [filtroPago, setFiltroPago] = useState("todos");
+  const [filtroOrigen, setFiltroOrigen] = useState("todas");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [formManual, setFormManual] = useState(false);
@@ -142,9 +147,19 @@ export default function ComprasFacturasPage() {
   const [verificando, setVerificando] = useState(null); // { tipo, documento }
   const inputRef = useRef(null);
 
-  // Filtra por todos los campos visibles de la tabla.
-  const filtrada = (lista ?? []).filter((f) =>
-    coincideBusqueda(
+  // Filtra por texto (todos los campos visibles) + estado, pago, origen y
+  // rango de fechas. Todo en cliente: el servidor devuelve como máximo las
+  // 200 más recientes.
+  const filtrada = (lista ?? []).filter((f) => {
+    if (filtroEstado !== "todas" && f.estado !== filtroEstado) return false;
+    if (filtroPago === "pendientes" && !(f.estado === "validada" && f.estadoPago !== "pagada")) return false;
+    if (filtroPago === "parcial" && f.estadoPago !== "parcial") return false;
+    if (filtroPago === "pagada" && f.estadoPago !== "pagada") return false;
+    if (filtroOrigen !== "todas" && (f.origen ?? "manual") !== filtroOrigen) return false;
+    const fIso = f.fechaExpedicion ? new Date(f.fechaExpedicion).toISOString().slice(0, 10) : null;
+    if (desde && (!fIso || fIso < desde)) return false;
+    if (hasta && (!fIso || fIso > hasta)) return false;
+    return coincideBusqueda(
       q,
       f.numeroFacturaProveedor,
       f.proveedor?.nombre,
@@ -155,8 +170,8 @@ export default function ComprasFacturasPage() {
       euros(f.total),
       f.total,
       NOMBRE[f.estado]
-    )
-  );
+    );
+  });
 
   async function cargar() {
     try {
@@ -249,8 +264,55 @@ export default function ComprasFacturasPage() {
       )}
 
       {lista?.length > 0 && (
-        <div className="mb-3">
-          <InputBusqueda value={q} onChange={setQ} />
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <InputBusqueda
+            value={q}
+            onChange={setQ}
+            placeholder="Buscar por nº, proveedor, NIF, total…"
+          />
+          <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="input">
+            <option value="todas">Estado: todas</option>
+            <option value="pendiente_revision">Pendientes de revisión</option>
+            <option value="validada">Validadas</option>
+            <option value="rechazada">Rechazadas</option>
+          </select>
+          <select value={filtroPago} onChange={(e) => setFiltroPago(e.target.value)} className="input">
+            <option value="todos">Pago: todos</option>
+            <option value="pendientes">Pendientes de pago</option>
+            <option value="parcial">Pago parcial</option>
+            <option value="pagada">Pagadas</option>
+          </select>
+          <select value={filtroOrigen} onChange={(e) => setFiltroOrigen(e.target.value)} className="input">
+            <option value="todas">Origen: todos</option>
+            <option value="ocr">IA</option>
+            <option value="manual">Manual</option>
+          </select>
+          <label className="flex items-center gap-1.5 text-sm text-slate-500">
+            Desde
+            <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="input" />
+          </label>
+          <label className="flex items-center gap-1.5 text-sm text-slate-500">
+            Hasta
+            <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="input" />
+          </label>
+          {(q || filtroEstado !== "todas" || filtroPago !== "todos" || filtroOrigen !== "todas" || desde || hasta) && (
+            <button
+              onClick={() => {
+                setQ("");
+                setFiltroEstado("todas");
+                setFiltroPago("todos");
+                setFiltroOrigen("todas");
+                setDesde("");
+                setHasta("");
+              }}
+              className="btn-ghost text-xs"
+            >
+              Limpiar filtros
+            </button>
+          )}
+          <span className="text-xs text-slate-500 ml-auto">
+            {filtrada.length} de {lista.length}
+          </span>
         </div>
       )}
 
@@ -276,6 +338,13 @@ export default function ComprasFacturasPage() {
                 </tr>
               </thead>
               <tbody>
+                {filtrada.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="text-center text-slate-500 py-8">
+                      Ninguna factura cumple esos filtros.
+                    </td>
+                  </tr>
+                )}
                 {filtrada.map((f) => {
                   const sumaAlbaranes = (f.albaranes ?? []).reduce((s, a) => s + (a.total ?? 0), 0);
                   const conciliacion =

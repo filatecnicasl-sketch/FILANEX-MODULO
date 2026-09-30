@@ -58,7 +58,7 @@ router.get("/", async (req, res, next) => {
     const lista = await FacturaCompra.find(filtro)
       .populate("proveedor", "nombre nif")
       .populate("albaranes", "numero numeroAlbaran")
-      .sort({ createdAt: -1 })
+      .sort({ fechaExpedicion: -1, createdAt: -1 })
       .limit(200);
     let resultado = lista.map(conPagos);
     if (req.query.pendientesPago === "1") {

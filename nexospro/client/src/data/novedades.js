@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-30",
+    tipo: "mejora",
+    titulo: "Compras: buscador completo y lista ordenada por fecha",
+    detalle:
+      "La lista de facturas de compra se ordena ahora por la fecha de la factura (no por cuándo se metió en el programa) y tiene un buscador en condiciones: texto libre (nº, proveedor, NIF, total…), estado (pendientes de revisión, validadas, rechazadas), pago (pendientes, parcial, pagadas), origen (IA o manual) y rango de fechas, con botón para limpiar todo y contador de resultados.",
+  },
+  {
+    fecha: "2026-09-30",
     tipo: "nuevo",
     titulo: "Compras: se puede elegir no dar de alta los artículos",
     detalle:
