@@ -21,6 +21,7 @@ export default function PresupuestosPage() {
   const [presupuestos, setPresupuestos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
   const [params, setParams] = useSearchParams();
@@ -120,6 +121,17 @@ export default function PresupuestosPage() {
         />
       )}
 
+      {editando && (
+        <FormDocumento
+          titulo={`Editar presupuesto ${editando.serieNumero ?? ""}`}
+          clientes={clientes}
+          url="/api/presupuestos"
+          inicial={editando}
+          onCreado={() => { setEditando(null); cargar(); }}
+          onCerrar={() => setEditando(null)}
+        />
+      )}
+
       {presupuestos.length === 0 ? (
         <div className="panel p-8 text-center text-slate-500 text-sm">
           Sin presupuestos todavía.
@@ -186,6 +198,14 @@ export default function PresupuestosPage() {
                     >
                       <IconPdf />
                     </button>
+                    {p.estado !== "facturado" && !p.albaranVenta && (
+                      <button
+                        onClick={() => setEditando(p)}
+                        className="text-xs bg-slate-400/10 text-slate-300 px-2 py-1 rounded-lg hover:bg-slate-400/20"
+                      >
+                        Editar
+                      </button>
+                    )}
                     {["borrador", "enviado"].includes(p.estado) && (
                       <>
                         <button onClick={() => marcarEstado(p._id, "aceptado")}

@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-30",
+    tipo: "nuevo",
+    titulo: "Ventas: los presupuestos ya se pueden editar",
+    detalle:
+      "Cada presupuesto tiene ahora un botón «Editar» para cambiar cliente, fecha, líneas, precios y dirección de entrega. Como los presupuestos no son documentos fiscales, se pueden modificar libremente; solo quedan bloqueados cuando ya se convirtieron en factura o albarán (entonces el botón desaparece).",
+  },
+  {
+    fecha: "2026-09-30",
     tipo: "correccion",
     titulo: "Tesorería: los abonos de proveedor ya no salen como pago pendiente",
     detalle:

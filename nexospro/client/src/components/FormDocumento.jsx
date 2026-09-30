@@ -17,6 +17,7 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
           descripcion: l.descripcion ?? "",
           cantidad: l.cantidad ?? 1,
           precioUnitario: l.precioUnitario ?? 0,
+          descuento: l.descuento ?? 0,
           iva: l.iva ?? 21,
         }))
       : [lineaVacia()]

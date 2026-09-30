@@ -63,6 +63,38 @@ router.post("/:id/estado", async (req, res, next) => {
   }
 });
 
+// Edita un presupuesto. Los presupuestos no tienen registro VeriFactu ni
+// mueven stock, así que se pueden modificar libremente; eso sí, uno ya
+// convertido (facturado o con albarán creado) queda bloqueado.
+router.put("/:id", async (req, res, next) => {
+  try {
+    const p = await Presupuesto.findById(req.params.id);
+    if (!p) return res.status(404).json({ error: "Presupuesto no encontrado" });
+    if (p.facturaVenta || p.estado === "facturado") {
+      return res.status(409).json({ error: "Un presupuesto ya facturado no se puede modificar" });
+    }
+    if (p.albaranVenta) {
+      return res.status(409).json({ error: "El presupuesto ya tiene un albarán creado: no se puede modificar" });
+    }
+    const { cliente } = req.body;
+    const lineas = limpiarLineas(req.body.lineas);
+    if (!cliente || !lineas) {
+      return res.status(400).json({ error: "cliente y al menos una línea con descripción son obligatorios" });
+    }
+    p.cliente = cliente;
+    p.lineas = lineas;
+    Object.assign(p, calcularTotales(lineas));
+    if (req.body.fecha) p.fecha = new Date(req.body.fecha);
+    if (req.body.direccionEntrega !== undefined) p.direccionEntrega = req.body.direccionEntrega;
+    if (req.body.notas !== undefined) p.notas = req.body.notas;
+    if (req.body.validezDias !== undefined) p.validezDias = req.body.validezDias;
+    await p.save();
+    res.json(p);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Convierte el presupuesto en factura (borrador lista para emitir).
 router.post("/:id/facturar", async (req, res, next) => {
   try {
