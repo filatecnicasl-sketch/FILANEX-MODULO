@@ -1,6 +1,5 @@
-// El título de la página vive en la barra superior negra (vía portal) y los
-// botones de acción se dibujan dentro del contenido, flotados a la derecha,
-// en el hueco que queda junto al buscador. Las páginas la usan igual que antes.
+// El título de la página vive en la barra superior negra (vía portal) y el
+// contenido fluye en bloque ocupando todo el ancho disponible.
 import { useContext } from "react";
 import { createPortal } from "react-dom";
 import { CabeceraContext } from "./Layout.jsx";
@@ -32,11 +31,7 @@ export default function CabeceraPagina({ titulo, descripcion, contador, children
         </>,
         slotTitulo
       )}
-      {children && (
-        <div className="no-print mb-3 flex flex-wrap items-center justify-end gap-2 sm:float-right sm:ml-3">
-          {children}
-        </div>
-      )}
+      {children && <div className="no-print w-full">{children}</div>}
     </>
   );
 }
