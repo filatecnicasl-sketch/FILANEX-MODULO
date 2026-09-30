@@ -613,7 +613,7 @@ export default function Layout() {
         )}
         <div className={`relative flex-1 ${amplia ? "" : "tema-claro"}`}>
           <CabeceraContext.Provider value={{ slotTitulo }}>
-            <main className={`relative ${amplia ? "" : "px-3 py-4 sm:px-6 sm:py-6 max-w-[100rem] mx-auto w-full"}`}>
+            <main className={`relative ${amplia ? "" : "px-3 py-4 sm:px-6 sm:py-6 max-w-[100rem] w-full"}`}>
               <Outlet />
             </main>
           </CabeceraContext.Provider>
