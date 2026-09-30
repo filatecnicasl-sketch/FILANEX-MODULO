@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
-import { EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
+import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import { IconEditar, IconBorrar } from "../../components/icons.jsx";
+import ModalImportarEnergia from "./ModalImportarEnergia.jsx";
 
 const VACIO = {
   cups: "", tipo: "luz", clienteId: "", comercializadoraId: "",
@@ -41,6 +42,7 @@ export default function EnergiaSuministrosPage() {
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroGrupo, setFiltroGrupo] = useState("");
+  const [importar, setImportar] = useState(false);
 
   const grupos = [...new Set(clientes.map((c) => c.grupo).filter(Boolean))].sort();
 
@@ -156,18 +158,19 @@ export default function EnergiaSuministrosPage() {
 
       {lista === null ? (
         <div className="panel px-4 py-10 text-center text-slate-500">Cargando…</div>
-      ) : lista.length === 0 && comercializadoras.length === 0 ? (
-        <EstadoVacio
-          titulo="Sin suministros"
-          descripcion="Antes de dar de alta suministros, crea al menos una comercializadora en Energía → Comercializadoras."
-        />
       ) : lista.length === 0 ? (
-        <EstadoVacio
-          titulo="Sin suministros"
-          descripcion="Da de alta el primer punto de suministro: su CUPS, el cliente y la comercializadora actual."
-          accion="Nuevo suministro"
-          onAccion={abrirNuevo}
-        />
+        <div className="panel px-6 py-12 text-center space-y-4">
+          <p className="text-slate-300 font-medium">Aún no hay suministros dados de alta.</p>
+          <p className="text-sm text-slate-500 max-w-lg mx-auto">
+            La forma más rápida es <b>importar la factura de luz o gas</b> del cliente: la IA lee el
+            CUPS, el titular, la comercializadora, la tarifa, la potencia y el consumo, y tú solo
+            revisas y confirmas. También puedes darlo de alta a mano.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button onClick={() => setImportar(true)} className="btn-primary">Importar factura (IA)</button>
+            <button onClick={abrirNuevo} className="btn-ghost">Nuevo suministro</button>
+          </div>
+        </div>
       ) : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -191,7 +194,8 @@ export default function EnergiaSuministrosPage() {
                 ))}
               </select>
             )}
-            <button onClick={abrirNuevo} className="btn-primary whitespace-nowrap ml-auto">Nuevo suministro</button>
+            <button onClick={() => setImportar(true)} className="btn-ghost whitespace-nowrap">Importar factura (IA)</button>
+            <button onClick={abrirNuevo} className="btn-primary whitespace-nowrap">Nuevo suministro</button>
           </div>
 
           <div className="panel overflow-x-auto">
@@ -254,6 +258,18 @@ export default function EnergiaSuministrosPage() {
             </table>
           </div>
         </>
+      )}
+
+      {importar && (
+        <ModalImportarEnergia
+          clientes={clientes}
+          comercializadoras={comercializadoras}
+          onGuardado={() => {
+            setImportar(false);
+            cargar();
+          }}
+          onCerrar={() => setImportar(false)}
+        />
       )}
 
       {modal && (

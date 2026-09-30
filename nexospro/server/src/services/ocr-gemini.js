@@ -1,6 +1,6 @@
 import { generarJsonGemini, MODELOS_CALIDAD, MODELOS_RAPIDOS } from "./gemini.js";
 import { prepararParaOcr } from "./imagen-ocr.js";
-import { revisarTicket, revisarDocumentoCompra, revisarValoracion } from "./validar-ocr.js";
+import { revisarTicket, revisarDocumentoCompra, revisarValoracion, revisarFacturaEnergia } from "./validar-ocr.js";
 
 // Extracción OCR de documentos con Gemini (visión).
 // Salida garantizada en JSON mediante responseSchema.
@@ -256,4 +256,79 @@ Reglas:
 // con sus operaciones e importes, listas para precargar una valoración.
 export async function extraerValoracion(fichero) {
   return generarJson(fichero, PROMPT_VALORACION, esquemaValoracion, revisarValoracion);
+}
+
+// --- Facturas de energía (luz y gas) ---
+
+const esquemaFacturaEnergia = {
+  type: "OBJECT",
+  properties: {
+    cups: { type: "STRING", description: "Código CUPS completo, sin espacios ni guiones (empieza por ES)" },
+    tipo: { type: "STRING", enum: ["luz", "gas"] },
+    titular: {
+      type: "OBJECT",
+      description: "Cliente titular del suministro (a quien va dirigida la factura)",
+      properties: {
+        nombre: { type: "STRING" },
+        nif: { type: "STRING" },
+        calle: { type: "STRING" },
+        cp: { type: "STRING" },
+        ciudad: { type: "STRING" },
+        provincia: { type: "STRING" },
+      },
+      required: ["nombre"],
+    },
+    comercializadora: {
+      type: "OBJECT",
+      description: "Empresa que emite la factura y cobra la energía",
+      properties: {
+        nombre: { type: "STRING" },
+        nif: { type: "STRING" },
+      },
+      required: ["nombre"],
+    },
+    direccionSuministro: {
+      type: "OBJECT",
+      description: "Dirección del punto de suministro (donde está el contador); puede diferir de la del titular",
+      properties: {
+        calle: { type: "STRING" },
+        cp: { type: "STRING" },
+        ciudad: { type: "STRING" },
+        provincia: { type: "STRING" },
+      },
+    },
+    tarifa: { type: "STRING", description: "Tarifa de acceso (2.0TD, 3.0TD...) o peaje de gas (3.1, 3.2, 3.3, 3.4)" },
+    potenciaPunta: { type: "NUMBER", description: "Potencia contratada en punta/franja 1, en kW (solo luz)" },
+    potenciaValle: { type: "NUMBER", description: "Potencia contratada en valle/franja 2, en kW (solo luz)" },
+    consumoPeriodo: { type: "NUMBER", description: "Consumo facturado en el periodo, en kWh" },
+    diasPeriodo: { type: "NUMBER", description: "Días que cubre la factura" },
+    consumoAnual: { type: "NUMBER", description: "Consumo anual en kWh si la factura lo indica; si no, se estima" },
+    periodoDesde: { type: "STRING", description: "Inicio del periodo facturado, YYYY-MM-DD" },
+    periodoHasta: { type: "STRING", description: "Fin del periodo facturado, YYYY-MM-DD" },
+    importeTotal: { type: "NUMBER", description: "Importe total de la factura en euros" },
+    confianza: { type: "NUMBER", description: "De 0 (ilegible) a 1 (perfecta)" },
+  },
+  required: ["cups", "tipo", "titular", "comercializadora", "confianza"],
+};
+
+const PROMPT_ENERGIA = `Analiza la factura de LUZ o GAS adjunta (empresa española) y extrae sus datos para dar de alta el punto de suministro.
+Reglas:
+- cups: el código CUPS completo, SIN espacios ni guiones, en mayúsculas (empieza por ES y suele tener 20-22 caracteres). Es el dato más importante: verifícalo carácter a carácter.
+- tipo: "luz" si es una factura de electricidad (habrá potencia en kW, tarifa 2.0TD/3.0TD...); "gas" si es de gas natural (peaje 3.1-3.4, consumo en kWh de gas).
+- titular: el CLIENTE al que va dirigida la factura (nombre y NIF tal como aparecen, normalmente arriba o en "Titular"/"Cliente"). NO lo confundas con la comercializadora emisora.
+- comercializadora: la empresa que EMITE la factura y cobra (membrete: Iberdrola, Endesa, Naturgy, Repsol, Holaluz, Podo, Factor Energía...).
+- direccionSuministro: la dirección del inmueble donde está el contador ("Dirección del suministro", "Punto de suministro", "Dirección de envío"). Si solo aparece una dirección, ponla en los dos sitios.
+- tarifa: la tarifa de acceso de luz (2.0TD, 3.0TD, 6.1TD...) o el peaje de gas (3.1, 3.2, 3.3, 3.4).
+- potenciaPunta/potenciaValle: solo en luz: los kW contratados por franja. En 2.0TD suele haber una sola potencia: ponla en las dos.
+- consumoPeriodo: los kWh consumidos en el periodo de esta factura. diasPeriodo: los días que cubre.
+- consumoAnual: el consumo anual en kWh si la factura lo muestra ("consumo anual estimado", histórico); si no aparece, estímalo: consumoPeriodo × 365 / diasPeriodo.
+- importeTotal: el total a pagar en euros, numérico.
+- Fechas en YYYY-MM-DD.
+- No inventes datos: si un campo no aparece, omítelo.
+- confianza: tu seguridad global en la extracción (0 = ilegible, 1 = perfecta).`;
+
+// Lee una factura de luz o gas y devuelve los datos del suministro listos
+// para el modal de verificación (nada se crea sin confirmación del usuario).
+export async function extraerFacturaEnergia(fichero) {
+  return generarJson(fichero, PROMPT_ENERGIA, esquemaFacturaEnergia, revisarFacturaEnergia);
 }

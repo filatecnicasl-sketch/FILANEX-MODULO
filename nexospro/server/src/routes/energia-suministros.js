@@ -1,6 +1,9 @@
 import { Router } from "express";
 import Suministro from "../models/Suministro.js";
 import Comercializadora from "../models/Comercializadora.js";
+import { extraerFacturaEnergia } from "../services/ocr-gemini.js";
+import { uploadMemoria } from "../middleware/upload.js";
+import { contextoTrasSubida } from "../middleware/empresa.js";
 
 // CRUD de puntos de suministro (Energía). Se monta dentro del router de
 // energia, que ya aplica el guard requiereModulo("energia").
@@ -115,6 +118,93 @@ router.delete("/:id", async (req, res, next) => {
     const suministro = await Suministro.findByIdAndDelete(req.params.id);
     if (!suministro) return res.status(404).json({ error: "Suministro no encontrado" });
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Importar factura de luz/gas con IA ---
+//
+// El gancho del módulo: el cliente manda una foto o PDF de su factura y la
+// IA extrae el suministro completo (CUPS, titular, comercializadora, tarifa,
+// potencia, consumo). AQUÍ NO SE CREA NADA: se devuelve lo leído junto con
+// las sugerencias (comercializadora y cliente ya existentes) para que el
+// usuario lo verifique en el modal y confirme. Es el mismo criterio que el
+// OCR de compras: nada se da de alta sin revisión.
+const subida = uploadMemoria;
+
+router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "Falta el fichero (campo 'documento') o el tipo no es PDF/PNG/JPG/WEBP" });
+    }
+    const tiposValidos = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+    if (!tiposValidos.includes(req.file.mimetype)) {
+      return res
+        .status(400)
+        .json({ error: "Falta el fichero (campo 'documento') o el tipo no es PDF/PNG/JPG/WEBP" });
+    }
+
+    const extraccion = await extraerFacturaEnergia(req.file);
+
+    // Avisos para el modal (lo que conviene revisar antes de confirmar).
+    const avisos = [...(extraccion._ocr?.avisos ?? [])];
+    const confianza = extraccion.confianza ?? 0;
+    if (confianza < 0.75) avisos.push(`Confianza OCR baja (${Math.round(confianza * 100)}%)`);
+
+    // CUPS normalizado + aviso si ya existe (se ofrecerá editar el suyo).
+    const cups = String(extraccion.cups ?? "").replace(/[\s-]/g, "").toUpperCase();
+    const existente = cups ? await Suministro.findOne({ cups }).populate("cliente", "nombre") : null;
+    if (existente) avisos.push(`El CUPS ya está dado de alta (${existente.cliente?.nombre ?? "sin cliente"})`);
+
+    // ¿La comercializadora de la factura ya existe en la cartera?
+    const nombreCom = String(extraccion.comercializadora?.nombre ?? "").trim();
+    let comercializadoraSugerida = null;
+    if (nombreCom) {
+      const sinEspacios = nombreCom.replace(/[^0-9A-Z]/gi, "").toUpperCase();
+      comercializadoraSugerida = await Comercializadora.findOne({
+        nombre: { $regex: sinEspacios.split("").join("[^a-z0-9]*"), $options: "i" },
+      });
+    }
+
+    // ¿El titular ya es cliente? (por NIF exacto; el modal permite buscar más)
+    let clienteSugerido = null;
+    const nifTitular = String(extraccion.titular?.nif ?? "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+    if (nifTitular) {
+      const { default: Cliente } = await import("../models/Cliente.js");
+      const cli = await Cliente.findOne({ nif: nifTitular });
+      if (cli) clienteSugerido = { _id: cli._id, nombre: cli.nombre, grupo: cli.grupo ?? null };
+    }
+
+    res.json({
+      extraccion: {
+        cups,
+        tipo: extraccion.tipo,
+        titular: extraccion.titular ?? {},
+        comercializadora: extraccion.comercializadora ?? {},
+        direccionSuministro: extraccion.direccionSuministro ?? {},
+        tarifa: extraccion.tarifa,
+        potenciaPunta: extraccion.potenciaPunta,
+        potenciaValle: extraccion.potenciaValle,
+        consumoAnual: extraccion.consumoAnual,
+        consumoPeriodo: extraccion.consumoPeriodo,
+        diasPeriodo: extraccion.diasPeriodo,
+        periodoDesde: extraccion.periodoDesde,
+        periodoHasta: extraccion.periodoHasta,
+        importeTotal: extraccion.importeTotal,
+      },
+      confianza,
+      avisos,
+      comercializadoraSugerida: comercializadoraSugerida
+        ? { _id: comercializadoraSugerida._id, nombre: comercializadoraSugerida.nombre }
+        : null,
+      clienteSugerido,
+      suministroExistente: existente
+        ? { _id: existente._id, cups: existente.cups, cliente: existente.cliente?.nombre ?? null }
+        : null,
+    });
   } catch (err) {
     next(err);
   }

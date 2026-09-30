@@ -149,3 +149,18 @@ export function revisarValoracion(d) {
   if (!d?.matricula) problemas.push("no se ha leído la matrícula");
   return { ok: problemas.length === 0, problemas };
 }
+
+// Una factura de luz o gas debe traer como mínimo el CUPS y el titular:
+// son los dos datos de los que nace el suministro. El resto se corrige en
+// el modal de verificación, pero sin CUPS la lectura no sirve de nada.
+export function revisarFacturaEnergia(d) {
+  const problemas = [];
+  if (!d) return { ok: false, problemas: ["sin respuesta"] };
+  const cups = String(d.cups ?? "").replace(/[\s-]/g, "");
+  if (!cups) problemas.push("no se ha leído el CUPS");
+  else if (!/^ES[0-9A-Z]{16,22}$/i.test(cups)) problemas.push("el CUPS leído no tiene formato válido");
+  if (!String(d.titular?.nombre ?? "").trim()) problemas.push("no se ha leído el titular");
+  if (!["luz", "gas"].includes(d.tipo)) problemas.push("no se ha podido deducir si es luz o gas");
+  if (d.titular?.nif && !nifValido(d.titular.nif)) problemas.push("el NIF del titular no es correcto");
+  return { ok: problemas.length === 0, problemas };
+}

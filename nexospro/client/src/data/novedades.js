@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-01",
+    tipo: "nuevo",
+    titulo: "Energía: alta de suministros leyendo la factura con IA",
+    detalle:
+      "En Energía → Suministros hay un botón «Importar factura (IA)». Subes la factura de luz o gas del cliente (PDF o foto) y la IA extrae CUPS, titular, comercializadora, dirección del punto, tarifa, potencias y consumo anual. Antes de guardar, todo se revisa y se corrige en pantalla: si el cliente no existe se crea en ese momento, y si la comercializadora es nueva también se puede dar de alta al vuelo. Si el CUPS ya estaba dado de alta, avisa y no deja duplicarlo. Con esto, dar de alta un suministro nuevo cuesta lo mismo que tarda el cliente en enviar su factura.",
+  },
+  {
     fecha: "2026-09-30",
     tipo: "nuevo",
     titulo: "Nuevo módulo: Energía",
