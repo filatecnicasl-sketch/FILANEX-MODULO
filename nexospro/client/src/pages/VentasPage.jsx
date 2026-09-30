@@ -318,7 +318,7 @@ async function descargarXmlFactura(f) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar }) {
+function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar, onQuitarCobro }) {
   const vf = f.verifactu ?? {};
   const fecha = (d) => (d ? new Date(d).toLocaleDateString("es-ES") : "—");
 
@@ -481,10 +481,21 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar }) {
           <div>
             <p className="text-xs uppercase tracking-wider text-slate-500 mb-2">Cobros</p>
             <ul className="text-sm space-y-1">
-              {f.cobros.map((c, i) => (
-                <li key={i} className="flex justify-between text-slate-300">
+              {f.cobros.map((c) => (
+                <li key={c._id} className="flex items-center justify-between gap-3 text-slate-300">
                   <span className="num">{fecha(c.fecha)}{c.metodo ? ` · ${c.metodo}` : ""}</span>
-                  <span className="num">{euros(c.importe)}</span>
+                  <span className="flex items-center gap-3">
+                    <span className="num">{euros(c.importe)}</span>
+                    {onQuitarCobro && (
+                      <button
+                        onClick={() => onQuitarCobro(f, c)}
+                        title="Quitar este cobro (se registró por error)"
+                        className="text-xs text-rose-400 hover:underline"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -623,6 +634,23 @@ export default function VentasPage() {
     const r = await fetch(`/api/facturas-venta/${f._id}`, { method: "DELETE" });
     if (r.ok) await cargar();
     else setError((await r.json()).error);
+  }
+
+  // Quita un cobro registrado por error. La factura vuelve a pendiente o
+  // parcial; no afecta a VeriFactu (los cobros son solo de tesorería).
+  async function quitarCobro(f, cobro) {
+    if (
+      !window.confirm(
+        `¿Quitar el cobro de ${euros(cobro.importe)} del ${new Date(cobro.fecha).toLocaleDateString("es-ES")}? La factura volverá a salir como pendiente.`
+      )
+    )
+      return;
+    const r = await fetch(`/api/facturas-venta/${f._id}/cobros/${cobro._id}`, { method: "DELETE" });
+    if (r.ok) {
+      const actualizada = await r.json();
+      setDetalle((d) => (d?._id === f._id ? { ...d, ...actualizada } : d));
+      await cargar();
+    } else setError((await r.json()).error);
   }
 
   return (
@@ -892,6 +920,7 @@ export default function VentasPage() {
           }}
           onRectificar={() => accion(detalle._id, "rectificativa")}
           onValidar={() => accion(detalle._id, "emitir")}
+          onQuitarCobro={quitarCobro}
         />
       )}
     </>

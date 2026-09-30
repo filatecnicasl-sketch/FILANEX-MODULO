@@ -487,6 +487,24 @@ router.post("/:id/cobros", async (req, res, next) => {
   }
 });
 
+// Quita un cobro registrado (se metió mal: importe, fecha, método...). Es un
+// dato interno de tesorería, no forma parte del registro VeriFactu, así que
+// se puede borrar sin tocar la cadena de huellas. Al quitarlo, la factura
+// vuelve a aparecer como pendiente o parcial según lo que quede cobrado.
+router.delete("/:id/cobros/:cobroId", async (req, res, next) => {
+  try {
+    const factura = await FacturaVenta.findById(req.params.id);
+    if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
+    const cobro = factura.cobros.id(req.params.cobroId);
+    if (!cobro) return res.status(404).json({ error: "Cobro no encontrado" });
+    cobro.deleteOne();
+    await factura.save();
+    res.json(conTesoreria(factura));
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Actualiza la fecha de vencimiento.
 router.post("/:id/vencimiento", async (req, res, next) => {
   try {

@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-30",
+    tipo: "nuevo",
+    titulo: "Ventas: se puede quitar un cobro registrado por error",
+    detalle:
+      "Abriendo la factura en Ventas → Facturas, en el apartado Cobros cada apunte tiene ahora un botón «Quitar». Sirve para cuando un cobro se registró mal (importe, fecha o método equivocado): al quitarlo, la factura vuelve a salir como pendiente en Tesorería. No afecta a VeriFactu, porque los cobros son un dato interno de tesorería, no del registro fiscal.",
+  },
+  {
+    fecha: "2026-09-30",
     tipo: "mejora",
     titulo: "Compras: buscador completo y lista ordenada por fecha",
     detalle:
