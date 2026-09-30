@@ -421,6 +421,7 @@ export default function ComprasFacturasPage() {
             notas: editando.notas ?? "",
             lineas: editando.lineas ?? [],
             total: editando.total,
+            crearArticulos: editando.crearArticulos,
           }}
           onGuardado={() => { setEditando(null); cargar(); }}
           onCerrar={() => setEditando(null)}

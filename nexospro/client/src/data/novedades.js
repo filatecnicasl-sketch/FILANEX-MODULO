@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-09-30",
+    tipo: "nuevo",
+    titulo: "Compras: se puede elegir no dar de alta los artículos",
+    detalle:
+      "Al registrar una factura de compra (revisión de la IA, alta manual o edición) hay una casilla «Dar de alta los artículos en el catálogo». Si se desmarca, la factura queda solo como gasto y no crea artículos nuevos: ideal para material que no se revende y así no ensucia el catálogo. Si alguna línea coincide con un artículo que ya existía, se enlaza igualmente para que el stock siga bien.",
+  },
+  {
+    fecha: "2026-09-30",
     tipo: "correccion",
     titulo: "Compras: el total ya cuadra con el papel del proveedor",
     detalle:

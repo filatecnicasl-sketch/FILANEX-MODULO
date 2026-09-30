@@ -29,6 +29,8 @@ export default function FormDocumentoCompra({
   // Total que pone en la factura del proveedor (el papel manda): si difiere
   // unos céntimos del calculado, se guarda como ajuste por redondeo.
   const [totalReal, setTotalReal] = useState(inicial?.total != null ? String(inicial.total) : "");
+  // Si se desmarca, al validar no se crean artículos nuevos en el catálogo.
+  const [crearArticulos, setCrearArticulos] = useState(inicial?.crearArticulos !== false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
   const calculado = totalesDeLineas(lineas);
@@ -66,6 +68,7 @@ export default function FormDocumentoCompra({
       };
       if (conNumeroProveedor) cuerpo[campoNumero] = numeroProveedor || undefined;
       if (conTotalReal && Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum;
+      if (conTotalReal) cuerpo.crearArticulos = crearArticulos;
       const r = await fetch(url, {
         method: metodo,
         headers: { "Content-Type": "application/json" },
@@ -124,7 +127,7 @@ export default function FormDocumentoCompra({
           <EditorLineas lineas={lineas} setLineas={setLineas} precio="compra" conDescuento />
 
           {conTotalReal && (
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-600/40 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-600/40 px-4 py-3">
               <span className="text-sm text-slate-400">
                 Total calculado: <strong className="text-slate-200">{euros(calculado.total)}</strong>
               </span>
@@ -144,6 +147,15 @@ export default function FormDocumentoCompra({
                   {ajuste.toFixed(2)} €
                 </span>
               )}
+              <label className="text-sm text-slate-400 flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={crearArticulos}
+                  onChange={(e) => setCrearArticulos(e.target.checked)}
+                  className="accent-sky-500"
+                />
+                Dar de alta los artículos en el catálogo
+              </label>
             </div>
           )}
 

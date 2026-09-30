@@ -93,6 +93,7 @@ router.post("/", async (req, res, next) => {
       ...calcularTotales(lineas),
       estado: "pendiente_revision",
       origen: "manual",
+      crearArticulos: req.body.crearArticulos !== false,
     });
     if (req.body.totalReal !== undefined && req.body.totalReal !== null && req.body.totalReal !== "") {
       const errorAjuste = aplicarTotalReal(factura, Number(req.body.totalReal));
@@ -244,6 +245,9 @@ router.put("/:id", async (req, res, next) => {
     const fecha = req.body.fechaExpedicion ?? req.body.fecha;
     if (fecha !== undefined) fc.fechaExpedicion = fecha ? new Date(fecha) : fc.fechaExpedicion;
     if (notas !== undefined) fc.notas = notas || undefined;
+    if (req.body.crearArticulos !== undefined) {
+      fc.crearArticulos = req.body.crearArticulos !== false;
+    }
     if (Array.isArray(req.body.lineas)) {
       const lineas = req.body.lineas.filter((l) => l.descripcion);
       if (lineas.length === 0) {
@@ -349,7 +353,14 @@ router.post("/:id/validar", async (req, res, next) => {
       // esGasto (restaurante, gasolinera...): jamás se crean artículos de
       // estas líneas, aunque la sugerencia dijera lo contrario.
       if (extra.esGasto) continue;
-      if (sugerencias[i]?.crear !== false && sugerencias[i]?.articuloId == null) {
+      // El usuario eligió no dar de alta artículos con esta factura: no se
+      // crean nuevos (pero sí se enlazan los que ya existían en el catálogo,
+      // para que el stock y el histórico de compras sigan funcionando).
+      if (
+        fc.crearArticulos !== false &&
+        sugerencias[i]?.crear !== false &&
+        sugerencias[i]?.articuloId == null
+      ) {
         const l = fc.lineas[i];
         const tipo = extra.lineas?.[i]?.tipo === "servicio" ? "servicio" : "articulo";
         const familia = String(extra.lineas?.[i]?.familia ?? "").trim().toLowerCase();

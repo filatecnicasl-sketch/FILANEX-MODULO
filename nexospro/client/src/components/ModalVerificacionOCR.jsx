@@ -37,6 +37,9 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
   // Total que pone en la factura del proveedor (el papel manda): si difiere
   // unos céntimos del calculado, se guarda como ajuste por redondeo.
   const [totalReal, setTotalReal] = useState(doc.total != null ? String(doc.total) : "");
+  // Si se desmarca, al validar no se crean artículos nuevos en el catálogo
+  // (material que no se revende: queda solo el gasto de la factura).
+  const [crearArticulos, setCrearArticulos] = useState(doc.crearArticulos !== false);
   const calculado = totalesDeLineas(lineas);
   const totalRealNum = parseFloat(String(totalReal).replace(",", "."));
   const ajuste =
@@ -70,6 +73,7 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
     if (esFactura) cuerpo.numeroFacturaProveedor = numero || undefined;
     else cuerpo.numeroAlbaran = numero || undefined;
     if (esFactura && Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum;
+    if (esFactura) cuerpo.crearArticulos = crearArticulos;
 
     const r = await fetch(urlDoc, {
       method: "PUT",
@@ -198,7 +202,7 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
           <EditorLineas lineas={lineas} setLineas={setLineas} precio="compra" conDescuento />
 
           {esFactura && (
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-600/40 px-4 py-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-600/40 px-4 py-3">
               <span className="text-sm text-slate-400">
                 Total calculado: <strong className="text-slate-200">{euros(calculado.total)}</strong>
               </span>
@@ -217,6 +221,15 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
                   {ajuste.toFixed(2)} €
                 </span>
               )}
+              <label className="text-sm text-slate-400 flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={crearArticulos}
+                  onChange={(e) => setCrearArticulos(e.target.checked)}
+                  className="accent-sky-500"
+                />
+                Dar de alta los artículos en el catálogo
+              </label>
             </div>
           )}
 

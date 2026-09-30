@@ -17,6 +17,9 @@ const facturaCompraSchema = new Schema(
     // que el proveedor imprimió en SU factura, cuando redondeó distinto.
     // Invariante: total = baseImponible + cuotaIva + ajusteRedondeo.
     ajusteRedondeo: { type: Number, default: 0 },
+    // Si es false, al validar NO se crean artículos nuevos en el catálogo
+    // (para facturas de material que no se revende: queda solo el gasto).
+    crearArticulos: { type: Boolean, default: true },
     estado: {
       type: String,
       enum: ["pendiente_revision", "validada", "rechazada"],
