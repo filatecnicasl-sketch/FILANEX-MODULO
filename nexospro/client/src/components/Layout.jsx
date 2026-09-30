@@ -8,7 +8,7 @@ import {
   IconPlanning, IconOperarios,
   IconNotificaciones, IconCertificado, IconUsuarios, IconCobros, IconPagos, IconModulos,
   IconTelefono, IconAseguradora, IconAyuda, IconServicio, IconAparato, IconLibro, IconCorreo,
-  IconCopias, IconCaja, IconImprimir, IconEnergia,
+  IconCopias, IconCaja, IconImprimir, IconEnergia, IconFirma,
   LogoFX,
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
@@ -176,6 +176,7 @@ const gruposModulos = {
     items: [
       { to: "/energia", etiqueta: "Panel", fin: true, Icono: IconPanel, tono: "indigo" },
       { to: "/energia/suministros", etiqueta: "Suministros", fin: true, Icono: IconEnergia, tono: "amber" },
+      { to: "/energia/tramites", etiqueta: "Trámites", fin: true, Icono: IconFirma, tono: "sky" },
       { to: "/energia/comercializadoras", etiqueta: "Comercializadoras", fin: true, Icono: IconAseguradora, tono: "teal" },
       { to: "/ayuda/energia", etiqueta: "Ayuda energía", fin: true, Icono: IconAyuda, tono: "slate" },
     ],

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
-import { IconEditar, IconBorrar } from "../../components/icons.jsx";
+import { IconEditar, IconBorrar, IconFirma } from "../../components/icons.jsx";
 import ModalImportarEnergia from "./ModalImportarEnergia.jsx";
 
 const VACIO = {
@@ -245,6 +246,13 @@ export default function EnergiaSuministrosPage() {
                     </td>
                     <td><Badge tono={TONO_ESTADO[s.estado]}>{s.estado}</Badge></td>
                     <td className="text-right whitespace-nowrap">
+                      <Link
+                        to={`/energia/tramites?nuevo=${s._id}`}
+                        className="p-1.5 text-slate-400 hover:text-sky-400 inline-block align-middle"
+                        title="Iniciar trámite (alta, cambio de comercializadora, titular o baja)"
+                      >
+                        <IconFirma />
+                      </Link>
                       <button onClick={() => abrirEdicion(s)} className="p-1.5 text-slate-400 hover:text-sky-400" title="Editar">
                         <IconEditar />
                       </button>

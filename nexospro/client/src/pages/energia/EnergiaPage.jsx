@@ -7,6 +7,7 @@ import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 export default function EnergiaPage() {
   const [suministros, setSuministros] = useState(null);
   const [comercializadoras, setComercializadoras] = useState(null);
+  const [tramites, setTramites] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -21,6 +22,10 @@ export default function EnergiaPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setComercializadoras(Array.isArray(d) ? d : []))
       .catch(() => setComercializadoras([]));
+    fetch("/api/energia/tramites")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setTramites(Array.isArray(d) ? d : []))
+      .catch(() => setTramites([]));
   }, []);
 
   if (suministros === null || comercializadoras === null) {
@@ -35,6 +40,9 @@ export default function EnergiaPage() {
   const luz = activos.filter((s) => s.tipo === "luz").length;
   const gas = activos.filter((s) => s.tipo === "gas").length;
   const inactivos = suministros.filter((s) => s.estado !== "activo").length;
+  const tramitesEnCurso = tramites.filter((t) =>
+    ["documentacion", "enviado", "en_tramite"].includes(t.estado)
+  ).length;
 
   // Distribución por comercializadora (solo activos).
   const porComercializadora = Object.entries(
@@ -47,6 +55,7 @@ export default function EnergiaPage() {
 
   const tarjetas = [
     { etiqueta: "Suministros activos", valor: activos.length, tono: "text-emerald-300", enlace: "/energia/suministros" },
+    { etiqueta: "Trámites en curso", valor: tramitesEnCurso, tono: "text-sky-300", enlace: "/energia/tramites" },
     { etiqueta: "Luz", valor: luz, tono: "text-amber-300", enlace: "/energia/suministros" },
     { etiqueta: "Gas", valor: gas, tono: "text-sky-300", enlace: "/energia/suministros" },
     { etiqueta: "Inactivos / baja", valor: inactivos, tono: "text-slate-400", enlace: "/energia/suministros" },
@@ -69,7 +78,7 @@ export default function EnergiaPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5 mb-4">
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6 mb-4">
           {tarjetas.map((t) => (
             <Link key={t.etiqueta} to={t.enlace} className="panel px-4 py-4 hover:border-sky-500/40 transition-colors">
               <p className="text-xs uppercase tracking-wider text-slate-500">{t.etiqueta}</p>

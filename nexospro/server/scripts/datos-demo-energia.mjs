@@ -9,6 +9,7 @@ const DB = process.argv[2] || "filanex_local";
 await mongoose.connect(`${BASE}/${DB}`);
 const { default: Comercializadora } = await import("../src/models/Comercializadora.js");
 const { default: Suministro } = await import("../src/models/Suministro.js");
+const { default: Tramite } = await import("../src/models/Tramite.js");
 const { default: Cliente } = await import("../src/models/Cliente.js");
 const { default: Empresa } = await import("../src/models/Empresa.js");
 
@@ -126,5 +127,92 @@ console.log(`suministros: ${creados} creados, ${actualizados} actualizados`);
 
 const total = await Suministro.countDocuments();
 console.log("total suministros en", DB, ":", total);
+
+// --- 5. Trámites de demostración (distintos tipos y estados) ---
+// Solo se crean si no existe ya uno del mismo tipo para ese CUPS.
+const HACE = (dias) => new Date(Date.now() - dias * 86400000);
+const tramitesDemo = [
+  {
+    cups: "ES0021000000000004GH", tipo: "alta", estado: "activado",
+    destino: "Iberdrola Clientes",
+    fechaSolicitud: HACE(60), fechaEnvio: HACE(55), fechaActivacion: HACE(45),
+    notas: "Alta del supermercado tras el estudio de ahorro.",
+    historia: [
+      { fecha: HACE(60), estado: "documentacion", nota: "Trámite abierto" },
+      { fecha: HACE(55), estado: "enviado", nota: "Enviado por el canal directo" },
+      { fecha: HACE(50), estado: "en_tramite" },
+      { fecha: HACE(45), estado: "activado", nota: "Contrato activo" },
+    ],
+  },
+  {
+    cups: "ES0021000000000005IJ", tipo: "cambio", estado: "en_tramite",
+    destino: "Iberdrola Clientes",
+    fechaSolicitud: HACE(12), fechaEnvio: HACE(8), fechaPrevista: HACE(-10),
+    notas: "Portabilidad de la sucursal 2: ahorro del 14 % en el estudio.",
+    historia: [
+      { fecha: HACE(12), estado: "documentacion", nota: "Firmado por el cliente" },
+      { fecha: HACE(8), estado: "enviado" },
+      { fecha: HACE(5), estado: "en_tramite", nota: "Pendiente de la distribuidora" },
+    ],
+  },
+  {
+    cups: "ES0021000000000003EF", tipo: "titular", estado: "enviado",
+    nuevoTitular: "AUTOVEGA COMERCIAL SL",
+    fechaSolicitud: HACE(4), fechaEnvio: HACE(1),
+    notas: "El local pasa de Talleres Vega a Autovega Comercial.",
+    historia: [
+      { fecha: HACE(4), estado: "documentacion", nota: "Falta la escritura de compraventa" },
+      { fecha: HACE(1), estado: "enviado", nota: "Escritura aportada" },
+    ],
+  },
+  {
+    cups: "ES0021000000000007MN", tipo: "alta", estado: "documentacion",
+    destino: "Holaluz",
+    fechaSolicitud: HACE(2),
+    notas: "Cliente del mercado central, pendiente de firmar el contrato.",
+    historia: [{ fecha: HACE(2), estado: "documentacion", nota: "Trámite abierto" }],
+  },
+  {
+    cups: "ES0021000000000010ST", tipo: "baja", estado: "cancelado",
+    fechaSolicitud: HACE(30),
+    notas: "Local cerrado definitivamente; el cliente finalmente no pidió la baja.",
+    historia: [
+      { fecha: HACE(30), estado: "documentacion", nota: "Trámite abierto" },
+      { fecha: HACE(25), estado: "cancelado", nota: "El cliente lo pensó mejor" },
+    ],
+  },
+];
+
+let tramitesCreados = 0;
+for (const t of tramitesDemo) {
+  const yaExiste = await Tramite.findOne({ cups: t.cups, tipo: t.tipo });
+  if (yaExiste) continue;
+  const s = await Suministro.findOne({ cups: t.cups });
+  if (!s) continue;
+  const destino = t.destino ? comPorNombre[t.destino] : null;
+  const nuevoTitular = t.nuevoTitular ? cliPorNombre[t.nuevoTitular] : null;
+  await Tramite.create({
+    tipo: t.tipo,
+    suministro: s._id,
+    cups: s.cups,
+    cliente: s.cliente,
+    clienteNombre: s.clienteNombre,
+    comercializadoraOrigen: s.comercializadoraNombre ?? null,
+    comercializadoraDestino: destino?._id ?? null,
+    comercializadoraDestinoNombre: destino?.nombre ?? null,
+    nuevoTitular: nuevoTitular?._id ?? null,
+    nuevoTitularNombre: nuevoTitular?.nombre ?? null,
+    estado: t.estado,
+    fechaSolicitud: t.fechaSolicitud,
+    fechaEnvio: t.fechaEnvio ?? null,
+    fechaPrevista: t.fechaPrevista ?? null,
+    fechaActivacion: t.fechaActivacion ?? null,
+    notas: t.notas,
+    historia: t.historia,
+  });
+  tramitesCreados++;
+}
+console.log(`tramites: ${tramitesCreados} creados, total ${await Tramite.countDocuments()}`);
+
 await mongoose.disconnect();
 process.exit(0);

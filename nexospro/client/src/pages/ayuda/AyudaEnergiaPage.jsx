@@ -55,6 +55,30 @@ export default function AyudaEnergiaPage() {
           </Paso>
         </Seccion>
 
+        <Seccion titulo="Trámites (Energía → Trámites)">
+          <p>
+            Cuando el cliente acepta el estudio, se abre un <b>trámite</b>. Hay cuatro tipos:
+            <b> alta</b> de un suministro nuevo, <b>cambio de comercializadora</b>, <b>cambio de titular</b>
+            y <b>baja</b>. También puedes abrirlo directamente desde Suministros con el icono del
+            bolígrafo-firma de cada fila.
+          </p>
+          <Paso n={1}>
+            Al abrir el trámite se elige el <b>suministro (CUPS)</b> y, según el tipo, la
+            <b> comercializadora de destino</b> o el <b>nuevo titular</b>. La comercializadora de
+            origen queda apuntada automáticamente.
+          </Paso>
+          <Paso n={2}>
+            El trámite lleva su circuito: <b>Documentación → Enviado → En trámite → Activado</b>
+            (o rechazado/cancelado). Cada cambio de estado admite una nota («firmado por el
+            cliente», «falta el justificante»…) y queda en el historial del trámite.
+          </Paso>
+          <Paso n={3}>
+            Al pulsar <K>Activar</K>, el trámite <b>actualiza el suministro solo</b>: le cambia la
+            comercializadora, le cambia el titular o lo marca de baja. Por eso un trámite activado
+            ya no se puede editar ni borrar.
+          </Paso>
+        </Seccion>
+
         <Seccion titulo="Grupos de empresas">
           <p>
             Muchos clientes son <b>grupos de empresas</b>: varias sociedades del mismo dueño, cada una con
@@ -77,10 +101,9 @@ export default function AyudaEnergiaPage() {
 
         <Seccion titulo="Lo que viene">
           <p>
-            Este módulo está en crecimiento. Próximamente: lectura de facturas de luz y gas con IA para
-            dar de alta suministros sin teclear, estudios de ahorro (situación actual frente a la
-            propuesta), trámites de alta y portabilidad, cálculo de comisiones devengadas por
-            comercializadora y registro de autofacturas.
+            Este módulo está en crecimiento. Próximamente: estudios de ahorro (situación
+            actual frente a la propuesta), cálculo de comisiones devengadas por comercializadora,
+            registro de autofacturas e histórico de consumos de los clientes.
           </p>
           <Nota titulo="Sugerencia">
             Si echas en falta algo, proponlo desde <b>Ayuda → Novedades → Propuestas</b>: las propuestas
