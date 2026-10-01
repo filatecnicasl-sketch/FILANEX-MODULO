@@ -159,6 +159,19 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
       return res.status(409).json({ error: `La factura ya está ${factura.estado}` });
     }
 
+    // La fecha de un borrador es provisional (el día en que se creó); la
+    // factura nace legalmente al validar. Si se valida otro día, la fecha de
+    // expedición pasa a ser el de la validación — también para la serie, que
+    // lleva el año del documento. Una fecha futura (casos programáticos) se
+    // respeta.
+    const inicioHoy = new Date();
+    inicioHoy.setHours(0, 0, 0, 0);
+    const inicioFecha = factura.fechaExpedicion ? new Date(factura.fechaExpedicion) : null;
+    if (inicioFecha) inicioFecha.setHours(0, 0, 0, 0);
+    if (!inicioFecha || inicioFecha < inicioHoy) {
+      factura.fechaExpedicion = new Date();
+    }
+
     // MVP monoinquilino: una única empresa configurada.
     const empresa = await Empresa.findById(factura.empresa) ?? (await Empresa.findOne());
     if (!empresa) {

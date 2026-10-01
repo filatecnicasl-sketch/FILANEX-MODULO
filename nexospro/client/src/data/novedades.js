@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-01",
+    tipo: "correccion",
+    titulo: "Facturas: la fecha de expedición es el día en que se valida el borrador",
+    detalle:
+      "Hasta ahora, un borrador validado días después conservaba la fecha del día en que se creó. Ahora, al validar, la factura toma como fecha de expedición el día de la validación (que es cuando nace legalmente), y la serie usa el año de esa fecha. Un borrador creado y validado el mismo día no cambia.",
+  },
+  {
+    fecha: "2026-10-01",
     tipo: "mejora",
     titulo: "Cabeceras más limpias: sin subtítulo bajo el título",
     detalle:
