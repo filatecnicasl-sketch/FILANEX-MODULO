@@ -71,7 +71,7 @@ try {
   const aniv = new Date(hit?.aniversario);
   const esperado = new Date(new Date(hace(8)).setFullYear(new Date(hace(8)).getFullYear() + 1));
   ok(aniv.getFullYear() === esperado.getFullYear() && aniv.getMonth() === esperado.getMonth(), "aniversario = alta + 12 meses");
-  ok(agenda.total === agenda.renovaciones.length + agenda.porAntiguedad.length + agenda.estudiosSinRespuesta.length, "el total suma las tres secciones");
+  ok(agenda.total === agenda.renovaciones.length + agenda.porAntiguedad.length + agenda.estudiosSinRespuesta.length + (agenda.anomalias?.length ?? 0), "el total suma las cuatro secciones");
 
   // Fuera de la ventana por abajo: 6 meses.
   await api("PUT", `/api/energia/suministros/${s._id}`, { fechaAlta: hace(6) });
