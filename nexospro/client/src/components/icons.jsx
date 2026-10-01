@@ -405,3 +405,42 @@ export const IconEnergia = () => (
     <path d="M13 2L4.5 13.5H11L9.5 22L19 10h-6.5L13 2z" />
   </Svg>
 );
+
+// Gráfica de barras (consumos).
+export const IconGraficas = () => (
+  <Svg>
+    <path d="M3 21h18" />
+    <rect x="5" y="12" width="3.5" height="9" rx="0.8" />
+    <rect x="10.25" y="7" width="3.5" height="14" rx="0.8" />
+    <rect x="15.5" y="3" width="3.5" height="18" rx="0.8" />
+  </Svg>
+);
+
+// Comparativa (balanza de estudios de ahorro).
+export const IconComparativas = () => (
+  <Svg>
+    <path d="M12 4v16" />
+    <path d="M8 20h8" />
+    <path d="M4 7h16" />
+    <path d="M6 7l-2.5 6a3 3 0 0 0 5 0L6 7z" />
+    <path d="M18 7l-2.5 6a3 3 0 0 0 5 0L18 7z" />
+  </Svg>
+);
+
+// Documento (autofacturas).
+export const IconDocumentos = () => (
+  <Svg>
+    <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7l-5-5z" />
+    <path d="M14 2v5h5" />
+    <path d="M9 13h6" />
+    <path d="M9 17h6" />
+  </Svg>
+);
+
+// Campana de avisos (alertas).
+export const IconAvisos = () => (
+  <Svg>
+    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+  </Svg>
+);

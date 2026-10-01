@@ -12,7 +12,7 @@ const router = Router();
 const CAMPOS = [
   "cups", "tipo", "cliente", "comercializadora", "direccion",
   "tarifa", "potenciaPunta", "potenciaValle", "consumoAnual", "estado",
-  "fechaAlta", "notas",
+  "fechaAlta", "fechaFin", "notas",
 ];
 
 const RE_CUPS = /^ES[0-9A-Z]{20}$/; // 22 caracteres: ES + 20

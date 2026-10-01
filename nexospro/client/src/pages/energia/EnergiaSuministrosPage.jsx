@@ -3,14 +3,15 @@ import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
-import { IconEditar, IconBorrar, IconFirma } from "../../components/icons.jsx";
+import { IconEditar, IconBorrar, IconFirma, IconGraficas, IconComparativas } from "../../components/icons.jsx";
 import ModalImportarEnergia from "./ModalImportarEnergia.jsx";
+import ModalConsumos from "./ModalConsumos.jsx";
 
 const VACIO = {
   cups: "", tipo: "luz", clienteId: "", comercializadoraId: "",
   calle: "", cp: "", ciudad: "", provincia: "",
   tarifa: "", potenciaPunta: "", potenciaValle: "", consumoAnual: "",
-  estado: "activo", fechaAlta: "", notas: "",
+  estado: "activo", fechaAlta: "", fechaFin: "", notas: "",
 };
 
 const TONO_TIPO = {
@@ -44,6 +45,7 @@ export default function EnergiaSuministrosPage() {
   const [filtroEstado, setFiltroEstado] = useState("todos");
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [importar, setImportar] = useState(false);
+  const [consumosDe, setConsumosDe] = useState(null);
 
   const grupos = [...new Set(clientes.map((c) => c.grupo).filter(Boolean))].sort();
 
@@ -110,6 +112,7 @@ export default function EnergiaSuministrosPage() {
       consumoAnual: s.consumoAnual || "",
       estado: s.estado ?? "activo",
       fechaAlta: s.fechaAlta ? new Date(s.fechaAlta).toISOString().slice(0, 10) : "",
+      fechaFin: s.fechaFin ? new Date(s.fechaFin).toISOString().slice(0, 10) : "",
       notas: s.notas ?? "",
     });
     setModal(true);
@@ -129,6 +132,7 @@ export default function EnergiaSuministrosPage() {
       consumoAnual: form.consumoAnual,
       estado: form.estado,
       fechaAlta: form.fechaAlta || null,
+      fechaFin: form.fechaFin || null,
       notas: form.notas,
     };
     const r = await fetch(`/api/energia/suministros${editando ? `/${editando._id}` : ""}`, {
@@ -246,8 +250,31 @@ export default function EnergiaSuministrosPage() {
                         ? [s.potenciaPunta, s.potenciaValle].filter((p) => Number(p) > 0).map((p) => `${p} kW`).join(" / ") || "—"
                         : "—"}
                     </td>
-                    <td><Badge tono={TONO_ESTADO[s.estado]}>{s.estado}</Badge></td>
+                    <td><Badge tono={TONO_ESTADO[s.estado]}>{s.estado}</Badge>
+                      {s.fechaFin && (() => {
+                        const dias = Math.ceil((new Date(s.fechaFin).getTime() - Date.now()) / 86400000);
+                        return dias <= 60 ? (
+                          <p className={`text-xs mt-0.5 whitespace-nowrap ${dias < 0 ? "text-rose-400" : "text-amber-300"}`}>
+                            {dias < 0 ? "Contrato vencido" : `Renueva en ${dias} días`}
+                          </p>
+                        ) : null;
+                      })()}
+                    </td>
                     <td className="text-right whitespace-nowrap">
+                      <button
+                        onClick={() => setConsumosDe(s)}
+                        className="p-1.5 text-slate-400 hover:text-amber-400"
+                        title="Consumos mensuales"
+                      >
+                        <IconGraficas />
+                      </button>
+                      <Link
+                        to={`/energia/estudios?nuevo=${s._id}`}
+                        className="p-1.5 text-slate-400 hover:text-emerald-400 inline-block align-middle"
+                        title="Abrir estudio de ahorro con este CUPS"
+                      >
+                        <IconComparativas />
+                      </Link>
                       <Link
                         to={`/energia/tramites?nuevo=${s._id}`}
                         className="p-1.5 text-slate-400 hover:text-sky-400 inline-block align-middle"
@@ -280,6 +307,10 @@ export default function EnergiaSuministrosPage() {
           }}
           onCerrar={() => setImportar(false)}
         />
+      )}
+
+      {consumosDe && (
+        <ModalConsumos suministro={consumosDe} onCerrar={() => setConsumosDe(null)} />
       )}
 
       {modal && (
@@ -398,6 +429,11 @@ export default function EnergiaSuministrosPage() {
               <label className="text-sm text-slate-400">
                 Fecha de alta (comercializadora actual)
                 <input type="date" value={form.fechaAlta} onChange={poner("fechaAlta")} className="input" />
+              </label>
+              <label className="text-sm text-slate-400">
+                Fin del contrato
+                <input type="date" value={form.fechaFin} onChange={poner("fechaFin")} className="input" />
+                <span className="text-xs text-slate-500">Para las alertas de renovación</span>
               </label>
             </div>
 

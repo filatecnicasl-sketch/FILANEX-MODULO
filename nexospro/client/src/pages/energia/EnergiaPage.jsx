@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
-import { IconEnergia, IconFirma, IconAseguradora, IconCobros } from "../../components/icons.jsx";
+import { IconEnergia, IconFirma, IconAseguradora, IconCobros, IconComparativas, IconAvisos, IconDocumentos } from "../../components/icons.jsx";
 
 const TONOS = {
   emerald: { fondo: "bg-emerald-50", borde: "border-emerald-200", texto: "text-emerald-700", icono: "bg-emerald-100 text-emerald-600" },
@@ -43,6 +43,8 @@ export default function EnergiaPage() {
   const [comercializadoras, setComercializadoras] = useState(null);
   const [tramites, setTramites] = useState([]);
   const [resumenComisiones, setResumenComisiones] = useState(null);
+  const [estudios, setEstudios] = useState([]);
+  const [alertas, setAlertas] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -65,6 +67,14 @@ export default function EnergiaPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then(setResumenComisiones)
       .catch(() => setResumenComisiones(null));
+    fetch("/api/energia/estudios")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setEstudios(Array.isArray(d) ? d : []))
+      .catch(() => setEstudios([]));
+    fetch("/api/energia/alertas")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setAlertas)
+      .catch(() => setAlertas(null));
   }, []);
 
   if (suministros === null || comercializadoras === null) {
@@ -78,10 +88,13 @@ export default function EnergiaPage() {
   const activos = suministros.filter((s) => s.estado === "activo");
   const luz = activos.filter((s) => s.tipo === "luz").length;
   const gas = activos.filter((s) => s.tipo === "gas").length;
-  const inactivos = suministros.filter((s) => s.estado !== "activo").length;
   const tramitesEnCurso = tramites.filter((t) =>
     ["documentacion", "enviado", "en_tramite"].includes(t.estado)
   ).length;
+  const estudiosEnCurso = estudios.filter((e) => ["borrador", "enviado"].includes(e.estado));
+  const ahorroPotencial = estudiosEnCurso.reduce((a, e) => a + Math.max(0, e.ahorroAnual ?? 0), 0);
+  const kwhGestionados = activos.reduce((a, s) => a + (Number(s.consumoAnual) || 0), 0);
+  const nAlertas = alertas?.total ?? 0;
 
   // Distribución por comercializadora (solo activos).
   const porComercializadora = Object.entries(
@@ -95,9 +108,14 @@ export default function EnergiaPage() {
   const tarjetas = [
     { titulo: "Suministros activos", valor: activos.length, detalle: `${luz} de luz · ${gas} de gas`, tono: "emerald", to: "/energia/suministros", Icono: IconEnergia },
     { titulo: "Trámites en curso", valor: tramitesEnCurso, detalle: "altas, cambios y bajas en marcha", tono: "sky", to: "/energia/tramites", Icono: IconFirma },
-    { titulo: "Luz", valor: luz, detalle: "puntos de luz activos", tono: "amber", to: "/energia/suministros", Icono: IconEnergia },
-    { titulo: "Gas", valor: gas, detalle: "puntos de gas activos", tono: "indigo", to: "/energia/suministros", Icono: IconEnergia },
-    { titulo: "Comercializadoras", valor: comercializadoras.length, detalle: "con condiciones de comisión", tono: "violet", to: "/energia/comercializadoras", Icono: IconAseguradora },
+    {
+      titulo: "Estudios en curso",
+      valor: estudiosEnCurso.length,
+      detalle: `ahorro potencial: ${fmtEuro(ahorroPotencial)}/año`,
+      tono: "amber",
+      to: "/energia/estudios",
+      Icono: IconComparativas,
+    },
     {
       titulo: "Comisiones pendientes",
       valor: fmtEuro(resumenComisiones?.pendiente.total ?? 0),
@@ -106,7 +124,24 @@ export default function EnergiaPage() {
       to: "/energia/comisiones",
       Icono: IconCobros,
     },
-    { titulo: "Inactivos / baja", valor: inactivos, detalle: "suspendidos o dados de baja", tono: "slate", to: "/energia/suministros", Icono: IconEnergia },
+    {
+      titulo: "Alertas",
+      valor: nAlertas,
+      detalle: "renovaciones y estudios sin respuesta",
+      tono: nAlertas > 0 ? "amber" : "slate",
+      to: "/energia/suministros",
+      Icono: IconAvisos,
+    },
+    {
+      titulo: "Energía gestionada",
+      valor: `${Number(kwhGestionados).toLocaleString("es-ES")} kWh`,
+      detalle: "consumo anual de la cartera activa",
+      tono: "indigo",
+      to: "/energia/suministros",
+      Icono: IconEnergia,
+    },
+    { titulo: "Autofacturas", valor: "Liquidación", detalle: "conciliación mensual de comisiones", tono: "violet", to: "/energia/autofacturas", Icono: IconDocumentos },
+    { titulo: "Comercializadoras", valor: comercializadoras.length, detalle: "con condiciones de comisión", tono: "violet", to: "/energia/comercializadoras", Icono: IconAseguradora },
   ];
 
   return (
@@ -125,10 +160,56 @@ export default function EnergiaPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7 mb-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
           {tarjetas.map((t) => (
             <Tarjeta key={t.titulo} {...t} />
           ))}
+        </div>
+      )}
+
+      {alertas && alertas.total > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 mb-4">
+          <h2 className="text-sm font-semibold text-amber-800 mb-3">Alertas del canal</h2>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {alertas.renovaciones.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Contratos por renovar</p>
+                <ul className="space-y-1.5">
+                  {alertas.renovaciones.slice(0, 5).map((r) => (
+                    <li key={r._id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-slate-700 truncate">
+                        <b>{r.clienteNombre ?? "Sin cliente"}</b> · {r.tipo} · <span className="num text-xs">{r.cups}</span>
+                      </span>
+                      <span className={`text-xs font-medium whitespace-nowrap ${r.dias < 0 ? "text-rose-600" : "text-amber-700"}`}>
+                        {r.dias < 0 ? "vencido" : `${r.dias} días`}
+                        {r.telefono ? ` · ${r.telefono}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {alertas.estudiosSinRespuesta.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Estudios sin respuesta (+7 días)</p>
+                <ul className="space-y-1.5">
+                  {alertas.estudiosSinRespuesta.slice(0, 5).map((e) => (
+                    <li key={e._id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-slate-700 truncate">
+                        <b>{e.clienteNombre ?? "Sin cliente"}</b> → {e.comercializadoraNombre ?? "—"}
+                      </span>
+                      <span className="text-xs text-amber-700 whitespace-nowrap">
+                        enviado hace {e.dias} días{e.telefono ? ` · ${e.telefono}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/energia/estudios" className="inline-block mt-2 text-xs font-medium text-sky-700 hover:underline">
+                  Ir a los estudios
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

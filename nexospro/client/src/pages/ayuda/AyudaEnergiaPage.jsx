@@ -97,6 +97,49 @@ export default function AyudaEnergiaPage() {
           </p>
         </Seccion>
 
+        <Seccion titulo="Estudios de ahorro (Energía → Estudios)">
+          <p>
+            La herramienta comercial: lo primero es pedirle la factura al cliente (impórtala en
+            Suministros con la IA) y después abrir el estudio. Desde la ficha del suministro, el botón de
+            la balanza abre el estudio ya cargado con su CUPS, tarifa, potencia y consumo.
+          </p>
+          <p>
+            A la izquierda va su <b>situación actual</b> (comercializadora, precio de la energía y de la
+            potencia, o el coste anual de su factura directamente) y a la derecha <b>tu propuesta</b> con
+            una de tus comercializadoras. El programa calcula el coste anual de cada lado y el
+            <b> ahorro en €/año y en %</b> mientras escribes.
+          </p>
+          <p>
+            El circuito es: <b>borrador → enviado → aceptado / rechazado</b>. Al marcar
+            <b> aceptado</b>, el programa abre solo el trámite de cambio de comercializadora sobre ese
+            CUPS (lo verás en Trámites), y el estudio queda cerrado con el ahorro conseguido.
+          </p>
+        </Seccion>
+
+        <Seccion titulo="Consumos (botón de la gráfica en Suministros)">
+          <p>
+            Cada CUPS lleva su <b>histórico mensual de consumo</b>: kWh e importe de la factura del
+            cliente, mes a mes. Se apunta con el botón de la gráfica en Suministros (repetir un mes ya
+            apuntado lo actualiza). El modal muestra la media mensual, el total del último año y una
+            gráfica de barras para ver la evolución — justo los datos que alimentan un buen estudio de
+            ahorro.
+          </p>
+        </Seccion>
+
+        <Seccion titulo="Autofacturas (Energía → Autofacturas)">
+          <p>
+            Cada mes, cada comercializadora te manda su <b>autofactura</b>: la liquidación de las
+            comisiones del canal. Regístrala con su número, el mes que liquida y la base imponible; el
+            IVA y el total se calculan solos.
+          </p>
+          <p>
+            Lo importante es la <b>conciliación</b>: al lado de la base verás lo que el programa calculó
+            para esa comercializadora y ese mes (apartado Comisiones) y la <b>diferencia</b>. Si no
+            cuadra, revisa si falta alguna comisión o si la comercializadora ha liquidado de menos.
+            Cuando te la pagan, márcala como cobrada.
+          </p>
+        </Seccion>
+
         <Seccion titulo="Grupos de empresas">
           <p>
             Muchos clientes son <b>grupos de empresas</b>: varias sociedades del mismo dueño, cada una con
@@ -111,17 +154,21 @@ export default function AyudaEnergiaPage() {
 
         <Seccion titulo="El panel (Energía → Panel)">
           <p>
-            El panel muestra la foto de la cartera: suministros activos, cuántos de luz y cuántos de gas,
-            inactivos o de baja, y la <b>distribución por comercializadora</b> para ver de un vistazo
-            con quién está trabajando cada cliente.
+            El panel muestra la foto de la cartera: suministros activos, trámites y estudios en curso
+            (con el ahorro potencial que tienes sobre la mesa), comisiones pendientes de cobrar,
+            energía gestionada en kWh y la <b>distribución por comercializadora</b>.
+          </p>
+          <p>
+            Debajo salen las <b>alertas del canal</b>: los contratos que terminan en los próximos 60
+            días (rellena el campo «Fin del contrato» en cada suministro para que avise) y los estudios
+            enviados hace más de una semana que siguen sin respuesta, con el teléfono del cliente para
+            llamarle al momento.
           </p>
         </Seccion>
 
         <Seccion titulo="Lo que viene">
           <p>
-            Este módulo está en crecimiento. Próximamente: estudios de ahorro (situación
-            actual frente a la propuesta), registro de autofacturas e histórico de
-            consumos de los clientes.
+            Este módulo está en crecimiento: seguimos puliendo según lo que pidáis las agencias.
           </p>
           <Nota titulo="Sugerencia">
             Si echas en falta algo, proponlo desde <b>Ayuda → Novedades → Propuestas</b>: las propuestas

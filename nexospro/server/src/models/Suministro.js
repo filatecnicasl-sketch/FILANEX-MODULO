@@ -34,6 +34,7 @@ const suministroSchema = new Schema(
     consumoAnual: { type: Number, default: 0 }, // kWh/año (dato del estudio)
     estado: { type: String, enum: ["activo", "inactivo", "baja"], default: "activo" },
     fechaAlta: Date, // fecha de alta con la comercializadora actual
+    fechaFin: Date, // fin del contrato: alimenta las alertas de renovación
     notas: String,
   },
   { timestamps: true }
