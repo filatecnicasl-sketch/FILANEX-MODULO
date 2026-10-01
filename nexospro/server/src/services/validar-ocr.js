@@ -164,3 +164,35 @@ export function revisarFacturaEnergia(d) {
   if (d.titular?.nif && !nifValido(d.titular.nif)) problemas.push("el NIF del titular no es correcto");
   return { ok: problemas.length === 0, problemas };
 }
+
+// Una campaña de precios debe traer la comercializadora y algún precio de
+// energía; sin eso no hay campaña que revisar. Los rangos de precios son
+// amplios (mercado español actual) y sirven para cazar lecturas con la
+// coma desplazada: 0,1432 €/kWh leído como 1432 o como 1,432.
+export function revisarCampanaPrecios(d) {
+  const problemas = [];
+  if (!d) return { ok: false, problemas: ["sin respuesta"] };
+  if (!String(d.comercializadora ?? "").trim()) problemas.push("no se ha leído la comercializadora");
+  const tramos = [d.energiaPunta, d.energiaLlano, d.energiaValle].map(num).filter((v) => v > 0);
+  const unica = num(d.energiaUnica);
+  if (unica <= 0 && tramos.length === 0) {
+    problemas.push("no se ha leído ningún precio de energía");
+  } else {
+    for (const p of [unica, ...tramos]) {
+      if (p > 0 && (p < 0.01 || p > 0.6)) problemas.push(`precio de energía fuera de rango (${p} €/kWh)`);
+    }
+  }
+  const pPunta = num(d.potenciaPunta);
+  const pValle = num(d.potenciaValle);
+  const unidad = String(d.potenciaUnidad ?? "").toLowerCase();
+  if (pPunta > 0 || pValle > 0) {
+    const limiteInf = unidad === "ano" ? 2 : 0.005;
+    const limiteSup = unidad === "ano" ? 120 : 0.3;
+    for (const p of [pPunta, pValle]) {
+      if (p > 0 && (p < limiteInf || p > limiteSup)) {
+        problemas.push(`precio de potencia fuera de rango (${p} €/kW·${unidad === "ano" ? "año" : "día"})`);
+      }
+    }
+  }
+  return { ok: problemas.length === 0, problemas };
+}

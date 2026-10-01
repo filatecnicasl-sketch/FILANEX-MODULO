@@ -52,6 +52,7 @@ import AyudaEnergiaPage from "./pages/ayuda/AyudaEnergiaPage.jsx";
 import EnergiaPage from "./pages/energia/EnergiaPage.jsx";
 import EnergiaSuministrosPage from "./pages/energia/EnergiaSuministrosPage.jsx";
 import EnergiaComercializadorasPage from "./pages/energia/EnergiaComercializadorasPage.jsx";
+import EnergiaCampanasPage from "./pages/energia/EnergiaCampanasPage.jsx";
 import EnergiaTramitesPage from "./pages/energia/EnergiaTramitesPage.jsx";
 import EnergiaComisionesPage from "./pages/energia/EnergiaComisionesPage.jsx";
 import EnergiaEstudiosPage from "./pages/energia/EnergiaEstudiosPage.jsx";
@@ -172,6 +173,7 @@ export default function App() {
           <Route path="energia" element={<EnergiaPage />} />
           <Route path="energia/suministros" element={<EnergiaSuministrosPage />} />
           <Route path="energia/comercializadoras" element={<EnergiaComercializadorasPage />} />
+          <Route path="energia/campanas" element={<EnergiaCampanasPage />} />
           <Route path="energia/tramites" element={<EnergiaTramitesPage />} />
           <Route path="energia/comisiones" element={<EnergiaComisionesPage />} />
           <Route path="energia/estudios" element={<EnergiaEstudiosPage />} />

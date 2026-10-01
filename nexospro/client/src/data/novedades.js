@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-01",
+    tipo: "nuevo",
+    titulo: "Energía: campañas de precios con lectura por IA",
+    detalle:
+      "Nuevo apartado Energía → Campañas: la campaña de precios que te manda una comercializadora (el PDF con los términos de la tarifa) se sube, la IA la lee y rellena comercializadora, tarifa, precios de energía (único o por tramos punta/llano/valle), potencia, mantenimiento, descuentos y vigencia. Si la potencia viene en €/kW·día se convierte sola a €/kW·año. La campaña queda «pendiente de revisión» hasta que la compruebas y publicas; las publicadas aparecen en los estudios de ahorro con un selector que rellena la propuesta (comercializadora, tarifa y precios) en un clic. También se pueden dar de alta a mano, con la unidad de potencia que traiga el documento. (Próximamente: recogida automática del correo).",
+  },
+  {
+    fecha: "2026-10-01",
     tipo: "mejora",
     titulo: "Informes: búsqueda por trimestre (1T-4T) y año completo",
     detalle:

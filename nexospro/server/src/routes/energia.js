@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requiereModulo } from "../config/modulos.js";
 import comercializadoras from "./energia-comercializadoras.js";
+import campanas from "./energia-campanas.js";
 import suministros from "./energia-suministros.js";
 import tramites from "./energia-tramites.js";
 import comisiones from "./energia-comisiones.js";
@@ -15,6 +16,7 @@ const router = Router();
 
 router.use(requiereModulo("energia"));
 router.use("/comercializadoras", comercializadoras);
+router.use("/campanas", campanas);
 router.use("/suministros", suministros);
 router.use("/tramites", tramites);
 router.use("/comisiones", comisiones);

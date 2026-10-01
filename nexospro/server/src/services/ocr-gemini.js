@@ -1,6 +1,6 @@
 import { generarJsonGemini, MODELOS_CALIDAD, MODELOS_RAPIDOS } from "./gemini.js";
 import { prepararParaOcr } from "./imagen-ocr.js";
-import { revisarTicket, revisarDocumentoCompra, revisarValoracion, revisarFacturaEnergia } from "./validar-ocr.js";
+import { revisarTicket, revisarDocumentoCompra, revisarValoracion, revisarFacturaEnergia, revisarCampanaPrecios } from "./validar-ocr.js";
 
 // Extracción OCR de documentos con Gemini (visión).
 // Salida garantizada en JSON mediante responseSchema.
@@ -331,4 +331,51 @@ Reglas:
 // para el modal de verificación (nada se crea sin confirmación del usuario).
 export async function extraerFacturaEnergia(fichero) {
   return generarJson(fichero, PROMPT_ENERGIA, esquemaFacturaEnergia, revisarFacturaEnergia);
+}
+
+// --- Campañas de precios de comercializadoras ---
+
+const esquemaCampanaPrecios = {
+  type: "OBJECT",
+  properties: {
+    comercializadora: { type: "STRING", description: "Nombre de la comercializadora que ofrece la campaña" },
+    tipo: { type: "STRING", enum: ["luz", "gas"] },
+    nombreCampana: { type: "STRING", description: "Nombre comercial de la campaña o tarifa ofertada" },
+    tarifa: { type: "STRING", description: "Tarifa de acceso (2.0TD, 3.0TD...) o peaje de gas (3.1, 3.2...)" },
+    vigenciaDesde: { type: "STRING", description: "Inicio de la vigencia de la campaña, YYYY-MM-DD" },
+    vigenciaHasta: { type: "STRING", description: "Fin de la vigencia de la campaña, YYYY-MM-DD" },
+    energiaUnica: { type: "NUMBER", description: "Precio único del término de energía en €/kWh (si la campaña no discrimina por tramos)" },
+    energiaPunta: { type: "NUMBER", description: "€/kWh del término de energía en punta (P1)" },
+    energiaLlano: { type: "NUMBER", description: "€/kWh del término de energía en llano (P2)" },
+    energiaValle: { type: "NUMBER", description: "€/kWh del término de energía en valle (P3 o valle)" },
+    potenciaPunta: { type: "NUMBER", description: "Precio del término de potencia en punta, en la unidad que indique potenciaUnidad" },
+    potenciaValle: { type: "NUMBER", description: "Precio del término de potencia en valle, en la unidad que indique potenciaUnidad" },
+    potenciaUnidad: { type: "STRING", enum: ["dia", "ano"], description: "Unidad de los precios de potencia: dia = €/kW·día, ano = €/kW·año" },
+    mantenimientoMensual: { type: "NUMBER", description: "Cuota o mantenimiento en €/mes si la campaña lo tiene" },
+    descuento: { type: "STRING", description: "Descuentos y condiciones promocionales, resumidos" },
+    confianza: { type: "NUMBER", description: "De 0 (ilegible) a 1 (perfecta)" },
+  },
+  required: ["comercializadora", "tipo", "confianza"],
+};
+
+const PROMPT_CAMPANA = `Analiza el documento adjunto: es una CAMPAÑA DE PRECIOS de una comercializadora española de luz o gas (la "tarifa" que ofrece a sus agentes o clientes), normalmente un PDF con tablas de precios.
+Reglas:
+- comercializadora: la empresa que ofrece la campaña (membrete o pie del documento).
+- tipo: "luz" si es electricidad (habrá término de energía en €/kWh y de potencia en €/kW), "gas" si es gas natural (solo energía).
+- nombreCampana: el nombre comercial de la oferta si aparece ("Plan Estable", "Tarifa Verano 2027"...).
+- tarifa: la tarifa de acceso a la que aplica (2.0TD, 3.0TD...) o el peaje de gas (3.1, 3.2...).
+- vigenciaDesde/vigenciaHasta: las fechas de vigencia de la campaña si se indican ("válida del 01/10/2026 al 31/12/2026"). Formato YYYY-MM-DD.
+- Energía: si la campaña tiene UN solo precio de energía, ponlo en energiaUnica. Si discrimina por tramos horarios (punta/llano/valle o P1/P2/P3), reparte los precios en energiaPunta/energiaLlano/energiaValle. Los precios SIEMPRE en €/kWh, con punto decimal (0,1432 €/kWh -> 0.1432). Ojo: si el precio viene en céntimos de €/kWh (14,32 cts), conviértelo (0.1432).
+- potenciaPunta/potenciaValle: el término de potencia, en la unidad EXACTA en que viene impreso. Si está en €/kW·día (lo habitual), pon los números tal cual y potenciaUnidad = "dia"; si está en €/kW·año, potenciaUnidad = "ano". Si solo hay un precio de potencia, ponlo en potenciaPunta.
+- IMPORTANTE: no confundas el término de energía (€/kWh) con el de potencia (€/kW·día o €/kW·año): son líneas distintas de la tabla.
+- mantenimientoMensual: la cuota fija mensual en €/mes si la tiene ("cuota de mantenimiento", "servicio", "alquiler de contador"...). Si no hay, omítelo.
+- descuento: resume los descuentos y promociones ("15 % de descuento sobre el término de energía durante 12 meses", "regalo de X €"...). Si no hay, omítelo.
+- No inventes datos: si un campo no aparece en el documento, omítelo. Si hay varias campañas o tarifas en el documento, extrae la PRINCIPAL (la primera o la más destacada).
+- confianza: tu seguridad global en la extracción (0 = ilegible, 1 = perfecta).`;
+
+// Lee una campaña de precios (PDF, foto o captura) y devuelve los términos
+// listos para el modal de revisión. La campaña nace siempre "pendiente":
+// nada se publica sin que el usuario lo confirme.
+export async function extraerCampanaPrecios(fichero) {
+  return generarJson(fichero, PROMPT_CAMPANA, esquemaCampanaPrecios, revisarCampanaPrecios);
 }

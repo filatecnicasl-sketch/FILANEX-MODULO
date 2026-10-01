@@ -29,7 +29,7 @@ const VACIO = {
   consumoAnual: "", potenciaPunta: "", potenciaValle: "",
   precioEnergiaActual: "", precioPotenciaPuntaActual: "", precioPotenciaValleActual: "",
   costeAnualActual: "",
-  comercializadoraId: "", tarifaPropuesta: "",
+  comercializadoraId: "", tarifaPropuesta: "", campanaId: "",
   precioEnergiaPropuesta: "", precioPotenciaPuntaPropuesta: "", precioPotenciaVallePropuesta: "",
   costeAnualPropuesta: "",
   notas: "",
@@ -50,6 +50,7 @@ export default function EnergiaEstudiosPage() {
   const [comercializadoras, setComercializadoras] = useState([]);
   const [suministros, setSuministros] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [campanas, setCampanas] = useState([]);
   const [error, setError] = useState(null);
   const [q, setQ] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("todos");
@@ -96,6 +97,10 @@ export default function EnergiaEstudiosPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setClientes(Array.isArray(d) ? d : []))
       .catch(() => setClientes([]));
+    fetch("/api/energia/campanas?estado=publicada")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setCampanas(Array.isArray(d) ? d : []))
+      .catch(() => setCampanas([]));
   }, []);
 
   // ?nuevo=<suministroId> → abre el estudio precargado con los datos del CUPS.
@@ -141,6 +146,7 @@ export default function EnergiaEstudiosPage() {
       costeAnualActual: e.costeAnualActual || "",
       comercializadoraId: e.comercializadora ?? "",
       tarifaPropuesta: e.tarifaPropuesta ?? "",
+      campanaId: "",
       precioEnergiaPropuesta: e.precioEnergiaPropuesta || "",
       precioPotenciaPuntaPropuesta: e.precioPotenciaPuntaPropuesta || "",
       precioPotenciaVallePropuesta: e.precioPotenciaVallePropuesta || "",
@@ -216,6 +222,26 @@ export default function EnergiaEstudiosPage() {
 
   const poner = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const esLuz = form.tipo === "luz";
+
+  // Al elegir una campaña publicada se rellena la propuesta con sus
+  // términos (comercializadora, tarifa y precios de energía y potencia).
+  function elegirCampana(e) {
+    const id = e.target.value;
+    setForm((f) => {
+      if (!id) return { ...f, campanaId: "" };
+      const c = campanas.find((x) => x._id === id);
+      if (!c) return { ...f, campanaId: "" };
+      return {
+        ...f,
+        campanaId: id,
+        comercializadoraId: c.comercializadora ?? f.comercializadoraId,
+        tarifaPropuesta: c.tarifa ?? f.tarifaPropuesta,
+        precioEnergiaPropuesta: c.precioEnergia || "",
+        precioPotenciaPuntaPropuesta: c.precioPotenciaPunta || "",
+        precioPotenciaVallePropuesta: c.precioPotenciaValle || "",
+      };
+    });
+  }
 
   // Lee la factura del cliente con IA y precarga la situación actual del
   // estudio (comercializadora, tarifa, consumo, potencias y coste anual).
@@ -507,6 +533,26 @@ export default function EnergiaEstudiosPage() {
               {/* Propuesta */}
               <div className="rounded-xl border border-emerald-500/30 p-4 space-y-3">
                 <p className="text-sm font-semibold text-emerald-300">Tu propuesta</p>
+                {campanas.filter((c) => c.tipo === form.tipo).length > 0 && (
+                  <label className="text-sm text-slate-400 block">
+                    Usar campaña de precios
+                    <select value={form.campanaId} onChange={elegirCampana} className="input">
+                      <option value="">— Precios a mano —</option>
+                      {campanas
+                        .filter((c) => c.tipo === form.tipo)
+                        .map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.comercializadoraNombre ?? c.comercializadora?.nombre ?? "—"}
+                            {c.nombre ? ` · ${c.nombre}` : ""}
+                            {c.precioEnergia ? ` — ${c.precioEnergia} €/kWh` : ""}
+                          </option>
+                        ))}
+                    </select>
+                    <span className="block mt-1 text-xs text-slate-500">
+                      Las campañas publicadas en Energía → Campañas rellenan solas estos precios.
+                    </span>
+                  </label>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <label className="text-sm text-slate-400">
                     Comercializadora *

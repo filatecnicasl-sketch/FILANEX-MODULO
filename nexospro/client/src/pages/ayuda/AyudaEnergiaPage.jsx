@@ -123,6 +123,27 @@ export default function AyudaEnergiaPage() {
           </p>
         </Seccion>
 
+        <Seccion titulo="Campañas de precios (Energía → Campañas)">
+          <p>
+            Cuando una comercializadora te manda su <b>campaña de precios</b> (el PDF con los términos
+            de la tarifa), súbela en <b>Nueva campaña → «Leer campaña (IA)»</b>: el programa lee la
+            comercializadora, la tarifa, los precios de energía (único o por tramos punta/llano/valle),
+            la potencia, el mantenimiento, los descuentos y la vigencia. Si la potencia viene en
+            <K>€/kW·día</K> se convierte sola a <K>€/kW·año</K>.
+          </p>
+          <p>
+            Lo leído con IA <b>nace siempre «pendiente de revisión»</b>: comprueba los números (sobre
+            todo los precios) y publícala con el botón del ojo. Solo las campañas <b>publicadas</b>
+            aparecen en los estudios de ahorro, donde un selector («Usar campaña de precios») rellena
+            la propuesta en un clic.
+          </p>
+          <p>
+            También puedes dar una campaña de alta a mano: elige la unidad de potencia del documento
+            (€/kW·día o €/kW·año) y el programa la guarda ya convertida. Las campañas descartadas se
+            conservan atenuadas por si vuelven.
+          </p>
+        </Seccion>
+
         <Seccion titulo="Consumos (botón de la gráfica en Suministros)">
           <p>
             Cada CUPS lleva su <b>histórico mensual de consumo</b>: kWh e importe de la factura del
