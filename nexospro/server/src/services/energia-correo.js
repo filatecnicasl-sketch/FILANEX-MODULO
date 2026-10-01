@@ -129,8 +129,16 @@ export async function probarCorreoEntrante() {
     e.status = 400;
     throw e;
   } finally {
-    client.close().catch(() => {});
+    cerrarSeguro(client);
   }
+}
+
+// Cerrar la conexión sin estallar: si connect() falló a medias, el cliente
+// puede no tener close() disponible (o no devolver una promesa).
+function cerrarSeguro(client) {
+  try {
+    Promise.resolve(client?.close?.()).catch(() => {});
+  } catch { /* ya estaba cerrado */ }
 }
 
 // ¿Merece la pena intentar leer este correo? Sin remitentes configurados
@@ -324,7 +332,7 @@ export async function revisarCorreoCampanas() {
     e.status = 400;
     throw e;
   } finally {
-    client.close().catch(() => {});
+    cerrarSeguro(client);
   }
 }
 
