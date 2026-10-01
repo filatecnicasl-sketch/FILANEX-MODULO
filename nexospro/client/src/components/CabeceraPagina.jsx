@@ -1,10 +1,11 @@
 // El título de la página vive en la barra superior negra (vía portal) y el
-// contenido fluye en bloque ocupando todo el ancho disponible.
+// contenido fluye en bloque ocupando todo el ancho disponible. El subtítulo
+// bajo el título se retiró: el nombre de la empresa y el título bastan.
 import { useContext } from "react";
 import { createPortal } from "react-dom";
 import { CabeceraContext } from "./Layout.jsx";
 
-export default function CabeceraPagina({ titulo, descripcion, contador, children }) {
+export default function CabeceraPagina({ titulo, contador, children }) {
   const { slotTitulo } = useContext(CabeceraContext);
   if (!slotTitulo) return null; // páginas sin barra (editor de formatos)
 
@@ -25,9 +26,6 @@ export default function CabeceraPagina({ titulo, descripcion, contador, children
               <span className="text-slate-400 font-medium"> · {textoContador}</span>
             )}
           </h1>
-          {descripcion && (
-            <p className="text-[0.75rem] text-slate-500 mt-1 truncate max-w-[360px]">{descripcion}</p>
-          )}
         </>,
         slotTitulo
       )}
