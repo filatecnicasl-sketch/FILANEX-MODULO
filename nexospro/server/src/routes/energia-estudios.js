@@ -3,6 +3,9 @@ import EstudioEnergia, { calcularCosteAnual } from "../models/EstudioEnergia.js"
 import Suministro from "../models/Suministro.js";
 import Comercializadora from "../models/Comercializadora.js";
 import Tramite from "../models/Tramite.js";
+import { extraerFacturaEnergia } from "../services/ocr-gemini.js";
+import { uploadMemoria } from "../middleware/upload.js";
+import { contextoTrasSubida } from "../middleware/empresa.js";
 
 // Estudios de ahorro (Energía). Se monta dentro del router de energia, que
 // ya aplica el guard requiereModulo("energia"). Al aceptar un estudio se
@@ -108,6 +111,83 @@ router.get("/desde-suministro/:id", async (req, res, next) => {
       consumoAnual: s.consumoAnual,
       potenciaPunta: s.potenciaPunta,
       potenciaValle: s.potenciaValle,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// OCR: lee la factura del cliente (PDF o foto) con IA y devuelve el estudio
+// precargado con su situación actual (comercializadora, tarifa, consumo,
+// potencias y coste anual anualizado). Nada se guarda: el usuario revisa el
+// formulario y confirma.
+const subida = uploadMemoria;
+
+router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "Falta el fichero (campo 'documento') o el tipo no es PDF/PNG/JPG/WEBP" });
+    }
+    const extraccion = await extraerFacturaEnergia(req.file);
+
+    // Avisos para el modal (lo que conviene revisar antes de guardar).
+    const avisos = [...(extraccion._ocr?.avisos ?? [])];
+    const confianza = extraccion.confianza ?? 0;
+    if (confianza < 0.75) avisos.push(`Confianza OCR baja (${Math.round(confianza * 100)}%)`);
+
+    const cups = String(extraccion.cups ?? "").replace(/[\s-]/g, "").toUpperCase();
+    const existente = cups ? await Suministro.findOne({ cups }).lean() : null;
+    if (cups && !existente) {
+      avisos.push("El CUPS de la factura no está en la cartera: el estudio quedará sin vincular hasta que des de alta el suministro");
+    }
+
+    // Cliente: el del suministro; si no está, el titular de la factura si ya
+    // existe como cliente (por NIF exacto).
+    let clienteSugerido = null;
+    const nifTitular = String(extraccion.titular?.nif ?? "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+    if (nifTitular && !existente?.cliente) {
+      const { default: Cliente } = await import("../models/Cliente.js");
+      const cli = await Cliente.findOne({ nif: nifTitular }).lean();
+      if (cli) clienteSugerido = { _id: cli._id, nombre: cli.nombre };
+    }
+
+    // Coste anual actual: se anualiza el importe de la factura con los días
+    // que cubre. Es el número clave del estudio: el ahorro se calcula sobre él.
+    let dias = Number(extraccion.diasPeriodo) || 0;
+    if (!dias && extraccion.periodoDesde && extraccion.periodoHasta) {
+      dias = Math.round((new Date(extraccion.periodoHasta) - new Date(extraccion.periodoDesde)) / 86400000);
+    }
+    const importe = Number(extraccion.importeTotal) || 0;
+    const costeAnualActual =
+      importe > 0 && dias >= 20 && dias <= 400
+        ? Math.round((importe * 365) / dias * 100) / 100
+        : null;
+    if (importe > 0 && !costeAnualActual) {
+      avisos.push("No he podido anualizar el importe de la factura: apunta el coste anual a mano");
+    }
+
+    res.json({
+      prefill: {
+        suministro: existente?._id ?? null,
+        cups,
+        tipo: extraccion.tipo ?? existente?.tipo ?? "luz",
+        cliente: existente?.cliente ?? clienteSugerido?._id ?? null,
+        comercializadoraActual:
+          existente?.comercializadoraNombre ?? String(extraccion.comercializadora?.nombre ?? "").trim() || null,
+        tarifaActual: extraccion.tarifa ?? existente?.tarifa ?? null,
+        consumoAnual: extraccion.consumoAnual ?? existente?.consumoAnual ?? null,
+        potenciaPunta: extraccion.potenciaPunta ?? existente?.potenciaPunta ?? null,
+        potenciaValle: extraccion.potenciaValle ?? existente?.potenciaValle ?? null,
+        costeAnualActual,
+      },
+      factura: {
+        importeTotal: importe,
+        diasPeriodo: dias,
+        titular: extraccion.titular ?? {},
+        comercializadora: extraccion.comercializadora ?? {},
+      },
+      confianza,
+      avisos,
     });
   } catch (err) {
     next(err);

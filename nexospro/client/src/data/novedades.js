@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-01",
+    tipo: "mejora",
+    titulo: "Energía: los estudios leen la factura con IA",
+    detalle:
+      "En Energía → Estudios, el botón «Nuevo estudio» estrena «Leer factura (IA)»: subes el PDF o la foto de la factura del cliente y el programa rellena solo la situación actual —comercializadora, tarifa, consumo anual, potencias y el coste anual (anualizando el importe con los días que cubre)—. Si el CUPS ya está en la cartera, enlaza el estudio con el suministro y su cliente. Después solo falta elegir la propuesta y guardar: el ahorro se calcula al momento.",
+  },
+  {
+    fecha: "2026-10-01",
     tipo: "nuevo",
     titulo: "Energía: análisis de cartera (a la altura de los software de gestión energética)",
     detalle:

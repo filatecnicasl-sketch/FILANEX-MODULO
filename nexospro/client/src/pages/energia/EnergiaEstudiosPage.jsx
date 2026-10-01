@@ -57,6 +57,10 @@ export default function EnergiaEstudiosPage() {
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState(VACIO);
   const [params] = useSearchParams();
+  const [ocrFichero, setOcrFichero] = useState(null);
+  const [ocrLeyendo, setOcrLeyendo] = useState(false);
+  const [ocrAvisos, setOcrAvisos] = useState([]);
+  const [ocrResumen, setOcrResumen] = useState(null);
 
   const filtrada = (lista ?? []).filter((e) => {
     if (filtroEstado !== "todos" && e.estado !== filtroEstado) return false;
@@ -213,6 +217,45 @@ export default function EnergiaEstudiosPage() {
   const poner = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const esLuz = form.tipo === "luz";
 
+  // Lee la factura del cliente con IA y precarga la situación actual del
+  // estudio (comercializadora, tarifa, consumo, potencias y coste anual).
+  async function leerFactura(ev) {
+    ev.preventDefault();
+    if (!ocrFichero) return;
+    setOcrLeyendo(true);
+    setOcrAvisos([]);
+    setOcrResumen(null);
+    try {
+      const fd = new FormData();
+      fd.append("documento", ocrFichero);
+      const r = await fetch("/api/energia/estudios/ocr", { method: "POST", body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "No se pudo leer la factura");
+      const p = d.prefill;
+      setForm((f) => ({
+        ...f,
+        suministroId: p.suministro ?? f.suministroId,
+        tipo: p.tipo ?? f.tipo,
+        clienteId: p.cliente ?? f.clienteId,
+        comercializadoraActual: p.comercializadoraActual ?? f.comercializadoraActual,
+        tarifaActual: p.tarifaActual ?? f.tarifaActual,
+        consumoAnual: p.consumoAnual ?? f.consumoAnual,
+        potenciaPunta: p.potenciaPunta ?? f.potenciaPunta,
+        potenciaValle: p.potenciaValle ?? f.potenciaValle,
+        costeAnualActual: p.costeAnualActual ?? f.costeAnualActual,
+      }));
+      setOcrAvisos(d.avisos ?? []);
+      setOcrResumen(
+        `Factura leída: ${d.factura.titular?.nombre ?? "titular ilegible"} · ${d.factura.comercializadora?.nombre ?? "comercializadora ilegible"}` +
+          (p.costeAnualActual ? ` — coste anual estimado ${fmtEuro(p.costeAnualActual)}` : "")
+      );
+    } catch (err) {
+      setOcrAvisos([err.message]);
+    } finally {
+      setOcrLeyendo(false);
+    }
+  }
+
   return (
     <CabeceraPagina
       titulo="Estudios de ahorro"
@@ -263,7 +306,7 @@ export default function EnergiaEstudiosPage() {
                   <tr>
                     <td colSpan={7} className="text-center text-slate-500 py-8">
                       {lista.length === 0
-                        ? "Aún no hay estudios. Pídele la factura al cliente, impórtala en Suministros y abre el estudio desde allí (o créalo a mano con «Nuevo estudio»)."
+                        ? "Aún no hay estudios. Pídele la factura al cliente, dale a «Nuevo estudio» y súbela: la IA la lee y rellena la situación actual. (También puedes importarla en Suministros o crearlo a mano)."
                         : "Ningún estudio coincide con esos filtros."}
                     </td>
                   </tr>
@@ -345,6 +388,40 @@ export default function EnergiaEstudiosPage() {
             onSubmit={guardar}
           >
             <h2 className="text-lg font-bold text-white">{editando ? "Editar estudio" : "Nuevo estudio de ahorro"}</h2>
+
+            {!editando && (
+              <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-4">
+                <p className="text-sm font-semibold text-sky-300">¿Tienes la factura del cliente?</p>
+                <p className="text-xs text-slate-500 mb-2">
+                  Súbela (PDF o foto) y la leo con IA: relleno sola la situación actual —comercializadora,
+                  tarifa, consumo, potencias y el coste anual anualizado—. Luego solo falta tu propuesta.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="file"
+                    accept="application/pdf,image/png,image/jpeg,image/webp"
+                    onChange={(e) => setOcrFichero(e.target.files?.[0] ?? null)}
+                    className="text-xs text-slate-400 file:mr-2 file:rounded-md file:border-0 file:bg-slate-700 file:px-2 file:py-1 file:text-xs file:text-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={leerFactura}
+                    disabled={!ocrFichero || ocrLeyendo}
+                    className="btn-primary text-xs whitespace-nowrap disabled:opacity-50"
+                  >
+                    {ocrLeyendo ? "Leyendo factura…" : "Leer factura (IA)"}
+                  </button>
+                </div>
+                {ocrResumen && <p className="mt-2 text-xs text-emerald-300">{ocrResumen}</p>}
+                {ocrAvisos.length > 0 && (
+                  <ul className="mt-2 list-disc pl-4 text-xs text-amber-300 space-y-0.5">
+                    {ocrAvisos.map((a, i) => (
+                      <li key={i}>{a}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             <div className="grid sm:grid-cols-3 gap-3">
               <label className="text-sm text-slate-400 sm:col-span-2">

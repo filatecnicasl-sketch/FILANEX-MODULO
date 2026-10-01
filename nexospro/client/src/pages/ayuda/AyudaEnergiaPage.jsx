@@ -99,9 +99,16 @@ export default function AyudaEnergiaPage() {
 
         <Seccion titulo="Estudios de ahorro (Energía → Estudios)">
           <p>
-            La herramienta comercial: lo primero es pedirle la factura al cliente (impórtala en
-            Suministros con la IA) y después abrir el estudio. Desde la ficha del suministro, el botón de
-            la balanza abre el estudio ya cargado con su CUPS, tarifa, potencia y consumo.
+            La herramienta comercial: lo primero es pedirle la factura al cliente. Ahora tienes dos
+            formas de meterla: impórtala en Suministros con la IA (si además quieres dar de alta el
+            CUPS), o directamente en <b>Nuevo estudio → «Leer factura (IA)»</b>: subes el PDF o la foto
+            y el programa lee solo la situación actual —comercializadora, tarifa, consumo anual,
+            potencias y el <b>coste anual</b> (anualiza el importe de la factura con los días que
+            cubre)—. Revisa lo leído, elige tu propuesta a la derecha y a guardar.
+          </p>
+          <p>
+            También puedes abrir el estudio desde la ficha del suministro: el botón de la balanza lo
+            carga con su CUPS, tarifa, potencia y consumo.
           </p>
           <p>
             A la izquierda va su <b>situación actual</b> (comercializadora, precio de la energía y de la
