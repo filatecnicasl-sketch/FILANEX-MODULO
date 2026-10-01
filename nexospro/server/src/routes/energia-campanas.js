@@ -1,7 +1,16 @@
 import { Router } from "express";
 import CampanaPrecios from "../models/CampanaPrecios.js";
 import Comercializadora from "../models/Comercializadora.js";
+import Empresa from "../models/Empresa.js";
 import { extraerCampanaPrecios } from "../services/ocr-gemini.js";
+import {
+  configuracionEntrantePublica,
+  normalizarConfiguracionEntrante,
+  probarCorreoEntrante,
+  revisarCorreoCampanas,
+} from "../services/energia-correo.js";
+import { requiereRol } from "../middleware/auth.js";
+import { cifrar } from "../services/cifrado.js";
 import { uploadMemoria } from "../middleware/upload.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 
@@ -221,6 +230,64 @@ router.delete("/:id", async (req, res, next) => {
     if (!campana) return res.status(404).json({ error: "Campaña no encontrada" });
     res.json({ ok: true });
   } catch (err) {
+    next(err);
+  }
+});
+
+// --- Recogida automática por correo (Fase 2) ---
+// Configuración del buzón (IMAP/Gmail), prueba de conexión y pasada a
+// mano. La contraseña nunca sale del servidor (solo "passwordGuardada").
+
+router.get("/correo/config", async (req, res, next) => {
+  try {
+    const empresa = await Empresa.findOne().lean();
+    if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });
+    res.json(configuracionEntrantePublica(empresa));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/correo/config", requiereRol("admin"), async (req, res, next) => {
+  try {
+    const empresa = await Empresa.findOne();
+    if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });
+    let config;
+    try {
+      config = normalizarConfiguracionEntrante(req.body, empresa);
+    } catch (e) {
+      return res.status(400).json({ error: e.message });
+    }
+    const password = String(req.body.password ?? "");
+    if (password) config.passwordCifrada = cifrar(password);
+    if (!config.passwordCifrada) {
+      config.activo = false;
+      config.ultimoError = "Falta la contraseña del buzón";
+    }
+    empresa.correoEntrante = config;
+    await empresa.save();
+    res.json(configuracionEntrantePublica(empresa.toObject()));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/correo/probar", requiereRol("admin"), async (req, res, next) => {
+  try {
+    res.json(await probarCorreoEntrante());
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// Pasada a mano: conecta, procesa los correos sin leer de la carpeta y
+// devuelve el resumen (cuántas campañas nuevas, qué se ignoró...).
+router.post("/correo/revisar", async (req, res, next) => {
+  try {
+    res.json(await revisarCorreoCampanas());
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 });

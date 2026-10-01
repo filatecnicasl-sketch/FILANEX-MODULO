@@ -11,6 +11,7 @@ import uploadsRouter from "./routes/uploads.js";
 import whatsappWebhook from "./routes/whatsapp-webhook.js";
 import backupsAgente from "./routes/backups-agente.js";
 import { iniciarReintentoVerifactu } from "./services/verifactu-reintento.js";
+import { iniciarSondeoCorreosCampanas } from "./services/energia-correo.js";
 import { iniciarColaWhatsApp } from "./services/whatsapp-cola.js";
 import { iniciarCopiasSeguridad } from "./services/backup.js";
 import { iniciarVigilanciaIa, estadoSaludIa } from "./services/ia-salud.js";
@@ -166,6 +167,7 @@ const PORT = process.env.PORT || 4700;
 connectDB()
   .then(() => {
     iniciarReintentoVerifactu();
+    iniciarSondeoCorreosCampanas();
     iniciarColaWhatsApp();
     iniciarCopiasSeguridad();
     iniciarVigilanciaIa();

@@ -7,9 +7,16 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-01",
     tipo: "nuevo",
+    titulo: "Energía: las campañas de precios se recogen solas del correo",
+    detalle:
+      "En Energía → Campañas, botón «Correo»: configura el buzón donde las comercializadoras mandan sus campañas (Gmail con contraseña de aplicación o cualquier IMAP) y el programa lo revisa cada 15 minutos. Los PDF adjuntos se leen con IA y quedan como campañas «pendientes de revisión», igual que si las subieras a mano; lo que no parece una campaña (facturas, recibos…) se ignora y los correos ya tratados no se duplican. La contraseña se guarda cifrada y nunca vuelve al navegador. Hay «Probar conexión» y «Revisar ahora» para comprobarlo en el momento, y las campañas recogidas muestran el remitente y el asunto del correo.",
+  },
+  {
+    fecha: "2026-10-01",
+    tipo: "nuevo",
     titulo: "Energía: campañas de precios con lectura por IA",
     detalle:
-      "Nuevo apartado Energía → Campañas: la campaña de precios que te manda una comercializadora (el PDF con los términos de la tarifa) se sube, la IA la lee y rellena comercializadora, tarifa, precios de energía (único o por tramos punta/llano/valle), potencia, mantenimiento, descuentos y vigencia. Si la potencia viene en €/kW·día se convierte sola a €/kW·año. La campaña queda «pendiente de revisión» hasta que la compruebas y publicas; las publicadas aparecen en los estudios de ahorro con un selector que rellena la propuesta (comercializadora, tarifa y precios) en un clic. También se pueden dar de alta a mano, con la unidad de potencia que traiga el documento. (Próximamente: recogida automática del correo).",
+      "Nuevo apartado Energía → Campañas: la campaña de precios que te manda una comercializadora (el PDF con los términos de la tarifa) se sube, la IA la lee y rellena comercializadora, tarifa, precios de energía (único o por tramos punta/llano/valle), potencia, mantenimiento, descuentos y vigencia. Si la potencia viene en €/kW·día se convierte sola a €/kW·año. La campaña queda «pendiente de revisión» hasta que la compruebas y publicas; las publicadas aparecen en los estudios de ahorro con un selector que rellena la propuesta (comercializadora, tarifa y precios) en un clic. También se pueden dar de alta a mano, con la unidad de potencia que traiga el documento.",
   },
   {
     fecha: "2026-10-01",

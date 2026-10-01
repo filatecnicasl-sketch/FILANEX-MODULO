@@ -40,7 +40,16 @@ const campanaPreciosSchema = new Schema(
       enum: ["pendiente", "publicada", "descartada"],
       default: "pendiente",
     },
-    origen: { type: String, enum: ["manual", "ocr"], default: "manual" },
+    origen: { type: String, enum: ["manual", "ocr", "correo"], default: "manual" },
+    // Cuando la campaña llegó por correo: de qué mensaje salió (para poder
+    // localizarlo en el buzón si hay que revisarlo).
+    correo: {
+      messageId: String,
+      asunto: String,
+      remitente: String,
+      fecha: Date,
+      fichero: String, // nombre del adjunto del que se leyó
+    },
     notas: String,
   },
   { timestamps: true }

@@ -1,5 +1,5 @@
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
-import { Seccion, Paso, Nota, K } from "./comun.jsx";
+import { Seccion, Sub, Paso, Nota, K } from "./comun.jsx";
 
 // Manual de usuario del módulo de Energía.
 export default function AyudaEnergiaPage() {
@@ -141,6 +141,27 @@ export default function AyudaEnergiaPage() {
             También puedes dar una campaña de alta a mano: elige la unidad de potencia del documento
             (€/kW·día o €/kW·año) y el programa la guarda ya convertida. Las campañas descartadas se
             conservan atenuadas por si vuelven.
+          </p>
+          <Sub>Recogida automática por correo (botón «Correo»)</Sub>
+          <p>
+            Configura el buzón donde las comercializadoras mandan sus campañas y el programa lo revisa
+            <b> cada 15 minutos</b>: los PDF adjuntos se leen con IA y quedan como campañas pendientes de
+            revisión, igual que si las subieras a mano. Lo que no parece una campaña (asuntos de facturas,
+            recibos o pagos) se ignora, y un correo ya tratado no vuelve a procesarse aunque lo marques
+            como no leído.
+          </p>
+          <p>
+            Con <b>Gmail</b>: activa la verificación en dos pasos, permite IMAP en Ajustes de Gmail →
+            Reenvío y correo POP/IMAP y crea una <b>contraseña de aplicación</b> (Cuenta de Google →
+            Seguridad); esa es la contraseña que se guarda (cifrada, nunca se muestra de nuevo). Con un
+            correo profesional elige «Otro (IMAP)» y pon host y puerto (normalmente 993).
+          </p>
+          <p>
+            El campo <b>Carpeta</b> permite vigilar solo una etiqueta: en Gmail, crea la etiqueta
+            «Precios», filtra ahí los correos de las comercializadoras y ponla en la configuración.
+            <b> Probar conexión</b> comprueba credenciales y carpeta; <b>Revisar ahora</b> hace una
+            pasada completa en el momento. Las campañas recogidas muestran el remitente y el asunto del
+            correo, y al abrirlas ves de qué adjunto salieron.
           </p>
         </Seccion>
 

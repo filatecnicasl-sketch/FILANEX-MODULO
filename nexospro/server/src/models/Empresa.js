@@ -130,6 +130,33 @@ const empresaSchema = new Schema(
       comprobadaAt: Date,
       ultimoError: String,
     },
+    // Buzón de entrada para recoger las campañas de precios de energía que
+    // mandan las comercializadoras (Energía → Campañas). IMAP sobre la
+    // misma cuenta u otra dedicada ("precios@..."). La contraseña se guarda
+    // cifrada igual que la de envío.
+    correoEntrante: {
+      activo: { type: Boolean, default: false },
+      tipo: { type: String, enum: ["imap", "gmail"], default: "gmail" },
+      usuario: String,
+      host: String,          // gmail → imap.gmail.com
+      puerto: { type: Number, default: 993 },
+      carpeta: { type: String, default: "INBOX" }, // etiqueta/carpeta a sondear
+      passwordCifrada: String,
+      // Última pasada del sondeo (para mostrar estado en la pantalla de
+      // campañas) y su resultado.
+      ultimaPasada: Date,
+      ultimoError: String,
+      // Message-IDs ya tratados: evita duplicar campañas aunque el correo
+      // vuelva a quedar sin leer. Lista acotada (se recorta al guardar).
+      procesados: [
+        {
+          messageId: String,
+          fecha: Date,
+          resultado: String, // "campana" | "sin adjunto" | "error" | "ignorado"
+          detalle: String,
+        },
+      ],
+    },
     // Preferencias de avisos (pantalla Sistema → Notificaciones).
     notificaciones: {
       vencidas: { type: Boolean, default: true },      // facturas vencidas sin cobrar
