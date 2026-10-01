@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-01",
     tipo: "mejora",
+    titulo: "Cabeceras más limpias: sin subtítulo bajo el título",
+    detalle:
+      "Se retira la pequeña descripción que aparecía debajo del título de cada página, en todos los módulos. Ahora la barra superior muestra solo la empresa y el título de la pantalla: más limpio y más espacio para las pestañas.",
+  },
+  {
+    fecha: "2026-10-01",
+    tipo: "mejora",
     titulo: "Energía: los estudios leen la factura con IA",
     detalle:
       "En Energía → Estudios, el botón «Nuevo estudio» estrena «Leer factura (IA)»: subes el PDF o la foto de la factura del cliente y el programa rellena solo la situación actual —comercializadora, tarifa, consumo anual, potencias y el coste anual (anualizando el importe con los días que cubre)—. Si el CUPS ya está en la cartera, enlaza el estudio con el suministro y su cliente. Después solo falta elegir la propuesta y guardar: el ahorro se calcula al momento.",
