@@ -117,6 +117,17 @@ try {
 } finally {
   await mongoose.connect(`${uriBase}/filanex_plataforma`);
   const Cuenta2 = (await import("../src/models/plataforma/Cuenta.js")).default;
+  const Empresa = (await import("../src/models/Empresa.js")).default;
+  const { alsEmpresa, conexionTenant } = await import("../src/models/tenant.js");
+  const Tenant2 = (await import("../src/models/plataforma/Tenant.js")).default;
+  const tenant2 = await Tenant2.findOne({ slug: "demototal" }).lean();
+  if (tenant2) {
+    await alsEmpresa.run(
+      { conn: conexionTenant(tenant2.dbName), slug: tenant2.slug, dbName: tenant2.dbName },
+      () => Empresa.updateOne({}, { $unset: { correoEntrante: 1 } })
+    );
+    console.log("limpieza: configuración de correo temporal eliminada");
+  }
   await Cuenta2.deleteOne({ email: EMAIL });
   console.log("limpieza: cuenta temporal eliminada");
   await mongoose.disconnect();
