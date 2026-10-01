@@ -252,12 +252,15 @@ export default function EnergiaCampanasPage() {
       {lista === null ? (
         <div className="panel px-4 py-10 text-center text-slate-500">Cargando…</div>
       ) : lista.length === 0 ? (
-        <EstadoVacio
-          titulo="Sin campañas de precios"
-          descripcion="Sube el PDF con la campaña de precios que te mande la comercializadora: la IA lee los términos (energía, potencia, descuentos y vigencia), la revisas y la publicas. Después saldrá sola en los estudios de ahorro."
-          accion="Nueva campaña"
-          onAccion={abrirNueva}
-        />
+        <>
+          <EstadoVacio
+            titulo="Sin campañas de precios"
+            descripcion="Sube el PDF con la campaña de precios que te mande la comercializadora: la IA lee los términos (energía, potencia, descuentos y vigencia), la revisas y la publicas. Después saldrá sola en los estudios de ahorro."
+          />
+          <div className="mt-3 flex justify-center">
+            <button onClick={abrirNueva} className="btn-primary">Nueva campaña</button>
+          </div>
+        </>
       ) : (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
