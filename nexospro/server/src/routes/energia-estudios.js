@@ -173,7 +173,8 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
         tipo: extraccion.tipo ?? existente?.tipo ?? "luz",
         cliente: existente?.cliente ?? clienteSugerido?._id ?? null,
         comercializadoraActual:
-          existente?.comercializadoraNombre ?? String(extraccion.comercializadora?.nombre ?? "").trim() || null,
+          existente?.comercializadoraNombre ??
+          (String(extraccion.comercializadora?.nombre ?? "").trim() || null),
         tarifaActual: extraccion.tarifa ?? existente?.tarifa ?? null,
         consumoAnual: extraccion.consumoAnual ?? existente?.consumoAnual ?? null,
         potenciaPunta: extraccion.potenciaPunta ?? existente?.potenciaPunta ?? null,
