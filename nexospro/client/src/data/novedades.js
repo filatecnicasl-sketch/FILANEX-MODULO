@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-01",
     tipo: "nuevo",
+    titulo: "Energía: agenda automática del canal",
+    detalle:
+      "Nueva Agenda en el módulo de Energía (Energía → Agenda): en un vistazo, los suministros que cumplen de 7 a 10 meses desde su fecha de alta — la ventana para llamar al cliente y renovar el contrato antes del aniversario —, con los meses que lleva, los que faltan y el teléfono; junto a los contratos con fecha de fin próxima y los estudios sin respuesta de más de una semana. Se llena sola a partir de las fechas de alta y de fin de cada suministro, y el panel la resume en su sección de alertas.",
+  },
+  {
+    fecha: "2026-10-01",
+    tipo: "nuevo",
     titulo: "Energía: estudios de ahorro, consumos, autofacturas y alertas",
     detalle:
       "El módulo de Energía se completa con cuatro piezas nuevas. 1) Estudios de ahorro: situación actual del cliente frente a tu propuesta, con cálculo en vivo del coste anual y del ahorro (€ y %); al aceptarlo, el trámite de cambio de comercializadora se abre solo. 2) Consumos: cada CUPS lleva su histórico mensual de kWh e importe, con media, total anual y gráfica. 3) Autofacturas: se registran las liquidaciones que mandan las comercializadoras y se concilian automáticamente contra las comisiones calculadas, con la diferencia a la vista. 4) Alertas del canal: contratos que terminan en 60 días (nuevo campo «Fin del contrato» en suministros) y estudios enviados hace más de una semana sin respuesta, con el teléfono del cliente, directamente en el panel, que además estrena tarjetas de estudios en curso, energía gestionada en kWh y alertas.",

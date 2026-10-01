@@ -140,6 +140,27 @@ export default function AyudaEnergiaPage() {
           </p>
         </Seccion>
 
+        <Seccion titulo="Agenda (Energía → Agenda)">
+          <p>
+            La agenda automática del canal: lo que hay que hacer hoy, sin apuntar nada. Tres
+            columnas de un vistazo:
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              <b>Llamar para renovar</b>: los suministros con <b>7 a 10 meses desde la fecha de
+              alta</b> — la ventana para hablar con el cliente y renovar su contrato antes de que
+              cumpla el año y se pase a tarifa por defecto. Cada uno muestra los meses que lleva, los
+              que faltan para el aniversario y el teléfono.
+            </li>
+            <li><b>Contratos por renovar</b>: los que tienen fecha de fin en los próximos 60 días (o vencida).</li>
+            <li><b>Estudios sin respuesta</b>: los enviados hace más de una semana que siguen sin contestar.</li>
+          </ul>
+          <p>
+            Se llena sola con la fecha de alta y la fecha de fin de cada suministro; solo tienes que
+            llamar.
+          </p>
+        </Seccion>
+
         <Seccion titulo="Grupos de empresas">
           <p>
             Muchos clientes son <b>grupos de empresas</b>: varias sociedades del mismo dueño, cada una con

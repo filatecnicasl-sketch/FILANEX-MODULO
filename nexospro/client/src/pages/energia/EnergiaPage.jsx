@@ -127,9 +127,9 @@ export default function EnergiaPage() {
     {
       titulo: "Alertas",
       valor: nAlertas,
-      detalle: "renovaciones y estudios sin respuesta",
+      detalle: "renovaciones, antigüedades y estudios",
       tono: nAlertas > 0 ? "amber" : "slate",
-      to: "/energia/suministros",
+      to: "/energia/agenda",
       Icono: IconAvisos,
     },
     {
@@ -169,8 +169,30 @@ export default function EnergiaPage() {
 
       {alertas && alertas.total > 0 && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 mb-4">
-          <h2 className="text-sm font-semibold text-amber-800 mb-3">Alertas del canal</h2>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-amber-800">Alertas del canal</h2>
+            <Link to="/energia/agenda" className="text-xs font-medium text-sky-700 hover:underline">
+              Ver agenda completa
+            </Link>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {alertas.porAntiguedad?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Llamar para renovar (7-10 meses del alta)</p>
+                <ul className="space-y-1.5">
+                  {alertas.porAntiguedad.slice(0, 5).map((r) => (
+                    <li key={r._id} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-slate-700 truncate">
+                        <b>{r.clienteNombre ?? "Sin cliente"}</b> · <span className="num text-xs">{r.cups}</span>
+                      </span>
+                      <span className={`text-xs font-medium whitespace-nowrap ${r.meses >= 10 ? "text-rose-600" : "text-amber-700"}`}>
+                        {r.meses} meses{r.telefono ? ` · ${r.telefono}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {alertas.renovaciones.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Contratos por renovar</p>

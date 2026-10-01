@@ -176,6 +176,7 @@ const gruposModulos = {
     Icono: IconEnergia,
     items: [
       { to: "/energia", etiqueta: "Panel", fin: true, Icono: IconPanel, tono: "indigo" },
+      { to: "/energia/agenda", etiqueta: "Agenda", fin: true, Icono: IconAgenda, tono: "emerald" },
       { to: "/energia/suministros", etiqueta: "Suministros", fin: true, Icono: IconEnergia, tono: "amber" },
       { to: "/energia/estudios", etiqueta: "Estudios", fin: true, Icono: IconComparativas, tono: "emerald" },
       { to: "/energia/tramites", etiqueta: "Trámites", fin: true, Icono: IconFirma, tono: "sky" },
