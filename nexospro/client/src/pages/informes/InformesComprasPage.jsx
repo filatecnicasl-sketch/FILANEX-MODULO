@@ -144,7 +144,7 @@ function PorArticulo({ desde, hasta }) {
 }
 
 export default function InformesComprasPage() {
-  const { desde, hasta, atajo, cambiarFechas, aplicarAtajo } = useFiltroInforme();
+  const { desde, hasta, atajo, anyo, cambiarFechas, aplicarAtajo, cambiarAnyo } = useFiltroInforme();
   const [pestana, setPestana] = useState("proveedor");
   return (
     <>
@@ -152,7 +152,7 @@ export default function InformesComprasPage() {
         titulo="Informes de compras"
         descripcion="Facturas de proveedor validadas entre fechas: por proveedor, por artículo, por periodo y listado completo."
       />
-      <FiltroFechas desde={desde} hasta={hasta} onCambio={cambiarFechas} atajo={atajo} onAtajo={aplicarAtajo} />
+      <FiltroFechas desde={desde} hasta={hasta} onCambio={cambiarFechas} atajo={atajo} onAtajo={aplicarAtajo} anyo={anyo} onAnyo={cambiarAnyo} />
       <Pestanas pestanas={PESTANAS} activa={pestana} onCambio={setPestana} />
       {pestana === "proveedor" && <PorProveedor desde={desde} hasta={hasta} />}
       {pestana === "articulo" && <PorArticulo desde={desde} hasta={hasta} />}

@@ -20,15 +20,22 @@ const TONO_COBRO = { cobrada: "green", parcial: "amber", pendiente: "slate", anu
 export function useFiltroInforme() {
   const [[desde, hasta], setRango] = useState(rangoInicial());
   const [atajo, setAtajo] = useState("ano");
+  const [anyo, setAnyo] = useState(new Date().getFullYear());
   const cambiarFechas = (d, h) => {
     setRango([d, h]);
     setAtajo("");
   };
-  const aplicarAtajo = (clave) => {
-    setRango(ATAJOS.find((a) => a.clave === clave).rango());
+  const aplicarAtajo = (clave, anyoUsar = anyo) => {
+    setRango(ATAJOS.find((a) => a.clave === clave).rango(anyoUsar));
     setAtajo(clave);
   };
-  return { desde, hasta, atajo, cambiarFechas, aplicarAtajo };
+  // Al cambiar el año, si hay un trimestre o el año completo activos, se
+  // recalculan con el año recién elegido.
+  const cambiarAnyo = (n) => {
+    setAnyo(n);
+    if (atajo && ATAJOS.find((a) => a.clave === atajo)?.grupoAnyo) aplicarAtajo(atajo, n);
+  };
+  return { desde, hasta, atajo, anyo, cambiarFechas, aplicarAtajo, cambiarAnyo };
 }
 
 export function Pestanas({ pestanas, activa, onCambio }) {
@@ -328,7 +335,7 @@ export function Documentos({ url, nombre, titulo, desde, hasta, tituloNumero }) 
 }
 
 export default function InformesVentasPage() {
-  const { desde, hasta, atajo, cambiarFechas, aplicarAtajo } = useFiltroInforme();
+  const { desde, hasta, atajo, anyo, cambiarFechas, aplicarAtajo, cambiarAnyo } = useFiltroInforme();
   const [pestana, setPestana] = useState("cliente");
   return (
     <>
@@ -336,7 +343,7 @@ export default function InformesVentasPage() {
         titulo="Informes de ventas"
         descripcion="Facturas emitidas entre fechas: por cliente, por artículo, por periodo y listado completo."
       />
-      <FiltroFechas desde={desde} hasta={hasta} onCambio={cambiarFechas} atajo={atajo} onAtajo={aplicarAtajo} />
+      <FiltroFechas desde={desde} hasta={hasta} onCambio={cambiarFechas} atajo={atajo} onAtajo={aplicarAtajo} anyo={anyo} onAnyo={cambiarAnyo} />
       <Pestanas pestanas={PESTANAS} activa={pestana} onCambio={setPestana} />
       {pestana === "cliente" && <PorCliente desde={desde} hasta={hasta} />}
       {pestana === "articulo" && <PorArticulo desde={desde} hasta={hasta} />}

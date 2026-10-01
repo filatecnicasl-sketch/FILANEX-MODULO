@@ -44,7 +44,7 @@ function TablaIva({ titulo, filas, total, nombre }) {
 }
 
 export default function InformesIvaPage() {
-  const { desde, hasta, atajo, cambiarFechas, aplicarAtajo } = useFiltroInforme();
+  const { desde, hasta, atajo, anyo, cambiarFechas, aplicarAtajo, cambiarAnyo } = useFiltroInforme();
   const { datos, error, cargando } = useInforme("/api/informes/iva", desde, hasta);
 
   const resultado = datos?.resultado ?? 0;
@@ -56,7 +56,7 @@ export default function InformesIvaPage() {
         titulo="Resumen de IVA"
         descripcion="IVA repercutido y soportado entre fechas: la base del modelo 303 trimestral."
       />
-      <FiltroFechas desde={desde} hasta={hasta} onCambio={cambiarFechas} atajo={atajo} onAtajo={aplicarAtajo} />
+      <FiltroFechas desde={desde} hasta={hasta} onCambio={cambiarFechas} atajo={atajo} onAtajo={aplicarAtajo} anyo={anyo} onAnyo={cambiarAnyo} />
 
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
       {cargando ? (

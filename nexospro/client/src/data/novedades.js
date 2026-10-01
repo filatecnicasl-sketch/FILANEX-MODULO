@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-01",
+    tipo: "mejora",
+    titulo: "Informes: búsqueda por trimestre (1T-4T) y año completo",
+    detalle:
+      "El filtro de fechas de los informes (Ventas, Compras y Resumen de IVA) estrena un selector de año con botones 1T, 2T, 3T, 4T y «Año completo»: elige el año, pincha el trimestre y el informe se calcula de ese periodo exacto — ideal para el modelo 303 trimestral y para comparar trimestres de distintos años. Los atajos de siempre (este mes, mes pasado, este trimestre, este año) siguen igual.",
+  },
+  {
+    fecha: "2026-10-01",
     tipo: "correccion",
     titulo: "Facturas: la fecha de expedición es el día en que se valida el borrador",
     detalle:

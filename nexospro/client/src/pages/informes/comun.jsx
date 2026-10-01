@@ -12,7 +12,15 @@ export const fmtFecha = (iso) =>
 const iso = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-// Atajos del filtro: calculan desde/hasta de un vistazo.
+// Trimestre t (1-4) de un año: desde el primer día hasta el último.
+const rangoTrimestre = (anyo, t) => [
+  iso(new Date(anyo, (t - 1) * 3, 1)),
+  iso(new Date(anyo, t * 3, 0)),
+];
+
+// Atajos del filtro: calculan desde/hasta de un vistazo. Los marcados con
+// grupoAnyo (trimestres y año completo) se aplican al año elegido en el
+// selector; el resto son relativos a hoy.
 export const ATAJOS = [
   {
     clave: "mes",
@@ -47,6 +55,16 @@ export const ATAJOS = [
       return [iso(new Date(h.getFullYear(), 0, 1)), iso(h)];
     },
   },
+  { clave: "t1", etiqueta: "1T", grupoAnyo: true, rango: (anyo) => rangoTrimestre(anyo, 1) },
+  { clave: "t2", etiqueta: "2T", grupoAnyo: true, rango: (anyo) => rangoTrimestre(anyo, 2) },
+  { clave: "t3", etiqueta: "3T", grupoAnyo: true, rango: (anyo) => rangoTrimestre(anyo, 3) },
+  { clave: "t4", etiqueta: "4T", grupoAnyo: true, rango: (anyo) => rangoTrimestre(anyo, 4) },
+  {
+    clave: "ano-completo",
+    etiqueta: "Año completo",
+    grupoAnyo: true,
+    rango: (anyo) => [iso(new Date(anyo, 0, 1)), iso(new Date(anyo, 11, 31))],
+  },
   { clave: "todo", etiqueta: "Todo", rango: () => ["", ""] },
 ];
 
@@ -54,23 +72,47 @@ export function rangoInicial() {
   return ATAJOS.find((a) => a.clave === "ano").rango();
 }
 
-export function FiltroFechas({ desde, hasta, onCambio, atajo, onAtajo }) {
+const BotonAtajo = ({ activo, etiqueta, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+      activo
+        ? "bg-accent/15 text-accent border-accent/30"
+        : "bg-white/5 text-slate-400 border-white/10 hover:text-slate-200"
+    }`}
+  >
+    {etiqueta}
+  </button>
+);
+
+export function FiltroFechas({ desde, hasta, onCambio, atajo, onAtajo, anyo, onAnyo }) {
+  const anyoActual = new Date().getFullYear();
+  const anyos = Array.from({ length: 5 }, (_, i) => anyoActual - i);
+  const relativos = ATAJOS.filter((a) => !a.grupoAnyo);
+  const porAnyo = ATAJOS.filter((a) => a.grupoAnyo);
   return (
     <div className="flex flex-wrap items-end gap-2 mb-4">
       <div className="flex flex-wrap gap-1">
-        {ATAJOS.map((a) => (
-          <button
-            key={a.clave}
-            type="button"
-            onClick={() => onAtajo(a.clave)}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-              atajo === a.clave
-                ? "bg-accent/15 text-accent border-accent/30"
-                : "bg-white/5 text-slate-400 border-white/10 hover:text-slate-200"
-            }`}
-          >
-            {a.etiqueta}
-          </button>
+        {relativos.map((a) => (
+          <BotonAtajo key={a.clave} activo={atajo === a.clave} etiqueta={a.etiqueta} onClick={() => onAtajo(a.clave)} />
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        <select
+          value={anyo}
+          onChange={(e) => onAnyo(Number(e.target.value))}
+          className="input !w-auto text-xs !py-1.5"
+          title="Año al que se aplican los trimestres y el año completo"
+        >
+          {anyos.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+        {porAnyo.map((a) => (
+          <BotonAtajo key={a.clave} activo={atajo === a.clave} etiqueta={a.etiqueta} onClick={() => onAtajo(a.clave)} />
         ))}
       </div>
       <div className="flex flex-wrap gap-2">
