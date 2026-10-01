@@ -57,7 +57,15 @@ export default function EnergiaAgendaPage() {
   }, []);
 
   const vacio =
-    datos && datos.total === 0 && datos.renovaciones.length === 0 && datos.porAntiguedad.length === 0 && datos.estudiosSinRespuesta.length === 0;
+    datos &&
+    datos.total === 0 &&
+    datos.renovaciones.length === 0 &&
+    datos.porAntiguedad.length === 0 &&
+    datos.estudiosSinRespuesta.length === 0 &&
+    (datos.anomalias?.length ?? 0) === 0;
+
+  const fmtCo2 = (kg) =>
+    kg >= 1000 ? `${(kg / 1000).toLocaleString("es-ES", { maximumFractionDigits: 1 })} t CO2e` : `${Number(kg ?? 0).toLocaleString("es-ES")} kg CO2e`;
 
   return (
     <CabeceraPagina
@@ -186,11 +194,48 @@ export default function EnergiaAgendaPage() {
             </Link>
           </div>
 
+          {/* Consumos anómalos: revisión de factura / llamada al cliente */}
+          {datos.anomalias?.length > 0 && (
+            <div className="panel p-5 lg:col-span-3">
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="text-sm font-semibold text-slate-800">Consumos anómalos</h2>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                  {datos.anomalias.length}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mb-3">
+                El último mes apuntado sube 25 % o más sobre su media: posible fuga, avería o cambio de
+                actividad. Revisa la factura y llama al cliente.
+              </p>
+              <ul>
+                {datos.anomalias.map((a) => (
+                  <Fila
+                    key={`${a._id}-${a.periodo}`}
+                    izquierda={a.clienteNombre ?? "Sin cliente"}
+                    derecha={`${a.cups} · ${a.periodo}: ${a.kwh.toLocaleString("es-ES")} kWh frente a una media de ${a.mediaKwh.toLocaleString("es-ES")}`}
+                    telefono={a.telefono}
+                    chapas={
+                      <Chapa tono="bg-rose-100 text-rose-700 border-rose-200" title="Subida sobre la media de los 12 meses anteriores">
+                        +{a.desviacionPct} %
+                      </Chapa>
+                    }
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
+
           {vacio && (
             <div className="lg:col-span-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-              Todo al día: no hay suministros en ventana de renovación, fechas de fin próximas ni
-              estudios sin respuesta.
+              Todo al día: no hay suministros en ventana de renovación, fechas de fin próximas, consumos
+              anómalos ni estudios sin respuesta.
             </div>
+          )}
+
+          {datos.co2Kg > 0 && (
+            <p className="lg:col-span-3 text-xs text-slate-500 text-center">
+              Huella de CO2 estimada de la cartera (últimos 12 meses): <b className="text-slate-600">{fmtCo2(datos.co2Kg)}</b> — luz 0,19 y gas 0,202 kg CO2e/kWh, factores orientativos.
+            </p>
           )}
         </div>
       )}

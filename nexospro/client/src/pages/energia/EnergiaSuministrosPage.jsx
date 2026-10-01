@@ -10,7 +10,7 @@ import ModalConsumos from "./ModalConsumos.jsx";
 const VACIO = {
   cups: "", tipo: "luz", clienteId: "", comercializadoraId: "",
   calle: "", cp: "", ciudad: "", provincia: "",
-  tarifa: "", potenciaPunta: "", potenciaValle: "", consumoAnual: "",
+  tarifa: "", potenciaPunta: "", potenciaValle: "", consumoAnual: "", presupuestoAnual: "",
   estado: "activo", fechaAlta: "", fechaFin: "", notas: "",
 };
 
@@ -110,6 +110,7 @@ export default function EnergiaSuministrosPage() {
       potenciaPunta: s.potenciaPunta || "",
       potenciaValle: s.potenciaValle || "",
       consumoAnual: s.consumoAnual || "",
+      presupuestoAnual: s.presupuestoAnual || "",
       estado: s.estado ?? "activo",
       fechaAlta: s.fechaAlta ? new Date(s.fechaAlta).toISOString().slice(0, 10) : "",
       fechaFin: s.fechaFin ? new Date(s.fechaFin).toISOString().slice(0, 10) : "",
@@ -130,6 +131,7 @@ export default function EnergiaSuministrosPage() {
       potenciaPunta: form.potenciaPunta,
       potenciaValle: form.potenciaValle,
       consumoAnual: form.consumoAnual,
+      presupuestoAnual: form.presupuestoAnual,
       estado: form.estado,
       fechaAlta: form.fechaAlta || null,
       fechaFin: form.fechaFin || null,
@@ -214,6 +216,7 @@ export default function EnergiaSuministrosPage() {
                   <th>Comercializadora</th>
                   <th>Tarifa</th>
                   <th className="num">Potencia</th>
+                  <th className="num" title="Coste medio de los últimos 12 meses: factura ÷ kWh. Los más caros son candidatos a estudio de ahorro">€/kWh (12 m.)</th>
                   <th>Estado</th>
                   <th className="text-right">Acciones</th>
                 </tr>
@@ -221,7 +224,7 @@ export default function EnergiaSuministrosPage() {
               <tbody>
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center text-slate-500 py-6">
+                    <td colSpan={8} className="text-center text-slate-500 py-6">
                       Ningún suministro coincide con esos filtros.
                     </td>
                   </tr>
@@ -249,6 +252,28 @@ export default function EnergiaSuministrosPage() {
                       {s.tipo === "luz"
                         ? [s.potenciaPunta, s.potenciaValle].filter((p) => Number(p) > 0).map((p) => `${p} kW`).join(" / ") || "—"
                         : "—"}
+                    </td>
+                    <td className="num whitespace-nowrap">
+                      {s.costeMedioKwh ? (
+                        <span
+                          className={Number(s.costeMedioKwh) >= 0.25 ? "text-amber-300 font-semibold" : "text-slate-300"}
+                          title={
+                            Number(s.costeMedioKwh) >= 0.25
+                              ? "Contrato caro: buen candidato a estudio de ahorro"
+                              : "Facturado ÷ consumido de los últimos 12 meses"
+                          }
+                        >
+                          {Number(s.costeMedioKwh).toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} €
+                        </span>
+                      ) : (
+                        <span className="text-slate-600" title="Apunta consumos mensuales para verlo">—</span>
+                      )}
+                      {s.desviacionPresupuesto !== null && s.desviacionPresupuesto !== undefined && (
+                        <p className={`text-xs num ${s.desviacionPresupuesto > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                          {s.desviacionPresupuesto > 0 ? "+" : ""}
+                          {Number(s.desviacionPresupuesto).toLocaleString("es-ES", { maximumFractionDigits: 0 })} € vs presupuesto
+                        </p>
+                      )}
                     </td>
                     <td><Badge tono={TONO_ESTADO[s.estado]}>{s.estado}</Badge>
                       {s.fechaFin && (() => {
@@ -419,6 +444,11 @@ export default function EnergiaSuministrosPage() {
 
             <div className="grid sm:grid-cols-2 gap-3">
               <label className="text-sm text-slate-400">
+                Presupuesto anual (€)
+                <input value={form.presupuestoAnual} onChange={poner("presupuestoAnual")} className="input num" inputMode="decimal" placeholder="Lo que el cliente debería pagar al año" />
+                <span className="text-xs text-slate-500">Se compara con lo facturado en los últimos 12 meses</span>
+              </label>
+              <label className="text-sm text-slate-400">
                 Estado
                 <select value={form.estado} onChange={poner("estado")} className="input">
                   <option value="activo">Activo</option>
@@ -426,6 +456,9 @@ export default function EnergiaSuministrosPage() {
                   <option value="baja">Baja</option>
                 </select>
               </label>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
               <label className="text-sm text-slate-400">
                 Fecha de alta (comercializadora actual)
                 <input type="date" value={form.fechaAlta} onChange={poner("fechaAlta")} className="input" />

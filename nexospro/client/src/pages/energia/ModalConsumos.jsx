@@ -64,6 +64,8 @@ export default function ModalConsumos({ suministro, onCerrar }) {
   const lista = datos?.lista ?? [];
   const max = Math.max(1, ...lista.map((c) => c.kwh));
   const stats = datos?.estadisticas ?? {};
+  const fmtCo2 = (kg) =>
+    kg >= 1000 ? `${(kg / 1000).toLocaleString("es-ES", { maximumFractionDigits: 1 })} t CO2e` : `${Number(kg ?? 0).toLocaleString("es-ES", { maximumFractionDigits: 0 })} kg CO2e`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
@@ -94,6 +96,32 @@ export default function ModalConsumos({ suministro, onCerrar }) {
               <div className="rounded-xl border border-slate-600/40 p-3">
                 <p className="text-xs text-slate-500">Facturado (12 m.)</p>
                 <p className="num font-bold text-slate-100">{fmtEuro(stats.totalAnualImporte)}</p>
+              </div>
+              <div className="rounded-xl border border-slate-600/40 p-3">
+                <p className="text-xs text-slate-500">Coste medio</p>
+                <p className="num font-bold text-slate-100">
+                  {stats.costeMedioKwh
+                    ? `${Number(stats.costeMedioKwh).toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 4 })} €/kWh`
+                    : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-600/40 p-3">
+                <p className="text-xs text-slate-500">Presupuesto (12 m.)</p>
+                {stats.presupuestoAnual > 0 ? (
+                  <>
+                    <p className="num font-bold text-slate-100">{fmtEuro(stats.presupuestoAnual)}</p>
+                    <p className={`text-xs num ${stats.desviacionPresupuesto > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                      {stats.desviacionPresupuesto > 0 ? "+" : ""}
+                      {fmtEuro(stats.desviacionPresupuesto)} de desviación
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-500 mt-1">Sin presupuesto definido</p>
+                )}
+              </div>
+              <div className="rounded-xl border border-slate-600/40 p-3" title="Estimación: kWh × factor de emisión del mix eléctrico o del gas natural">
+                <p className="text-xs text-slate-500">CO2 estimado (12 m.)</p>
+                <p className="num font-bold text-slate-100">{fmtCo2(stats.co2Kg)}</p>
               </div>
             </div>
 

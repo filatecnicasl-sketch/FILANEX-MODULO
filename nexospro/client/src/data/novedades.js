@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-01",
     tipo: "nuevo",
+    titulo: "Energía: análisis de cartera (a la altura de los software de gestión energética)",
+    detalle:
+      "Tras analizar los principales software del sector (EnergyCAP, MACH Energy, JadeTrack, Snapmeter, Dexma, Smarkia…), el módulo de Energía estrena las utilidades que se repiten en todos ellos: 1) Columna €/kWh (12 meses) en Suministros — el coste medio real de cada contrato, con los más caros marcados en ámbar: tus mejores oportunidades de estudio de ahorro. 2) Presupuesto anual por suministro con la desviación respecto a lo facturado, en la ficha, en el listado y en el modal de consumos. 3) Detección de consumos anómalos: el último mes sube 25 % o más sobre su media y aparece en la Agenda y en el panel. 4) Huella de CO2 estimada de la cartera (luz 0,19 y gas 0,202 kg CO2e/kWh) en la Agenda y en la tarjeta de energía gestionada. 5) Informe de cartera imprimible o en PDF desde el panel, con resumen, distribución por comercializadora, oportunidades y pendientes de la agenda.",
+  },
+  {
+    fecha: "2026-10-01",
+    tipo: "nuevo",
     titulo: "Energía: agenda automática del canal",
     detalle:
       "Nueva Agenda en el módulo de Energía (Energía → Agenda): en un vistazo, los suministros que cumplen de 7 a 10 meses desde su fecha de alta — la ventana para llamar al cliente y renovar el contrato antes del aniversario —, con los meses que lleva, los que faltan y el teléfono; junto a los contratos con fecha de fin próxima y los estudios sin respuesta de más de una semana. Se llena sola a partir de las fechas de alta y de fin de cada suministro, y el panel la resume en su sección de alertas.",

@@ -1,9 +1,11 @@
 import { Router } from "express";
 import Suministro from "../models/Suministro.js";
 import Comercializadora from "../models/Comercializadora.js";
+import ConsumoEnergia from "../models/ConsumoEnergia.js";
 import { extraerFacturaEnergia } from "../services/ocr-gemini.js";
 import { uploadMemoria } from "../middleware/upload.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { periodoDesdeHace } from "../services/energia-stats.js";
 
 // CRUD de puntos de suministro (Energía). Se monta dentro del router de
 // energia, que ya aplica el guard requiereModulo("energia").
@@ -11,7 +13,7 @@ const router = Router();
 
 const CAMPOS = [
   "cups", "tipo", "cliente", "comercializadora", "direccion",
-  "tarifa", "potenciaPunta", "potenciaValle", "consumoAnual", "estado",
+  "tarifa", "potenciaPunta", "potenciaValle", "consumoAnual", "presupuestoAnual", "estado",
   "fechaAlta", "fechaFin", "notas",
 ];
 
@@ -23,7 +25,7 @@ function limpiar(body) {
     if (body[c] === undefined) continue;
     datos[c] = body[c];
   }
-  for (const n of ["potenciaPunta", "potenciaValle", "consumoAnual"]) {
+  for (const n of ["potenciaPunta", "potenciaValle", "consumoAnual", "presupuestoAnual"]) {
     if (datos[n] !== undefined) datos[n] = Math.max(0, Number(datos[n]) || 0);
   }
   if (datos.fechaAlta === "") datos.fechaAlta = undefined;
@@ -62,7 +64,39 @@ router.get("/", async (req, res, next) => {
       .populate("cliente", "nombre nif grupo")
       .populate("comercializadora", "nombre")
       .limit(500);
-    res.json(lista);
+
+    // Agregado de los últimos 12 meses de consumos por suministro: kWh,
+    // importe facturado, coste medio €/kWh (el "benchmarking" de la cartera)
+    // y desviación respecto al presupuesto anual.
+    const desde = periodoDesdeHace(11);
+    const agg = await ConsumoEnergia.aggregate([
+      { $match: { periodo: { $gte: desde } } },
+      {
+        $group: {
+          _id: "$suministro",
+          kwh12m: { $sum: "$kwh" },
+          importe12m: { $sum: { $ifNull: ["$importe", 0] } },
+        },
+      },
+    ]);
+    const porId = new Map(agg.map((a) => [String(a._id), a]));
+
+    const respuesta = lista.map((s) => {
+      const doc = s.toObject();
+      const a = porId.get(String(s._id));
+      const kwh12m = Math.round((a?.kwh12m ?? 0) * 100) / 100;
+      const importe12m = Math.round((a?.importe12m ?? 0) * 100) / 100;
+      doc.consumo12mKwh = kwh12m;
+      doc.importe12m = importe12m;
+      doc.costeMedioKwh =
+        kwh12m > 0 && importe12m > 0 ? Math.round((importe12m / kwh12m) * 10000) / 10000 : null;
+      doc.desviacionPresupuesto =
+        Number(s.presupuestoAnual) > 0
+          ? Math.round((importe12m - s.presupuestoAnual) * 100) / 100
+          : null;
+      return doc;
+    });
+    res.json(respuesta);
   } catch (err) {
     next(err);
   }

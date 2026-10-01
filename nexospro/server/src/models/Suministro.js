@@ -32,6 +32,7 @@ const suministroSchema = new Schema(
     potenciaPunta: { type: Number, default: 0 }, // kW contratados (luz)
     potenciaValle: { type: Number, default: 0 }, // kW contratados (luz)
     consumoAnual: { type: Number, default: 0 }, // kWh/año (dato del estudio)
+    presupuestoAnual: { type: Number, default: 0 }, // €/año objetivo: alimenta la desviación
     estado: { type: String, enum: ["activo", "inactivo", "baja"], default: "activo" },
     fechaAlta: Date, // fecha de alta con la comercializadora actual
     fechaFin: Date, // fin del contrato: alimenta las alertas de renovación

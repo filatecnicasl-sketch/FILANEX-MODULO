@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { IconEnergia, IconFirma, IconAseguradora, IconCobros, IconComparativas, IconAvisos, IconDocumentos } from "../../components/icons.jsx";
+import { BotonImprimir } from "../informes/comun.jsx";
 
 const TONOS = {
   emerald: { fondo: "bg-emerald-50", borde: "border-emerald-200", texto: "text-emerald-700", icono: "bg-emerald-100 text-emerald-600" },
@@ -105,6 +106,69 @@ export default function EnergiaPage() {
     }, {})
   ).sort((a, b) => b[1] - a[1]);
 
+  // --- Informe de cartera (imprimible / PDF) ---
+  const estudiosAceptados = estudios.filter((e) => e.estado === "aceptado");
+  const ahorroConseguido = estudiosAceptados.reduce((a, e) => a + Math.max(0, e.ahorroAnual ?? 0), 0);
+  const masCaros = activos
+    .filter((s) => s.costeMedioKwh)
+    .sort((a, b) => b.costeMedioKwh - a.costeMedioKwh)
+    .slice(0, 15);
+  const fmtNum = (n, d = 0) => Number(n ?? 0).toLocaleString("es-ES", { maximumFractionDigits: d });
+  const seccionesInforme = [
+    {
+      titulo: "Resumen de la cartera",
+      columnas: [{ etiqueta: "Concepto" }, { etiqueta: "Valor", num: true }],
+      filas: [
+        ["Suministros activos", `${activos.length} (${luz} luz / ${gas} gas)`],
+        ["Energía gestionada", `${fmtNum(kwhGestionados)} kWh/año`],
+        ["CO2 estimado (12 meses)", alertas?.co2Kg > 0 ? `${fmtNum(alertas.co2Kg / 1000, 1)} t CO2e` : "sin consumos apuntados"],
+        ["Estudios aceptados", `${estudiosAceptados.length} · ahorro conseguido ${fmtEuro(ahorroConseguido)}/año`],
+        ["Comisiones pendientes", fmtEuro(resumenComisiones?.pendiente?.total ?? 0)],
+        ["Comisiones cobradas (mes en curso)", fmtEuro(resumenComisiones?.cobradasMes?.total ?? 0)],
+      ],
+    },
+    {
+      titulo: "Suministros activos por comercializadora",
+      columnas: [{ etiqueta: "Comercializadora" }, { etiqueta: "Suministros", num: true }],
+      filas: porComercializadora.map(([nombre, n]) => [nombre, n]),
+    },
+    ...(masCaros.length > 0
+      ? [
+          {
+            titulo: "Oportunidades: contratos con mayor coste medio (últimos 12 meses)",
+            columnas: [
+              { etiqueta: "Cliente" },
+              { etiqueta: "CUPS" },
+              { etiqueta: "Comercializadora" },
+              { etiqueta: "€/kWh", num: true },
+              { etiqueta: "Facturado 12 m.", num: true },
+            ],
+            filas: masCaros.map((s) => [
+              s.clienteNombre ?? s.cliente?.nombre ?? "—",
+              s.cups,
+              s.comercializadoraNombre ?? s.comercializadora?.nombre ?? "—",
+              `${fmtNum(s.costeMedioKwh, 4)} €`,
+              fmtEuro(s.importe12m),
+            ]),
+          },
+        ]
+      : []),
+    ...(alertas && alertas.total > 0
+      ? [
+          {
+            titulo: "Pendientes de la agenda",
+            columnas: [{ etiqueta: "Tipo" }, { etiqueta: "Suministro / cliente" }, { etiqueta: "Detalle" }],
+            filas: [
+              ...alertas.porAntiguedad.map((r) => ["Renovar (antigüedad)", `${r.cups} — ${r.clienteNombre ?? ""}`, `${r.meses} meses desde el alta`]),
+              ...alertas.renovaciones.map((r) => ["Renovar (fin de contrato)", `${r.cups} — ${r.clienteNombre ?? ""}`, r.dias < 0 ? "vencido" : `fin en ${r.dias} días`]),
+              ...(alertas.anomalias ?? []).map((a) => ["Consumo anómalo", `${a.cups} — ${a.clienteNombre ?? ""}`, `${a.periodo}: +${a.desviacionPct} % sobre su media`]),
+              ...alertas.estudiosSinRespuesta.map((e) => ["Estudio sin respuesta", e.clienteNombre ?? "", `enviado hace ${e.dias} días`]),
+            ],
+          },
+        ]
+      : []),
+  ];
+
   const tarjetas = [
     { titulo: "Suministros activos", valor: activos.length, detalle: `${luz} de luz · ${gas} de gas`, tono: "emerald", to: "/energia/suministros", Icono: IconEnergia },
     { titulo: "Trámites en curso", valor: tramitesEnCurso, detalle: "altas, cambios y bajas en marcha", tono: "sky", to: "/energia/tramites", Icono: IconFirma },
@@ -135,7 +199,10 @@ export default function EnergiaPage() {
     {
       titulo: "Energía gestionada",
       valor: `${Number(kwhGestionados).toLocaleString("es-ES")} kWh`,
-      detalle: "consumo anual de la cartera activa",
+      detalle:
+        alertas?.co2Kg > 0
+          ? `consumo anual de la cartera activa · ≈ ${(alertas.co2Kg / 1000).toLocaleString("es-ES", { maximumFractionDigits: 1 })} t CO2/año`
+          : "consumo anual de la cartera activa",
       tono: "indigo",
       to: "/energia/suministros",
       Icono: IconEnergia,
@@ -160,11 +227,21 @@ export default function EnergiaPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
-          {tarjetas.map((t) => (
-            <Tarjeta key={t.titulo} {...t} />
-          ))}
-        </div>
+        <>
+          <div className="flex justify-end mb-3 no-print">
+            <BotonImprimir
+              titulo="Informe de cartera de energía"
+              subtitulo={`Cartera de suministros a ${new Date().toLocaleDateString("es-ES")}`}
+              secciones={seccionesInforme}
+              notaFinal="Los €/kWh y el CO2 se calculan con los consumos apuntados en los últimos 12 meses (CO2 estimado: luz 0,19 y gas 0,202 kg CO2e/kWh)."
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-4">
+            {tarjetas.map((t) => (
+              <Tarjeta key={t.titulo} {...t} />
+            ))}
+          </div>
+        </>
       )}
 
       {alertas && alertas.total > 0 && (
@@ -175,7 +252,24 @@ export default function EnergiaPage() {
               Ver agenda completa
             </Link>
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            {alertas.anomalias?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Consumos anómalos (+25 % sobre su media)</p>
+                <ul className="space-y-1.5">
+                  {alertas.anomalias.slice(0, 5).map((a) => (
+                    <li key={`${a._id}-${a.periodo}`} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-slate-700 truncate">
+                        <b>{a.clienteNombre ?? "Sin cliente"}</b> · <span className="num text-xs">{a.cups}</span>
+                      </span>
+                      <span className="text-xs font-medium text-rose-600 whitespace-nowrap">
+                        {a.periodo}: +{a.desviacionPct} %
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {alertas.porAntiguedad?.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Llamar para renovar (7-10 meses del alta)</p>

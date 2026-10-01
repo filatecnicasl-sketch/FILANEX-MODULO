@@ -154,10 +154,33 @@ export default function AyudaEnergiaPage() {
             </li>
             <li><b>Contratos por renovar</b>: los que tienen fecha de fin en los próximos 60 días (o vencida).</li>
             <li><b>Estudios sin respuesta</b>: los enviados hace más de una semana que siguen sin contestar.</li>
+            <li>
+              <b>Consumos anómalos</b>: suministros cuyo último mes apuntado sube un <b>25 % o más</b> sobre su
+              media: posible fuga, avería o cambio de actividad. Revisa la factura y llama al cliente.
+            </li>
           </ul>
           <p>
-            Se llena sola con la fecha de alta y la fecha de fin de cada suministro; solo tienes que
-            llamar.
+            Se llena sola con la fecha de alta, la fecha de fin y los consumos de cada suministro; solo
+            tienes que llamar. Al pie verás la <b>huella de CO2 estimada</b> de la cartera (factores
+            orientativos: luz 0,19 y gas 0,202 kg CO2e/kWh).
+          </p>
+        </Seccion>
+
+        <Seccion titulo="Análisis de cartera (€/kWh, presupuesto, CO2 e informe)">
+          <p>
+            En Suministros hay una columna <b>€/kWh (12 m.)</b>: lo facturado dividido por lo consumido en
+            los últimos 12 meses. Es el termómetro de cada contrato: los que salen en <b>ámbar</b> (0,25 €/kWh
+            o más) son caros y suelen ser las mejores oportunidades para un estudio de ahorro.
+          </p>
+          <p>
+            En la ficha de cada suministro puedes apuntar un <b>presupuesto anual (€)</b>: el programa lo
+            compara con lo facturado en los últimos 12 meses y te enseña la desviación (en el listado y en
+            el modal de consumos, junto al coste medio y el <b>CO2 estimado</b> de ese CUPS).
+          </p>
+          <p>
+            Desde el panel, el botón <b>Imprimir / PDF</b> genera el <b>informe de cartera</b>: resumen
+            (suministros, energía gestionada, CO2, ahorro conseguido, comisiones), distribución por
+            comercializadora, los contratos más caros y todo lo pendiente de la agenda.
           </p>
         </Seccion>
 

@@ -1,11 +1,12 @@
 import { Router } from "express";
 import ConsumoEnergia from "../models/ConsumoEnergia.js";
 import Suministro from "../models/Suministro.js";
+import { FACTOR_CO2 } from "../services/energia-stats.js";
 
 // Consumos mensuales por punto de suministro (Energía). Un registro por mes
 // y CUPS (clave única); reenviar el mismo mes lo actualiza. El listado por
-// suministro devuelve además la media y el total del último año, que es lo
-// que se usa en los estudios de ahorro.
+// suministro devuelve además la media, el total del último año, el coste
+// medio €/kWh, la desviación respecto al presupuesto anual y el CO2 estimado.
 const router = Router();
 
 const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -21,10 +22,23 @@ router.get("/suministro/:id", async (req, res, next) => {
     const ultimos12 = lista.slice(0, 12);
     const totalAnualKwh = Math.round(ultimos12.reduce((a, c) => a + c.kwh, 0) * 100) / 100;
     const totalAnualImporte = Math.round(ultimos12.reduce((a, c) => a + (c.importe || 0), 0) * 100) / 100;
+    const costeMedioKwh =
+      totalAnualKwh > 0 && totalAnualImporte > 0
+        ? Math.round((totalAnualImporte / totalAnualKwh) * 10000) / 10000
+        : null;
+    const presupuestoAnual = Number(s.presupuestoAnual) || 0;
+    const desviacionPresupuesto =
+      presupuestoAnual > 0 ? Math.round((totalAnualImporte - presupuestoAnual) * 100) / 100 : null;
+    // CO2 estimado de los últimos 12 meses según el tipo de suministro.
+    const factor = FACTOR_CO2[s.tipo] ?? FACTOR_CO2.luz;
+    const co2Kg = Math.round(totalAnualKwh * factor);
     res.json({
       suministro: { _id: s._id, cups: s.cups, tipo: s.tipo, clienteNombre: s.clienteNombre },
       lista,
-      estadisticas: { n, mediaKwh, totalAnualKwh, totalAnualImporte },
+      estadisticas: {
+        n, mediaKwh, totalAnualKwh, totalAnualImporte,
+        costeMedioKwh, presupuestoAnual, desviacionPresupuesto, co2Kg,
+      },
     });
   } catch (err) {
     next(err);
