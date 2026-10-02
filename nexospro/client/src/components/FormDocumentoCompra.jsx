@@ -49,7 +49,7 @@ export default function FormDocumentoCompra({
   // pagar. Si el usuario pone el total del papel, la retención ya forma
   // parte de ese ajuste: solo se muestra informativa.
   const retImporte =
-    Number(retPorc) > 0 ? Math.round((calculado.baseImponible * Number(retPorc)) / 100 * 100) / 100 : 0;
+    Number(retPorc) > 0 ? Math.round((calculado.base * Number(retPorc)) / 100 * 100) / 100 : 0;
   const totalAPagar = Math.round((calculado.total - retImporte) * 100) / 100;
 
   useEffect(() => {
