@@ -301,6 +301,72 @@ function totalesDocs(docs) {
 
 // ---------- IVA (resumen para el modelo 303) ----------
 
+// Retenciones de IRPF practicadas en facturas de compra validadas, para
+// preparar los modelos 111 (profesionales) y 115 (arrendamientos). Las
+// bases y retenciones se acumulan por modelo y por proveedor: es lo que se
+// liquida cada trimestre a Hacienda.
+router.get("/compras/retenciones", async (req, res, next) => {
+  try {
+    const filtro = {
+      estado: "validada",
+      "retencionIrpf.importe": { $gt: 0 },
+      ...rangoFechas(req.query),
+    };
+    const docs = await FacturaCompra.find(filtro)
+      .populate("proveedor", "nombre nif")
+      .sort({ fechaExpedicion: 1 })
+      .limit(500)
+      .lean();
+
+    const porModelo = { "111": { base: 0, retencion: 0, facturas: 0 }, "115": { base: 0, retencion: 0, facturas: 0 } };
+    const porProveedor = new Map();
+    for (const f of docs) {
+      const modelo = f.retencionIrpf?.modelo === "115" ? "115" : "111";
+      const base = f.baseImponible ?? 0;
+      const ret = f.retencionIrpf?.importe ?? 0;
+      porModelo[modelo].base += base;
+      porModelo[modelo].retencion += ret;
+      porModelo[modelo].facturas += 1;
+
+      const id = String(f.proveedor?._id ?? f.proveedor ?? "");
+      const clave = `${modelo}|${id}`;
+      const actual = porProveedor.get(clave) ?? {
+        nombre: f.proveedor?.nombre ?? "Sin proveedor",
+        nif: f.proveedor?.nif ?? "",
+        modelo,
+        facturas: 0,
+        base: 0,
+        retencion: 0,
+      };
+      actual.facturas += 1;
+      actual.base += base;
+      actual.retencion += ret;
+      porProveedor.set(clave, actual);
+    }
+
+    const filas = [...porProveedor.values()]
+      .map((f) => ({ ...f, base: redondear(f.base), retencion: redondear(f.retencion) }))
+      .sort((a, b) => a.modelo.localeCompare(b.modelo) || b.retencion - a.retencion);
+
+    res.json({
+      filas,
+      porModelo: {
+        "111": {
+          base: redondear(porModelo["111"].base),
+          retencion: redondear(porModelo["111"].retencion),
+          facturas: porModelo["111"].facturas,
+        },
+        "115": {
+          base: redondear(porModelo["115"].base),
+          retencion: redondear(porModelo["115"].retencion),
+          facturas: porModelo["115"].facturas,
+        },
+      },
+      totalRetencion: redondear(porModelo["111"].retencion + porModelo["115"].retencion),
+    });
+  } catch (err) { next(err); }
+});
+
 router.get("/iva", async (req, res, next) => {
   try {
     const [ventas, compras, gastos] = await Promise.all([

@@ -30,14 +30,30 @@ function conPagos(f) {
 
 // La factura del PROVEEDOR es la verdad: si su programa redondeó distinto,
 // el total del papel puede diferir unos céntimos del calculado. Se guarda
-// como ajusteRedondeo (total = base + IVA + ajuste). Más de 0,50 € de
-// diferencia ya no es un redondeo: es un error en las líneas.
+// como ajusteRedondeo (total = base + IVA + ajuste − retención). Más de
+// 0,50 € de diferencia ya no es un redondeo: es un error en las líneas.
 const MAX_AJUSTE_REDONDEO = 0.5;
+
+// Normaliza la retención de IRPF que llega del formulario/OCR: si solo
+// viene el porcentaje, calcula el importe sobre la base imponible. Si no
+// hay retención devuelve undefined.
+function normalizarRetencion(body, baseImponible) {
+  const r = body?.retencionIrpf;
+  if (!r) return undefined;
+  const porcentaje = Number(r.porcentaje) || 0;
+  if (porcentaje <= 0) return undefined;
+  const importe =
+    Number(r.importe) > 0
+      ? Math.abs(Number(r.importe))
+      : Math.round((baseImponible * porcentaje) / 100) / 100;
+  return { porcentaje, importe, modelo: r.modelo === "115" ? "115" : "111" };
+}
 
 // Devuelve null si se aplicó bien, o el mensaje de error si la diferencia
 // es demasiado grande. Espera los totales ya calculados en `fc`.
 function aplicarTotalReal(fc, totalReal) {
-  const calculado = Math.round(((fc.baseImponible ?? 0) + (fc.cuotaIva ?? 0)) * 100) / 100;
+  // El total a pagar al proveedor descuenta la retención de IRPF.
+  const calculado = Math.round(((fc.baseImponible ?? 0) + (fc.cuotaIva ?? 0) - (fc.retencionIrpf?.importe ?? 0)) * 100) / 100;
   const diff = Math.round((totalReal - calculado) * 100) / 100;
   if (Math.abs(diff) < 0.005) {
     fc.ajusteRedondeo = 0;
@@ -84,17 +100,26 @@ router.post("/", async (req, res, next) => {
     if (await ejercicioCerrado(anoDoc)) {
       return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
     }
+    const totales = calcularTotales(lineas);
+    const retencionIrpf = normalizarRetencion(req.body, totales.baseImponible);
     const factura = await FacturaCompra.create({
       proveedor,
       numeroFacturaProveedor: numeroFacturaProveedor || undefined,
       fechaExpedicion: fecha ? new Date(fecha) : new Date(),
       notas: notas || undefined,
       lineas,
-      ...calcularTotales(lineas),
+      ...totales,
+      retencionIrpf,
       estado: "pendiente_revision",
       origen: "manual",
       crearArticulos: req.body.crearArticulos !== false,
     });
+    // Con retención, el total a pagar la descuenta (reaprovecha la misma
+    // lógica del ajuste: total = base + IVA + ajuste − retención).
+    if (retencionIrpf) {
+      factura.total = Math.round((totales.total - retencionIrpf.importe) * 100) / 100;
+      await factura.save();
+    }
     if (req.body.totalReal !== undefined && req.body.totalReal !== null && req.body.totalReal !== "") {
       const errorAjuste = aplicarTotalReal(factura, Number(req.body.totalReal));
       if (errorAjuste) return res.status(400).json({ error: errorAjuste });
@@ -175,12 +200,29 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
       const sugerenciasLineas = extraccion.esGasto
         ? (extraccion.lineas ?? []).map(() => ({ articuloId: null, crear: false }))
         : await sugerirArticulos(proveedor?._id, extraccion.lineas ?? []);
-      // Si el total del papel no cuadra con base + IVA por unos céntimos
-      // (el proveedor redondeó distinto), se anota como ajuste por redondeo.
+      // Si el total del papel no cuadra con base + IVA − retención por unos
+      // céntimos (el proveedor redondeó distinto), se anota como ajuste.
+      // La retención que la IA leyó se guarda ya en la factura: el total a
+      // pagar al proveedor la descuenta.
+      const retPorc = Number(extraccion.retencionPorcentaje) || 0;
+      const retImp = Number(extraccion.retencionImporte) || 0;
+      const retencionIrpf =
+        retPorc > 0 || retImp > 0
+          ? {
+              porcentaje: retPorc,
+              importe: Math.abs(retImp),
+              modelo: extraccion.esArrendamiento ? "115" : "111",
+            }
+          : undefined;
       const ajusteOcr =
         Math.round(
-          ((extraccion.total ?? 0) - (extraccion.baseImponible ?? 0) - (extraccion.cuotaIva ?? 0)) * 100
+          ((extraccion.total ?? 0) - (extraccion.baseImponible ?? 0) - (extraccion.cuotaIva ?? 0) + (retencionIrpf?.importe ?? 0)) * 100
         ) / 100;
+      if (retencionIrpf && !(extraccion._ocr?.avisos ?? []).some((a) => a.includes("IRPF"))) {
+        avisos.push(
+          `Retención de IRPF del ${retencionIrpf.porcentaje} % (${retencionIrpf.importe.toFixed(2)} €): el total a pagar es base + IVA − retención`
+        );
+      }
       const factura = await FacturaCompra.create({
         proveedor: proveedor?._id ?? null,
         numeroFacturaProveedor: extraccion.numeroDocumento ?? null,
@@ -190,6 +232,7 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
         cuotaIva: extraccion.cuotaIva ?? 0,
         total: extraccion.total ?? 0,
         ajusteRedondeo: Math.abs(ajusteOcr) <= MAX_AJUSTE_REDONDEO ? ajusteOcr : 0,
+        retencionIrpf,
         estado: "pendiente_revision",
         origen: "ocr",
         ocr: {
@@ -267,6 +310,16 @@ router.put("/:id", async (req, res, next) => {
       fc.lineas = lineas;
       Object.assign(fc, calcularTotales(lineas));
       fc.ajusteRedondeo = 0;
+    }
+    // Retención de IRPF: se puede poner, cambiar o quitar (porcentaje 0).
+    if (req.body.retencionIrpf !== undefined) {
+      fc.retencionIrpf = normalizarRetencion(req.body, fc.baseImponible ?? 0);
+    }
+    // Con retención y sin totalReal explícito, el total a pagar la
+    // descuenta (total = base + IVA + ajuste − retención).
+    if (fc.retencionIrpf?.importe > 0) {
+      const sinRet = Math.round(((fc.baseImponible ?? 0) + (fc.cuotaIva ?? 0) + (fc.ajusteRedondeo ?? 0)) * 100) / 100;
+      fc.total = Math.round((sinRet - fc.retencionIrpf.importe) * 100) / 100;
     }
     if (req.body.totalReal !== undefined && req.body.totalReal !== null && req.body.totalReal !== "") {
       const errorAjuste = aplicarTotalReal(fc, Number(req.body.totalReal));

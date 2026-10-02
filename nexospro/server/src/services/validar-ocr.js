@@ -137,6 +137,24 @@ export function revisarDocumentoCompra(d) {
       problemas.push("hay líneas sin descripción");
     }
   }
+  // Retención de IRPF: si la leyó, debe cuadrar con la base y el porcentaje
+  // (tolera un 3 % por redondeos del proveedor) y ser un porcentaje de los
+  // que existen en la práctica.
+  const retPorc = num(d.retencionPorcentaje);
+  const retImp = num(d.retencionImporte);
+  if (retPorc > 0 || retImp > 0) {
+    const porcentajesValidos = [1, 2, 7, 15, 19];
+    if (retPorc > 0 && !porcentajesValidos.includes(retPorc)) {
+      problemas.push(`porcentaje de retención inusual (${retPorc} %)`);
+    }
+    if (retPorc > 0 && retImp > 0) {
+      const base = num(d.baseImponible) || num(d.total) / 1.21;
+      const esperado = (base * retPorc) / 100;
+      if (base > 0 && esperado > 0 && Math.abs(retImp - esperado) / esperado > 0.03) {
+        problemas.push("la retención de IRPF no cuadra con la base y el porcentaje");
+      }
+    }
+  }
   return { ok: problemas.length === 0, problemas };
 }
 

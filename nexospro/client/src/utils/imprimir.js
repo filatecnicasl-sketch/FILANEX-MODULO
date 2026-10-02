@@ -392,7 +392,9 @@ export async function imprimirContratoCortesia(p) {
 
 // Documento comercial: factura/albarán/presupuesto/pedido (venta o compra).
 // firma: { nombre, dni, imagen, fecha } → añade el bloque de entrega firmada.
-export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quienContraparte, lineas = [], notas, firma }) {
+// retencionIrpf: { porcentaje, importe } → resta la retención del total
+// (facturas de compra de profesionales y arrendamientos).
+export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quienContraparte, lineas = [], notas, firma, retencionIrpf, totalReal }) {
   const emp = await empresa();
   // La columna Dto% solo aparece si alguna línea tiene descuento.
   const conDto = lineas.some((l) => (Number(l.descuento) || 0) > 0);
@@ -411,6 +413,13 @@ export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quie
     .join("");
   const base = lineas.reduce((s, l) => s + neto(l), 0);
   const cuota = lineas.reduce((s, l) => s + neto(l) * ((Number(l.iva) || 0) / 100), 0);
+  const retImp = Number(retencionIrpf?.importe) || 0;
+  const retPorc = Number(retencionIrpf?.porcentaje) || 0;
+  const totalDoc = totalReal != null && totalReal !== "" ? Number(totalReal) : base + cuota - retImp;
+  const filaRetencion =
+    retImp > 0
+      ? `<div><span>Retención IRPF ${retPorc > 0 ? `(${retPorc}%)` : ""}</span><b>−${euros(retImp)}</b></div>`
+      : "";
   abrirVentana(
     `${tipo} ${numero ?? ""}`,
     `${cabecera(emp, tipo, numero, fecha)}
@@ -422,7 +431,8 @@ export async function imprimirDocumento({ tipo, numero, fecha, contraparte, quie
      <div class="tot">
        <div><span>Base imponible</span><b>${euros(base)}</b></div>
        <div><span>IVA</span><b>${euros(cuota)}</b></div>
-       <div class="gran"><span>TOTAL</span><b>${euros(base + cuota)}</b></div>
+       ${filaRetencion}
+       <div class="gran"><span>TOTAL${retImp > 0 ? " A PAGAR" : ""}</span><b>${euros(totalDoc)}</b></div>
      </div>
      ${notas ? `<div class="notas">${esc(notas)}</div>` : ""}
      ${firma ? `

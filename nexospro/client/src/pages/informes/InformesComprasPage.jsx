@@ -13,6 +13,7 @@ const PESTANAS = [
   { clave: "articulo", etiqueta: "Por artículo" },
   { clave: "resumen", etiqueta: "Resumen por periodo" },
   { clave: "documentos", etiqueta: "Documentos" },
+  { clave: "retenciones", etiqueta: "Retenciones IRPF" },
 ];
 
 function PorProveedor({ desde, hasta }) {
@@ -143,6 +144,102 @@ function PorArticulo({ desde, hasta }) {
   );
 }
 
+// Retenciones de IRPF practicadas a proveedores, agrupadas por modelo
+// (111 profesionales / 115 arrendamientos) para preparar la liquidación
+// trimestral. Los datos salen de las facturas de compra validadas.
+function Retenciones({ desde, hasta }) {
+  const { datos, error, cargando } = useInforme("/api/informes/compras/retenciones", desde, hasta);
+  const filas = datos?.filas ?? [];
+  const m111 = datos?.porModelo?.["111"];
+  const m115 = datos?.porModelo?.["115"];
+  const total = datos?.totalRetencion ?? 0;
+  return (
+    <div className="panel p-5">
+      <div className="flex justify-end gap-2 mb-2">
+        <BotonImprimir
+          titulo="Retenciones IRPF en compras"
+          subtitulo={textoPeriodo(desde, hasta)}
+          secciones={[
+            {
+              titulo: "Resumen por modelo",
+              columnas: [
+                { etiqueta: "Modelo" }, { etiqueta: "Concepto" }, { etiqueta: "Facturas", num: true },
+                { etiqueta: "Base", num: true }, { etiqueta: "Retención", num: true },
+              ],
+              filas: [
+                ["111", "Rendimientos de actividades profesionales", m111?.facturas ?? 0, euros(m111?.base), euros(m111?.retencion)],
+                ["115", "Arrendamientos de inmuebles urbanos", m115?.facturas ?? 0, euros(m115?.base), euros(m115?.retencion)],
+              ],
+              pie: ["TOTAL", "", (m111?.facturas ?? 0) + (m115?.facturas ?? 0), euros((m111?.base ?? 0) + (m115?.base ?? 0)), euros(total)],
+            },
+            {
+              titulo: "Detalle por proveedor",
+              columnas: [
+                { etiqueta: "Proveedor" }, { etiqueta: "NIF" }, { etiqueta: "Modelo" },
+                { etiqueta: "Facturas", num: true }, { etiqueta: "Base", num: true }, { etiqueta: "Retención", num: true },
+              ],
+              filas: filas.map((f) => [f.nombre, f.nif, f.modelo, f.facturas, euros(f.base), euros(f.retencion)]),
+            },
+          ]}
+        />
+        <BotonCSV
+          nombre="retenciones-irpf"
+          cabeceras={["Proveedor", "NIF", "Modelo", "Facturas", "Base", "Retención"]}
+          filas={filas.map((f) => [f.nombre, f.nif, f.modelo, f.facturas, f.base, f.retencion])}
+        />
+      </div>
+      {error && <p className="text-sm text-red-400">{error}</p>}
+      <div className="grid gap-3 sm:grid-cols-2 mb-4">
+        <div className="rounded-xl border border-line bg-panel2/40 p-4">
+          <p className="text-xs text-slate-500">Modelo 111 · Profesionales</p>
+          <p className="text-lg font-semibold text-white">{euros(m111?.retencion)}</p>
+          <p className="text-xs text-slate-500">
+            {m111?.facturas ?? 0} facturas · base {euros(m111?.base)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-line bg-panel2/40 p-4">
+          <p className="text-xs text-slate-500">Modelo 115 · Arrendamientos</p>
+          <p className="text-lg font-semibold text-white">{euros(m115?.retencion)}</p>
+          <p className="text-xs text-slate-500">
+            {m115?.facturas ?? 0} facturas · base {euros(m115?.base)}
+          </p>
+        </div>
+      </div>
+      <TablaInforme
+        cargando={cargando}
+        columnas={[
+          { etiqueta: "Proveedor" },
+          { etiqueta: "Modelo" },
+          { etiqueta: "Facturas", num: true },
+          { etiqueta: "Base", num: true },
+          { etiqueta: "Retención", num: true },
+        ]}
+        filas={filas.map((f) => (
+          <tr key={`${f.modelo}-${f.nif}-${f.nombre}`} className="border-b border-line/60">
+            <Td>
+              <p className="text-white">{f.nombre}</p>
+              <p className="text-xs text-slate-500">{f.nif}</p>
+            </Td>
+            <Td>{f.modelo}</Td>
+            <TdNum>{f.facturas}</TdNum>
+            <TdNum>{euros(f.base)}</TdNum>
+            <TdNum fuerte>{euros(f.retencion)}</TdNum>
+          </tr>
+        ))}
+        pie={filas.length > 0 && (
+          <>
+            <Td>TOTAL A INGRESAR</Td>
+            <Td />
+            <TdNum fuerte>{filas.reduce((s, f) => s + f.facturas, 0)}</TdNum>
+            <TdNum fuerte>{euros(filas.reduce((s, f) => s + f.base, 0))}</TdNum>
+            <TdNum fuerte>{euros(total)}</TdNum>
+          </>
+        )}
+      />
+    </div>
+  );
+}
+
 export default function InformesComprasPage() {
   const { desde, hasta, atajo, anyo, cambiarFechas, aplicarAtajo, cambiarAnyo } = useFiltroInforme();
   const [pestana, setPestana] = useState("proveedor");
@@ -162,6 +259,7 @@ export default function InformesComprasPage() {
       {pestana === "documentos" && (
         <Documentos url="/api/informes/compras/documentos" nombre="compras-documentos" titulo="Facturas de compra" desde={desde} hasta={hasta} tituloNumero="Nº factura" />
       )}
+      {pestana === "retenciones" && <Retenciones desde={desde} hasta={hasta} />}
     </>
   );
 }

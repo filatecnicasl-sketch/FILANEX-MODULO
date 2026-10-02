@@ -6,6 +6,9 @@ import { euros } from "./ui.jsx";
 
 // Formulario genérico de documento de COMPRA: proveedor + fecha + líneas.
 // Espejo de FormDocumento (ventas) pero con proveedores.
+// Retención de IRPF: para facturas de profesionales y arrendamientos, la
+// retención se resta del total a pagar al proveedor (base + IVA − retención).
+const PORCENTAJES_IRPF = [0, 1, 2, 7, 15, 19];
 export default function FormDocumentoCompra({
   titulo,
   url,
@@ -31,6 +34,9 @@ export default function FormDocumentoCompra({
   const [totalReal, setTotalReal] = useState(inicial?.total != null ? String(inicial.total) : "");
   // Si se desmarca, al validar no se crean artículos nuevos en el catálogo.
   const [crearArticulos, setCrearArticulos] = useState(inicial?.crearArticulos !== false);
+  // Retención de IRPF (solo si la factura la lleva): porcentaje y modelo.
+  const [retPorc, setRetPorc] = useState(inicial?.retencionIrpf?.porcentaje ?? 0);
+  const [retModelo, setRetModelo] = useState(inicial?.retencionIrpf?.modelo ?? "111");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
   const calculado = totalesDeLineas(lineas);
@@ -39,6 +45,12 @@ export default function FormDocumentoCompra({
     conTotalReal && Number.isFinite(totalRealNum)
       ? Math.round((totalRealNum - calculado.total) * 100) / 100
       : 0;
+  // La retención se calcula sobre la base imponible y se resta del total a
+  // pagar. Si el usuario pone el total del papel, la retención ya forma
+  // parte de ese ajuste: solo se muestra informativa.
+  const retImporte =
+    Number(retPorc) > 0 ? Math.round((calculado.baseImponible * Number(retPorc)) / 100 * 100) / 100 : 0;
+  const totalAPagar = Math.round((calculado.total - retImporte) * 100) / 100;
 
   useEffect(() => {
     fetch("/api/proveedores")
@@ -69,6 +81,10 @@ export default function FormDocumentoCompra({
       if (conNumeroProveedor) cuerpo[campoNumero] = numeroProveedor || undefined;
       if (conTotalReal && Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum;
       if (conTotalReal) cuerpo.crearArticulos = crearArticulos;
+      // Retención de IRPF: solo se envía si hay porcentaje.
+      if (conTotalReal && Number(retPorc) > 0) {
+        cuerpo.retencionIrpf = { porcentaje: Number(retPorc), modelo: retModelo };
+      }
       const r = await fetch(url, {
         method: metodo,
         headers: { "Content-Type": "application/json" },
@@ -131,6 +147,39 @@ export default function FormDocumentoCompra({
               <span className="text-sm text-slate-400">
                 Total calculado: <strong className="text-slate-200">{euros(calculado.total)}</strong>
               </span>
+              {/* Retención de IRPF (profesionales y arrendamientos) */}
+              <label className="text-sm text-slate-400 flex items-center gap-2">
+                Retención IRPF:
+                <select
+                  value={retPorc}
+                  onChange={(e) => setRetPorc(Number(e.target.value))}
+                  className="input w-auto py-1"
+                >
+                  {PORCENTAJES_IRPF.map((p) => (
+                    <option key={p} value={p}>
+                      {p === 0 ? "Sin retención" : `${p} %`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {Number(retPorc) > 0 && (
+                <>
+                  <span className="text-sm text-amber-300">
+                    −{euros(retImporte)} · a pagar: <strong>{euros(totalAPagar)}</strong>
+                  </span>
+                  <label className="text-sm text-slate-400 flex items-center gap-2">
+                    Modelo:
+                    <select
+                      value={retModelo}
+                      onChange={(e) => setRetModelo(e.target.value)}
+                      className="input w-auto py-1"
+                    >
+                      <option value="111">111 · Profesional</option>
+                      <option value="115">115 · Arrendamiento</option>
+                    </select>
+                  </label>
+                </>
+              )}
               <label className="text-sm text-slate-400 flex items-center gap-2">
                 Total en la factura del proveedor:
                 <input

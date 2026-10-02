@@ -15,8 +15,18 @@ const facturaCompraSchema = new Schema(
     total: { type: Number, default: 0 },
     // Diferencia en céntimos entre el total calculado (base + IVA) y el total
     // que el proveedor imprimió en SU factura, cuando redondeó distinto.
-    // Invariante: total = baseImponible + cuotaIva + ajusteRedondeo.
+    // Invariante: total = baseImponible + cuotaIva + ajusteRedondeo − retencionIrpf.importe.
     ajusteRedondeo: { type: Number, default: 0 },
+    // Retención de IRPF que el proveedor practica en su factura (típica de
+    // profesionales: asesores, técnicos... y de arrendamientos urbanos).
+    // El total a pagar al proveedor es base + IVA − retención.
+    retencionIrpf: {
+      porcentaje: { type: Number, default: 0 }, // 0, 1, 2, 7, 15, 19
+      importe: { type: Number, default: 0 },    // en positivo; se resta del total a pagar
+      // Clave del modelo a presentar: "111" rendimientos del trabajo
+      // (profesionales), "115" arrendamientos de inmuebles urbanos.
+      modelo: { type: String, enum: ["111", "115"], default: "111" },
+    },
     // Si es false, al validar NO se crean artículos nuevos en el catálogo
     // (para facturas de material que no se revende: queda solo el gasto).
     crearArticulos: { type: Boolean, default: true },

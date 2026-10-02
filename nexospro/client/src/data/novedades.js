@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-01",
     tipo: "nuevo",
+    titulo: "Compras: retenciones de IRPF en facturas de proveedor",
+    detalle:
+      "Las facturas de compra ya admiten retención de IRPF: el OCR la detecta solo en el PDF (línea «Retención IRPF −15 %» y similares) y en el formulario eliges el porcentaje (0, 1, 2, 7, 15 o 19 %) y el modelo —111 para profesionales, 115 para alquileres—; el programa calcula la retención y el total a pagar al proveedor, que es lo que luego sale en tesorería y en el PDF. Además, Informes → Compras estrena la pestaña «Retenciones IRPF»: acumulado del periodo por modelo (111/115) y por proveedor, imprimible y exportable a CSV, listo para preparar la liquidación trimestral.",
+  },
+  {
+    fecha: "2026-10-01",
+    tipo: "nuevo",
     titulo: "Energía: las campañas de precios se recogen solas del correo",
     detalle:
       "En Energía → Campañas, botón «Correo»: configura el buzón donde las comercializadoras mandan sus campañas (Gmail con contraseña de aplicación o cualquier IMAP) y el programa lo revisa cada 15 minutos. Los PDF adjuntos se leen con IA y quedan como campañas «pendientes de revisión», igual que si las subieras a mano; lo que no parece una campaña (facturas, recibos…) se ignora y los correos ya tratados no se duplican. La contraseña se guarda cifrada y nunca vuelve al navegador. Hay «Probar conexión» y «Revisar ahora» para comprobarlo en el momento, y las campañas recogidas muestran el remitente y el asunto del correo.",

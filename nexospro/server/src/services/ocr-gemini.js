@@ -119,6 +119,9 @@ const esquemaDocumento = {
     baseImponible: { type: "NUMBER" },
     cuotaIva: { type: "NUMBER" },
     total: { type: "NUMBER" },
+    retencionPorcentaje: { type: "NUMBER", description: "Porcentaje de retención de IRPF que aparece en la factura (15, 19, 7, 2, 1) o 0 si no hay" },
+    retencionImporte: { type: "NUMBER", description: "Importe de la retención de IRPF, en positivo" },
+    esArrendamiento: { type: "BOOLEAN", description: "true si es alquiler/arrendamiento de inmueble urbano (local, oficina, nave)" },
     confianza: { type: "NUMBER", description: "De 0 (ilegible) a 1 (perfecta)" },
   },
   required: ["tipoDocumento", "proveedor", "lineas", "total", "confianza"],
@@ -132,6 +135,9 @@ Reglas:
 - Fecha en formato YYYY-MM-DD. Importes numéricos sin símbolo de moneda ni separador de miles.
 - iva como porcentaje (21, 10, 4, 0). Si una línea no indica IVA, usa el tipo general del documento.
 - descuento: si la línea lleva descuento (columnas "dto", "%", "desc.", bonificaciones...), pon en precioUnitario el precio BRUTO (antes del descuento) y en descuento el porcentaje. Si el precio impreso ya es neto o no hay descuento, pon descuento 0. Así cantidad × precio × (1 - descuento/100) debe cuadrar con el importe de la línea.
+- RETENCIÓN DE IRPF: muchas facturas de profesionales (asesores, gestores, técnicos, abogados) llevan una línea "Retención IRPF −15 %" o "Ret. a cta IRPF". Si aparece, pon el porcentaje en retencionPorcentaje (15, 19, 7, 2, 1...) y el importe en positivo en retencionImporte. Si NO hay retención, omítelos. NO la metas como línea más: es un descuento fiscal del total, no una línea del documento.
+- esArrendamiento: true solo si la factura es claramente de alquiler de local, oficina o nave (arrendamiento urbano), porque esas retenciones van al modelo 115 y no al 111.
+- total: el importe final que hay que PAGAR al proveedor. Si la factura tiene retención, es base + IVA − retención (el total impreso del papel, que ya la descuenta).
 - confianza: tu seguridad global en la extracción (0 = ilegible, 1 = perfecta).
 - No inventes datos: si un campo no aparece en el documento, omítelo.`;
 

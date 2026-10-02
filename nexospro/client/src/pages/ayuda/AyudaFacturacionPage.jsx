@@ -75,6 +75,15 @@ export default function AyudaFacturacionPage() {
           <Paso n={3}>
             Si algo quedó raro, en <K>Sistema → Revisión OCR</K> tienes las lecturas pendientes de verificar.
           </Paso>
+          <Sub>Facturas con retención de IRPF</Sub>
+          <p>
+            Si el proveedor te practica retención (profesionales 7 % o 15 %, arrendamientos 19 %),
+            el OCR la detecta y rellena el porcentaje, el importe y el modelo (111 o 115) — el 115 se
+            marca solo si la factura es de un alquiler. En el formulario puedes elegir el porcentaje
+            (0, 1, 2, 7, 15 o 19 %) y el programa calcula la retención y el <b>total a pagar</b> al
+            proveedor. El acumulado trimestral por proveedor y por modelo está en
+            <K> Informes → Compras → Retenciones IRPF</K>, listo para preparar la liquidación.
+          </p>
         </Seccion>
 
         <Seccion titulo="Tesorería: cobros y pagos">

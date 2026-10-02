@@ -332,6 +332,7 @@ export default function ComprasFacturasPage() {
                   <th>Fecha</th>
                   <th>Origen</th>
                   <th>Conciliación</th>
+                  <th className="text-right">Ret. IRPF</th>
                   <th className="text-right">Total</th>
                   <th>Estado</th>
                   <th className="text-right">Acciones</th>
@@ -340,7 +341,7 @@ export default function ComprasFacturasPage() {
               <tbody>
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center text-slate-500 py-8">
+                    <td colSpan={9} className="text-center text-slate-500 py-8">
                       Ninguna factura cumple esos filtros.
                     </td>
                   </tr>
@@ -379,7 +380,22 @@ export default function ComprasFacturasPage() {
                         <span className="text-slate-600">—</span>
                       )}
                     </td>
-                    <td className="text-right text-slate-300 whitespace-nowrap num">{euros(f.total)}</td>
+                    <td className="text-right whitespace-nowrap num">
+                      {(f.retencionIrpf?.importe ?? 0) > 0 ? (
+                        <span className="text-amber-300" title={`Retención ${f.retencionIrpf.porcentaje}% sobre la base · Modelo ${f.retencionIrpf.modelo}`}>
+                          −{euros(f.retencionIrpf.importe)}
+                          <span className="text-xs text-slate-500 ms-1">({f.retencionIrpf.porcentaje}%)</span>
+                        </span>
+                      ) : (
+                        <span className="text-slate-600">—</span>
+                      )}
+                    </td>
+                    <td className="text-right text-slate-300 whitespace-nowrap num">
+                      {euros(f.total)}
+                      {(f.retencionIrpf?.importe ?? 0) > 0 && (
+                        <span className="block text-[0.6875rem] text-slate-500">a pagar al proveedor</span>
+                      )}
+                    </td>
                     <td>
                       <Badge tono={TONO[f.estado]}>{NOMBRE[f.estado] ?? f.estado}</Badge>
                     </td>
@@ -394,6 +410,8 @@ export default function ComprasFacturasPage() {
                             quienContraparte: "Proveedor",
                             lineas: f.lineas,
                             notas: f.notas,
+                            retencionIrpf: f.retencionIrpf,
+                            totalReal: f.total,
                           })
                         }
                         title="Imprimir"
@@ -449,7 +467,7 @@ export default function ComprasFacturasPage() {
                 })}
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center text-slate-500 py-8">
+                    <td colSpan={9} className="text-center text-slate-500 py-8">
                       Sin resultados para «{q}».
                     </td>
                   </tr>
@@ -491,6 +509,7 @@ export default function ComprasFacturasPage() {
             lineas: editando.lineas ?? [],
             total: editando.total,
             crearArticulos: editando.crearArticulos,
+            retencionIrpf: editando.retencionIrpf,
           }}
           onGuardado={() => { setEditando(null); cargar(); }}
           onCerrar={() => setEditando(null)}
