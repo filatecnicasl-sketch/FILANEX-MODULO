@@ -45,7 +45,7 @@ function normalizarRetencion(body, baseImponible) {
   const importe =
     Number(r.importe) > 0
       ? Math.abs(Number(r.importe))
-      : Math.round((baseImponible * porcentaje) / 100) / 100;
+      : Math.round(baseImponible * porcentaje) / 100;
   return { porcentaje, importe, modelo: r.modelo === "115" ? "115" : "111" };
 }
 
@@ -210,7 +210,12 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
         retPorc > 0 || retImp > 0
           ? {
               porcentaje: retPorc,
-              importe: Math.abs(retImp),
+              // Si la IA leyó el porcentaje pero no el importe, se calcula
+              // sobre la base imponible (céntimos redondeados).
+              importe:
+                Math.abs(retImp) > 0
+                  ? Math.abs(retImp)
+                  : Math.round((extraccion.baseImponible ?? 0) * retPorc) / 100,
               modelo: extraccion.esArrendamiento ? "115" : "111",
             }
           : undefined;

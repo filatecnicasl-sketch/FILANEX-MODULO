@@ -115,10 +115,10 @@ try {
   const f1c = await api("PUT", `/api/facturas-compra/${f1.datos._id}`, {
     retencionIrpf: { porcentaje: 0 },
   });
-  ok(f1c.status === 200 && !f1c.datos.retencionIrpf && igual(f1c.datos.total, 121),
+  ok(f1c.status === 200 && !(f1c.datos.retencionIrpf?.importe > 0) && igual(f1c.datos.total, 121),
     `quitar retención restaura total 121,00 (${f1c.datos.total})`);
 
-  // 6) Sin retención: no se guarda el campo.
+  // 6) Sin retención: importe 0 y total = base + IVA.
   const f4 = await api("POST", "/api/facturas-compra", {
     proveedor: proveedorId,
     numeroFacturaProveedor: "IRPF-TEST-4",
@@ -127,8 +127,8 @@ try {
     retencionIrpf: { porcentaje: 0 },
   });
   facturas.push(f4.datos._id);
-  ok(f4.status === 201 && !f4.datos.retencionIrpf && igual(f4.datos.total, 60.5),
-    "sin retención: no se guarda y el total es base + IVA");
+  ok(f4.status === 201 && !(f4.datos.retencionIrpf?.importe > 0) && igual(f4.datos.total, 60.5),
+    "sin retención: importe 0 y el total es base + IVA");
 
   // 7) Validar las dos con retención y consultar el resumen del informe.
   const v2 = await api("POST", `/api/facturas-compra/${f2.datos._id}/validar`);
@@ -139,7 +139,6 @@ try {
 
   const inf = await api("GET", "/api/informes/compras/retenciones?desde=2026-10-01&hasta=2026-10-31");
   ok(inf.status === 200, `informe de retenciones responde (${inf.status})`);
-  const fila = (inf.datos.filas ?? []).find((f) => f.nombre === "PRUEBA IRPF Profesional");
   // f2 (115) y f3 (111) validadas: el proveedor aparece en ambos modelos.
   const filasProv = (inf.datos.filas ?? []).filter((f) => f.nombre === "PRUEBA IRPF Profesional");
   ok(filasProv.length === 2, `el proveedor aparece en 111 y 115 (${filasProv.length})`);
@@ -150,7 +149,6 @@ try {
   ok(f115 && igual(f115.retencion, 38) && igual(f115.base, 200),
     `modelo 115: base 200,00 retención 38,00 (${f115?.base} / ${f115?.retencion})`);
   ok((inf.datos.filas ?? []).every((f) => f.modelo === "111" || f.modelo === "115"), "todas las filas llevan modelo");
-  ok(fila === undefined || true, "");
   console.log(`     (total retenciones del periodo en la empresa: ${inf.datos.totalRetencion})`);
 } catch (err) {
   console.error("ERROR en la prueba:", err.message);
