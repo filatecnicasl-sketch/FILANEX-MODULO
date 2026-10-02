@@ -320,6 +320,9 @@ router.put("/:id", async (req, res, next) => {
     if (fc.retencionIrpf?.importe > 0) {
       const sinRet = Math.round(((fc.baseImponible ?? 0) + (fc.cuotaIva ?? 0) + (fc.ajusteRedondeo ?? 0)) * 100) / 100;
       fc.total = Math.round((sinRet - fc.retencionIrpf.importe) * 100) / 100;
+    } else if (req.body.retencionIrpf !== undefined && !Array.isArray(req.body.lineas)) {
+      // Al quitar la retención (porcentaje 0) el total vuelve a base + IVA + ajuste.
+      fc.total = Math.round(((fc.baseImponible ?? 0) + (fc.cuotaIva ?? 0) + (fc.ajusteRedondeo ?? 0)) * 100) / 100;
     }
     if (req.body.totalReal !== undefined && req.body.totalReal !== null && req.body.totalReal !== "") {
       const errorAjuste = aplicarTotalReal(fc, Number(req.body.totalReal));
