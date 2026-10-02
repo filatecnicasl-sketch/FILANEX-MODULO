@@ -15,6 +15,9 @@ const CLAVE_TOKEN_OFFLINE = "filanex-token-offline";
 // Sesión persistente (opción "Mantener sesión iniciada"): pensada para el
 // móvil o tablet propio. Manda sobre sessionStorage si existe.
 const CLAVE_TOKEN_RECORDAR = "filanex-token-recordar";
+// Modo soporte: mientras un superadmin trabaja dentro de la empresa de un
+// cliente, aquí queda su token de plataforma para poder volver (por pestaña).
+const CLAVE_TOKEN_SOPORTE = "filanex-token-superadmin";
 
 function getStorage() {
   try {
@@ -87,9 +90,40 @@ export function guardarToken(token, recordar = false) {
 
 export function cerrarSesion() {
   getStorage()?.removeItem(CLAVE_TOKEN);
+  getStorage()?.removeItem(CLAVE_TOKEN_SOPORTE);
   getLocal()?.removeItem(CLAVE_TOKEN_OFFLINE);
   getLocal()?.removeItem(CLAVE_TOKEN_RECORDAR);
   location.reload();
+}
+
+// ---------- Modo soporte (superadmin dentro de la empresa de un cliente) ----------
+// El token de soporte lleva la marca "soportePara" con el nombre de la empresa.
+// La sesión "recordada" del superadmin no se toca: la de soporte nunca se
+// persiste como sesión del equipo.
+
+export function enModoSoporte() {
+  return Boolean(getStorage()?.getItem(CLAVE_TOKEN_SOPORTE)) && Boolean(payloadToken()?.soportePara);
+}
+
+export function empresaSoporte() {
+  return payloadToken()?.soportePara ?? null;
+}
+
+export function entrarComoSoporte(tokenSoporte) {
+  const actual = obtenerToken();
+  if (actual) getStorage()?.setItem(CLAVE_TOKEN_SOPORTE, actual);
+  getStorage()?.setItem(CLAVE_TOKEN, tokenSoporte);
+  getLocal()?.setItem(CLAVE_TOKEN_OFFLINE, tokenSoporte);
+  location.href = "/";
+}
+
+export function salirDeSoporte() {
+  const superior = getStorage()?.getItem(CLAVE_TOKEN_SOPORTE);
+  if (!superior) return cerrarSesion();
+  getStorage()?.removeItem(CLAVE_TOKEN_SOPORTE);
+  getStorage()?.setItem(CLAVE_TOKEN, superior);
+  getLocal()?.setItem(CLAVE_TOKEN_OFFLINE, superior);
+  location.href = "/admin";
 }
 
 // URL de la API lista para abrir en una ventana nueva (impresión de tickets,

@@ -352,6 +352,41 @@ router.put("/:id/usuarios/:cuentaId/activa", async (req, res, next) => {
   }
 });
 
+// Entrar en la empresa de un cliente como soporte: firma un token con la
+// identidad del superadmin (quien entra queda registrado en la auditoría)
+// pero el contexto de datos de la empresa destino. No crea ningún usuario
+// en la empresa del cliente ni aparece en su lista de usuarios.
+router.post("/:id/entrar", async (req, res, next) => {
+  try {
+    const tenant = await Tenant.findById(req.params.id).lean();
+    if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+    if (["inactivo", "suspendido"].includes(tenant.estado)) {
+      return res.status(400).json({ error: "La empresa no está activa" });
+    }
+    // Datos frescos de la cuenta que llama (sesion puede haber cambiado).
+    const cuenta = await Cuenta.findById(req.usuario.sub).select("nombre email rol superadmin sesion activa").lean();
+    if (!cuenta || !cuenta.activa || !cuenta.superadmin) {
+      return res.status(403).json({ error: "Solo un superadmin puede entrar como soporte" });
+    }
+    const { firmarToken } = await import("../../services/jwt.js");
+    const token = firmarToken({
+      sub: String(cuenta._id),
+      nombre: cuenta.nombre,
+      email: cuenta.email,
+      rol: "admin",
+      superadmin: true,
+      sid: cuenta.sesion,
+      t: tenant.slug,
+      tid: String(tenant._id),
+      db: tenant.dbName,
+      soportePara: tenant.nombre,
+    }, 2 * 60 * 60); // 2 horas: suficiente para revisar y salir.
+    res.json({ token, empresa: tenant.nombre, slug: tenant.slug });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.delete("/:id", async (req, res, next) => {
   try {
     const tenant = await Tenant.findById(req.params.id);

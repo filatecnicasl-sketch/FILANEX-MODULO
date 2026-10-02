@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
-import { esAdmin } from "../lib/sesion.js";
+import { esAdmin, esSuperAdmin, entrarComoSoporte } from "../lib/sesion.js";
 import { InputBusqueda, coincideBusqueda, Badge } from "../components/ui.jsx";
 
 const VACIO = {
@@ -586,6 +586,24 @@ export default function AdminTenantsPage() {
     return okEstado && okBusqueda;
   });
 
+  // Entrar en la empresa del cliente como soporte: token con el contexto de
+  // sus datos pero con la identidad del superadmin (queda en la auditoría).
+  async function entrarEnEmpresa(t) {
+    if (!window.confirm(`Vas a entrar en "${t.nombre}" con acceso completo a sus datos reales. ¿Continuar?`)) return;
+    setMensaje("Entrando…");
+    try {
+      const r = await fetch(`/api/admin/tenants/${t._id}/entrar`, { method: "POST" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setMensaje(d.error || "No se pudo entrar en la empresa.");
+        return;
+      }
+      entrarComoSoporte(d.token);
+    } catch {
+      setMensaje("No se pudo entrar en la empresa.");
+    }
+  }
+
   if (!esAdmin()) {
     return (
       <div>
@@ -727,6 +745,9 @@ export default function AdminTenantsPage() {
                   <td className="text-right whitespace-nowrap">
                     <button onClick={() => abrirEditar(t)} className="text-xs text-accent hover:underline mr-3">Editar</button>
                     <button onClick={() => setReset(t)} className="text-xs text-slate-400 hover:text-white hover:underline mr-3">Usuarios</button>
+                    {esSuperAdmin() && t.estado !== "inactivo" && t.estado !== "suspendido" && (
+                      <button onClick={() => entrarEnEmpresa(t)} className="text-xs text-violet-300 hover:text-violet-200 hover:underline mr-3">Entrar</button>
+                    )}
                     <button onClick={() => confirmarBorrar(t)} className="text-xs text-rose-400 hover:text-rose-300 hover:underline">Eliminar</button>
                   </td>
                 </tr>

@@ -16,7 +16,7 @@ import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import AsistenteChat from "./AsistenteChat.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
 import BotonActualizar from "./BotonActualizar.jsx";
-import { cerrarSesion, esSuperAdmin, payloadToken, rolUsuario } from "../lib/sesion.js";
+import { cerrarSesion, enModoSoporte, empresaSoporte, esSuperAdmin, payloadToken, rolUsuario, salirDeSoporte } from "../lib/sesion.js";
 
 // Nodo de la barra superior donde CabeceraPagina inserta (portal) el
 // título de la página. Los botones de acción van en el propio contenido.
@@ -538,6 +538,20 @@ export default function Layout() {
         {empresa?.demo && (
           <div className="no-print shrink-0 bg-rose-500 text-white text-center text-xs sm:text-sm font-bold tracking-wide py-1.5 px-3">
             MODO DEMO — estás en una empresa de demostración: todo lo que hagas aquí es de prueba, no toca ninguna empresa real
+          </div>
+        )}
+        {enModoSoporte() && (
+          <div className="no-print shrink-0 bg-violet-600 text-white text-center text-xs sm:text-sm font-semibold tracking-wide py-1.5 px-3 flex items-center justify-center gap-3">
+            <span>
+              MODO SOPORTE — estás trabajando dentro de {empresaSoporte()}: cualquier cambio afecta a los datos reales del cliente
+            </span>
+            <button
+              type="button"
+              onClick={() => salirDeSoporte()}
+              className="shrink-0 rounded-md bg-white/15 hover:bg-white/25 border border-white/30 px-2.5 py-0.5 text-xs font-bold"
+            >
+              Volver al panel
+            </button>
           </div>
         )}
         {!amplia && (

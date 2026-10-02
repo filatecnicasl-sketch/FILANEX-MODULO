@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-02",
+    tipo: "nuevo",
+    titulo: "Soporte FILANEX con acceso identificado",
+    detalle:
+      "El equipo de FILANEX puede entrar en tu empresa para ayudarte con configuraciones (plantillas, formatos, revisiones) sin crear usuarios ni compartir contraseñas: el acceso se hace desde el panel de plataforma con la identidad del técnico, queda registrado en la auditoría y mientras dura ves un aviso violeta «MODO SOPORTE» arriba con el botón para volver. Si prefieres que no entremos, dínoslo y no se usa.",
+  },
+  {
     fecha: "2026-10-01",
     tipo: "nuevo",
     titulo: "Compras: retenciones de IRPF en facturas de proveedor",
