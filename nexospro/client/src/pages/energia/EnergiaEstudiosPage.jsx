@@ -4,6 +4,7 @@ import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import { IconEditar, IconBorrar, IconCobros, IconDocumentos } from "../../components/icons.jsx";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const ESTADOS = {
   borrador: { label: "Borrador", tono: "bg-slate-400/10 text-slate-400 border-slate-400/30" },
@@ -93,10 +94,7 @@ export default function EnergiaEstudiosPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setSuministros(Array.isArray(d) ? d : []))
       .catch(() => setSuministros([]));
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => setClientes(Array.isArray(d) ? d : []))
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then((d) => setClientes(Array.isArray(d) ? d : []));
     fetch("/api/energia/campanas?estado=publicada")
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setCampanas(Array.isArray(d) ? d : []))

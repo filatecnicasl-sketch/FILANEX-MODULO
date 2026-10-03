@@ -41,6 +41,13 @@ function limpiar(body) {
 router.get("/", async (req, res, next) => {
   try {
     const q = (req.query.q ?? "").trim();
+    // Búsqueda por teléfono tolerante a espacios/separadores: escribir
+    // "600123456" encuentra el "600 123 456" guardado (y al revés).
+    const digitos = q.replace(/[\s.\-/]/g, "");
+    const escapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const patronTelefono = /^\+?\d{6,}$/.test(digitos)
+      ? digitos.split("").map(escapar).join("[\\s.\\-]?")
+      : null;
     const busqueda = q
       ? {
           $or: [
@@ -49,6 +56,8 @@ router.get("/", async (req, res, next) => {
             { email: { $regex: q, $options: "i" } },
             { codigo: { $regex: q, $options: "i" } },
             { grupo: { $regex: q, $options: "i" } },
+            { telefono: { $regex: q, $options: "i" } },
+            ...(patronTelefono ? [{ telefono: { $regex: patronTelefono } }] : []),
           ],
         }
       : {};

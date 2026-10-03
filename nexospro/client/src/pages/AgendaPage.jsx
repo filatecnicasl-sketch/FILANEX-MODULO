@@ -5,6 +5,7 @@ import SelectorContacto from "../components/SelectorContacto.jsx";
 import BotonVoz from "../components/BotonVoz.jsx";
 import AltaRapidaCliente from "../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
+import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 
@@ -380,7 +381,7 @@ export default function AgendaPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/clientes").then((r) => (r.ok ? r.json() : [])),
+      cargarClientesLigeros(),
       fetch("/api/notificaciones").then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([lista, notificaciones]) => {

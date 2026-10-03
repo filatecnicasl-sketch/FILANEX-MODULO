@@ -4,6 +4,7 @@ import SelectorContacto from "../../components/SelectorContacto.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { enterComoTab } from "../../utils/enter-tab.js";
 import { ESTADOS_OT, TRABAJOS_TALLER, aFechaInput } from "./datos.js";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 
@@ -164,7 +165,7 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
 
   useEffect(() => {
     fetch("/api/taller/vehiculos").then((r) => (r.ok ? r.json() : [])).then(setVehiculos).catch(() => setVehiculos([]));
-    fetch("/api/clientes").then((r) => (r.ok ? r.json() : [])).then(setClientes).catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
     fetch("/api/taller/aseguradoras").then((r) => (r.ok ? r.json() : [])).then(setAseguradoras).catch(() => setAseguradoras([]));
   }, []);
 

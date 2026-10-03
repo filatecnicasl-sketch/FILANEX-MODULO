@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BuscadorEntidad from "./BuscadorEntidad.jsx";
+import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
 
 // Selector de cliente/proveedor con buscador unificado (BuscadorEntidad) y
 // alta rápida completa sin salir del documento (nombre, NIF, contacto,
@@ -48,6 +49,7 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al crear");
+      if (esCliente) invalidarClientesLigeros();
       onCreado?.(datos);
       onChange(datos._id);
       setCreando(false);

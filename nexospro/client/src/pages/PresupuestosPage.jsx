@@ -8,6 +8,7 @@ import { imprimirDocumento } from "../utils/imprimir.js";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import EnviarCorreo from "../components/EnviarCorreo.jsx";
+import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
 
 const TONO = {
   borrador: "slate",
@@ -58,10 +59,10 @@ export default function PresupuestosPage() {
     try {
       const [rp, rc] = await Promise.all([
         fetch("/api/presupuestos"),
-        fetch("/api/clientes"),
+        cargarClientesLigeros(),
       ]);
       setPresupuestos(await rp.json());
-      setClientes(await rc.json());
+      setClientes(rc);
     } catch {
       setError("No se pudo conectar con la API.");
     }

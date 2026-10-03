@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
 
 // Alta de cliente desde una cita o evento, con casilla "Nuevo".
 // El alta solo se hace marcando la casilla, y exige un teléfono para poder
@@ -39,6 +40,7 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo crear el cliente");
+      invalidarClientesLigeros();
       onCreado?.(datos);
       setAbierto(false);
     } catch (e) {

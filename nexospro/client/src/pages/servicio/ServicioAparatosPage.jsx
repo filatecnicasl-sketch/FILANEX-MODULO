@@ -3,6 +3,7 @@ import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { TIPOS_APARATO, nombreTipoAparato } from "./datos.js";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 const TIPO_INICIAL = TIPOS_APARATO[0]?.clave ?? "otro";
@@ -63,10 +64,7 @@ export default function ServicioAparatosPage() {
 
   useEffect(() => {
     cargar();
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setClientes)
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
   }, []);
 
   function abrirNuevo() {

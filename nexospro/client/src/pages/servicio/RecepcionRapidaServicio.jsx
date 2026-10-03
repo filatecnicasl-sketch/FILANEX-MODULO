@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { TIPOS_APARATO, nombreTipoAparato } from "./datos.js";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import { coincideBusqueda, euros } from "../../components/ui.jsx";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 const normalizar = (s) => (s ?? "").toString().trim().toLowerCase();
@@ -50,10 +51,7 @@ export default function RecepcionRapidaServicio({ onCerrar, onCreada }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => r.json())
-      .then(setClientes)
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
     fetch("/api/servicio/citas")
       .then((r) => (r.ok ? r.json() : []))
       .then(setCitas)

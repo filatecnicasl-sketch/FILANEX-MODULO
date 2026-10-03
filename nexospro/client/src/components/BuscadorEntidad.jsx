@@ -47,11 +47,16 @@ export default function BuscadorEntidad({
   }, []);
 
   const q = normalizar(texto);
+  // Teléfono: se compara sin espacios para encontrar "600 123 456"
+  // escribiendo "600123456" (o al revés).
+  const qDigitos = q.replace(/[\s.-]/g, "");
   const filtradas = (
     q
-      ? opciones.filter(
-          (o) => normalizar(o.nombre).includes(q) || normalizar(o.nif ?? o.secundario).includes(q)
-        )
+      ? opciones.filter((o) => {
+          if (normalizar(o.nombre).includes(q) || normalizar(o.nif ?? o.secundario).includes(q)) return true;
+          const tel = normalizar(o.telefono ?? "").replace(/[\s.-]/g, "");
+          return tel.length > 0 && qDigitos.length >= 3 && tel.includes(qDigitos);
+        })
       : opciones
   ).slice(0, 50);
 

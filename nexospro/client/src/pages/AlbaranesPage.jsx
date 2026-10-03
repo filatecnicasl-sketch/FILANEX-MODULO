@@ -8,6 +8,7 @@ import { imprimirDocumento } from "../utils/imprimir.js";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import EnviarCorreo from "../components/EnviarCorreo.jsx";
+import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
 
 // Totales de un albarán a partir de sus líneas (con el descuento % aplicado).
 function totalesDe(a) {
@@ -220,10 +221,10 @@ export default function AlbaranesPage() {
     try {
       const [ra, rc] = await Promise.all([
         fetch("/api/albaranes-venta"),
-        fetch("/api/clientes"),
+        cargarClientesLigeros(),
       ]);
       setAlbaranes(await ra.json());
-      setClientes(await rc.json());
+      setClientes(rc);
       setSeleccion([]);
     } catch {
       setError("No se pudo conectar con la API.");

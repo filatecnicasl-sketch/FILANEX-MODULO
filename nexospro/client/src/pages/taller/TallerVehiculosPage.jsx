@@ -4,6 +4,7 @@ import SelectorContacto from "../../components/SelectorContacto.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { IconImprimir } from "../../components/icons.jsx";
 import { imprimirFicha } from "../../utils/imprimir.js";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 const VACIO = { matricula: "", marca: "", modelo: "", km: "", tipo: "cliente", clienteId: "", clienteNombre: "", notas: "" };
@@ -66,10 +67,7 @@ export default function TallerVehiculosPage() {
 
   useEffect(() => {
     cargar();
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setClientes)
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
     fetch("/api/taller/cortesia")
       .then((r) => (r.ok ? r.json() : []))
       .then(setPrestamos)

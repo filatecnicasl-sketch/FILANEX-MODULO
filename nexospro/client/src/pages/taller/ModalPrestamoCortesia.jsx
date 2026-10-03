@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { aFechaInput } from "./datos.js";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 
@@ -76,10 +77,7 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
         setCortesia(vehiculosLibres);
       })
       .catch(() => setCortesia([]));
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setClientes)
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
     fetch("/api/taller/ordenes?abiertas=1")
       .then((r) => (r.ok ? r.json() : []))
       .then(setOrdenes)

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { IconEditar, IconBorrar, IconOjo } from "../../components/icons.jsx";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const VACIO = {
   tipo: "cambio",
@@ -89,10 +90,7 @@ export default function EnergiaTramitesPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setSuministros(Array.isArray(d) ? d : []))
       .catch(() => setSuministros([]));
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => setClientes(Array.isArray(d) ? d : []))
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then((d) => setClientes(Array.isArray(d) ? d : []));
     fetch("/api/energia/comercializadoras")
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setComercializadoras(Array.isArray(d) ? d : []))

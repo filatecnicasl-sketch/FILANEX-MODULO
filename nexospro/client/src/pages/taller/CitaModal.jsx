@@ -6,6 +6,7 @@ import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 import { imprimirJustificanteCitaTaller } from "../../utils/imprimir-cita-taller.js";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const CLASES_PILL_ESTADO = {
   amber: "bg-amber-100 text-amber-700 border-amber-200",
@@ -191,10 +192,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const [lineasEntrada, setLineasEntrada] = useState(cita?.lineas ?? []);
 
   useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setClientes)
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
     fetch("/api/taller/vehiculos")
       .then((r) => (r.ok ? r.json() : []))
       .then(setVehiculos)

@@ -4,6 +4,7 @@ import SelectorContacto from "../../components/SelectorContacto.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { enterComoTab } from "../../utils/enter-tab.js";
 import { ESTADOS_OS, aFechaInput } from "./datos.js";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 
@@ -60,7 +61,7 @@ export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
 
   useEffect(() => {
     fetch("/api/servicio/aparatos").then((r) => (r.ok ? r.json() : [])).then(setAparatos).catch(() => setAparatos([]));
-    fetch("/api/clientes").then((r) => (r.ok ? r.json() : [])).then(setClientes).catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
   }, []);
 
   // Presupuestos abiertos del cliente elegido (se excluye esta orden para

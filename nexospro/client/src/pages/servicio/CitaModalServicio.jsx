@@ -4,6 +4,7 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 const campo = "input w-full";
 
 /** Convierte "HH:MM" a minutos desde medianoche. */
@@ -55,10 +56,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setClientes)
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then(setClientes);
     fetch("/api/servicio/aparatos")
       .then((r) => (r.ok ? r.json() : []))
       .then(setAparatos)

@@ -9,6 +9,7 @@ import SelectorContacto from "../components/SelectorContacto.jsx";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import EnviarCorreo from "../components/EnviarCorreo.jsx";
+import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
 
 const btnIcono =
   "inline-flex items-center justify-center w-6 h-6 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors";
@@ -609,10 +610,10 @@ export default function VentasPage() {
     try {
       const [rf, rc] = await Promise.all([
         fetch("/api/facturas-venta"),
-        fetch("/api/clientes"),
+        cargarClientesLigeros(),
       ]);
       setFacturas(await rf.json());
-      setClientes(await rc.json());
+      setClientes(rc);
     } catch {
       setError("No se pudo conectar con la API.");
     }

@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-03",
     tipo: "mejora",
+    titulo: "Clientes: búsqueda por teléfono y carga instantánea en los selectores",
+    detalle:
+      "Los buscadores de clientes ahora encuentran también por teléfono (escribiéndolo con o sin espacios) además de por nombre, NIF, email y código. Y la cartera se carga una sola vez y se reutiliza en todas las pantallas: al pasar de Presupuestos a Ventas o al abrir una cita, los clientes aparecen al instante en vez de volver a esperar la descarga.",
+  },
+  {
+    fecha: "2026-10-03",
+    tipo: "mejora",
     titulo: "Órdenes: modelo del vehículo, orden por último cambio y PDF de valoración",
     detalle:
       "El tablón de órdenes muestra ahora el modelo junto a la matrícula y coloca arriba la orden cuyo estado ha cambiado más recientemente. Además, cada orden permite adjuntar y abrir el PDF original de la valoración o peritación de la compañía.",

@@ -3,6 +3,7 @@ import { TRABAJOS_TALLER, aFechaInput } from "./datos.js";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { coincideBusqueda, euros } from "../../components/ui.jsx";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
 const normalizar = (s) => (s ?? "").toString().trim().toLowerCase();
@@ -42,7 +43,7 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
     let vivo = true;
     (async () => {
       const [cl, ci, ve] = await Promise.all([
-        fetch("/api/clientes").then((r) => r.json()).catch(() => []),
+        cargarClientesLigeros(),
         fetch("/api/taller/citas").then((r) => (r.ok ? r.json() : [])).catch(() => []),
         fetch("/api/taller/vehiculos").then((r) => (r.ok ? r.json() : [])).catch(() => []),
       ]);

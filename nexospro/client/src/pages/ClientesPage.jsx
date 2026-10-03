@@ -4,6 +4,7 @@ import { Avatar, EstadoVacio } from "../components/ui.jsx";
 import { IconEditar, IconBorrar, IconImprimir } from "../components/icons.jsx";
 import { imprimirFicha } from "../utils/imprimir.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
+import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
 
 const VACIO = {
   codigo: "", fechaAlta: "", nombre: "", nif: "", grupo: "", telefono: "", email: "",
@@ -476,6 +477,7 @@ export default function ClientesPage() {
       if (datos.duplicados > 0) msg += ` (${datos.duplicados} ya existían por NIF)`;
       if (datos.errores?.length > 0) msg += `. Errores: ${datos.errores[0]}`;
       setAviso(msg);
+      invalidarClientesLigeros();
       await cargar("");
     } catch (err) {
       setError(err.message);
@@ -487,7 +489,7 @@ export default function ClientesPage() {
   async function borrar(c) {
     if (!window.confirm(`¿Borrar el cliente "${c.nombre}"?`)) return;
     const r = await fetch(`/api/clientes/${c._id}`, { method: "DELETE" });
-    if (r.ok) cargar();
+    if (r.ok) { invalidarClientesLigeros(); cargar(); }
     else alert((await r.json()).error || "No se pudo borrar");
   }
 
@@ -524,7 +526,7 @@ export default function ClientesPage() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onInput={(e) => { if (!e.target.value) cargar(""); }}
-          placeholder="Buscar por nombre, NIF o código…"
+          placeholder="Buscar por nombre, NIF, teléfono, email o código…"
           className="input w-full md:w-96"
         />
       </form>
@@ -654,7 +656,7 @@ export default function ClientesPage() {
       {form && (
         <FormCliente
           inicial={form._id ? form : null}
-          onGuardado={() => { setForm(null); cargar(); }}
+          onGuardado={() => { setForm(null); invalidarClientesLigeros(); cargar(); }}
           onCerrar={() => setForm(null)}
           modulos={modulos}
           grupos={[...new Set((lista ?? []).map((c) => c.grupo).filter(Boolean))].sort()}

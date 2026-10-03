@@ -6,6 +6,7 @@ import SelectorContacto from "../../components/SelectorContacto.jsx";
 import { IconEditar, IconBorrar, IconFirma, IconGraficas, IconComparativas } from "../../components/icons.jsx";
 import ModalImportarEnergia from "./ModalImportarEnergia.jsx";
 import ModalConsumos from "./ModalConsumos.jsx";
+import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const VACIO = {
   cups: "", tipo: "luz", clienteId: "", comercializadoraId: "",
@@ -79,10 +80,7 @@ export default function EnergiaSuministrosPage() {
 
   useEffect(() => {
     cargar();
-    fetch("/api/clientes")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => setClientes(Array.isArray(d) ? d : []))
-      .catch(() => setClientes([]));
+    cargarClientesLigeros().then((d) => setClientes(Array.isArray(d) ? d : []));
     fetch("/api/energia/comercializadoras")
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setComercializadoras(Array.isArray(d) ? d : []))

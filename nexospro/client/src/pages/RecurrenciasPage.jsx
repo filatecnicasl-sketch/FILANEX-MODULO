@@ -3,6 +3,7 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import EditorLineas, { lineaVacia } from "../components/EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import { Badge } from "../components/ui.jsx";
+import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
 
 export default function RecurrenciasPage() {
   const [recurrencias, setRecurrencias] = useState([]);
@@ -23,10 +24,10 @@ export default function RecurrenciasPage() {
     try {
       const [rr, rc] = await Promise.all([
         fetch("/api/recurrencias"),
-        fetch("/api/clientes"),
+        cargarClientesLigeros(),
       ]);
       setRecurrencias(await rr.json());
-      const cls = await rc.json();
+      const cls = rc;
       setClientes(cls);
       if (!clienteId && cls.length) setClienteId(cls[0]._id);
     } catch {
