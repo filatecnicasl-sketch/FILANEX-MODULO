@@ -157,4 +157,21 @@ router.post("/", [subidaCapturas.array("capturas", 4), contextoTrasSubida], asyn
   }
 });
 
+// El usuario marca como leída la respuesta a su propuesta: se llama al
+// cerrar el aviso que salta en su pantalla principal, para que no vuelva
+// a aparecer.
+router.post("/:id/leida", async (req, res, next) => {
+  try {
+    const doc = await Propuesta.findByIdAndUpdate(
+      req.params.id,
+      { respuestaLeida: true, respuestaLeidaAt: new Date() },
+      { new: true }
+    ).lean();
+    if (!doc) return res.status(404).json({ error: "Propuesta no encontrada" });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

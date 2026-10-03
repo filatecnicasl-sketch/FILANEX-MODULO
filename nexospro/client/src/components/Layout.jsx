@@ -14,6 +14,7 @@ import {
 } from "./icons.jsx";
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import AsistenteChat from "./AsistenteChat.jsx";
+import AvisoRespuestaPropuestas from "./AvisoRespuestaPropuestas.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
 import BotonActualizar from "./BotonActualizar.jsx";
 import { cerrarSesion, enModoSoporte, empresaSoporte, esSuperAdmin, payloadToken, rolUsuario, salirDeSoporte } from "../lib/sesion.js";
@@ -641,6 +642,9 @@ export default function Layout() {
       </div>
       {/* Aviso de llamada entrante de la centralita IP (global, flotante) */}
       <LlamadaEntrante />
+      {/* Respuesta del equipo FILANEX a las propuestas del usuario (salta
+          en la pantalla principal hasta que se lee) */}
+      <AvisoRespuestaPropuestas />
       {/* Asistente IA: solo si la empresa tiene el módulo contratado */}
       {modulos.includes("asistente") && <AsistenteChat />}
     </div>

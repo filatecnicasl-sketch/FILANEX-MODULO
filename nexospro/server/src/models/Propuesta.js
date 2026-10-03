@@ -19,10 +19,15 @@ const propuestaSchema = new Schema(
     },
     // Respuesta del equipo FILANEX al autor de la propuesta: qué se ha
     // hecho (o por qué se descarta). Se muestra al usuario en su buzón
-    // de propuestas y se le intenta enviar también por correo.
+    // de propuestas, salta como aviso en su pantalla principal y se le
+    // intenta enviar también por correo.
     respuesta: { type: String, default: "", maxlength: 1500 },
     respuestaFecha: { type: Date },
     respondidaPor: { type: String, default: "" },
+    // El usuario ya ha visto la respuesta (cerró el aviso de la pantalla
+    // principal): no vuelve a saltar.
+    respuestaLeida: { type: Boolean, default: false },
+    respuestaLeidaAt: { type: Date },
   },
   { timestamps: true }
 );
