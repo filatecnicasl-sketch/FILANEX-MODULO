@@ -54,7 +54,28 @@ router.get("/", async (req, res, next) => {
       : {};
     // El cliente genérico del TPV ("Consumidor final") no aparece aquí.
     const filtro = { $and: [busqueda, { mostrador: { $ne: true } }] };
-    const lista = await Cliente.find(filtro).sort({ nombre: 1 }).limit(1000);
+
+    // ?completo=1 → ficha de Clientes: documento entero (la búsqueda con q
+    // acota el resultado).
+    if (req.query.completo === "1") {
+      const lista = await Cliente.find(filtro).sort({ nombre: 1 }).limit(5000);
+      return res.json(lista);
+    }
+
+    // Sin "completo" son las listas de selección (presupuestos, ventas,
+    // albaranes, taller, agenda…): proyección ligera y sin tope de 1000,
+    // para que el buscador encuentre a cualquier cliente de la cartera
+    // aunque haya miles de fichas (los campos pesados como notas o IBAN
+    // no hacen falta para elegir en un desplegable).
+    const lista = await Cliente.find(
+      filtro,
+      {
+        codigo: 1, nombre: 1, nif: 1, telefono: 1, email: 1, grupo: 1,
+        direccion: 1, direccionEntrega: 1, comunicaciones: 1,
+      }
+    )
+      .sort({ nombre: 1 })
+      .limit(15000);
     res.json(lista);
   } catch (err) {
     next(err);

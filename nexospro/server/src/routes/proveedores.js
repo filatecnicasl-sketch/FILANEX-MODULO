@@ -43,7 +43,19 @@ router.get("/", async (req, res, next) => {
           ],
         }
       : {};
-    const lista = await Proveedor.find(filtro).sort({ nombre: 1 }).limit(1000);
+    // ?completo=1 → ficha de Proveedores: documento entero.
+    if (req.query.completo === "1") {
+      const lista = await Proveedor.find(filtro).sort({ nombre: 1 }).limit(5000);
+      return res.json(lista);
+    }
+    // Listas de selección (compras, artículos, OCR): proyección ligera sin
+    // tope de 1000. Se conserva "alias" porque el OCR lo usa para reconocer
+    // variantes del nombre del proveedor.
+    const lista = await Proveedor.find(filtro, {
+      codigo: 1, nombre: 1, nif: 1, alias: 1, email: 1, telefono: 1, direccion: 1,
+    })
+      .sort({ nombre: 1 })
+      .limit(15000);
     res.json(lista);
   } catch (err) {
     next(err);

@@ -150,7 +150,9 @@ export default function ProveedoresPage() {
 
   async function cargar(busqueda = q) {
     try {
-      const r = await fetch(`/api/proveedores?q=${encodeURIComponent(busqueda)}`);
+      // completo=1: la ficha necesita el documento entero (IBAN, notas…);
+      // sin él la API devuelve la lista ligera de los selectores.
+      const r = await fetch(`/api/proveedores?completo=1&q=${encodeURIComponent(busqueda)}`);
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al cargar");
       setLista(datos);

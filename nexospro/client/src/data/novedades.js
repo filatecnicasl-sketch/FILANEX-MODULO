@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-03",
+    tipo: "correccion",
+    titulo: "Arreglado: los buscadores no encontraban clientes con carteras grandes",
+    detalle:
+      "Al crear un presupuesto, albarán, venta o cita, el buscador de clientes solo cargaba los primeros 1000 por orden alfabético: si tu cartera tiene miles de fichas, los nombres a partir de la «E» o la «F» no aparecían y parecía que el cliente «no estaba dado de alta». Ahora la lista se carga completa (hasta 15.000) y el buscador localiza a cualquiera por nombre, NIF, teléfono o email. Lo mismo se ha aplicado a los proveedores. La ficha de Clientes/Proveedores sigue mostrando el detalle completo como siempre.",
+  },
+  {
     fecha: "2026-10-02",
     tipo: "nuevo",
     titulo: "Soporte FILANEX con acceso identificado",
