@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-03",
     tipo: "mejora",
+    titulo: "Órdenes: modelo del vehículo, orden por último cambio y PDF de valoración",
+    detalle:
+      "El tablón de órdenes muestra ahora el modelo junto a la matrícula y coloca arriba la orden cuyo estado ha cambiado más recientemente. Además, cada orden permite adjuntar y abrir el PDF original de la valoración o peritación de la compañía.",
+  },
+  {
+    fecha: "2026-10-03",
+    tipo: "mejora",
     titulo: "Propuestas: respuesta del equipo FILANEX en tu buzón",
     detalle:
       "Cuando resolvemos una de tus propuestas, al entrar en el programa te salta una ventana con la respuesta del equipo FILANEX (qué se ha hecho y cómo usarlo); la cierras con «Entendido» y queda guardada para releerla en Ayuda → Novedades → Propuestas. Si tu empresa tiene el correo configurado, también recibes la respuesta por email.",

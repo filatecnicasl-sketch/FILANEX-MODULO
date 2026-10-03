@@ -28,6 +28,8 @@ const ordenTrabajoSchema = new Schema(
       },
     },
     estado: { type: String, enum: ESTADOS_OT, default: "recepcion", index: true },
+    // Se actualiza solo al mover la orden de estado para ordenar el tablón.
+    estadoActualizadoEn: { type: Date, default: Date.now, index: true },
     fechaEntrada: { type: Date, default: Date.now, index: true },
     fechaEntregaPrevista: Date,
     // Entrega del vehículo terminado: se rellena al pasar la orden a
@@ -38,6 +40,14 @@ const ordenTrabajoSchema = new Schema(
       avisoFecha: Date, // cuándo se le avisó
       avisoMedio: { type: String, enum: ["telefono", "whatsapp", "sms", "email", "en_persona", undefined] },
       fotos: { type: [String], default: [] }, // rutas /uploads/...
+    },
+    // PDF original de la valoración o peritación de la aseguradora.
+    valoracionPdf: {
+      ruta: String,
+      nombre: String,
+      tipo: String,
+      tamano: Number,
+      fecha: Date,
     },
     // Presupuesto de venta del que nace la orden: sus líneas se cargan en
     // la OT al vincularlo y queda marcado aceptado/facturado con ella.

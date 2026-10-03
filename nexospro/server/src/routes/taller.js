@@ -311,7 +311,7 @@ router.get("/ordenes", async (req, res, next) => {
       .populate("aseguradora", "nombre")
       .populate("vehiculo", "marca modelo color")
       .populate("cliente", "nombre nif direccion telefono email")
-      .sort({ createdAt: -1 })
+      .sort({ estadoActualizadoEn: -1, createdAt: -1 })
       .limit(300);
     res.json(lista);
   } catch (err) {
@@ -388,6 +388,10 @@ router.put("/ordenes/:id", async (req, res, next) => {
       return res.status(400).json({ error: `Estado no válido. Válidos: ${ESTADOS_OT.join(", ")}` });
     }
     const cambios = { estado, trabajos, motivo, km, clienteNombre, telefono, fechaEntregaPrevista };
+    const actual = estado !== undefined ? await OrdenTrabajo.findById(req.params.id).select("estado").lean() : null;
+    if (estado !== undefined && actual && actual.estado !== estado) {
+      cambios.estadoActualizadoEn = new Date();
+    }
     if (req.body.notasInternas !== undefined) cambios.notasInternas = req.body.notasInternas || null;
     if (req.body.fechaEntrada !== undefined) {
       cambios.fechaEntrada = req.body.fechaEntrada ? new Date(req.body.fechaEntrada) : null;
@@ -467,6 +471,51 @@ router.put("/ordenes/:id", async (req, res, next) => {
     const orden = await OrdenTrabajo.findByIdAndUpdate(req.params.id, cambios, { new: true, omitUndefined: true });
     if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
     res.json(orden);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Guarda la valoración/peritación original junto a la orden. El PDF se
+// almacena mediante el adaptador para que funcione igual en disco o R2/S3.
+router.post(
+  "/ordenes/:id/valoracion-pdf",
+  [subidaPdf.single("archivo"), contextoTrasSubida],
+  async (req, res, next) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "Selecciona un PDF" });
+      if (req.file.mimetype !== "application/pdf") {
+        return res.status(400).json({ error: "Solo se admite un archivo PDF" });
+      }
+      const orden = await OrdenTrabajo.findById(req.params.id);
+      if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
+      if (orden.valoracionPdf?.ruta) await borrarSubida(orden.valoracionPdf.ruta).catch(() => {});
+      const nombre = String(req.file.originalname || "valoracion.pdf").slice(0, 180);
+      const remoto = `uploads/${slugActual()}/taller/valoraciones/ot-${orden._id}-${Date.now()}.pdf`;
+      await guardarArchivo(remoto, req.file.buffer, "application/pdf");
+      orden.valoracionPdf = {
+        ruta: urlPublica(remoto),
+        nombre,
+        tipo: "application/pdf",
+        tamano: req.file.size,
+        fecha: new Date(),
+      };
+      await orden.save();
+      res.status(201).json(orden.valoracionPdf);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.delete("/ordenes/:id/valoracion-pdf", async (req, res, next) => {
+  try {
+    const orden = await OrdenTrabajo.findById(req.params.id);
+    if (!orden) return res.status(404).json({ error: "Orden no encontrada" });
+    if (orden.valoracionPdf?.ruta) await borrarSubida(orden.valoracionPdf.ruta).catch(() => {});
+    orden.valoracionPdf = undefined;
+    await orden.save();
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }
@@ -641,6 +690,7 @@ router.delete("/ordenes/:id", async (req, res, next) => {
       ...(orden.recepcionDigital?.fotos ?? []),
       orden.recepcionDigital?.firma?.imagen,
       ...(orden.entrega?.fotos ?? []),
+      orden.valoracionPdf?.ruta,
     ].filter(Boolean);
     for (const ruta of rutas) {
       await borrarSubida(ruta).catch(() => {});
@@ -2024,6 +2074,7 @@ async function crearOrden(datos) {
     notasInternas: datos.notasInternas,
     km: datos.km,
     estado: ESTADOS_OT.includes(datos.estado) ? datos.estado : "recepcion",
+    estadoActualizadoEn: new Date(),
     fechaEntrada: datos.fechaEntrada ? new Date(datos.fechaEntrada) : undefined,
     fechaEntregaPrevista: datos.fechaEntregaPrevista ? new Date(datos.fechaEntregaPrevista) : undefined,
     lineas,

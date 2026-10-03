@@ -127,7 +127,12 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, on
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
       {ESTADOS_OT.map((col) => {
-        const enColumna = ordenes.filter((o) => o.estado === col.clave);
+        const enColumna = ordenes
+          .filter((o) => o.estado === col.clave)
+          .sort((a, b) =>
+            new Date(b.estadoActualizadoEn ?? b.updatedAt ?? b.createdAt ?? 0) -
+            new Date(a.estadoActualizadoEn ?? a.updatedAt ?? a.createdAt ?? 0)
+          );
         return (
           <div
             key={col.clave}
@@ -166,6 +171,11 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, on
                     <p className="num text-sm font-semibold text-slate-700">{euros(o.total)}</p>
                   </div>
                   <p className="num text-sm text-slate-600 mt-0.5">{o.matricula}</p>
+                  {o.vehiculo?.modelo && (
+                    <p className="text-xs text-slate-500 truncate" title="Modelo del vehículo">
+                      {o.vehiculo.marca ? `${o.vehiculo.marca} ` : ""}{o.vehiculo.modelo}
+                    </p>
+                  )}
                   <p className="text-xs text-slate-500 truncate">{o.clienteNombre ?? "—"}</p>
                   {o.trabajos?.length > 0 && (
                     <p className="text-[0.6875rem] text-slate-400 mt-1 truncate">{o.trabajos.join(", ")}</p>
@@ -242,6 +252,7 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, on
                       </button>
                     </span>
                   </div>
+                  <AdjuntoValoracion orden={o} />
                 </div>
               ))}
               {enColumna.length === 0 && (
@@ -253,6 +264,37 @@ function TableroKanban({ ordenes, onMover, onEditar, onFacturar, onRecepcion, on
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function AdjuntoValoracion({ orden }) {
+  const [subiendo, setSubiendo] = useState(false);
+  async function subir(e) {
+    const archivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!archivo) return;
+    setSubiendo(true);
+    const form = new FormData();
+    form.append("archivo", archivo);
+    const r = await fetch(`/api/taller/ordenes/${orden._id}/valoracion-pdf`, { method: "POST", body: form });
+    setSubiendo(false);
+    if (!r.ok) alert((await r.json()).error || "No se pudo adjuntar el PDF");
+    else window.location.reload();
+  }
+  return (
+    <div className="mt-2 flex items-center gap-2 text-[0.6875rem]">
+      {orden.valoracionPdf?.ruta ? (
+        <a href={orden.valoracionPdf.ruta} target="_blank" rel="noreferrer" className="text-violet-600 hover:underline truncate" title={orden.valoracionPdf.nombre}>
+          PDF valoración
+        </a>
+      ) : (
+        <span className="text-slate-400">Sin valoración PDF</span>
+      )}
+      <label className="text-accent hover:underline cursor-pointer ml-auto">
+        {subiendo ? "Subiendo…" : orden.valoracionPdf ? "Cambiar PDF" : "Adjuntar PDF"}
+        <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={subir} disabled={subiendo} />
+      </label>
     </div>
   );
 }
@@ -442,7 +484,10 @@ export default function TallerOrdenesPage() {
                       {o.numero}
                       <BadgePresupuesto numero={o.presupuestoNumero} />
                     </td>
-                    <td className="text-slate-300 num">{o.matricula}</td>
+                    <td className="text-slate-300 num">
+                      {o.matricula}
+                      {o.vehiculo?.modelo && <p className="text-[0.6875rem] text-slate-500">{o.vehiculo.marca ? `${o.vehiculo.marca} ` : ""}{o.vehiculo.modelo}</p>}
+                    </td>
                     <td className="text-slate-300">
                       {o.clienteNombre ?? "—"}
                       {o.aseguradora?.nombre && (
