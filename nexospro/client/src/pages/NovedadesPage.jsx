@@ -55,21 +55,39 @@ export default function NovedadesPage() {
   }, [superadmin]);
 
   // El superadministrador archiva propuestas (realizada/descartada) o las reabre.
-  async function marcarEstado(p, estado) {
+  // Al archivar puede escribir una respuesta para el autor: se guarda en su
+  // buzón y se le intenta enviar por correo con el SMTP de su empresa.
+  const [respondiendo, setRespondiendo] = useState(null); // { id, estado, texto }
+  const [avisoRespuesta, setAvisoRespuesta] = useState(null);
+
+  function abrirRespuesta(p, estado) {
+    setRespondiendo({ id: p._id, estado, texto: "" });
+  }
+
+  async function marcarEstado(p, estado, respuesta = "") {
     setArchivando(p._id);
     setError(null);
     try {
       const r = await fetch(`/api/propuestas/todas/${p.empresaSlug}/${p._id}/estado`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estado }),
+        body: JSON.stringify({ estado, respuesta }),
       });
-      if (!r.ok) throw new Error((await r.json()).error || "No se pudo actualizar");
-      setPropuestas((ps) => ps.map((x) => (x._id === p._id ? { ...x, estado } : x)));
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "No se pudo actualizar");
+      setPropuestas((ps) => ps.map((x) => (x._id === p._id ? { ...x, ...datos } : x)));
+      if (estado !== "pendiente" && respuesta) {
+        setAvisoRespuesta(
+          datos.correoEnviado
+            ? "Respuesta guardada y enviada por correo al autor."
+            : "Respuesta guardada en el buzón del autor. No se pudo enviar por correo (su empresa no tiene el correo configurado o falló el envío)."
+        );
+      }
     } catch (e) {
       setError(e.message);
     } finally {
       setArchivando(null);
+      setRespondiendo(null);
     }
   }
 
@@ -248,6 +266,9 @@ export default function NovedadesPage() {
                   })}
                 </div>
               )}
+              {superadmin && avisoRespuesta && (
+                <p className="text-sm text-emerald-600">{avisoRespuesta}</p>
+              )}
               {propuestas === null && !error && (
                 <p className="text-sm text-slate-500">Cargando propuestas…</p>
               )}
@@ -276,6 +297,20 @@ export default function NovedadesPage() {
                     <span className="text-xs text-slate-500">{fechaTxt(p.createdAt)}</span>
                   </div>
                   <p className="text-sm text-slate-600 mt-1 leading-relaxed whitespace-pre-line">{p.texto}</p>
+                  {p.respuesta && (
+                    <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">
+                        Respuesta del equipo FILANEX
+                        {p.respuestaFecha && (
+                          <span className="normal-case font-normal text-emerald-600"> · {fechaTxt(p.respuestaFecha)}</span>
+                        )}
+                      </p>
+                      <p className="text-sm text-slate-700 mt-1 leading-relaxed whitespace-pre-line">{p.respuesta}</p>
+                      {p.respondidaPor && (
+                        <p className="text-xs text-emerald-600 mt-1.5">— {p.respondidaPor}</p>
+                      )}
+                    </div>
+                  )}
                   {p.adjuntos?.length > 0 && (
                     <div className="flex gap-2 flex-wrap mt-2">
                       {p.adjuntos.map((a, j) => (
@@ -290,33 +325,82 @@ export default function NovedadesPage() {
                     </div>
                   )}
                   {superadmin && (
-                    <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
-                      {(p.estado ?? "pendiente") !== "realizada" && (
-                        <button
-                          onClick={() => marcarEstado(p, "realizada")}
-                          disabled={archivando === p._id}
-                          className="btn-ghost !py-1 !px-2.5 text-xs !text-emerald-600 hover:!bg-emerald-50 disabled:opacity-50"
-                        >
-                          ✓ Marcar realizada
-                        </button>
-                      )}
-                      {(p.estado ?? "pendiente") !== "descartada" && (
-                        <button
-                          onClick={() => marcarEstado(p, "descartada")}
-                          disabled={archivando === p._id}
-                          className="btn-ghost !py-1 !px-2.5 text-xs !text-slate-500 hover:!bg-slate-100 disabled:opacity-50"
-                        >
-                          ✕ Descartar
-                        </button>
-                      )}
-                      {(p.estado ?? "pendiente") !== "pendiente" && (
-                        <button
-                          onClick={() => marcarEstado(p, "pendiente")}
-                          disabled={archivando === p._id}
-                          className="btn-ghost !py-1 !px-2.5 text-xs !text-amber-600 hover:!bg-amber-50 disabled:opacity-50"
-                        >
-                          ↩ Reabrir
-                        </button>
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      {respondiendo?.id === p._id ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-semibold text-slate-600">
+                            Respuesta para {p.usuarioNombre || p.usuarioEmail || "el autor"}
+                            {respondiendo.estado === "descartada"
+                              ? " (explica por qué se descarta, para que no quede a ciegas)"
+                              : " (cuenta qué se ha hecho y cómo usarlo)"}
+                            :
+                          </p>
+                          <textarea
+                            autoFocus
+                            value={respondiendo.texto}
+                            onChange={(e) => setRespondiendo((r) => ({ ...r, texto: e.target.value }))}
+                            rows={3}
+                            maxLength={1500}
+                            placeholder="Ej.: Ya está arreglado: el buscador de clientes ahora carga toda la cartera…"
+                            className="input w-full"
+                          />
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                              onClick={() => marcarEstado(p, respondiendo.estado, respondiendo.texto)}
+                              disabled={archivando === p._id || !respondiendo.texto.trim()}
+                              className="btn-primary !py-1.5 !px-3 text-xs"
+                            >
+                              {archivando === p._id
+                                ? "Guardando…"
+                                : respondiendo.estado === "realizada"
+                                  ? "✓ Marcar realizada y responder"
+                                  : "✕ Descartar y responder"}
+                            </button>
+                            <button
+                              onClick={() => marcarEstado(p, respondiendo.estado)}
+                              disabled={archivando === p._id}
+                              className="btn-ghost !py-1.5 !px-3 text-xs"
+                            >
+                              Archivar sin respuesta
+                            </button>
+                            <button
+                              onClick={() => setRespondiendo(null)}
+                              className="text-xs text-slate-500 hover:text-slate-700"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 flex-wrap">
+                          {(p.estado ?? "pendiente") !== "realizada" && (
+                            <button
+                              onClick={() => abrirRespuesta(p, "realizada")}
+                              disabled={archivando === p._id}
+                              className="btn-ghost !py-1 !px-2.5 text-xs !text-emerald-600 hover:!bg-emerald-50 disabled:opacity-50"
+                            >
+                              ✓ Marcar realizada
+                            </button>
+                          )}
+                          {(p.estado ?? "pendiente") !== "descartada" && (
+                            <button
+                              onClick={() => abrirRespuesta(p, "descartada")}
+                              disabled={archivando === p._id}
+                              className="btn-ghost !py-1 !px-2.5 text-xs !text-slate-500 hover:!bg-slate-100 disabled:opacity-50"
+                            >
+                              ✕ Descartar
+                            </button>
+                          )}
+                          {(p.estado ?? "pendiente") !== "pendiente" && (
+                            <button
+                              onClick={() => marcarEstado(p, "pendiente")}
+                              disabled={archivando === p._id}
+                              className="btn-ghost !py-1 !px-2.5 text-xs !text-amber-600 hover:!bg-amber-50 disabled:opacity-50"
+                            >
+                              ↩ Reabrir
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}

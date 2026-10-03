@@ -51,21 +51,68 @@ const ESTADOS = ["pendiente", "realizada", "descartada"];
 
 // El superadministrador archiva una propuesta (realizada / descartada) o la
 // reabre (pendiente). La propuesta vive en la base de datos de SU empresa,
-// así que se actualiza por slug.
+// así que se actualiza por slug. Al archivar puede incluir una "respuesta"
+// para el autor: se guarda en su buzón y se le intenta enviar por correo
+// con el SMTP de su propia empresa (si está configurado); si el correo
+// falla, la respuesta queda igualmente en el programa.
 router.patch("/todas/:slug/:id/estado", requiereSuperAdmin, async (req, res, next) => {
   try {
     const estado = String(req.body?.estado ?? "");
     if (!ESTADOS.includes(estado)) {
       return res.status(400).json({ error: "Estado no válido" });
     }
-    const tenant = await Tenant.findOne({ slug: req.params.slug }).select("dbName").lean();
+    const tenant = await Tenant.findOne({ slug: req.params.slug }).select("slug nombre dbName").lean();
     if (!tenant) return res.status(404).json({ error: "Empresa no encontrada" });
+
+    const respuesta = String(req.body?.respuesta ?? "").trim().slice(0, 1500);
+    const cambio = { estado };
+    if (estado !== "pendiente" && respuesta) {
+      cambio.respuesta = respuesta;
+      cambio.respuestaFecha = new Date();
+      cambio.respondidaPor = req.usuario?.nombre || req.usuario?.email || "Soporte FILANEX";
+    }
     const doc = await conexionTenant(tenant.dbName)
       .model("Propuesta")
-      .findByIdAndUpdate(req.params.id, { estado }, { new: true })
+      .findByIdAndUpdate(req.params.id, cambio, { new: true })
       .lean();
     if (!doc) return res.status(404).json({ error: "Propuesta no encontrada" });
-    res.json(doc);
+
+    // Aviso por correo al autor (mejor esfuerzo): usa el correo configurado
+    // por la propia empresa, dentro de su contexto de base de datos.
+    let correoEnviado = false;
+    if (estado !== "pendiente" && respuesta && doc.usuarioEmail) {
+      try {
+        const { enviarCorreoEmpresa } = await import("../services/correo.js");
+        const { conContexto } = await import("../models/tenant.js");
+        const contexto = {
+          conn: conexionTenant(tenant.dbName),
+          slug: tenant.slug,
+          dbName: tenant.dbName,
+        };
+        await conContexto(contexto, () =>
+          enviarCorreoEmpresa({
+            para: doc.usuarioEmail,
+            asunto:
+              estado === "realizada"
+                ? `Tu propuesta está resuelta — ${tenant.nombre}`
+                : `Hemos revisado tu propuesta — ${tenant.nombre}`,
+            mensaje:
+              `Hola${doc.usuarioNombre ? " " + doc.usuarioNombre : ""}:\n\n` +
+              (estado === "realizada"
+                ? "Tu propuesta ya está resuelta y disponible en el programa:"
+                : "Hemos revisado tu propuesta y esta es nuestra respuesta:") +
+              `\n\n"${respuesta}"\n\n` +
+              "Puedes verla también en Ayuda → Novedades → Propuestas.\n\n" +
+              "Gracias por ayudarnos a mejorar.\nEquipo FILANEX",
+          })
+        );
+        correoEnviado = true;
+      } catch (err) {
+        console.warn(`Propuesta ${req.params.id}: correo no enviado (${err?.message})`);
+      }
+    }
+
+    res.json({ ...doc, correoEnviado });
   } catch (err) {
     next(err);
   }

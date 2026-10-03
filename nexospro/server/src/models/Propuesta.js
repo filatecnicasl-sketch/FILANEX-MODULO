@@ -17,6 +17,12 @@ const propuestaSchema = new Schema(
       enum: ["pendiente", "realizada", "descartada"],
       default: "pendiente",
     },
+    // Respuesta del equipo FILANEX al autor de la propuesta: qué se ha
+    // hecho (o por qué se descarta). Se muestra al usuario en su buzón
+    // de propuestas y se le intenta enviar también por correo.
+    respuesta: { type: String, default: "", maxlength: 1500 },
+    respuestaFecha: { type: Date },
+    respondidaPor: { type: String, default: "" },
   },
   { timestamps: true }
 );

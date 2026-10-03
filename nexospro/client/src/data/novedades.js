@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-03",
+    tipo: "mejora",
+    titulo: "Propuestas: respuesta del equipo FILANEX en tu buzón",
+    detalle:
+      "Cuando resolvemos una de tus propuestas, además de marcarla como realizada te dejamos una respuesta explicando qué se ha hecho y cómo usarlo: la ves en Ayuda → Novedades → Propuestas, en un recuadro verde debajo de tu propuesta. Si tu empresa tiene el correo configurado, también recibes la respuesta por email.",
+  },
+  {
+    fecha: "2026-10-03",
     tipo: "correccion",
     titulo: "Arreglado: los buscadores no encontraban clientes con carteras grandes",
     detalle:
