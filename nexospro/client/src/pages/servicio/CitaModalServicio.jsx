@@ -4,7 +4,7 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 
-import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
+import { cargarClientesLigeros, invalidarClientesLigeros } from "../../lib/clientesLigeros.js";
 const campo = "input w-full";
 
 /** Convierte "HH:MM" a minutos desde medianoche. */
@@ -34,6 +34,9 @@ const dirTexto = (d) => [d?.calle, d?.cp, d?.ciudad, d?.provincia].filter(Boolea
 export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuardada }) {
   const [clientes, setClientes] = useState([]);
   const [aparatos, setAparatos] = useState([]);
+  // Borrador del alta rápida: si se rellena "Cliente nuevo" y no se pulsa
+  // "Dar de alta", sus datos se usan al guardar la cita en vez de perderse.
+  const [borradorAlta, setBorradorAlta] = useState({ abierto: false, nombre: "", telefono: "" });
   const [form, setForm] = useState({
     fecha: cita ? aFechaInput(cita.fecha) : fechaInicial,
     hora: cita?.hora ?? "07:00",
@@ -137,14 +140,45 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
     setGuardando(true);
     setError(null);
     try {
+      // Datos efectivos de cliente: si hay un borrador del alta rápida sin
+      // pulsar "Dar de alta", se intenta el alta aquí; si no se puede, el
+      // nombre y el teléfono viajan al menos con la cita.
+      let clienteId = form.cliente;
+      let clienteNombre = form.clienteNombre;
+      let telefono = form.telefono;
+      if (!clienteId && borradorAlta.abierto && borradorAlta.nombre) {
+        try {
+          const ra = await fetch("/api/clientes/rapido", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              nombre: borradorAlta.nombre,
+              telefono: borradorAlta.telefono,
+              exigirTelefono: true,
+            }),
+          });
+          const da = await ra.json();
+          if (!ra.ok || !da?._id) throw new Error(da?.error || "No se pudo dar de alta el cliente");
+          invalidarClientesLigeros();
+          setClientes((l) => [da, ...l]);
+          clienteId = da._id;
+          clienteNombre = da.nombre;
+          telefono = da.telefono ?? telefono;
+        } catch {
+          clienteNombre = borradorAlta.nombre || clienteNombre;
+          telefono = borradorAlta.telefono || telefono;
+        }
+      }
       const r = await fetch(`/api/servicio/citas${cita ? `/${cita._id}` : ""}`, {
         method: cita ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          cliente: clienteId || null,
+          clienteNombre,
+          telefono,
           duracion,
           horaFin: undefined,
-          cliente: form.cliente || null,
           aparato: form.aparato || null,
           aparatoDescripcion: form.aparatoDescripcion || undefined,
           direccion: form.lugar === "domicilio" ? form.direccion : "",
@@ -230,6 +264,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
                 <AltaRapidaCliente
                   nombreInicial={form.clienteNombre}
                   telefonoInicial={form.telefono}
+                  onCambio={setBorradorAlta}
                   onCreado={(c) => {
                     setClientes((l) => [c, ...l]);
                     setForm((f) => ({

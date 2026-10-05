@@ -90,10 +90,16 @@ export default function BuscadorEntidad({
       e.preventDefault();
       e.__enterTab = true;
       setResaltada((r) => (r - 1 + filtradas.length) % filtradas.length);
-    } else if (e.key === "Enter" && listaAbierta && filtradas.length > 0) {
+    } else if (e.key === "Enter" && listaAbierta) {
       e.preventDefault();
       e.__enterTab = true; // que enterComoTab no salte de campo
-      elegir(filtradas[resaltada] ?? filtradas[0]);
+      if (filtradas.length > 0) {
+        elegir(filtradas[resaltada] ?? filtradas[0]);
+      } else {
+        // Sin coincidencias: se cierra la lista y se conserva lo escrito.
+        // El formulario no se envía a medias por un Enter involuntario.
+        setListaAbierta(false);
+      }
     } else if (e.key === "Escape") {
       setListaAbierta(false);
     }

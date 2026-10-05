@@ -6,7 +6,7 @@ import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 import { imprimirJustificanteCitaTaller } from "../../utils/imprimir-cita-taller.js";
-import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
+import { cargarClientesLigeros, invalidarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const CLASES_PILL_ESTADO = {
   amber: "bg-amber-100 text-amber-700 border-amber-200",
@@ -190,6 +190,10 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   // Reparaciones a realizar: salen en la tabla de la hoja de entrada
   // (descripción / mano de obra / materiales) y se guardan con la cita.
   const [lineasEntrada, setLineasEntrada] = useState(cita?.lineas ?? []);
+  // Borrador del alta rápida de cliente: si el usuario rellena "Cliente
+  // nuevo" pero no pulsa "Dar de alta", sus datos se usan al guardar la
+  // cita en vez de perderse en silencio.
+  const [borradorAlta, setBorradorAlta] = useState({ abierto: false, nombre: "", telefono: "" });
 
   useEffect(() => {
     cargarClientesLigeros().then(setClientes);
@@ -431,12 +435,45 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     setGuardando(true);
     setError(null);
     try {
+      // Datos efectivos de cliente: parten del formulario y, si hay un
+      // borrador del alta rápida sin pulsar "Dar de alta", se intenta el
+      // alta aquí; si no se puede, el nombre y el teléfono viajan al menos
+      // con la cita para no perderlos nunca.
+      let clienteId = form.cliente;
+      let clienteNombre = form.clienteNombre;
+      let telefono = form.telefono;
+      if (!clienteId && borradorAlta.abierto && borradorAlta.nombre) {
+        try {
+          const ra = await fetch("/api/clientes/rapido", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              nombre: borradorAlta.nombre,
+              telefono: borradorAlta.telefono,
+              exigirTelefono: true,
+            }),
+          });
+          const da = await ra.json();
+          if (!ra.ok || !da?._id) throw new Error(da?.error || "No se pudo dar de alta el cliente");
+          invalidarClientesLigeros();
+          setClientes((l) => [da, ...l]);
+          clienteId = da._id;
+          clienteNombre = da.nombre;
+          telefono = da.telefono ?? telefono;
+        } catch {
+          clienteNombre = borradorAlta.nombre || clienteNombre;
+          telefono = borradorAlta.telefono || telefono;
+        }
+      }
       const cortesiaVeh = vehiculos.find((v) => String(v._id) === String(form.cortesiaVehiculo));
       const r = await fetch(`/api/taller/citas${cita ? `/${cita._id}` : ""}`, {
         method: cita ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          cliente: clienteId,
+          clienteNombre,
+          telefono,
           duracion,
           horaFin: undefined,
           lineas: lineasEntrada,
@@ -772,6 +809,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
               <AltaRapidaCliente
                 nombreInicial={form.clienteNombre}
                 telefonoInicial={form.telefono}
+                onCambio={setBorradorAlta}
                 onCreado={(c) => {
                   setClientes((l) => [c, ...l]);
                   setForm((f) => ({

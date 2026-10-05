@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-05",
+    tipo: "correccion",
+    titulo: "Citas: los datos del cliente ya no se pierden al guardar",
+    detalle:
+      "Al crear una cita, si se rellenaba el recuadro «Cliente nuevo» pero no se pulsaba «Dar de alta», el nombre y el teléfono se perdían y la cita quedaba solo con la matrícula. Ahora esos datos se dan de alta automáticamente al guardar la cita (o viajan con ella si el alta no es posible). Además, pulsar Enter en un buscador sin coincidencias ya no envía el formulario a medias.",
+  },
+  {
     fecha: "2026-10-03",
     tipo: "mejora",
     titulo: "Clientes: búsqueda por teléfono y carga instantánea en los selectores",

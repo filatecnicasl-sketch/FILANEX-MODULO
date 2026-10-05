@@ -1,17 +1,25 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
 
 // Alta de cliente desde una cita o evento, con casilla "Nuevo".
 // El alta solo se hace marcando la casilla, y exige un teléfono para poder
 // contactar al cliente. El CIF/NIF y el resto de la ficha se completan
 // después desde Clientes.
-export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial = "", onCreado }) {
+export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial = "", onCreado, onCambio }) {
   const [abierto, setAbierto] = useState(false);
   const [nombre, setNombre] = useState(nombreInicial);
   const [telefono, setTelefono] = useState(telefonoInicial);
   const [nif, setNif] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+
+  // Ref del aviso de cambios: el modal se entera del borrador en cada
+  // cambio sin re-disparar el effect si el padre recrea la función.
+  const aviso = useRef(onCambio);
+  aviso.current = onCambio;
+  useEffect(() => {
+    aviso.current?.({ abierto, nombre: nombre.trim(), telefono: telefono.trim() });
+  }, [abierto, nombre, telefono]);
 
   function alternar() {
     setNombre(nombreInicial);
