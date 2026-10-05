@@ -2,6 +2,17 @@
 
 Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
+## URGENTE / Revisar con detenimiento
+
+- [ ] **Flujo de citas: cliente nuevo sin pulsar "Dar de alta"** (acordado
+      repasar a fondo el 05/10/2026). Una cita en `filanex_montiel` quedó solo
+      con matrícula porque se rellenaron los campos del alta rápida pero no se
+      pulsó el botón. Se aplicó un parche de emergencia que guarda los datos
+      igual, pero hay que revisar todo el flujo: alta rápida desde citas de
+      taller y de servicio, búsqueda de cliente existente, comportamiento al
+      pulsar Enter sin coincidencias, y qué pasa si falla el alta o el cliente
+      cierra el modal sin guardar.
+
 ## Modelo comercial / precios (acordado 29/09/2026)
 
 - **Base facturación: 30 €/mes** (1 usuario, sin oferta). Oferta de captación:
