@@ -140,33 +140,38 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
     setGuardando(true);
     setError(null);
     try {
-      // Datos efectivos de cliente: si hay un borrador del alta rápida sin
-      // pulsar "Dar de alta", se intenta el alta aquí; si no se puede, el
-      // nombre y el teléfono viajan al menos con la cita.
+      // Datos efectivos de cliente: si no se ha elegido uno de la cartera
+      // pero se ha escrito un nombre (en el buscador o en el alta rápida),
+      // damos de alta al cliente automáticamente al guardar la cita. Si no
+      // hay teléfono no se crea la ficha, pero el nombre y teléfono escritos
+      // viajan con la cita para no perderlos nunca.
       let clienteId = form.cliente;
-      let clienteNombre = form.clienteNombre;
-      let telefono = form.telefono;
-      if (!clienteId && borradorAlta.abierto && borradorAlta.nombre) {
-        try {
-          const ra = await fetch("/api/clientes/rapido", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              nombre: borradorAlta.nombre,
-              telefono: borradorAlta.telefono,
-              exigirTelefono: true,
-            }),
-          });
-          const da = await ra.json();
-          if (!ra.ok || !da?._id) throw new Error(da?.error || "No se pudo dar de alta el cliente");
-          invalidarClientesLigeros();
-          setClientes((l) => [da, ...l]);
-          clienteId = da._id;
-          clienteNombre = da.nombre;
-          telefono = da.telefono ?? telefono;
-        } catch {
-          clienteNombre = borradorAlta.nombre || clienteNombre;
-          telefono = borradorAlta.telefono || telefono;
+      let clienteNombre = (form.clienteNombre || borradorAlta.nombre || "").trim();
+      let telefono = (form.telefono || borradorAlta.telefono || "").trim();
+      if (!clienteId && clienteNombre) {
+        const telefonoAlta = (borradorAlta.telefono || form.telefono || "").trim();
+        if (telefonoAlta) {
+          try {
+            const ra = await fetch("/api/clientes/rapido", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                nombre: clienteNombre,
+                telefono: telefonoAlta,
+                exigirTelefono: true,
+              }),
+            });
+            const da = await ra.json();
+            if (!ra.ok || !da?._id) throw new Error(da?.error || "No se pudo dar de alta el cliente");
+            invalidarClientesLigeros();
+            setClientes((l) => [da, ...l]);
+            clienteId = da._id;
+            clienteNombre = da.nombre;
+            telefono = da.telefono ?? telefono;
+          } catch {
+            // El alta falló (p. ej. teléfono duplicado): conservamos lo
+            // escrito para que la cita no quede vacía.
+          }
         }
       }
       const r = await fetch(`/api/servicio/citas${cita ? `/${cita._id}` : ""}`, {
