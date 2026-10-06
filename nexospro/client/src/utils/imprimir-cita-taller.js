@@ -19,19 +19,11 @@ function sumarMinutos(hora, minutos) {
 }
 
 async function cargarPlantilla() {
-  try {
-    const respuesta = await fetch("/api/formatos/default/cita-taller");
-    if (!respuesta.ok) return null;
-    const plantilla = await respuesta.json();
-    // Si la plantilla guardada es la prediseñada del sistema, ignorarla y
-    // usar siempre la versión actual del código. Así los cambios en
-    // builtinTemplates.js se reflejan inmediatamente sin depender de la
-    // copia almacenada en la base de datos.
-    if (plantilla?.builtin === "cita-taller") return null;
-    return plantilla;
-  } catch {
-    return null;
-  }
+  // El justificante de cita siempre usa la plantilla actual del código.
+  // Así se evita que una copia antigua guardada en la base de datos
+  // (posiblemente con recuadros, logo descuadrado o tamaño A5) se siga
+  // imprimiendo después de corregir el formato aquí.
+  return buildCitaTaller();
 }
 
 export async function imprimirJustificanteCitaTaller(cita) {
