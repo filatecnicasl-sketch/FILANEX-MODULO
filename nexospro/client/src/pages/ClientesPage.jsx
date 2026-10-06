@@ -144,12 +144,14 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
         <h2 className="text-lg font-bold text-white mb-4">{editando ? `Editar ${inicial.nombre}` : "Nuevo cliente"}</h2>
 
         {editando && tallerActivo && (
-          <div className="flex gap-1 mb-4 border-b border-slate-700 pb-1">
+          <div className="flex gap-1 mb-4 border-b border-white/10 pb-1">
             <button
               type="button"
               onClick={() => setTab("ficha")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-t-lg ${
-                tab === "ficha" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
+              className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
+                tab === "ficha"
+                  ? "bg-accent text-white"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
               Ficha
@@ -157,8 +159,10 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
             <button
               type="button"
               onClick={() => setTab("vehiculos")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-t-lg ${
-                tab === "vehiculos" ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
+              className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
+                tab === "vehiculos"
+                  ? "bg-accent text-white"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
               Vehículos

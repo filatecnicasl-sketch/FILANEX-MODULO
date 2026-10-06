@@ -515,8 +515,18 @@ export function buildRecepcionAparato() {
 }
 
 export function buildCitaTaller() {
-  const x = 10;
-  const w = 128;
+  const x = 20;
+  const w = 170;
+  const medio = w / 2;
+
+  const txc = (text, px, py, pw, ph, pfs = 8, bold = false, align = "left", color = "#000") =>
+    tx(text, px, py, pw, ph, pfs, bold, align, color);
+  const fl = (label, key, px, py, pw, ph = 6, pfs = 9) =>
+    fld(label, key, px, py, pw, ph, pfs);
+  const seccion = (text, px, py, pw) => [
+    { id: id(), type: "rect", x: px, y: py, w: pw, h: 6, borderWidth: 0, background: "#e5e7eb" },
+    txc(text, px, py + 1.5, pw, 4, 8, true, "center", "#374151"),
+  ];
 
   return {
     id: id(),
@@ -524,47 +534,56 @@ export function buildCitaTaller() {
     name: "Justificante de cita (taller)",
     tipoDocumento: "cita-taller",
     porDefecto: true,
-    page: { size: "A5", orientation: "portrait" },
+    page: { size: "A4", orientation: "portrait" },
     elements: [
-      tx2("JUSTIFICANTE DE CITA", x, 9, w, 8, 16, true, "center"),
-      tx2("CITA DE TALLER REGISTRADA", x, 17, w, 5, 8, true, "center"),
-      fld2("TALLER", "empresa.nombre", x, 27, 88, 10, 11),
-      fld2("NIF", "empresa.nif", 102, 27, 36, 10, 9),
-      fld2("DIRECCIÓN", "empresa.direccion", x, 39, 80, 9, 8),
-      fld2("TELÉFONO", "empresa.telefono", 94, 39, 44, 9, 8),
-      linea(x, 52, w),
+      logo(20, 14, 45, 22),
+      tx("JUSTIFICANTE DE CITA", 110, 16, 80, 10, 18, true, "right", "#111827"),
+      tx("CITA DE TALLER REGISTRADA", 110, 27, 80, 5, 9, false, "right", "#6b7280"),
+      tx("{{cita.numero}}", 110, 34, 80, 6, 11, false, "right", "#4b5563"),
 
-      tx2("DATOS DE LA CITA", x, 57, w, 6, 10, true, "center"),
-      fld2("Nº DE CITA", "cita.numero", x, 66, 38, 10, 9),
-      fld2("FECHA", "cita.fecha", 52, 66, 38, 10, 9),
-      fld2("HORARIO", "cita.horario", 94, 66, 44, 10, 9),
-      fld2("ESTADO", "cita.estado", x, 78, 38, 9, 8),
-      fld2("ASEGURADORA / PARTICULAR", "cita.aseguradora", 52, 78, 86, 9, 8),
+      box(20, 42, 80, 32, 0.4, "#e5e7eb"),
+      tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
+      tx("{{empresa.nombre}}", 23, 51, 74, 8, 10, true),
+      tx("{{empresa.nif}}", 23, 60, 74, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.direccion}}", 23, 65, 74, 7, 8, false, "left", "#374151"),
+      tx("{{empresa.telefono}}", 23, 72, 74, 5, 8, false, "left", "#374151"),
 
-      tx2("CLIENTE", x, 92, w, 6, 10, true, "center"),
-      fld2("NOMBRE", "cliente.nombre", x, 101, 80, 10, 9),
-      fld2("NIF / CIF", "cliente.nif", 94, 101, 44, 10, 9),
-      fld2("TELÉFONO", "cliente.telefono", x, 113, 56, 9, 8),
-      fld2("CORREO ELECTRÓNICO", "cliente.email", 70, 113, 68, 9, 8),
+      box(110, 42, 80, 32, 0.4, "#e5e7eb"),
+      tx("CITA", 113, 45, 74, 5, 7, true, "left", "#6b7280"),
+      tx("Fecha: {{cita.fecha}}", 113, 52, 74, 5, 9, false, "left", "#374151"),
+      tx("Horario: {{cita.horario}}", 113, 59, 74, 5, 9, false, "left", "#374151"),
+      tx("Estado: {{cita.estado}}", 113, 66, 74, 5, 9, false, "left", "#374151"),
 
-      tx2("VEHÍCULO", x, 127, w, 6, 10, true, "center"),
-      fld2("MATRÍCULA", "vehiculo.matricula", x, 136, 38, 10, 10),
-      fld2("MARCA", "vehiculo.marca", 52, 136, 38, 10, 9),
-      fld2("MODELO", "vehiculo.modelo", 94, 136, 44, 10, 9),
-      fld2("VEHÍCULO DE CORTESÍA", "cita.cortesia", x, 148, w, 9, 8),
+      ...seccion("CLIENTE", x, 82, w),
+      fl("NOMBRE", "cliente.nombre", x, 91, w, 8, 10),
+      fl("NIF / CIF", "cliente.nif", x, 100, medio - 2, 8, 9),
+      fl("TELÉFONO", "cliente.telefono", x + medio + 2, 100, medio - 2, 8, 9),
+      fl("CORREO ELECTRÓNICO", "cliente.email", x, 109, w, 8, 9),
 
-      { id: id(), type: "textarea", x, y: 162, w, h: 19, label: "MOTIVO / TRABAJO SOLICITADO", fieldKey: "cita.motivo", fontSize: 8, boxed: true },
-      tx2(
+      ...seccion("VEHÍCULO", x, 122, w),
+      fl("MATRÍCULA", "vehiculo.matricula", x, 131, medio - 2, 8, 10),
+      fl("MARCA", "vehiculo.marca", x + medio + 2, 131, medio - 2, 8, 9),
+      fl("MODELO", "vehiculo.modelo", x, 140, medio - 2, 8, 9),
+      fl("CORTESÍA", "cita.cortesia", x + medio + 2, 140, medio - 2, 8, 9),
+
+      ...seccion("MOTIVO / TRABAJO SOLICITADO", x, 153, w),
+      area("", "cita.motivo", x, 162, w, 45, 9),
+
+      tx(
         "Este justificante confirma que el taller ha registrado la cita indicada. No supone la aceptación de un presupuesto ni la apertura de una orden de reparación.",
         x,
-        184,
+        215,
         w,
         10,
-        7,
+        8,
         false,
-        "center"
+        "center",
+        "#6b7280"
       ),
-      fld2("DOCUMENTO EMITIDO EL", "documento.fechaEmision", 43, 197, 62, 8, 8),
+
+      linea(x, 232, w, "#d1d5db"),
+      tx("Documento emitido el {{documento.fechaEmision}}", x, 238, w, 5, 8, false, "center", "#6b7280"),
+      tx("Gracias por confiar en nosotros", x, 268, w, 5, 8, false, "center", "#9ca3af"),
     ],
   };
 }
