@@ -220,11 +220,14 @@ así que por ese motivo no se repite; falta enterarse antes y recuperar rápido.
       Plazo legal de referencia: la factura a empresas se puede expedir hasta el
       día 16 del mes siguiente al devengo.
 
-- [ ] **Activar el envío a la AEAT.** Días antes del 1 de enero, en
-      Ajustes → Certificado. Hasta entonces las facturas se registran con huella
-      y QR pero nacen como "no remitidas" y no se enviarán nunca.
-      Requiere tener subido el certificado y cambiar el entorno de Pruebas a
-      Producción.
+## Octubre 2028 (VeriFactu)
+
+- [ ] **Activar el envío a la AEAT.** Según última información, VeriFactu no
+      entra a funcionar hasta octubre de 2028. Días antes de esa fecha, en
+      Ajustes → Certificado habrá que cambiar el entorno de Pruebas a
+      Producción. Hasta entonces las facturas se registran con huella y QR pero
+      nacen como "no remitidas" y no se enviarán. Requiere tener subido el
+      certificado.
 
 ## Sin fecha
 
