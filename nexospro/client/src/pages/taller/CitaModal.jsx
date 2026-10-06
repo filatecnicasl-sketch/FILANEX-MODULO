@@ -709,23 +709,9 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
 
   async function imprimirJustificante() {
     if (!cita) return;
-    const cliente =
-      clientes.find((item) => String(item._id) === String(cita.cliente?._id ?? cita.cliente)) ||
-      cita.cliente;
-    const vehiculo =
-      vehiculos.find(
-        (item) => item.matricula?.toUpperCase() === (cita.matricula ?? "").toUpperCase()
-      ) || cita.vehiculo;
-    const aseguradora = aseguradoras.find(
-      (item) => String(item._id) === String(cita.aseguradora?._id ?? cita.aseguradora)
-    );
-
-    await imprimirJustificanteCitaTaller({
-      ...cita,
-      cliente,
-      vehiculo,
-      aseguradoraNombre: cita.aseguradoraNombre || aseguradora?.nombre || "",
-    });
+    // Guardar primero para que cualquier cambio (matrícula, cliente, teléfono…)
+    // se persista antes de imprimir; guardarCita(true) imprime tras guardar.
+    await guardarCita(true);
   }
 
   async function borrar() {
