@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { ESTADOS_CITA, aFechaInput, tonoEstadoValoracion, nombreEstadoValoracion } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
-import AltaRapidaCliente from "../../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 import { imprimirJustificanteCitaTaller } from "../../utils/imprimir-cita-taller.js";
@@ -136,6 +135,53 @@ function aHora(minutos) {
   return `${hh}:${mm}`;
 }
 
+const normalizar = (s) =>
+  (s ?? "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Busca posibles duplicados entre la cartera cargada y los datos que se
+ *  están escribiendo para un cliente nuevo. */
+function buscarDuplicadosClientes(clientes, { nombre, telefono, nif }) {
+  const t = (telefono ?? "").toString().trim().replace(/[\s.-]/g, "");
+  const n = (nif ?? "").toString().trim().toUpperCase().replace(/[\s.-]/g, "");
+  const nom = normalizar(nombre).replace(/\s+/g, " ");
+  const palabras = nom.split(" ").filter((p) => p.length > 2);
+  const encontrados = new Map();
+
+  for (const c of clientes) {
+    const cNif = (c.nif ?? "").toString().toUpperCase().replace(/[\s.-]/g, "");
+    const cTel = (c.telefono ?? "").toString().replace(/[\s.-]/g, "");
+    const cNom = normalizar(c.nombre).replace(/\s+/g, " ");
+
+    let motivo = null;
+    if (n && cNif && cNif === n) motivo = "mismo NIF/CIF";
+    else if (t && cTel && cTel === t) motivo = "mismo teléfono";
+    else if (nom.length > 4 && cNom.length > 4) {
+      // Nombre muy parecido: mismas palabras significativas y longitud similar.
+      const cPalabras = cNom.split(" ").filter((p) => p.length > 2);
+      const comunes = palabras.filter((p) => cPalabras.includes(p)).length;
+      const similitud =
+        (2 * comunes) / (palabras.length + cPalabras.length || 1);
+      const longitudSimilar =
+        Math.abs(nom.length - cNom.length) <= Math.max(nom.length, cNom.length) * 0.25;
+      if (comunes >= 2 && similitud >= 0.5 && longitudSimilar) {
+        motivo = "nombre muy parecido";
+      }
+    }
+
+    if (motivo) {
+      const clave = String(c._id);
+      const prev = encontrados.get(clave);
+      if (!prev || prev.peso < (motivo === "mismo NIF/CIF" ? 3 : motivo === "mismo teléfono" ? 2 : 1)) {
+        encontrados.set(clave, { cliente: c, motivo, peso: motivo === "mismo NIF/CIF" ? 3 : motivo === "mismo teléfono" ? 2 : 1 });
+      }
+    }
+  }
+
+  return Array.from(encontrados.values())
+    .sort((a, b) => b.peso - a.peso)
+    .slice(0, 3);
+}
+
 export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, onGuardada, onRecepcionar }) {
   const [clientes, setClientes] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
@@ -153,6 +199,8 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     cliente: cita?.cliente?._id ?? cita?.cliente ?? "",
     clienteNombre: cita?.clienteNombre ?? "",
     telefono: cita?.telefono ?? "",
+    email: cita?.email ?? "",
+    nif: cita?.nif ?? "",
     whatsappAutorizado: cita?.whatsappAutorizado ?? false,
     matricula: cita?.matricula ?? "",
     marca: "",
@@ -187,13 +235,11 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const [dialogoEntrada, setDialogoEntrada] = useState(false);
   const [textoEntrada, setTextoEntrada] = useState("");
   const [imprimiendoEntrada, setImprimiendoEntrada] = useState(false);
+  // Posibles duplicados al escribir un cliente nuevo.
+  const [duplicados, setDuplicados] = useState([]);
   // Reparaciones a realizar: salen en la tabla de la hoja de entrada
   // (descripción / mano de obra / materiales) y se guardan con la cita.
   const [lineasEntrada, setLineasEntrada] = useState(cita?.lineas ?? []);
-  // Borrador del alta rápida de cliente: si el usuario rellena "Cliente
-  // nuevo" pero no pulsa "Dar de alta", sus datos se usan al guardar la
-  // cita en vez de perderse en silencio.
-  const [borradorAlta, setBorradorAlta] = useState({ abierto: false, nombre: "", telefono: "" });
 
   useEffect(() => {
     cargarClientesLigeros().then(setClientes);
@@ -218,6 +264,20 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
       .then(setPrestamos)
       .catch(() => setPrestamos([]));
   }, []);
+
+  // Detectar posibles duplicados mientras se escribe un cliente nuevo.
+  useEffect(() => {
+    if (form.cliente) {
+      setDuplicados([]);
+      return;
+    }
+    const resultado = buscarDuplicadosClientes(clientes, {
+      nombre: form.clienteNombre,
+      telefono: form.telefono,
+      nif: form.nif,
+    });
+    setDuplicados(resultado);
+  }, [clientes, form.cliente, form.clienteNombre, form.telefono, form.nif]);
 
   // Préstamo de cortesía activo de esta cita (por vínculo o por cliente).
   useEffect(() => {
@@ -258,6 +318,8 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
       cliente: op._id,
       clienteNombre: op.nombre,
       telefono: op.telefono ?? f.telefono,
+      email: op.email ?? f.email,
+      nif: op.nif ?? f.nif,
       whatsappAutorizado: op.comunicaciones?.whatsapp?.autorizado ?? false,
     }));
     setReasignarCliente(false);
@@ -436,37 +498,35 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     setError(null);
     try {
       // Datos efectivos de cliente: si no se ha elegido uno de la cartera
-      // pero se ha escrito un nombre (en el buscador o en el alta rápida),
-      // damos de alta al cliente automáticamente al guardar la cita. Si no
-      // hay teléfono no se crea la ficha, pero el nombre y teléfono escritos
-      // viajan con la cita para no perderlos nunca.
+      // pero se ha escrito un nombre, damos de alta al cliente automáticamente
+      // al guardar la cita. Si no hay teléfono no se crea la ficha, pero el
+      // nombre y teléfono escritos viajan con la cita para no perderlos nunca.
       let clienteId = form.cliente;
-      let clienteNombre = (form.clienteNombre || borradorAlta.nombre || "").trim();
-      let telefono = (form.telefono || borradorAlta.telefono || "").trim();
-      if (!clienteId && clienteNombre) {
-        const telefonoAlta = (borradorAlta.telefono || form.telefono || "").trim();
-        if (telefonoAlta) {
-          try {
-            const ra = await fetch("/api/clientes/rapido", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                nombre: clienteNombre,
-                telefono: telefonoAlta,
-                exigirTelefono: true,
-              }),
-            });
-            const da = await ra.json();
-            if (!ra.ok || !da?._id) throw new Error(da?.error || "No se pudo dar de alta el cliente");
-            invalidarClientesLigeros();
-            setClientes((l) => [da, ...l]);
-            clienteId = da._id;
-            clienteNombre = da.nombre;
-            telefono = da.telefono ?? telefono;
-          } catch {
-            // El alta falló (p. ej. teléfono duplicado): conservamos lo
-            // escrito para que la cita no quede vacía.
-          }
+      let clienteNombre = (form.clienteNombre || "").trim();
+      let telefono = (form.telefono || "").trim();
+      if (!clienteId && clienteNombre && telefono) {
+        try {
+          const ra = await fetch("/api/clientes/rapido", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              nombre: clienteNombre,
+              telefono,
+              email: form.email?.trim() || undefined,
+              nif: form.nif?.trim() || undefined,
+              exigirTelefono: true,
+            }),
+          });
+          const da = await ra.json();
+          if (!ra.ok || !da?._id) throw new Error(da?.error || "No se pudo dar de alta el cliente");
+          invalidarClientesLigeros();
+          setClientes((l) => [da, ...l]);
+          clienteId = da._id;
+          clienteNombre = da.nombre;
+          telefono = da.telefono ?? telefono;
+        } catch {
+          // El alta falló (p. ej. teléfono duplicado): conservamos lo
+          // escrito para que la cita no quede vacía.
         }
       }
       const cortesiaVeh = vehiculos.find((v) => String(v._id) === String(form.cortesiaVehiculo));
@@ -801,30 +861,33 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-slate-400 block mb-1">Cliente</label>
+            <div className="sm:col-span-2">
+              <label className="text-sm text-slate-400 block mb-1">Buscar cliente en la cartera</label>
               <BuscadorEntidad
                 opciones={clientes}
+                valorId={form.cliente}
                 valorTexto={form.clienteNombre}
                 onTexto={(t) => setForm((f) => ({ ...f, clienteNombre: t, cliente: "" }))}
                 onElegir={elegirCliente}
-                placeholder="Buscar en la cartera o escribir…"
+                placeholder="Escribe nombre, teléfono o NIF…"
               />
-              <AltaRapidaCliente
-                nombreInicial={form.clienteNombre}
-                telefonoInicial={form.telefono}
-                onCambio={setBorradorAlta}
-                onCreado={(c) => {
-                  setClientes((l) => [c, ...l]);
-                  setForm((f) => ({
-                    ...f,
-                    cliente: c._id,
-                    clienteNombre: c.nombre,
-                    telefono: c.telefono ?? f.telefono,
-                    whatsappAutorizado: c.comunicaciones?.whatsapp?.autorizado ?? false,
-                  }));
-                }}
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">
+                {form.cliente ? "Nombre del cliente" : "Nombre del cliente *"}
+              </label>
+              <input
+                className={campo}
+                value={form.clienteNombre}
+                onChange={(e) => setForm((f) => ({ ...f, clienteNombre: e.target.value, cliente: "" }))}
+                placeholder={form.cliente ? "Cliente seleccionado de la cartera" : "Nombre completo"}
+                required={!form.cliente}
               />
+              {!form.cliente && form.clienteNombre.trim() && (
+                <p className="text-[11px] text-teal-400 mt-1">
+                  Cliente nuevo: se dará de alta al guardar si hay teléfono.
+                </p>
+              )}
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
@@ -832,8 +895,61 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
                 className={campo}
                 value={form.telefono}
                 onChange={(e) => actualizar("telefono", e.target.value)}
+                placeholder="Obligatorio para dar de alta a un cliente nuevo"
               />
             </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Email</label>
+              <input
+                className={campo}
+                type="email"
+                value={form.email}
+                onChange={(e) => actualizar("email", e.target.value)}
+                placeholder="cliente@ejemplo.com"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">CIF / NIF</label>
+              <input
+                className={campo}
+                value={form.nif}
+                onChange={(e) => actualizar("nif", e.target.value.toUpperCase())}
+                placeholder="Evita duplicados si ya existe"
+              />
+            </div>
+
+            {duplicados.length > 0 && (
+              <div className="sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2">
+                <p className="text-sm font-semibold text-amber-800">
+                  Parece que este cliente ya existe en la cartera
+                </p>
+                {duplicados.map(({ cliente: c, motivo }) => (
+                  <div key={c._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg bg-white p-2 border border-amber-200">
+                    <div className="text-sm text-slate-700">
+                      <span className="font-semibold">{c.nombre}</span>
+                      <span className="text-slate-400 mx-1">·</span>
+                      <span className="text-xs text-slate-500">{motivo}</span>
+                      {(c.telefono || c.nif || c.email) && (
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {[c.telefono, c.nif, c.email].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => elegirCliente({ _id: c._id, nombre: c.nombre, telefono: c.telefono, email: c.email, nif: c.nif, comunicaciones: c.comunicaciones })}
+                      className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-700 transition"
+                    >
+                      Usar este cliente
+                    </button>
+                  </div>
+                ))}
+                <p className="text-xs text-amber-700">
+                  Si ninguno es el correcto, continúa escribiendo y se creará uno nuevo al guardar.
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="text-sm text-slate-400 block mb-1">Matrícula</label>
               <BuscadorEntidad

@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-06",
+    tipo: "mejora",
+    titulo: "Citas: alta de cliente completo y aviso de duplicados",
+    detalle:
+      "El modal de citas ya permite dar de alta un cliente nuevo con nombre, teléfono, email y NIF/CIF directamente, sin salir de la cita. Si al escribir detecta un cliente existente por NIF, teléfono o nombre muy parecido, muestra una alerta para usar ese y evitar duplicados. Se ha eliminado el check confuso de «Cliente nuevo (dar de alta ahora)» y su botón separado: ahora el alta es automática al guardar si hay teléfono.",
+  },
+  {
     fecha: "2026-10-05",
     tipo: "correccion",
     titulo: "Citas: los datos del cliente ya no se pierden al guardar",
