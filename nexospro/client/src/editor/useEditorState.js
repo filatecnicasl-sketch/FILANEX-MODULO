@@ -7,6 +7,7 @@ import {
   setDefaultTemplateRemote,
   importTemplateRemote,
   createBuiltinTemplateRemote,
+  resetTemplateToBuiltinRemote,
 } from "./storage.js";
 import { genId } from "./editorUtils.js";
 
@@ -205,6 +206,16 @@ export function useEditorState() {
     [selectTemplate]
   );
 
+  const resetToBuiltin = useCallback(
+    async (builtinName) => {
+      if (!template.id) return;
+      const reset = await resetTemplateToBuiltinRemote(template.id, builtinName);
+      setTemplates((prev) => prev.filter((t) => t.id !== template.id).concat(reset));
+      selectTemplate(reset.id);
+    },
+    [template, selectTemplate]
+  );
+
   const setFormValue = useCallback((key, value) => {
     setFormData((d) => ({ ...d, [key]: value }));
   }, []);
@@ -247,5 +258,6 @@ export function useEditorState() {
     setAsDefault,
     importTemplate,
     createBuiltinTemplate,
+    resetToBuiltin,
   };
 }

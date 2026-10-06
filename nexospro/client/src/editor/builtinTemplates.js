@@ -518,15 +518,14 @@ export function buildCitaTaller() {
   const x = 20;
   const w = 170;
   const medio = w / 2;
+  const gris = "#6b7280";
+  const oscuro = "#111827";
 
-  const txc = (text, px, py, pw, ph, pfs = 8, bold = false, align = "left", color = "#000") =>
-    tx(text, px, py, pw, ph, pfs, bold, align, color);
-  const fl = (label, key, px, py, pw, ph = 6, pfs = 9) =>
-    fld(label, key, px, py, pw, ph, pfs);
-  const seccion = (text, px, py, pw) => [
-    { id: id(), type: "rect", x: px, y: py, w: pw, h: 6, borderWidth: 0, background: "#e5e7eb" },
-    txc(text, px, py + 1.5, pw, 4, 8, true, "center", "#374151"),
-  ];
+  // Campo con etiqueta y línea inferior (sin recuadro completo)
+  const fl = (label, key, px, py, pw, ph = 7, pfs = 9) => ({
+    id: id(), type: "field", x: px, y: py, w: pw, h: ph,
+    label, fieldKey: key, fontSize: pfs, boxed: false,
+  });
 
   return {
     id: id(),
@@ -537,53 +536,54 @@ export function buildCitaTaller() {
     page: { size: "A4", orientation: "portrait" },
     elements: [
       logo(20, 14, 45, 22),
-      tx("JUSTIFICANTE DE CITA", 110, 16, 80, 10, 18, true, "right", "#111827"),
-      tx("CITA DE TALLER REGISTRADA", 110, 27, 80, 5, 9, false, "right", "#6b7280"),
-      tx("{{cita.numero}}", 110, 34, 80, 6, 11, false, "right", "#4b5563"),
 
-      box(20, 42, 80, 32, 0.4, "#e5e7eb"),
-      tx("EMISOR", 23, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("{{empresa.nombre}}", 23, 51, 74, 8, 10, true),
-      tx("{{empresa.nif}}", 23, 60, 74, 5, 8, false, "left", "#374151"),
-      tx("{{empresa.direccion}}", 23, 65, 74, 7, 8, false, "left", "#374151"),
-      tx("{{empresa.telefono}}", 23, 72, 74, 5, 8, false, "left", "#374151"),
+      tx("JUSTIFICANTE DE CITA", 110, 16, 80, 10, 20, true, "right", oscuro),
+      tx("CITA DE TALLER REGISTRADA", 110, 27, 80, 5, 9, false, "right", gris),
+      tx("Nº {{cita.numero}}", 110, 34, 80, 6, 11, false, "right", "#4b5563"),
 
-      box(110, 42, 80, 32, 0.4, "#e5e7eb"),
-      tx("CITA", 113, 45, 74, 5, 7, true, "left", "#6b7280"),
-      tx("Fecha: {{cita.fecha}}", 113, 52, 74, 5, 9, false, "left", "#374151"),
-      tx("Horario: {{cita.horario}}", 113, 59, 74, 5, 9, false, "left", "#374151"),
-      tx("Estado: {{cita.estado}}", 113, 66, 74, 5, 9, false, "left", "#374151"),
+      // Datos del emisor
+      tx("Taller", x, 46, w, 5, 7, true, "left", gris),
+      tx("{{empresa.nombre}}", x, 51, w, 8, 11, true, "left", oscuro),
+      tx("{{empresa.nif}}", x, 60, w, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.direccion}}", x, 66, w, 5, 8, false, "left", "#374151"),
+      tx("{{empresa.telefono}}", x, 72, w, 5, 8, false, "left", "#374151"),
+      linea(x, 80, w, "#d1d5db"),
 
-      ...seccion("CLIENTE", x, 82, w),
-      fl("NOMBRE", "cliente.nombre", x, 91, w, 8, 10),
-      fl("NIF / CIF", "cliente.nif", x, 100, medio - 2, 8, 9),
-      fl("TELÉFONO", "cliente.telefono", x + medio + 2, 100, medio - 2, 8, 9),
-      fl("CORREO ELECTRÓNICO", "cliente.email", x, 109, w, 8, 9),
+      // Datos de la cita
+      tx("DATOS DE LA CITA", x, 88, w, 6, 10, true, "left", oscuro),
+      fl("FECHA", "cita.fecha", x, 97, medio - 2),
+      fl("HORARIO", "cita.horario", x + medio + 2, 97, medio - 2),
+      fl("ESTADO", "cita.estado", x, 107, medio - 2),
+      fl("ASEGURADORA / PARTICULAR", "cita.aseguradora", x + medio + 2, 107, medio - 2),
+      linea(x, 118, w, "#d1d5db"),
 
-      ...seccion("VEHÍCULO", x, 122, w),
-      fl("MATRÍCULA", "vehiculo.matricula", x, 131, medio - 2, 8, 10),
-      fl("MARCA", "vehiculo.marca", x + medio + 2, 131, medio - 2, 8, 9),
-      fl("MODELO", "vehiculo.modelo", x, 140, medio - 2, 8, 9),
-      fl("CORTESÍA", "cita.cortesia", x + medio + 2, 140, medio - 2, 8, 9),
+      // Cliente
+      tx("CLIENTE", x, 126, w, 6, 10, true, "left", oscuro),
+      fl("NOMBRE", "cliente.nombre", x, 135, w, 8, 10),
+      fl("NIF / CIF", "cliente.nif", x, 145, medio - 2),
+      fl("TELÉFONO", "cliente.telefono", x + medio + 2, 145, medio - 2),
+      fl("CORREO ELECTRÓNICO", "cliente.email", x, 155, w),
+      linea(x, 166, w, "#d1d5db"),
 
-      ...seccion("MOTIVO / TRABAJO SOLICITADO", x, 153, w),
-      area("", "cita.motivo", x, 162, w, 45, 9),
+      // Vehículo
+      tx("VEHÍCULO", x, 174, w, 6, 10, true, "left", oscuro),
+      fl("MATRÍCULA", "vehiculo.matricula", x, 183, medio - 2, 8, 10),
+      fl("MARCA", "vehiculo.marca", x + medio + 2, 183, medio - 2, 8, 9),
+      fl("MODELO", "vehiculo.modelo", x, 193, medio - 2),
+      fl("CORTESÍA", "cita.cortesia", x + medio + 2, 193, medio - 2),
+      linea(x, 204, w, "#d1d5db"),
 
+      // Motivo
+      tx("MOTIVO / TRABAJO SOLICITADO", x, 212, w, 6, 10, true, "left", oscuro),
+      { id: id(), type: "textarea", x, y: 221, w, h: 40, label: "", fieldKey: "cita.motivo", fontSize: 9, boxed: false },
+
+      // Pie
       tx(
         "Este justificante confirma que el taller ha registrado la cita indicada. No supone la aceptación de un presupuesto ni la apertura de una orden de reparación.",
-        x,
-        215,
-        w,
-        10,
-        8,
-        false,
-        "center",
-        "#6b7280"
+        x, 268, w, 10, 8, false, "center", gris
       ),
-
-      linea(x, 232, w, "#d1d5db"),
-      tx("Documento emitido el {{documento.fechaEmision}}", x, 238, w, 5, 8, false, "center", "#6b7280"),
-      tx("Gracias por confiar en nosotros", x, 268, w, 5, 8, false, "center", "#9ca3af"),
+      linea(x, 282, w, "#d1d5db"),
+      tx("Documento emitido el {{documento.fechaEmision}}", x, 287, w, 5, 8, false, "center", gris),
     ],
   };
 }

@@ -230,18 +230,24 @@ export async function createBuiltinTemplateRemote(builtinName) {
   return mapDoc(created);
 }
 
-export async function createFromBuiltinRemote(builtin) {
-  const t = {
-    tipoDocumento: builtin.tipoDocumento,
-    nombre: builtin.name,
-    page: builtin.page,
-    elements: builtin.elements,
-    cssExtra: builtin.cssExtra,
-  };
+export async function resetTemplateToBuiltinRemote(id, builtinName) {
+  const builder = BUILTIN_MAP[builtinName];
+  if (!builder) throw new Error(`Plantilla prediseñada no encontrada: ${builtinName}`);
+  // Se borra la plantilla actual para evitar acumular versiones rotas.
+  await fetchJson(`/api/formatos/${id}`, { method: "DELETE" });
+  const t = builder();
   const created = await fetchJson("/api/formatos", {
     method: "POST",
-    body: JSON.stringify(t),
+    body: JSON.stringify({
+      tipoDocumento: t.tipoDocumento,
+      nombre: t.name,
+      page: t.page,
+      elements: t.elements,
+      cssExtra: t.cssExtra,
+    }),
   });
+  // La nueva pasa a ser la predeterminada de su tipo.
+  await fetchJson(`/api/formatos/${created._id}/predeterminar`, { method: "POST" });
   return mapDoc(created);
 }
 

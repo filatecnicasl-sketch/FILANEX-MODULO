@@ -28,6 +28,7 @@ export function TopBar({
   onSetType,
   onSetDefault,
   onCreateBuiltin,
+  onResetToBuiltin,
   currentType,
   isDefault,
 }) {
@@ -139,6 +140,21 @@ export function TopBar({
           <option key={b.key} value={b.key}>{b.name}</option>
         ))}
       </select>
+
+      <button
+        className={iconBtn}
+        title="Restaurar plantilla prediseñada"
+        onClick={() => {
+          if (!current) return;
+          const builtin = BUILTIN_LIST.find((b) => b.tipoDocumento === current.tipoDocumento);
+          if (!builtin) return alert("No hay plantilla prediseñada para este tipo.");
+          if (!window.confirm(`¿Restaurar "${builtin.name}"? Se perderán los cambios personalizados de esta plantilla.`)) return;
+          onResetToBuiltin(builtin.key);
+        }}
+        disabled={!design || !current}
+      >
+        🔄
+      </button>
 
       <button className={iconBtn} title="Duplicar plantilla" onClick={onDuplicateTemplate} disabled={!design || !current}>
         <IconCopy />
