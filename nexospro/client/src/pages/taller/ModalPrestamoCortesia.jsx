@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
-import { aFechaInput } from "./datos.js";
+import { aFechaInput, dirTexto } from "./datos.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const campo = "input w-full";
@@ -14,10 +14,15 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
   const modoEdicion = Boolean(prestamo);
 
   function prestamoAForm(p) {
+    const mm =
+      p?.vehiculoReparacionMarcaModelo
+      || (inicial?.marca || inicial?.modelo
+          ? [inicial?.marca, inicial?.modelo].filter(Boolean).join(" ")
+          : "");
     return {
-      vehiculoId: p?.vehiculo?._id ?? p?.vehiculo ?? "",
+      vehiculoId: p?.vehiculo?._id ?? p?.vehiculo ?? inicial?.cortesiaVehiculo ?? "",
       clienteNombre: p?.clienteNombre ?? inicial?.clienteNombre ?? "",
-      clienteNIF: p?.clienteNIF ?? "",
+      clienteNIF: p?.clienteNIF ?? inicial?.nif ?? "",
       clienteDireccion: p?.clienteDireccion ?? "",
       clienteFechaNacimiento: p?.clienteFechaNacimiento ? aFechaInput(new Date(p.clienteFechaNacimiento)) : "",
       clienteLugarNacimiento: p?.clienteLugarNacimiento ?? "",
@@ -28,8 +33,8 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
       permisoConducirLugar: p?.permisoConducirLugar ?? "",
       otroConductor: p?.otroConductor ?? "",
       ordenId: p?.orden?._id ?? p?.orden ?? "",
-      vehiculoReparacionMatricula: p?.vehiculoReparacionMatricula ?? "",
-      vehiculoReparacionMarcaModelo: p?.vehiculoReparacionMarcaModelo ?? "",
+      vehiculoReparacionMatricula: p?.vehiculoReparacionMatricula ?? inicial?.matricula ?? "",
+      vehiculoReparacionMarcaModelo: mm,
       vehiculoReparacionVIN: p?.vehiculoReparacionVIN ?? "",
       fechaPrevista: p?.fechaPrevista ? aFechaInput(new Date(p.fechaPrevista)) : (inicial?.fechaPrevista ?? ""),
       kmSalida: p?.kmSalida ?? "",
@@ -84,7 +89,19 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
       .catch(() => setOrdenes([]));
   }, [modoEdicion, prestamo?.vehiculo]);
 
-  // Opciones del buscador: matrícula como nombre (se busca por ella) y
+  // Si venimos de una cita con el cliente identificado, precargamos su
+  // dirección desde la cartera para evitar volver a escribirla.
+  useEffect(() => {
+    if (!inicial?.cliente || modoEdicion) return;
+    const c = clientes.find((x) => String(x._id) === String(inicial.cliente));
+    if (!c) return;
+    setForm((f) => ({
+      ...f,
+      clienteDireccion: f.clienteDireccion || dirTexto(c.direccion) || "",
+      clienteNIF: f.clienteNIF || c.nif || "",
+      email: f.email || c.email || "",
+    }));
+  }, [inicial?.cliente, clientes, modoEdicion]);
   // marca/modelo como dato secundario.
   const opcionesVehiculos = cortesia.map((v) => ({
     _id: v._id,

@@ -44,3 +44,6 @@ export const nombreEstado = (clave) =>
 
 export const tonoEstado = (clave) =>
   ESTADOS_OT.find((e) => e.clave === clave)?.tono ?? "slate";
+
+export const dirTexto = (d) =>
+  [d?.calle, d?.cp, d?.ciudad, d?.provincia].filter(Boolean).join(", ");

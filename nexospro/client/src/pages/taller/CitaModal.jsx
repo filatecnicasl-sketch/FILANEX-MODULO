@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ESTADOS_CITA, aFechaInput, tonoEstadoValoracion, nombreEstadoValoracion } from "./datos.js";
+import { ESTADOS_CITA, aFechaInput, tonoEstadoValoracion, nombreEstadoValoracion, dirTexto } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
@@ -17,7 +17,6 @@ const CLASES_PILL_ESTADO = {
 
 const campo = "input w-full";
 const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
-const dirTexto = (d) => [d?.calle, d?.cp, d?.ciudad, d?.provincia].filter(Boolean).join(", ");
 
 function hojaEntradaHtml(emp, cita, cliente, vehiculo) {
   const hoy = fechaEs(cita.fecha);
@@ -1288,10 +1287,17 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     {cortesiaAbierta && (
       <ModalPrestamoCortesia
         inicial={{
+          cliente: form.cliente,
           clienteNombre: form.clienteNombre,
           telefono: form.telefono,
+          email: form.email,
+          nif: form.nif,
+          matricula: form.matricula,
+          marca: form.marca,
+          modelo: form.modelo,
           fechaPrevista: form.fecha,
           citaId: cita?._id,
+          cortesiaVehiculo: form.cortesiaVehiculo,
         }}
         onCerrar={() => setCortesiaAbierta(false)}
         onCreado={() => setCortesiaAbierta(false)}
