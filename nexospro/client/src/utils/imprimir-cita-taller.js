@@ -22,7 +22,13 @@ async function cargarPlantilla() {
   try {
     const respuesta = await fetch("/api/formatos/default/cita-taller");
     if (!respuesta.ok) return null;
-    return await respuesta.json();
+    const plantilla = await respuesta.json();
+    // Si la plantilla guardada es la prediseñada del sistema, ignorarla y
+    // usar siempre la versión actual del código. Así los cambios en
+    // builtinTemplates.js se reflejan inmediatamente sin depender de la
+    // copia almacenada en la base de datos.
+    if (plantilla?.builtin === "cita-taller") return null;
+    return plantilla;
   } catch {
     return null;
   }
