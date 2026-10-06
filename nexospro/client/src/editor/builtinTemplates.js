@@ -539,14 +539,14 @@ export function buildCitaTaller() {
 
       tx("JUSTIFICANTE DE CITA", 110, 16, 80, 10, 20, true, "right", oscuro),
       tx("CITA DE TALLER REGISTRADA", 110, 27, 80, 5, 9, false, "right", gris),
-      tx("Nº {{cita.numero}}", 110, 34, 80, 6, 11, false, "right", "#4b5563"),
+      fl("", "cita.numero", 110, 34, 80, 6, 11),
 
       // Datos del emisor
       tx("Taller", x, 46, w, 5, 7, true, "left", gris),
-      tx("{{empresa.nombre}}", x, 51, w, 8, 11, true, "left", oscuro),
-      tx("{{empresa.nif}}", x, 60, w, 5, 8, false, "left", "#374151"),
-      tx("{{empresa.direccion}}", x, 66, w, 5, 8, false, "left", "#374151"),
-      tx("{{empresa.telefono}}", x, 72, w, 5, 8, false, "left", "#374151"),
+      fl("", "empresa.nombre", x, 51, w, 8, 11),
+      fl("", "empresa.nif", x, 60, w, 5, 8),
+      fl("", "empresa.direccion", x, 66, w, 5, 8),
+      fl("", "empresa.telefono", x, 72, w, 5, 8),
       linea(x, 80, w, "#d1d5db"),
 
       // Datos de la cita
@@ -583,7 +583,8 @@ export function buildCitaTaller() {
         x, 268, w, 10, 8, false, "center", gris
       ),
       linea(x, 282, w, "#d1d5db"),
-      tx("Documento emitido el {{documento.fechaEmision}}", x, 287, w, 5, 8, false, "center", gris),
+      tx("Documento emitido el", x, 287, 38, 5, 8, false, "left", gris),
+      fl("", "documento.fechaEmision", x + 40, 287, 60, 5, 8),
     ],
   };
 }
