@@ -117,7 +117,7 @@ router.post("/facturar", async (req, res, next) => {
     }
 
     const lineas = albaranes.flatMap((a) =>
-      a.lineas.map((l) => ({ ...l.toObject(), descripcion: `[${a.serieNumero}] ${l.descripcion}` }))
+      a.lineas.map((l) => ({ ...l.toObject(), descripcion: `[Albarán ${a.serieNumero}] ${l.descripcion}` }))
     );
     const empresa = await Empresa.findOne();
     // Dirección de entrega: la del primer albarán que la tenga.
