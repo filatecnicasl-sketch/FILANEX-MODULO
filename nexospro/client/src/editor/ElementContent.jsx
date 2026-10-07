@@ -429,9 +429,15 @@ function TableView({ el, variant, formData, onFormValue, fs, mm }) {
 }
 
 // ---------- Firma ----------
-function SignatureView({ el, variant, signatures, onSignature, fs, mm, zoom }) {
+function SignatureView({ el, variant, signatures, formData, onSignature, fs, mm, zoom }) {
   const dataUrl = signatures[el.id];
   const lineH = 3;
+  // Datos de la persona que firma: buscan primero en claves específicas del
+  // elemento (p. ej. "cliente.nombre") y, si no, en las genéricas "firma.*"
+  // que el servidor rellena para albaranes y documentos firmados.
+  const nombre = formData[`${el.id}.nombre`] || formData["firma.nombre"] || "";
+  const dni = formData[`${el.id}.dni`] || formData["firma.dni"] || "";
+  const fecha = formData[`${el.id}.fecha`] || formData["firma.fecha"] || "";
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {el.label && (
@@ -451,6 +457,14 @@ function SignatureView({ el, variant, signatures, onSignature, fs, mm, zoom }) {
           <img src={dataUrl} alt="firma" className="h-full w-full" style={{ objectFit: "contain" }} />
         ) : null}
       </div>
+      {variant !== "fill" && nombre && (
+        <div
+          style={{ fontSize: fs(5), lineHeight: 1.1, marginTop: "1mm" }}
+          className="shrink-0 text-center"
+        >
+          {nombre}{dni ? ` · ${dni}` : ""}{fecha ? ` · ${fecha}` : ""}
+        </div>
+      )}
       {el.sublabel && (
         <div style={{ fontSize: fs(5), height: mm(2.5), lineHeight: 1.1 }} className="shrink-0">
           {el.sublabel}

@@ -95,9 +95,13 @@ function renderElement(el, formData, signatures, opts) {
 
     case "signature": {
       const sig = signatures[el.id];
+      const label = formData[`${el.id}.nombre`] || formData["firma.nombre"] || "";
+      const dni = formData[`${el.id}.dni`] || formData["firma.dni"] || "";
+      const fecha = formData[`${el.id}.fecha`] || formData["firma.fecha"] || "";
       return `<div style="${style}${box}">
         ${sig ? `<img src="${esc(sig)}" style="width:100%;height:100%;object-fit:contain;" alt="Firma" />` : ""}
         ${el.label ? `<div style="position:absolute;bottom:0;left:0;font-size:6pt;color:#555;">${esc(el.label)}</div>` : ""}
+        ${label ? `<div style="position:absolute;bottom:0;left:0;right:0;font-size:6pt;color:#333;text-align:center;border-top:0.3mm solid #999;padding-top:0.5mm;">${esc(label)}${dni ? ` · ${esc(dni)}` : ""}${fecha ? ` · ${esc(fecha)}` : ""}</div>` : ""}
       </div>`;
     }
 

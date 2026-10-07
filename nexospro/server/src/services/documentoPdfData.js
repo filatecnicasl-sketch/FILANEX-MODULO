@@ -228,6 +228,9 @@ async function datosAlbaranVenta(id) {
     "cliente.direccion": dirTexto(c.direccion),
     "cliente.telefono": c.telefono ?? "",
     "cliente.email": c.email ?? "",
+    "firma.nombre": a.firmaEntrega?.nombre ?? "",
+    "firma.dni": a.firmaEntrega?.dni ?? "",
+    "firma.fecha": a.firmaEntrega?.fecha ? `${new Date(a.firmaEntrega.fecha).toLocaleDateString("es-ES")} ${new Date(a.firmaEntrega.fecha).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}` : "",
     "notas": "",
   };
 
