@@ -1,5 +1,6 @@
 import { Router } from "express";
 import FacturaVenta from "../models/FacturaVenta.js";
+import AlbaranVenta from "../models/AlbaranVenta.js";
 import Empresa from "../models/Empresa.js";
 import RegistroFacturacion from "../models/RegistroFacturacion.js";
 import { generarPdfFactura } from "../services/factura-pdf.js";
@@ -462,6 +463,13 @@ router.delete("/:id", async (req, res, next) => {
       return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
     }
     await factura.deleteOne();
+    // Si el borrador venía de albaranes, los deja libres para volver a facturar.
+    if (factura.origen?.albaranes?.length) {
+      await AlbaranVenta.updateMany(
+        { _id: { $in: factura.origen.albaranes } },
+        { estado: "pendiente", $unset: { facturaVenta: 1 } }
+      );
+    }
     res.json({ ok: true });
   } catch (err) {
     next(err);
