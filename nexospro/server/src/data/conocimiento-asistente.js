@@ -51,6 +51,22 @@ Menú: Clientes, Proveedores, Artículos, Ventas, Compras, Tesorería, Informes.
 - Se pueden crear "artículos libres" (líneas escritas a mano) en presupuestos
   y pedidos sin tocar stock.
 
+### Albaranes de venta
+- Se dan de alta en **Ventas → Albaranes**. Un albarán entrega material o
+  trabajo a un cliente pero aún no es factura.
+- Estado **pendiente** = sin facturar. Estado **facturado** = ya tiene
+  factura asociada.
+- Para facturar varios albaranes de un mismo cliente en una sola factura:
+  1. Ve a **Ventas → Albaranes**.
+  2. Marca la casilla de los albaranes **pendientes** del mismo cliente.
+  3. Pulsa **“Facturar N seleccionado(s)”** arriba a la derecha.
+  4. El programa crea una factura borrador con todas las líneas de los
+     albaranes marcados.
+  5. Ve a **Ventas → Facturas**, abre el borrador y pulsa **Emitir**.
+- Para facturar un solo albarán, usa el botón **→ Factura** de su fila.
+- Los albaranes facturados no se pueden editar ni borrar; hay que rectificar
+  la factura si es necesario.
+
 ### Ciclo de venta
 Presupuesto → Pedido (opcional) → Albarán (opcional) → Factura.
 - Se puede convertir un documento en el siguiente con un clic (botón de

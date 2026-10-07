@@ -235,9 +235,32 @@ export default function AlbaranesPage() {
     cargar();
   }, []);
 
-  function toggle(id) {
-    setSeleccion((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  function clienteSeleccionado() {
+    if (seleccion.length === 0) return null;
+    const primero = albaranes.find((a) => a._id === seleccion[0]);
+    return primero?.cliente?._id ?? null;
   }
+
+  function toggle(id) {
+    const albaran = albaranes.find((a) => a._id === id);
+    if (!albaran || albaran.estado !== "pendiente") return;
+    setSeleccion((s) => {
+      if (s.includes(id)) return s.filter((x) => x !== id);
+      // Solo se permiten albaranes del mismo cliente en la selección.
+      const clienteId = clienteSeleccionado();
+      if (clienteId && String(albaran.cliente?._id) !== String(clienteId)) {
+        setError("Solo puedes seleccionar albaranes del mismo cliente para facturarlos juntos.");
+        return s;
+      }
+      setError(null);
+      return [...s, id];
+    });
+  }
+
+  const totalSeleccion = seleccion.reduce((sum, id) => {
+    const a = albaranes.find((x) => x._id === id);
+    return sum + (a ? totalesDe(a).total : 0);
+  }, 0);
 
   async function facturarSeleccionados() {
     setError(null);
@@ -283,12 +306,24 @@ export default function AlbaranesPage() {
             Imprimir
           </button>
           {seleccion.length > 0 && (
-            <button
-              onClick={facturarSeleccionados}
-              className="btn-primary"
-            >
-              Facturar {seleccion.length} seleccionado(s)
-            </button>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400">
+                {seleccion.length} seleccionado(s) · {euros(totalSeleccion)}
+              </span>
+              <button
+                onClick={facturarSeleccionados}
+                className="btn-primary"
+              >
+                Facturar
+              </button>
+              <button
+                onClick={() => { setSeleccion([]); setError(null); }}
+                className="text-xs text-slate-400 hover:text-white"
+                title="Limpiar selección"
+              >
+                ×
+              </button>
+            </div>
           )}
           <button
             onClick={() => setMostrarForm(true)}
