@@ -64,6 +64,21 @@ async function bloqueQrVerifactu(qrContenido) {
   </div>`;
 }
 
+// Construye el mapa de firmas a partir de la plantilla. Cada elemento de tipo
+// "signature" recibe la imagen guardada, usando su propio id como clave. Así
+// funciona independientemente del id que tenga el elemento en la plantilla.
+function signaturesParaPlantilla(plantilla, firma) {
+  if (!firma?.imagen) return {};
+  const sigs = {};
+  const elements = Array.isArray(plantilla) ? plantilla.flatMap((p) => p.elements ?? []) : plantilla.elements ?? [];
+  for (const el of elements) {
+    if (el.type === "signature") {
+      sigs[el.id] = firma.imagen;
+    }
+  }
+  return sigs;
+}
+
 // Genera PDF de un documento comercial usando la plantilla editable.
 // Para facturas VeriFactu emitidas se añade el QR tributario obligatorio.
 router.get("/:tipo/:id/pdf", async (req, res, next) => {
@@ -84,7 +99,7 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
     if (!plantilla) return res.status(404).json({ error: "No hay plantilla de impresión para este documento" });
 
     const { formData, logoUrl, firma, qrContenido } = await datosParaPdf(tipo, id);
-    const signatures = firma?.imagen ? { cliente: firma.imagen } : {};
+    const signatures = signaturesParaPlantilla(plantilla, firma);
 
     // Sello PAGADA: si la factura está totalmente cobrada, se añade la
     // imagen del sello en el hueco bajo las líneas (sin tocar la plantilla).
@@ -167,7 +182,7 @@ router.get("/:tipo/:id/formato", async (req, res, next) => {
     res.json({
       plantilla: resuelta,
       formData: datos,
-      signatures: firma?.imagen ? { cliente: firma.imagen } : {},
+      signatures: signaturesParaPlantilla(plantilla, firma),
     });
   } catch (err) {
     next(err);
