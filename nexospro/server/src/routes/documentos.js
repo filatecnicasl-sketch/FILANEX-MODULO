@@ -1,5 +1,7 @@
 import { Router } from "express";
 import QRCode from "qrcode";
+import path from "path";
+import fs from "fs";
 import Formato from "../models/Formato.js";
 import { datosParaPdf } from "../services/documentoPdfData.js";
 import { formatoToHtml, expandirLineasEnCeldas, resolverPlantillaParaImpresion, pageDimensions } from "../services/formatoToHtml.js";
@@ -64,16 +66,35 @@ async function bloqueQrVerifactu(qrContenido) {
   </div>`;
 }
 
+// Lee una imagen de firma (ruta relativa a /uploads/...) y la devuelve como
+// data URI para poder incrustarla tanto en PDF como en impresión rápida.
+function firmaComoDataUri(url) {
+  if (!url) return "";
+  if (url.startsWith("data:")) return url;
+  const rel = url.replace(/^\/+/, "");
+  const abs = path.join(process.cwd(), rel);
+  try {
+    const buf = fs.readFileSync(abs);
+    const ext = path.extname(abs).toLowerCase();
+    const mime = ext === ".png" ? "image/png" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png";
+    return `data:${mime};base64,${buf.toString("base64")}`;
+  } catch {
+    return "";
+  }
+}
+
 // Construye el mapa de firmas a partir de la plantilla. Cada elemento de tipo
 // "signature" recibe la imagen guardada, usando su propio id como clave. Así
 // funciona independientemente del id que tenga el elemento en la plantilla.
 function signaturesParaPlantilla(plantilla, firma) {
   if (!firma?.imagen) return {};
+  const dataUri = firmaComoDataUri(firma.imagen);
+  if (!dataUri) return {};
   const sigs = {};
   const elements = Array.isArray(plantilla) ? plantilla.flatMap((p) => p.elements ?? []) : plantilla.elements ?? [];
   for (const el of elements) {
     if (el.type === "signature") {
-      sigs[el.id] = firma.imagen;
+      sigs[el.id] = dataUri;
     }
   }
   return sigs;
