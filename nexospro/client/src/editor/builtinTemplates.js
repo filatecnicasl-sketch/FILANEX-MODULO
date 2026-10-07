@@ -195,8 +195,7 @@ export function buildAlbaranVenta() {
       t,
 
       tx("Conforme recepción de mercancía:", 20, 218, 80, 5, 9, true, "left"),
-      box(20, 225, 80, 20, 0.4, "#e5e7eb"),
-      tx("Nombre y firma", 23, 238, 74, 5, 8, false, "left", "#6b7280"),
+      { id: id(), type: "signature", x: 20, y: 225, w: 80, h: 20, label: "Nombre y firma" },
 
       tx("Gracias por confiar en nosotros", 20, 268, 170, 5, 8, false, "center", "#9ca3af"),
     ],

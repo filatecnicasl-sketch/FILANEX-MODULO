@@ -100,6 +100,29 @@ function signaturesParaPlantilla(plantilla, firma) {
   return sigs;
 }
 
+// Si el documento lleva firma pero la plantilla no tiene un elemento
+// "signature", se añade uno automáticamente en la zona de conforme. Así las
+// plantillas antiguas o personalizadas sin firma siguen mostrándola.
+function asegurarElementoFirma(plantilla, firma) {
+  if (!firma?.imagen) return plantilla;
+  const elements = Array.isArray(plantilla) ? plantilla[0]?.elements ?? [] : plantilla.elements ?? [];
+  if (elements.some((e) => e.type === "signature")) return plantilla;
+
+  const nuevo = JSON.parse(JSON.stringify(plantilla));
+  const target = Array.isArray(nuevo) ? nuevo[0] : nuevo;
+  target.elements = target.elements ?? [];
+  target.elements.push({
+    id: `firma-auto-${Date.now()}`,
+    type: "signature",
+    x: 20,
+    y: 250,
+    w: 80,
+    h: 25,
+    label: "Firma conforme",
+  });
+  return nuevo;
+}
+
 // Genera PDF de un documento comercial usando la plantilla editable.
 // Para facturas VeriFactu emitidas se añade el QR tributario obligatorio.
 router.get("/:tipo/:id/pdf", async (req, res, next) => {
@@ -120,7 +143,8 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
     if (!plantilla) return res.status(404).json({ error: "No hay plantilla de impresión para este documento" });
 
     const { formData, logoUrl, firma, qrContenido } = await datosParaPdf(tipo, id);
-    const signatures = signaturesParaPlantilla(plantilla, firma);
+    const plantillaConFirma = asegurarElementoFirma(plantilla, firma);
+    const signatures = signaturesParaPlantilla(plantillaConFirma, firma);
 
     // Sello PAGADA: si la factura está totalmente cobrada, se añade la
     // imagen del sello en el hueco bajo las líneas (sin tocar la plantilla).
@@ -132,7 +156,7 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
       if (borrador) plantilla.elements = [...(plantilla.elements ?? []), ...borrador];
     }
 
-    let { html, css, pageSize, pageOrientation } = formatoToHtml(plantilla, formData, signatures, {
+    let { html, css, pageSize, pageOrientation } = formatoToHtml(plantillaConFirma, formData, signatures, {
       logoUrl,
     });
 
@@ -159,14 +183,15 @@ router.get("/:tipo/:id/formato", async (req, res, next) => {
     if (!plantilla) return res.status(404).json({ error: "No hay plantilla de impresión para este documento" });
 
     const { formData, logoUrl, firma, qrContenido } = await datosParaPdf(tipo, id);
-    const datos = expandirLineasEnCeldas(plantilla, formData);
+    const plantillaConFirma = asegurarElementoFirma(plantilla, firma);
+    const datos = expandirLineasEnCeldas(plantillaConFirma, formData);
     delete datos.lineas;
 
     const qr = qrContenido
       ? await QRCode.toDataURL(qrContenido, { errorCorrectionLevel: "M", width: 300, margin: 0 })
       : null;
 
-    const resuelta = resolverPlantillaParaImpresion(plantilla, formData, logoUrl);
+    const resuelta = resolverPlantillaParaImpresion(plantillaConFirma, formData, logoUrl);
 
     // Sello PAGADA también en la impresión rápida, cuando está cobrada.
     if (tipo === "factura-venta") {
@@ -203,7 +228,7 @@ router.get("/:tipo/:id/formato", async (req, res, next) => {
     res.json({
       plantilla: resuelta,
       formData: datos,
-      signatures: signaturesParaPlantilla(plantilla, firma),
+      signatures: signaturesParaPlantilla(plantillaConFirma, firma),
     });
   } catch (err) {
     next(err);
