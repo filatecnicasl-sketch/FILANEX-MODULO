@@ -444,3 +444,10 @@ export const IconAvisos = () => (
     <path d="M13.7 21a2 2 0 0 1-3.4 0" />
   </Svg>
 );
+
+// Check / visto.
+export const IconCheck = () => (
+  <Svg>
+    <path d="M20 6L9 17l-5-5" />
+  </Svg>
+);

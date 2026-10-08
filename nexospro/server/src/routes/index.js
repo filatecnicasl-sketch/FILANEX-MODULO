@@ -38,6 +38,7 @@ import backups from "./backups.js";
 import informes from "./informes.js";
 import propuestas from "./propuestas.js";
 import asistente from "./asistente.js";
+import tesoreriaExtractos from "./tesoreria-extractos.js";
 import { requiereModulo } from "../config/modulos.js";
 import { requiereAuth } from "../middleware/auth.js";
 import { middlewareEmpresa } from "../middleware/empresa.js";
@@ -99,5 +100,6 @@ router.use("/backups", backups);
 router.use("/informes", informes);
 router.use("/propuestas", propuestas);
 router.use("/asistente", requiereModulo("asistente"), asistente);
+router.use("/tesoreria/extractos", tesoreriaExtractos);
 
 export default router;

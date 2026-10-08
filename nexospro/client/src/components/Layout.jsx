@@ -34,6 +34,7 @@ const gruposBase = [
       { to: "/tesoreria", etiqueta: "Panel", Icono: IconPanel, tono: "indigo", fin: true },
       { to: "/tesoreria/cobros", etiqueta: "Cobros", Icono: IconCobros, tono: "emerald" },
       { to: "/tesoreria/pagos", etiqueta: "Pagos", Icono: IconPagos, tono: "rose" },
+      { to: "/tesoreria/extractos", etiqueta: "Extractos", Icono: IconDocumentos, tono: "sky" },
     ],
   },
   { titulo: "Artículos", Icono: IconArticulos, directo: "/articulos", tono: "violet" },

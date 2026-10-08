@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-08",
     tipo: "nuevo",
+    titulo: "Conciliación bancaria por extracto",
+    detalle:
+      "Nueva pantalla en Tesorería → Extractos: sube el CSV o Excel de tu banco, el programa lee los movimientos y busca automáticamente facturas de compra pendientes de pago que cuadren por importe. Un clic concilia el cargo con la factura y registra el pago. También puedes desconciliar o borrar movimientos si te equivocas.",
+  },
+  {
+    fecha: "2026-10-08",
+    tipo: "nuevo",
     titulo: "Facturas de compra en dólares (USD)",
     detalle:
       "Al dar de alta una factura de compra manual puedes elegir USD como divisa, indicar el tipo de cambio y escribir los precios en dólares. El programa guarda los importes originales en USD y los convierte a EUR para la contabilidad, el stock y los informes. En el listado se ve el total en EUR y, al pasar el ratón, el total original y el tipo de cambio. El IVA 0 % sigue disponible para facturas exentas.",
