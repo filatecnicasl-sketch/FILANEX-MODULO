@@ -4,8 +4,14 @@ import { EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/u
 import { IconEditar, IconBorrar } from "../../components/icons.jsx";
 
 const VACIO = {
-  nombre: "", comercializadoraId: "", nif: "", telefono: "", email: "", contacto: "", notas: "",
+  nombre: "", comercializadoraIds: [], nif: "", telefono: "", email: "", contacto: "", notas: "",
 };
+
+function nombresCom(canal) {
+  if (canal.comercializadoraNombres?.length) return canal.comercializadoraNombres.join(", ");
+  if (canal.comercializadoras?.length) return canal.comercializadoras.map((c) => c.nombre).filter(Boolean).join(", ");
+  return "—";
+}
 
 export default function EnergiaCanalesPage() {
   const [lista, setLista] = useState(null);
@@ -20,7 +26,7 @@ export default function EnergiaCanalesPage() {
     coincideBusqueda(
       q,
       c.nombre,
-      c.comercializadoraNombre,
+      nombresCom(c),
       c.nif,
       c.telefono,
       c.email,
@@ -60,7 +66,7 @@ export default function EnergiaCanalesPage() {
     setEditando(c);
     setForm({
       nombre: c.nombre ?? "",
-      comercializadoraId: c.comercializadora?._id ?? "",
+      comercializadoraIds: (c.comercializadoras ?? []).map((x) => x._id ?? x),
       nif: c.nif ?? "",
       telefono: c.telefono ?? "",
       email: c.email ?? "",
@@ -70,11 +76,20 @@ export default function EnergiaCanalesPage() {
     setModal(true);
   }
 
+  function toggleCom(id) {
+    setForm((f) => {
+      const set = new Set(f.comercializadoraIds);
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      return { ...f, comercializadoraIds: Array.from(set) };
+    });
+  }
+
   async function guardar(e) {
     e.preventDefault();
     const cuerpo = {
       nombre: form.nombre,
-      comercializadora: form.comercializadoraId || null,
+      comercializadoras: form.comercializadoraIds,
       nif: form.nif,
       telefono: form.telefono,
       email: form.email,
@@ -105,7 +120,7 @@ export default function EnergiaCanalesPage() {
   return (
     <CabeceraPagina
       titulo="Canales de distribución"
-      descripcion="Distribuidores o intermediarios por los que das de alta los suministros de cada comercializadora."
+      descripcion="Distribuidores o intermediarios por los que das de alta los suministros. Un canal puede trabajar con varias comercializadoras."
     >
       {error && <div className="panel px-4 py-3 text-sm text-rose-400 mb-3">{error}</div>}
 
@@ -130,7 +145,7 @@ export default function EnergiaCanalesPage() {
               <thead>
                 <tr>
                   <th>Canal / distribuidor</th>
-                  <th>Comercializadora</th>
+                  <th>Comercializadoras</th>
                   <th>Contacto</th>
                   <th className="text-right">Acciones</th>
                 </tr>
@@ -149,7 +164,7 @@ export default function EnergiaCanalesPage() {
                       <p className="font-medium text-slate-200 whitespace-nowrap">{c.nombre}</p>
                       <p className="num text-xs text-slate-500 whitespace-nowrap">{c.nif ?? ""}</p>
                     </td>
-                    <td className="text-slate-300">{c.comercializadoraNombre ?? c.comercializadora?.nombre ?? "—"}</td>
+                    <td className="text-slate-300">{nombresCom(c)}</td>
                     <td className="text-slate-300">
                       {c.contacto || c.telefono || c.email ? (
                         <>
@@ -193,20 +208,6 @@ export default function EnergiaCanalesPage() {
                 <input value={form.nombre} onChange={poner("nombre")} className="input" autoFocus required />
               </label>
               <label className="text-sm text-slate-400">
-                Comercializadora *
-                <select
-                  value={form.comercializadoraId}
-                  onChange={poner("comercializadoraId")}
-                  className="input"
-                  required
-                >
-                  <option value="">— Selecciona —</option>
-                  {comercializadoras.map((c) => (
-                    <option key={c._id} value={c._id}>{c.nombre}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm text-slate-400">
                 NIF/CIF
                 <input value={form.nif} onChange={poner("nif")} className="input" />
               </label>
@@ -218,10 +219,27 @@ export default function EnergiaCanalesPage() {
                 Email
                 <input value={form.email} onChange={poner("email")} className="input" type="email" />
               </label>
-              <label className="text-sm text-slate-400">
+              <label className="text-sm text-slate-400 sm:col-span-2">
                 Persona de contacto
                 <input value={form.contacto} onChange={poner("contacto")} className="input" />
               </label>
+            </div>
+
+            <div className="text-sm text-slate-400">
+              <p className="mb-2">Comercializadoras *</p>
+              <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900/50 p-2 space-y-1">
+                {comercializadoras.map((c) => (
+                  <label key={c._id} className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.comercializadoraIds.includes(c._id)}
+                      onChange={() => toggleCom(c._id)}
+                      className="rounded border-slate-600"
+                    />
+                    {c.nombre}
+                  </label>
+                ))}
+              </div>
             </div>
 
             <label className="text-sm text-slate-400 block">

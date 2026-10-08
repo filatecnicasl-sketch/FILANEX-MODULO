@@ -3,11 +3,16 @@ import CanalDistribucion from "../models/CanalDistribucion.js";
 import Suministro from "../models/Suministro.js";
 import Comercializadora from "../models/Comercializadora.js";
 
-// CRUD de canales de distribución (distribuidores) de comercializadoras.
-// Se monta dentro del router de energía.
+// CRUD de canales de distribución (distribuidores). Un canal puede trabajar con
+// varias comercializadoras. Se monta dentro del router de energía.
 const router = Router();
 
 const CAMPOS = ["nombre", "nif", "telefono", "email", "contacto", "notas"];
+
+function normalizarIds(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(Boolean).map((id) => String(id));
+}
 
 function limpiar(body) {
   const datos = {};
@@ -15,16 +20,20 @@ function limpiar(body) {
     if (body[c] === undefined) continue;
     datos[c] = String(body[c]).trim() || undefined;
   }
-  if (body.comercializadora !== undefined) {
-    datos.comercializadora = body.comercializadora || undefined;
+  if (body.comercializadoras !== undefined) {
+    datos.comercializadoras = normalizarIds(body.comercializadoras);
   }
   return datos;
 }
 
 async function denormalizar(datos) {
-  if (datos.comercializadora) {
-    const c = await Comercializadora.findById(datos.comercializadora).lean();
-    datos.comercializadoraNombre = c?.nombre ?? undefined;
+  if (datos.comercializadoras?.length) {
+    const coms = await Comercializadora.find({ _id: { $in: datos.comercializadoras } })
+      .select("nombre")
+      .lean();
+    datos.comercializadoraNombres = coms.map((c) => c.nombre);
+  } else if (Array.isArray(datos.comercializadoras)) {
+    datos.comercializadoraNombres = [];
   }
   return datos;
 }
@@ -32,9 +41,11 @@ async function denormalizar(datos) {
 router.get("/", async (req, res, next) => {
   try {
     const filtro = {};
-    if (req.query.comercializadora) filtro.comercializadora = req.query.comercializadora;
+    if (req.query.comercializadora) {
+      filtro.comercializadoras = req.query.comercializadora;
+    }
     const lista = await CanalDistribucion.find(filtro)
-      .populate("comercializadora", "nombre")
+      .populate("comercializadoras", "nombre")
       .sort({ nombre: 1 })
       .limit(500);
     res.json(lista);
@@ -47,7 +58,7 @@ router.post("/", async (req, res, next) => {
   try {
     const datos = limpiar(req.body);
     if (!datos.nombre) return res.status(400).json({ error: "El nombre es obligatorio" });
-    if (!datos.comercializadora) return res.status(400).json({ error: "La comercializadora es obligatoria" });
+    if (!datos.comercializadoras?.length) return res.status(400).json({ error: "Selecciona al menos una comercializadora" });
     await denormalizar(datos);
     const canal = await CanalDistribucion.create(datos);
     res.status(201).json(canal);
@@ -68,7 +79,6 @@ router.put("/:id", async (req, res, next) => {
       omitUndefined: true,
     });
     if (!canal) return res.status(404).json({ error: "Canal no encontrado" });
-    // Refrescar nombre desnormalizado en suministros.
     if (datos.nombre) {
       await Suministro.updateMany(
         { canalDistribucion: canal._id },

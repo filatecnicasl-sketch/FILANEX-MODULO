@@ -132,7 +132,9 @@ export default function EnergiaSuministrosPage() {
     });
     setCanalesFiltrados(
       comercializadoraId
-        ? canales.filter((c) => String(c.comercializadora?._id ?? c.comercializadora) === comercializadoraId)
+        ? canales.filter((c) =>
+            (c.comercializadoras ?? []).some((x) => (x._id ?? x) === comercializadoraId)
+          )
         : canales
     );
     setModal(true);
@@ -424,7 +426,11 @@ export default function EnergiaSuministrosPage() {
                     }));
                     setCanalesFiltrados(
                       comercializadoraId
-                        ? canales.filter((c) => String(c.comercializadora?._id ?? c.comercializadora) === comercializadoraId)
+                        ? canales.filter((c) =>
+                            (c.comercializadoras ?? []).some(
+                              (x) => (x._id ?? x) === comercializadoraId
+                            )
+                          )
                         : canales
                     );
                   }}

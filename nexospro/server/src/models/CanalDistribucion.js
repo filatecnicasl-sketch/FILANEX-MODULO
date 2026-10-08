@@ -1,14 +1,13 @@
 import { Schema } from "mongoose";
 import { modeloTenant } from "./tenant.js";
 
-// Canal de distribución (distribuidor) de una comercializadora: la empresa
-// intermediaria que gestiona el alta o el traspaso del suministro. Una
-// comercializadora (p. ej. Iberdrola) puede tener varios canales/distribuidores.
+// Canal de distribución (distribuidor / intermediario). Un canal puede vender
+// varias comercializadoras, por eso se guarda un array de referencias.
 const canalDistribucionSchema = new Schema(
   {
     nombre: { type: String, required: true, trim: true },
-    comercializadora: { type: Schema.Types.ObjectId, ref: "Comercializadora", required: true },
-    comercializadoraNombre: String, // desnormalizado para listados rápidos
+    comercializadoras: [{ type: Schema.Types.ObjectId, ref: "Comercializadora" }],
+    comercializadoraNombres: [String], // desnormalizado para listados rápidos
     nif: { type: String, uppercase: true, trim: true },
     telefono: String,
     email: { type: String, lowercase: true, trim: true },
@@ -18,7 +17,7 @@ const canalDistribucionSchema = new Schema(
   { timestamps: true }
 );
 
-canalDistribucionSchema.index({ comercializadora: 1 });
+canalDistribucionSchema.index({ comercializadoras: 1 });
 canalDistribucionSchema.index({ nombre: 1 });
 
 export default modeloTenant("CanalDistribucion", canalDistribucionSchema);
