@@ -5,22 +5,35 @@ import { enterComoTab } from "../utils/enter-tab.js";
 // Totales del documento con el mismo redondeo que el servidor
 // (services/totales.js): base e IVA se redondean a céntimos ANTES de
 // sumarse, para que el total en pantalla coincida con el guardado.
-export function totalesDeLineas(lineas) {
+export function totalesDeLineas(lineas, divisa = "EUR", tipoCambio = 1) {
   let base = 0;
   let iva = 0;
   for (const l of lineas ?? []) {
     if (!l?.descripcion) continue;
-    const bruto = (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0);
+    const precio = divisa === "USD" ? (l.precioUnitarioDivisa ?? 0) : (l.precioUnitario ?? 0);
+    const bruto = (Number(l.cantidad) || 0) * (Number(precio) || 0);
     const b = bruto * (1 - (Number(l.descuento) || 0) / 100);
     base += b;
     iva += (b * (Number(l.iva) || 0)) / 100;
   }
   base = Math.round(base * 100) / 100;
   iva = Math.round(iva * 100) / 100;
-  return { base, iva, total: Math.round((base + iva) * 100) / 100 };
+  const totalDivisa = Math.round((base + iva) * 100) / 100;
+  const totalEur = divisa === "USD" && tipoCambio > 0
+    ? Math.round(totalDivisa * tipoCambio * 100) / 100
+    : totalDivisa;
+  const baseEur = divisa === "USD" && tipoCambio > 0 ? Math.round(base * tipoCambio * 100) / 100 : base;
+  const ivaEur = divisa === "USD" && tipoCambio > 0 ? Math.round(iva * tipoCambio * 100) / 100 : iva;
+  return { base, iva, total: totalDivisa, totalEur, baseEur, ivaEur };
 }
 
-export const lineaVacia = () => ({ descripcion: "", cantidad: 1, precioUnitario: 0, iva: 21 });
+export const lineaVacia = () => ({
+  descripcion: "",
+  cantidad: 1,
+  precioUnitario: 0,
+  precioUnitarioDivisa: 0,
+  iva: 21,
+});
 
 // Editor de líneas de documento. El campo descripción busca en el catálogo
 // de artículos al escribir: al elegir uno rellena precio e IVA (precio de
@@ -33,7 +46,7 @@ export const lineaVacia = () => ({ descripcion: "", cantidad: 1, precioUnitario:
 // desplegable (p.ej. los trabajos marcados en la orden).
 // `conDescuento` (compras) añade la columna de % de descuento por línea;
 // el importe de la línea y los totales salen ya netos.
-export default function EditorLineas({ lineas, setLineas, precio = "venta", conTipo = false, conGrupo = false, gruposSugeridos = [], conDescuento = false }) {
+export default function EditorLineas({ lineas, setLineas, precio = "venta", conTipo = false, conGrupo = false, gruposSugeridos = [], conDescuento = false, divisa = "EUR", tipoCambio = 1 }) {
   const [articulos, setArticulos] = useState([]);
   const [conceptos, setConceptos] = useState([]);
   const [sugerenciasEn, setSugerenciasEn] = useState(null); // índice de línea con el desplegable abierto
@@ -103,6 +116,8 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
   }
 
   function aplicarArticulo(i, a) {
+    const precioBase = precio === "compra" ? a.precioCompra ?? 0 : a.precioVenta ?? 0;
+    const cambio = divisa === "USD" && Number(tipoCambio) > 0 ? Number(tipoCambio) : 1;
     setLineas((ls) =>
       ls.map((l, j) =>
         j === i
@@ -110,7 +125,10 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
               ...l,
               articulo: a._id,
               descripcion: a.descripcion,
-              precioUnitario: precio === "compra" ? a.precioCompra ?? 0 : a.precioVenta ?? 0,
+              precioUnitario: precioBase,
+              precioUnitarioDivisa: cambio < 1 && cambio > 0
+                ? Math.round((precioBase / cambio) * 100) / 100
+                : precioBase,
               iva: a.iva ?? 21,
             }
           : l
@@ -124,14 +142,18 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
     const descripcion = creando.descripcion.trim();
     if (!descripcion) return setErrorAlta("Falta la descripción");
     const precioNum = Number(creando.precio) || 0;
+    const cambio = divisa === "USD" && Number(tipoCambio) > 0 ? Number(tipoCambio) : 1;
+    const precioEur = cambio < 1 && cambio > 0
+      ? Math.round(precioNum * cambio * 100) / 100
+      : precioNum;
     try {
       const r = await fetch("/api/articulos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           descripcion,
-          precioVenta: precio === "compra" ? 0 : precioNum,
-          precioCompra: precio === "compra" ? precioNum : 0,
+          precioVenta: precio === "compra" ? 0 : precioEur,
+          precioCompra: precio === "compra" ? precioEur : 0,
           iva: Number(creando.iva) || 0,
         }),
       });
@@ -203,13 +225,14 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
   }
 
   const importesLinea = (l) => {
-    const bruto = (Number(l.cantidad) || 0) * (Number(l.precioUnitario) || 0);
+    const precio = divisa === "USD" ? (l.precioUnitarioDivisa ?? 0) : (l.precioUnitario ?? 0);
+    const bruto = (Number(l.cantidad) || 0) * (Number(precio) || 0);
     const base = bruto * (1 - (Number(l.descuento) || 0) / 100);
     return { base, iva: (base * (Number(l.iva) || 0)) / 100 };
   };
 
   // Totales del pie: mismo cálculo que se guardará en el servidor.
-  const totales = totalesDeLineas(lineas);
+  const totales = totalesDeLineas(lineas, divisa, tipoCambio);
 
   // Imputaciones: nombres sugeridos (trabajos de la orden + ya usados).
   const opcionesGrupo = useMemo(() => {
@@ -304,8 +327,8 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
           <input
             data-editor="linea"
             type="number" min="0" step="0.01" placeholder="Precio"
-            value={l.precioUnitario}
-            onChange={(e) => cambiar(i, "precioUnitario", e.target.value)}
+            value={divisa === "USD" ? l.precioUnitarioDivisa : l.precioUnitario}
+            onChange={(e) => cambiar(i, divisa === "USD" ? "precioUnitarioDivisa" : "precioUnitario", e.target.value)}
             className="col-span-2 input text-right"
           />
           {conDescuento && (
@@ -327,8 +350,11 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
             {[21, 10, 4, 0].map((v) => <option key={v} value={v}>{v}%</option>)}
           </select>
           {!conTipo && (
-            <span className="col-span-1 text-right text-sm font-semibold text-slate-700 num whitespace-nowrap" title="Total de la línea con IVA">
-              {euros(totalLinea)}
+            <span
+              className="col-span-1 text-right text-sm font-semibold text-slate-700 num whitespace-nowrap"
+              title="Total de la línea con IVA"
+            >
+              {divisa === "USD" ? `$${totalLinea.toFixed(2)}` : euros(totalLinea)}
             </span>
           )}
           <button
@@ -534,7 +560,7 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
                 </span>
                 <span className="flex items-center gap-3 shrink-0">
                   <span className="text-[0.6875rem] font-semibold text-slate-500 num">
-                    {euros(sec.sub.base + sec.sub.iva)}
+                    {divisa === "USD" ? `$${(sec.sub.base + sec.sub.iva).toFixed(2)}` : euros(sec.sub.base + sec.sub.iva)}
                   </span>
                   <button
                     type="button"
@@ -565,8 +591,13 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
           )}
         </div>
         <p className="text-sm text-slate-400">
-          Base {euros(totales.base)} · IVA {euros(totales.iva)} ·{" "}
-          <span className="text-white font-semibold">Total {euros(totales.base + totales.iva)}</span>
+          Base {divisa === "USD" ? `$${totales.base.toFixed(2)}` : euros(totales.base)} · IVA {divisa === "USD" ? `$${totales.iva.toFixed(2)}` : euros(totales.iva)} ·{" "}
+          <span className="text-white font-semibold">
+            Total {divisa === "USD" ? `$${totales.total.toFixed(2)}` : euros(totales.total)}
+          </span>
+          {divisa === "USD" && (
+            <span className="ml-2 text-slate-500">≈ {euros(totales.totalEur)}</span>
+          )}
         </p>
       </div>
     </div>

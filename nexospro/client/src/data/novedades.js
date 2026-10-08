@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-08",
+    tipo: "nuevo",
+    titulo: "Facturas de compra en dólares (USD)",
+    detalle:
+      "Al dar de alta una factura de compra manual puedes elegir USD como divisa, indicar el tipo de cambio y escribir los precios en dólares. El programa guarda los importes originales en USD y los convierte a EUR para la contabilidad, el stock y los informes. En el listado se ve el total en EUR y, al pasar el ratón, el total original y el tipo de cambio. El IVA 0 % sigue disponible para facturas exentas.",
+  },
+  {
     fecha: "2026-10-06",
     tipo: "mejora",
     titulo: "Citas: alta de cliente completo y aviso de duplicados",

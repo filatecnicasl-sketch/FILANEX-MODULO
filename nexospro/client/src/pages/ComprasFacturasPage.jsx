@@ -334,6 +334,7 @@ export default function ComprasFacturasPage() {
                   <th>Conciliación</th>
                   <th className="text-right">Ret. IRPF</th>
                   <th className="text-right">Total</th>
+                  <th>Divisa</th>
                   <th>Estado</th>
                   <th className="text-right">Acciones</th>
                 </tr>
@@ -341,7 +342,7 @@ export default function ComprasFacturasPage() {
               <tbody>
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-center text-slate-500 py-8">
+                    <td colSpan={10} className="text-center text-slate-500 py-8">
                       Ninguna factura cumple esos filtros.
                     </td>
                   </tr>
@@ -394,6 +395,15 @@ export default function ComprasFacturasPage() {
                       {euros(f.total)}
                       {(f.retencionIrpf?.importe ?? 0) > 0 && (
                         <span className="block text-[0.6875rem] text-slate-500">a pagar al proveedor</span>
+                      )}
+                    </td>
+                    <td className="text-center whitespace-nowrap">
+                      {f.divisa === "USD" ? (
+                        <span className="text-slate-300" title={`Tipo de cambio ${f.tipoCambio} · Total en factura $${(f.totalDivisa ?? 0).toFixed(2)}`}>
+                          USD
+                        </span>
+                      ) : (
+                        <span className="text-slate-500">EUR</span>
                       )}
                     </td>
                     <td>
@@ -467,7 +477,7 @@ export default function ComprasFacturasPage() {
                 })}
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="text-center text-slate-500 py-8">
+                    <td colSpan={10} className="text-center text-slate-500 py-8">
                       Sin resultados para «{q}».
                     </td>
                   </tr>
@@ -508,6 +518,8 @@ export default function ComprasFacturasPage() {
             notas: editando.notas ?? "",
             lineas: editando.lineas ?? [],
             total: editando.total,
+            divisa: editando.divisa ?? "EUR",
+            tipoCambio: editando.tipoCambio ?? 1,
             crearArticulos: editando.crearArticulos,
             retencionIrpf: editando.retencionIrpf,
           }}

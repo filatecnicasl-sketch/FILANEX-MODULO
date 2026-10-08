@@ -18,6 +18,60 @@ import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 import { moverStock } from "../services/stock.js";
 import Empresa from "../models/Empresa.js";
 
+// Normaliza las líneas de compra. Si la factura es en divisa extranjera,
+// los precios llegan en `precioUnitarioDivisa` y se convierten a EUR con
+// `tipoCambio`. Si no, `precioUnitario` ya está en EUR.
+function normalizarLineas(body) {
+  const divisa = body.divisa === "USD" ? "USD" : "EUR";
+  const tipoCambio = Number(body.tipoCambio) || 1;
+  const lineas = (Array.isArray(body.lineas) ? body.lineas : [])
+    .filter((l) => String(l?.descripcion ?? "").trim() !== "")
+    .map((l) => {
+      const cantidad = Number(l.cantidad) || 0;
+      const descuento = Number(l.descuento) || 0;
+      const iva = Number(l.iva) || 0;
+      if (divisa === "USD" && tipoCambio > 0) {
+        const precioDivisa = Number(l.precioUnitarioDivisa ?? l.precioUnitario) || 0;
+        const precioEur = Math.round(precioDivisa * tipoCambio * 100) / 100;
+        return {
+          descripcion: String(l.descripcion).trim(),
+          ...(l.detalle ? { detalle: String(l.detalle).trim() } : {}),
+          cantidad,
+          precioUnitario: precioEur,
+          precioUnitarioDivisa: precioDivisa,
+          descuento,
+          iva,
+          ...(l.articulo ? { articulo: l.articulo } : {}),
+        };
+      }
+      return {
+        descripcion: String(l.descripcion).trim(),
+        ...(l.detalle ? { detalle: String(l.detalle).trim() } : {}),
+        cantidad,
+        precioUnitario: Number(l.precioUnitario) || 0,
+        descuento,
+        iva,
+        ...(l.articulo ? { articulo: l.articulo } : {}),
+      };
+    });
+  return { divisa, tipoCambio, lineas };
+}
+
+// Totales en la divisa original para mostrar al usuario.
+function calcularTotalesDivisa(lineas) {
+  let base = 0;
+  let iva = 0;
+  for (const l of lineas) {
+    const bruto = (l.cantidad ?? 0) * (l.precioUnitarioDivisa ?? 0);
+    const b = bruto * (1 - (l.descuento ?? 0) / 100);
+    base += b;
+    iva += (b * (l.iva ?? 0)) / 100;
+  }
+  base = Math.round(base * 100) / 100;
+  iva = Math.round(iva * 100) / 100;
+  return { base, iva, total: Math.round((base + iva) * 100) / 100 };
+}
+
 const router = Router();
 
 const subida = uploadMemoria;
@@ -92,7 +146,7 @@ router.post("/", async (req, res, next) => {
   try {
     const { proveedor, numeroFacturaProveedor, notas } = req.body;
     if (!proveedor) return res.status(400).json({ error: "El proveedor es obligatorio" });
-    const lineas = Array.isArray(req.body.lineas) ? req.body.lineas.filter((l) => l.descripcion) : [];
+    const { divisa, tipoCambio, lineas } = normalizarLineas(req.body);
     if (lineas.length === 0) return res.status(400).json({ error: "Añade al menos una línea" });
 
     const fecha = req.body.fechaExpedicion ?? req.body.fecha;
@@ -101,6 +155,7 @@ router.post("/", async (req, res, next) => {
       return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
     }
     const totales = calcularTotales(lineas);
+    const totalesDivisa = divisa === "USD" ? calcularTotalesDivisa(lineas) : { ...totales };
     const retencionIrpf = normalizarRetencion(req.body, totales.baseImponible);
     const factura = await FacturaCompra.create({
       proveedor,
@@ -108,6 +163,9 @@ router.post("/", async (req, res, next) => {
       fechaExpedicion: fecha ? new Date(fecha) : new Date(),
       notas: notas || undefined,
       lineas,
+      divisa,
+      tipoCambio,
+      totalDivisa: totalesDivisa.total,
       ...totales,
       retencionIrpf,
       estado: "pendiente_revision",
@@ -297,7 +355,7 @@ router.put("/:id", async (req, res, next) => {
       fc.crearArticulos = req.body.crearArticulos !== false;
     }
     if (Array.isArray(req.body.lineas)) {
-      const lineas = req.body.lineas.filter((l) => l.descripcion);
+      const { divisa: divisaLineas, tipoCambio: tcLineas, lineas } = normalizarLineas(req.body);
       if (lineas.length === 0) {
         return res.status(400).json({ error: "La factura necesita al menos una línea" });
       }
@@ -313,8 +371,21 @@ router.put("/:id", async (req, res, next) => {
         await moverStock(lineas, +1);
       }
       fc.lineas = lineas;
+      fc.divisa = divisaLineas;
+      fc.tipoCambio = tcLineas;
       Object.assign(fc, calcularTotales(lineas));
+      fc.totalDivisa = divisaLineas === "USD" ? calcularTotalesDivisa(lineas).total : fc.total;
       fc.ajusteRedondeo = 0;
+    } else {
+      // Si no se editan líneas pero sí la divisa o el tipo de cambio,
+      // recalculamos el total en divisa con los datos actuales.
+      if (req.body.divisa !== undefined || req.body.tipoCambio !== undefined) {
+        const divisaNueva = req.body.divisa === "USD" ? "USD" : req.body.divisa ?? fc.divisa;
+        const tcNuevo = Number(req.body.tipoCambio) || fc.tipoCambio || 1;
+        fc.divisa = divisaNueva;
+        fc.tipoCambio = tcNuevo;
+        fc.totalDivisa = divisaNueva === "USD" ? calcularTotalesDivisa(fc.lineas).total : fc.total;
+      }
     }
     // Retención de IRPF: se puede poner, cambiar o quitar (porcentaje 0).
     if (req.body.retencionIrpf !== undefined) {

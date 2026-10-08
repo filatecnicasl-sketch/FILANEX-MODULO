@@ -9,6 +9,9 @@ export const lineaSchema = new Schema(
     detalle: String,
     cantidad: { type: Number, default: 1 },
     precioUnitario: { type: Number, default: 0 },
+    // Para facturas de compra en divisa extranjera: precio original en la
+    // moneda del proveedor. El precioUnitario se guarda siempre en EUR.
+    precioUnitarioDivisa: { type: Number, default: 0 },
     // Descuento en porcentaje sobre cantidad × precio (habitual en facturas
     // de compra: "dto 10 %"). Viaja con la línea entre documentos.
     descuento: { type: Number, default: 0 },

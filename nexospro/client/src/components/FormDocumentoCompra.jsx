@@ -22,6 +22,10 @@ export default function FormDocumentoCompra({
   onCerrar,
 }) {
   const [proveedores, setProveedores] = useState([]);
+  const [divisa, setDivisa] = useState(inicial?.divisa ?? "EUR");
+  const [tipoCambio, setTipoCambio] = useState(
+    inicial?.tipoCambio != null ? String(inicial.tipoCambio) : "1"
+  );
   const [proveedorId, setProveedorId] = useState(inicial?.proveedor ?? "");
   const [fecha, setFecha] = useState(inicial?.fecha ?? new Date().toISOString().slice(0, 10));
   const [numeroProveedor, setNumeroProveedor] = useState(inicial?.[campoNumero] ?? "");
@@ -39,18 +43,19 @@ export default function FormDocumentoCompra({
   const [retModelo, setRetModelo] = useState(inicial?.retencionIrpf?.modelo ?? "111");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
-  const calculado = totalesDeLineas(lineas);
+  const tcNum = parseFloat(String(tipoCambio).replace(",", ".")) || 1;
+  const calculado = totalesDeLineas(lineas, divisa, tcNum);
   const totalRealNum = parseFloat(String(totalReal).replace(",", "."));
   const ajuste =
     conTotalReal && Number.isFinite(totalRealNum)
-      ? Math.round((totalRealNum - calculado.total) * 100) / 100
+      ? Math.round((totalRealNum - calculado.totalEur) * 100) / 100
       : 0;
   // La retención se calcula sobre la base imponible y se resta del total a
   // pagar. Si el usuario pone el total del papel, la retención ya forma
   // parte de ese ajuste: solo se muestra informativa.
   const retImporte =
-    Number(retPorc) > 0 ? Math.round((calculado.base * Number(retPorc)) / 100 * 100) / 100 : 0;
-  const totalAPagar = Math.round((calculado.total - retImporte) * 100) / 100;
+    Number(retPorc) > 0 ? Math.round((calculado.baseEur * Number(retPorc)) / 100 * 100) / 100 : 0;
+  const totalAPagar = Math.round((calculado.totalEur - retImporte) * 100) / 100;
 
   useEffect(() => {
     fetch("/api/proveedores")
@@ -68,18 +73,23 @@ export default function FormDocumentoCompra({
         proveedor: proveedorId,
         fecha,
         notas: notas || undefined,
+        divisa,
+        tipoCambio: tcNum,
         lineas: lineas
           .filter((l) => l.descripcion)
           .map((l) => ({
             ...l,
             cantidad: Number(l.cantidad) || 0,
             precioUnitario: Number(l.precioUnitario) || 0,
+            precioUnitarioDivisa: Number(l.precioUnitarioDivisa) || 0,
             descuento: Number(l.descuento) || 0,
             iva: Number(l.iva) || 0,
           })),
       };
       if (conNumeroProveedor) cuerpo[campoNumero] = numeroProveedor || undefined;
-      if (conTotalReal && Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum;
+      if (conTotalReal && Number.isFinite(totalRealNum)) {
+        cuerpo.totalReal = divisa === "USD" ? Math.round(totalRealNum * tcNum * 100) / 100 : totalRealNum;
+      }
       if (conTotalReal) cuerpo.crearArticulos = crearArticulos;
       // Retención de IRPF: solo se envía si hay porcentaje.
       if (conTotalReal && Number(retPorc) > 0) {
@@ -138,14 +148,47 @@ export default function FormDocumentoCompra({
                 />
               </div>
             )}
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Divisa</label>
+              <select
+                value={divisa}
+                onChange={(e) => setDivisa(e.target.value)}
+                className="input w-full"
+              >
+                <option value="EUR">EUR (€)</option>
+                <option value="USD">USD ($)</option>
+              </select>
+            </div>
+            {divisa === "USD" && (
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Tipo de cambio (EUR/USD)</label>
+                <input
+                  value={tipoCambio}
+                  onChange={(e) => setTipoCambio(e.target.value)}
+                  placeholder="0,93"
+                  inputMode="decimal"
+                  className="input w-full text-right"
+                />
+              </div>
+            )}
           </div>
 
-          <EditorLineas lineas={lineas} setLineas={setLineas} precio="compra" conDescuento />
+          <EditorLineas
+            lineas={lineas}
+            setLineas={setLineas}
+            precio="compra"
+            conDescuento
+            divisa={divisa}
+            tipoCambio={tcNum}
+          />
 
           {conTotalReal && (
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-600/40 px-4 py-3">
               <span className="text-sm text-slate-400">
-                Total calculado: <strong className="text-slate-200">{euros(calculado.total)}</strong>
+                Total calculado:{" "}
+                <strong className="text-slate-200">
+                  {divisa === "USD" ? `$${calculado.total.toFixed(2)} ≈ ${euros(calculado.totalEur)}` : euros(calculado.total)}
+                </strong>
               </span>
               {/* Retención de IRPF (profesionales y arrendamientos) */}
               <label className="text-sm text-slate-400 flex items-center gap-2">
@@ -185,15 +228,16 @@ export default function FormDocumentoCompra({
                 <input
                   value={totalReal}
                   onChange={(e) => setTotalReal(e.target.value)}
-                  placeholder={calculado.total.toFixed(2)}
+                  placeholder={divisa === "USD" ? calculado.total.toFixed(2) : calculado.total.toFixed(2)}
                   className="input w-28 text-right"
                   inputMode="decimal"
                 />
+                <span className="text-slate-500">{divisa === "USD" ? "$" : "€"}</span>
               </label>
               {Math.abs(ajuste) >= 0.005 && (
                 <span className="text-xs text-amber-300">
                   Se guardará un ajuste por redondeo de {ajuste > 0 ? "+" : ""}
-                  {ajuste.toFixed(2)} €
+                  {euros(ajuste)}
                 </span>
               )}
               <label className="text-sm text-slate-400 flex items-center gap-2 cursor-pointer">

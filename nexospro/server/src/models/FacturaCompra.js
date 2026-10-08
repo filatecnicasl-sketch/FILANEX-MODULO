@@ -10,6 +10,13 @@ const facturaCompraSchema = new Schema(
     fechaExpedicion: { type: Date, index: true },
     notas: String,
     lineas: [lineaSchema],
+    // Divisa en la que el proveedor emite la factura. Por defecto EUR.
+    divisa: { type: String, enum: ["EUR", "USD"], default: "EUR" },
+    // Tipo de cambio EUR/divisa (p.ej. 1,08 si 1 USD = 0,93 EUR => tipoCambio 0,93).
+    // Guardamos cuántos EUR vale 1 unidad de divisa.
+    tipoCambio: { type: Number, default: 1 },
+    // Total en la divisa original, tal como aparece en la factura del proveedor.
+    totalDivisa: { type: Number, default: 0 },
     baseImponible: { type: Number, default: 0 },
     cuotaIva: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
