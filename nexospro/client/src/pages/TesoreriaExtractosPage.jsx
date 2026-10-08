@@ -108,17 +108,11 @@ export default function TesoreriaExtractosPage() {
   async function cargar() {
     try {
       const r = await fetch(`/api/tesoreria/extractos?conciliados=${filtro === "pendientes" ? "0" : filtro === "conciliados" ? "1" : "todos"}`);
-      const text = await r.text();
-      let datos = [];
-      try {
-        datos = JSON.parse(text);
-      } catch {
-        throw new Error(text.slice(0, 200) || `Error ${r.status} del servidor`);
-      }
+      const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al cargar");
-      setLista(Array.isArray(datos) ? datos : []);
+      setLista(datos);
     } catch (e) {
-      setError(String(e?.message || e));
+      setError(e.message);
       setLista([]);
     }
   }
@@ -153,18 +147,12 @@ export default function TesoreriaExtractosPage() {
       const fd = new FormData();
       fd.append("extracto", f);
       const r = await fetch("/api/tesoreria/extractos/upload", { method: "POST", body: fd });
-      const text = await r.text();
-      let datos = {};
-      try {
-        datos = JSON.parse(text);
-      } catch {
-        throw new Error(text.slice(0, 200) || `Error ${r.status} del servidor`);
-      }
+      const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al procesar");
       setAviso(`Se importaron ${datos.insertados} movimientos del extracto.`);
       await cargar();
-    } catch (e) {
-      setError(String(e?.message || e));
+    } catch (err) {
+      setError(err.message);
     } finally {
       setSubiendo(false);
     }
