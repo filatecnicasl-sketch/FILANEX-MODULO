@@ -129,33 +129,46 @@ router.get("/", async (req, res, next) => {
 });
 
 // GET /api/tesoreria/extractos/coincidencias?importe=-123.45&fecha=2026-10-01
-// Busca facturas de compra validadas cuyo total coincida (con margen) con el
-// importe absoluto del cargo. Incluye facturas ya pagadas para poder vincular
-// el movimiento bancario aunque el pago fuera por recibo domiciliado.
+// Busca facturas de compra validadas y devuelve las que más se acerquen al
+// importe del cargo (en EUR o en divisa original). Incluye facturas ya pagadas
+// para poder vincular el movimiento bancario aunque el pago fuera por recibo
+// domiciliado.
 router.get("/coincidencias", async (req, res, next) => {
   try {
     const importe = Math.abs(parseFloat(req.query.importe) || 0);
     if (!importe) return res.status(400).json({ error: "Falta importe" });
 
-    const margen = 0.5; // € de diferencia admitida por redondeo.
     const facturas = await FacturaCompra.find({
       estado: "validada",
       total: { $gt: 0 },
     })
       .populate("proveedor", "nombre nif")
       .sort({ fechaExpedicion: -1 })
-      .limit(300);
+      .limit(500);
 
-    const candidatas = facturas
-      .map((f) => {
-        const pagado = (f.pagos ?? []).reduce((s, p) => s + (p.importe ?? 0), 0);
-        const pendiente = Math.round(((f.total ?? 0) - pagado) * 100) / 100;
-        return { ...f.toObject(), pendiente, pagado };
-      })
-      .filter((f) => Math.abs((f.total ?? 0) - importe) <= margen)
-      .sort((a, b) => Math.abs((a.total ?? 0) - importe) - Math.abs((b.total ?? 0) - importe));
+    const conDistancia = facturas.map((f) => {
+      const pagado = (f.pagos ?? []).reduce((s, p) => s + (p.importe ?? 0), 0);
+      const pendiente = Math.round(((f.total ?? 0) - pagado) * 100) / 100;
+      const diffEur = Math.abs((f.total ?? 0) - importe);
+      const diffDiv = f.totalDivisa && f.divisa !== "EUR"
+        ? Math.abs(f.totalDivisa - importe)
+        : Infinity;
+      const diferencia = Math.min(diffEur, diffDiv);
+      const importeReferencia = diffDiv < diffEur ? f.totalDivisa : f.total;
+      return {
+        ...f.toObject(),
+        pendiente,
+        pagado,
+        diferencia,
+        importeReferencia,
+      };
+    });
 
-    res.json({ importe, margen, candidatas });
+    const candidatas = conDistancia
+      .sort((a, b) => a.diferencia - b.diferencia)
+      .slice(0, 30);
+
+    res.json({ importe, candidatas });
   } catch (err) {
     next(err);
   }

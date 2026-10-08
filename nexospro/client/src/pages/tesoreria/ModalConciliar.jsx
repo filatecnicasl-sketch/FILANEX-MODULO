@@ -65,7 +65,10 @@ export default function ModalConciliar({ movimiento, facturas, onConciliar, onCe
                       {factura.proveedor?.nombre || "—"}
                     </span>
                     <span className="block text-xs text-slate-500">
-                      Total: {euros(factura.total)}
+                      Total: {euros(factura.importeReferencia ?? factura.total)}
+                      {factura.diferencia != null && factura.diferencia > 0.01 && (
+                        <span className="text-amber-400 ml-1">(dif. {euros(factura.diferencia)})</span>
+                      )}
                       {estaPagada ? " · pagada" : ` · pendiente: ${euros(factura.pendiente)}`}
                     </span>
                   </span>
