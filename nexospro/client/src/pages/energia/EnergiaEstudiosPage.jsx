@@ -63,6 +63,9 @@ export default function EnergiaEstudiosPage() {
   const [ocrLeyendo, setOcrLeyendo] = useState(false);
   const [ocrAvisos, setOcrAvisos] = useState([]);
   const [ocrResumen, setOcrResumen] = useState(null);
+  const [comparando, setComparando] = useState(false);
+  const [comparacion, setComparacion] = useState(null);
+  const [comparacionError, setComparacionError] = useState(null);
 
   const filtrada = (lista ?? []).filter((e) => {
     if (filtroEstado !== "todos" && e.estado !== filtroEstado) return false;
@@ -110,6 +113,8 @@ export default function EnergiaEstudiosPage() {
       .then((d) => {
         if (!d) return;
         setEditando(null);
+        setComparacion(null);
+        setComparacionError(null);
         setForm({
           ...VACIO,
           suministroId: d.suministro ?? "",
@@ -127,8 +132,18 @@ export default function EnergiaEstudiosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
+  function abrirNuevo() {
+    setEditando(null);
+    setForm(VACIO);
+    setComparacion(null);
+    setComparacionError(null);
+    setModal(true);
+  }
+
   function abrirEdicion(e) {
     setEditando(e);
+    setComparacion(null);
+    setComparacionError(null);
     setForm({
       suministroId: e.suministro ?? "",
       tipo: e.tipo ?? "luz",
@@ -243,6 +258,46 @@ export default function EnergiaEstudiosPage() {
 
   // Lee la factura del cliente con IA y precarga la situación actual del
   // estudio (comercializadora, tarifa, consumo, potencias y coste anual).
+  async function comparar() {
+    setComparando(true);
+    setComparacionError(null);
+    setComparacion(null);
+    try {
+      const actualFinal = Number(form.costeAnualActual) > 0 ? Number(form.costeAnualActual) : costeActualCalc;
+      const r = await fetch("/api/energia/estudios/comparar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo: form.tipo,
+          consumoAnual: Number(form.consumoAnual) || 0,
+          potenciaPunta: Number(form.potenciaPunta) || 0,
+          potenciaValle: Number(form.potenciaValle) || 0,
+          costeAnualActual: actualFinal,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Error al comparar");
+      setComparacion(d);
+    } catch (err) {
+      setComparacionError(err.message);
+    } finally {
+      setComparando(false);
+    }
+  }
+
+  function aplicarOpcion(op) {
+    setForm((f) => ({
+      ...f,
+      comercializadoraId: op.comercializadora || "",
+      tarifaPropuesta: op.tarifa || "",
+      campanaId: op.campana || "",
+      precioEnergiaPropuesta: op.precioEnergia || "",
+      precioPotenciaPuntaPropuesta: op.precioPotenciaPunta || "",
+      precioPotenciaVallePropuesta: op.precioPotenciaValle || "",
+      costeAnualPropuesta: "",
+    }));
+  }
+
   async function leerFactura(ev) {
     ev.preventDefault();
     if (!ocrFichero) return;
@@ -306,7 +361,7 @@ export default function EnergiaEstudiosPage() {
                   Ahorro potencial en curso: <b className="num">{fmtEuro(ahorroPotencial)}/año</b>
                 </span>
               )}
-              <button onClick={() => { setEditando(null); setForm(VACIO); setModal(true); }} className="btn-primary whitespace-nowrap">
+              <button onClick={abrirNuevo} className="btn-primary whitespace-nowrap">
                 Nuevo estudio
               </button>
             </div>
@@ -530,7 +585,18 @@ export default function EnergiaEstudiosPage() {
 
               {/* Propuesta */}
               <div className="rounded-xl border border-emerald-500/30 p-4 space-y-3">
-                <p className="text-sm font-semibold text-emerald-300">Tu propuesta</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-emerald-300">Tu propuesta</p>
+                  <button
+                    type="button"
+                    onClick={comparar}
+                    disabled={comparando || !form.consumoAnual}
+                    className="btn-primary text-xs whitespace-nowrap disabled:opacity-50"
+                    title="Comparar automáticamente todas las campañas publicadas"
+                  >
+                    {comparando ? "Comparando…" : "Comparar campañas"}
+                  </button>
+                </div>
                 {campanas.filter((c) => c.tipo === form.tipo).length > 0 && (
                   <label className="text-sm text-slate-400 block">
                     Usar campaña de precios
@@ -601,6 +667,48 @@ export default function EnergiaEstudiosPage() {
                 {actualFinal > 0 && <p className="text-xs text-slate-500 num">{ahorroPct}% sobre su factura actual</p>}
               </div>
             </div>
+
+            {/* Comparador automático de campañas */}
+            {comparacionError && (
+              <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-3 text-sm text-rose-300">
+                {comparacionError}
+              </div>
+            )}
+            {comparacion?.mejores && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-slate-300">Propuestas recomendadas según campañas publicadas</p>
+                <div className="grid md:grid-cols-3 gap-3">
+                  {[
+                    { key: "mejorPrecio", label: "Mejor precio", desc: "Máximo ahorro para el cliente", color: "emerald" },
+                    { key: "mayorComision", label: "Mayor comisión", desc: "Más ingreso para ti (1.º año)", color: "amber" },
+                    { key: "intermedia", label: "Intermedia", desc: "Equilibrio ahorro / comisión", color: "sky" },
+                  ].map(({ key, label, desc, color }) => {
+                    const op = comparacion.mejores[key];
+                    if (!op) return null;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => aplicarOpcion(op)}
+                        className={`rounded-xl border p-4 text-left transition hover:brightness-110 bg-${color}-500/5 border-${color}-500/30`}
+                      >
+                        <p className={`text-sm font-bold text-${color}-300`}>{label}</p>
+                        <p className="text-xs text-slate-400 mb-2">{desc}</p>
+                        <p className="text-sm text-slate-200 font-medium">{op.comercializadoraNombre}</p>
+                        <p className="text-xs text-slate-500">{op.tarifa || op.campanaNombre}</p>
+                        <div className="mt-2 space-y-1 text-xs">
+                          <p className="text-slate-300">Coste: <span className="num">{fmtEuro(op.costeAnualPropuesta)}/año</span></p>
+                          <p className="text-emerald-300">Ahorro: <span className="num">{fmtEuro(op.ahorroAnual)}/año</span></p>
+                          <p className="text-amber-300">Comisión 1.º año: <span className="num">{fmtEuro(op.comisionPrimerAno)}</span></p>
+                        </div>
+                        <p className="mt-2 text-xs text-slate-500">Haz clic para aplicar esta propuesta</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                {comparacion.mensaje && <p className="text-xs text-slate-500">{comparacion.mensaje}</p>}
+              </div>
+            )}
 
             <label className="text-sm text-slate-400 block">
               Notas

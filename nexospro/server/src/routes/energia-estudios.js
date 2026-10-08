@@ -2,6 +2,7 @@ import { Router } from "express";
 import EstudioEnergia, { calcularCosteAnual } from "../models/EstudioEnergia.js";
 import Suministro from "../models/Suministro.js";
 import Comercializadora from "../models/Comercializadora.js";
+import CampanaPrecios from "../models/CampanaPrecios.js";
 import Tramite from "../models/Tramite.js";
 import { extraerFacturaEnergia } from "../services/ocr-gemini.js";
 import { uploadMemoria } from "../middleware/upload.js";
@@ -232,6 +233,87 @@ router.put("/:id", async (req, res, next) => {
     res.json(estudio);
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// Comparador automático de campañas publicadas para un estudio. Devuelve tres
+// opciones recomendadas: mejor precio para el cliente, mayor comisión para el
+// canal (primer año estimado) y opción intermedia (equilibrio matemático entre
+// ahorro y comisión).
+router.post("/comparar", async (req, res, next) => {
+  try {
+    const tipo = req.body.tipo || "luz";
+    const consumo = Number(req.body.consumoAnual) || 0;
+    const pPunta = Number(req.body.potenciaPunta) || 0;
+    const pValle = Number(req.body.potenciaValle) || 0;
+    const costeActual = Number(req.body.costeAnualActual) || 0;
+
+    const campanas = await CampanaPrecios.find({ estado: "publicada", tipo })
+      .populate("comercializadora")
+      .lean();
+
+    const opciones = [];
+    for (const c of campanas) {
+      const com = c.comercializadora;
+      if (!com) continue;
+      const costePropuesta = calcularCosteAnual(
+        consumo, c.precioEnergia || 0,
+        pPunta, c.precioPotenciaPunta || 0,
+        pValle, c.precioPotenciaValle || 0
+      );
+      const ahorro = costeActual > 0 ? Math.round((costeActual - costePropuesta) * 100) / 100 : 0;
+      const cond = com.condiciones?.[tipo] || { alta: 0, mensual: 0, anual: 0 };
+      const comision = Math.round(((cond.alta || 0) + (cond.mensual || 0) * 12 + (cond.anual || 0)) * 100) / 100;
+
+      opciones.push({
+        campana: c._id,
+        campanaNombre: c.nombre || c.tarifa || "Propuesta",
+        comercializadora: com._id,
+        comercializadoraNombre: com.nombre,
+        tarifa: c.tarifa || "",
+        precioEnergia: c.precioEnergia || 0,
+        precioEnergiaPunta: c.precioEnergiaPunta || 0,
+        precioEnergiaLlano: c.precioEnergiaLlano || 0,
+        precioEnergiaValle: c.precioEnergiaValle || 0,
+        precioPotenciaPunta: c.precioPotenciaPunta || 0,
+        precioPotenciaValle: c.precioPotenciaValle || 0,
+        costeAnualPropuesta: costePropuesta,
+        ahorroAnual: ahorro,
+        comisionPrimerAno: comision,
+      });
+    }
+
+    if (opciones.length === 0) {
+      return res.json({ opciones: [], mejores: null, mensaje: "No hay campañas publicadas para este tipo de suministro." });
+    }
+
+    const positivas = opciones.filter((o) => o.ahorroAnual > 0);
+    const candidatas = positivas.length > 0 ? positivas : opciones;
+
+    const mejorPrecio = candidatas.reduce((a, b) => (a.ahorroAnual > b.ahorroAnual ? a : b));
+    const mayorComision = candidatas.reduce((a, b) => (a.comisionPrimerAno > b.comisionPrimerAno ? a : b));
+
+    let intermedia = null;
+    if (positivas.length > 0) {
+      const maxAhorro = Math.max(...positivas.map((o) => o.ahorroAnual), 0.01);
+      const maxComision = Math.max(...positivas.map((o) => o.comisionPrimerAno), 0.01);
+      intermedia = positivas.reduce((a, b) => {
+        const scoreA = (a.ahorroAnual / maxAhorro) * (a.comisionPrimerAno / maxComision);
+        const scoreB = (b.ahorroAnual / maxAhorro) * (b.comisionPrimerAno / maxComision);
+        return scoreA > scoreB ? a : b;
+      });
+    }
+
+    res.json({
+      opciones,
+      mejores: {
+        mejorPrecio,
+        mayorComision,
+        intermedia,
+      },
+    });
+  } catch (err) {
     next(err);
   }
 });
