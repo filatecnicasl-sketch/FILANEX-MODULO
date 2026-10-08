@@ -45,29 +45,31 @@ function ModalConciliar({ movimiento, facturas, onConciliar, onCerrar }) {
           <p className="text-sm text-slate-500 py-6 text-center">No hay facturas de compra pendientes que cuadren con este importe.</p>
         ) : (
           <div className="space-y-2">
-            {facturas.map((facturaCandidata) => (
-              <label
-                key={facturaCandidata._id}
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
-                  facturaElegida === facturaCandidata._id ? "border-accent/40 bg-accent/10" : "border-white/10 hover:bg-white/[0.03]"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="factura"
-                  checked={facturaElegida === facturaCandidata._id}
-                  onChange={() => setFacturaElegida(facturaCandidata._id)}
-                  className="accent-cyan-400 w-4 h-4"
-                />
-                <span className="flex-1">
-                  <span className="text-white font-medium">{facturaCandidata.numeroFacturaProveedor || "s/n"}</span>
-                  <span className="block text-sm text-slate-300 truncate" title={facturaCandidata.proveedor?.nombre}>
-                    {facturaCandidata.proveedor?.nombre || "—"}
+            {facturas.map(function renderFactura(facturaCandidata) {
+              return (
+                <label
+                  key={facturaCandidata._id}
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
+                    facturaElegida === facturaCandidata._id ? "border-accent/40 bg-accent/10" : "border-white/10 hover:bg-white/[0.03]"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="factura"
+                    checked={facturaElegida === facturaCandidata._id}
+                    onChange={() => setFacturaElegida(facturaCandidata._id)}
+                    className="accent-cyan-400 w-4 h-4"
+                  />
+                  <span className="flex-1">
+                    <span className="text-white font-medium">{facturaCandidata.numeroFacturaProveedor || "s/n"}</span>
+                    <span className="block text-sm text-slate-300 truncate" title={facturaCandidata.proveedor?.nombre}>
+                      {facturaCandidata.proveedor?.nombre || "—"}
+                    </span>
+                    <span className="block text-xs text-slate-500">Pendiente: {euros(facturaCandidata.pendiente)}</span>
                   </span>
-                  <span className="block text-xs text-slate-500">Pendiente: {euros(facturaCandidata.pendiente)}</span>
-                </span>
-              </label>
-            ))}
+                </label>
+              );
+            })}
           </div>
         )}
 
@@ -85,6 +87,51 @@ function ModalConciliar({ movimiento, facturas, onConciliar, onCerrar }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function FilaMovimiento({ movimiento, onConciliar, onDesconciliar, onBorrar }) {
+  return (
+    <tr className={movimiento.conciliadoCon?.tipo ? "opacity-70" : ""}>
+      <td className="text-slate-400 num whitespace-nowrap">{formatearFecha(movimiento.fecha)}</td>
+      <td className="text-slate-300 max-w-[260px]">
+        <span className="block truncate" title={movimiento.concepto}>{movimiento.concepto}</span>
+      </td>
+      <td className="text-slate-500 text-sm num">{movimiento.referencia || "—"}</td>
+      <td className={`text-right whitespace-nowrap num font-semibold ${movimiento.importe < 0 ? "text-rose-300" : "text-emerald-300"}`}>
+        {euros(movimiento.importe)}
+      </td>
+      <td className="text-right text-slate-500 whitespace-nowrap num">{euros(movimiento.saldo)}</td>
+      <td>
+        {movimiento.conciliadoCon?.tipo ? (
+          <Badge tono="green">Conciliado</Badge>
+        ) : (
+          <Badge tono="amber">Pendiente</Badge>
+        )}
+      </td>
+      <td className="text-right whitespace-nowrap">
+        {!movimiento.conciliadoCon?.tipo ? (
+          <button onClick={() => onConciliar(movimiento)} className="text-xs text-accent hover:underline mr-3">
+            Conciliar
+          </button>
+        ) : (
+          <button
+            onClick={() => onDesconciliar(movimiento)}
+            className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-emerald-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle mr-2"
+            title="Desconciliar"
+          >
+            <IconCheck />
+          </button>
+        )}
+        <button
+          onClick={() => onBorrar(movimiento)}
+          title="Borrar movimiento"
+          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle"
+        >
+          <IconBorrar />
+        </button>
+      </td>
+    </tr>
   );
 }
 
@@ -179,16 +226,16 @@ export default function TesoreriaExtractosPage() {
     else alert((await respuesta.json()).error || "No se pudo borrar");
   }
 
-  const movimientosFiltrados = (listaMovimientos ?? []).filter((movimientoItem) =
-    coincideBusqueda(
+  const movimientosFiltrados = (listaMovimientos ?? []).filter(function filtrarMovimientos(movimientoItem) {
+    return coincideBusqueda(
       textoBusqueda,
       formatearFecha(movimientoItem.fecha),
       movimientoItem.concepto || "",
       movimientoItem.referencia || "",
       euros(movimientoItem.importe),
       movimientoItem.notas || ""
-    )
-  );
+    );
+  });
 
   return (
     <div>
@@ -243,54 +290,20 @@ export default function TesoreriaExtractosPage() {
                     <td colSpan={7} className="text-center text-slate-500 py-8">Ningún movimiento cumple esos filtros.</td>
                   </tr>
                 )}
-                {movimientosFiltrados.map((movimientoItem) => (
-                  <tr key={movimientoItem._id} className={movimientoItem.conciliadoCon?.tipo ? "opacity-70" : ""}>
-                    <td className="text-slate-400 num whitespace-nowrap">{formatearFecha(movimientoItem.fecha)}</td>
-                    <td className="text-slate-300 max-w-[260px]">
-                      <span className="block truncate" title={movimientoItem.concepto}>{movimientoItem.concepto}</span>
-                    </td>
-                    <td className="text-slate-500 text-sm num">{movimientoItem.referencia || "—"}</td>
-                    <td className={`text-right whitespace-nowrap num font-semibold ${movimientoItem.importe < 0 ? "text-rose-300" : "text-emerald-300"}`}>
-                      {euros(movimientoItem.importe)}
-                    </td>
-                    <td className="text-right text-slate-500 whitespace-nowrap num">{euros(movimientoItem.saldo)}</td>
-                    <td>
-                      {movimientoItem.conciliadoCon?.tipo ? (
-                        <Badge tono="green">Conciliado</Badge>
-                      ) : (
-                        <Badge tono="amber">Pendiente</Badge>
-                      )}
-                    </td>
-                    <td className="text-right whitespace-nowrap">
-                      {!movimientoItem.conciliadoCon?.tipo ? (
-                        <button
-                          onClick={() => {
-                            setMovimientoActivo(movimientoItem);
-                            buscarFacturasCoincidentes(movimientoItem);
-                          }}
-                          className="text-xs text-accent hover:underline mr-3"
-                        >
-                          Conciliar
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => desconciliarMovimiento(movimientoItem)}
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-emerald-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle mr-2"
-                          title="Desconciliar"
-                        >
-                          <IconCheck />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => borrarMovimiento(movimientoItem)}
-                        title="Borrar movimiento"
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle"
-                      >
-                        <IconBorrar />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {movimientosFiltrados.map(function renderFila(movimientoItem) {
+                  return (
+                    <FilaMovimiento
+                      key={movimientoItem._id}
+                      movimiento={movimientoItem}
+                      onConciliar={(m) => {
+                        setMovimientoActivo(m);
+                        buscarFacturasCoincidentes(m);
+                      }}
+                      onDesconciliar={desconciliarMovimiento}
+                      onBorrar={borrarMovimiento}
+                    />
+                  );
+                })}
               </tbody>
             </table>
           </div>
