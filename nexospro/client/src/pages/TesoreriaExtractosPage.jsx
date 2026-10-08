@@ -97,7 +97,7 @@ export default function TesoreriaExtractosPage() {
     else alert((await r.json()).error || "No se pudo borrar");
   }
 
-  const filtrada = (lista ?? []).filter((mov) =
+  const filtrada = (lista ?? []).filter((mov) =>
     coincideBusqueda(q, fmtFecha(mov.fecha), mov.concepto || "", mov.referencia || "", euros(mov.importe), mov.notas || "")
   );
 
