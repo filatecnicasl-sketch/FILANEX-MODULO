@@ -17,6 +17,7 @@ import ComprasGastosPage from "./pages/ComprasGastosPage.jsx";
 import TesoreriaPanelPage from "./pages/TesoreriaPanelPage.jsx";
 import TesoreriaCobrosPage from "./pages/TesoreriaCobrosPage.jsx";
 import TesoreriaPagosPage from "./pages/TesoreriaPagosPage.jsx";
+import TesoreriaExtractosPage from "./pages/TesoreriaExtractosPage.jsx";
 import InformesVentasPage from "./pages/informes/InformesVentasPage.jsx";
 import InformesComprasPage from "./pages/informes/InformesComprasPage.jsx";
 import InformesIvaPage from "./pages/informes/InformesIvaPage.jsx";
@@ -194,6 +195,7 @@ export default function App() {
           <Route path="tesoreria" element={<TesoreriaPanelPage />} />
           <Route path="tesoreria/cobros" element={<TesoreriaCobrosPage />} />
           <Route path="tesoreria/pagos" element={<TesoreriaPagosPage />} />
+          <Route path="tesoreria/extractos" element={<TesoreriaExtractosPage />} />
           <Route path="informes" element={<Navigate to="/informes/ventas" replace />} />
           <Route path="informes/ventas" element={<InformesVentasPage />} />
           <Route path="informes/compras" element={<InformesComprasPage />} />

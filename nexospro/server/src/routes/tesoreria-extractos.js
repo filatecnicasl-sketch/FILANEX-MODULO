@@ -50,7 +50,7 @@ function parseImporte(v) {
 
 // Detecta qué columna corresponde a cada campo buscando cabeceras comunes.
 function detectarColumnas(cabeceras) {
-  const lower = cabeceras.map((h) => String(h ?? "").toLowerCase().trim());
+  const lower = cabeceras.map((h) => String(h ?? "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
   const buscar = (alternativas) => {
     for (const alt of alternativas) {
       const idx = lower.findIndex((h) => h.includes(alt));
@@ -59,12 +59,25 @@ function detectarColumnas(cabeceras) {
     return -1;
   };
   return {
-    fecha: buscar(["fecha", "date", "data", "f."]),
-    concepto: buscar(["concepto", "descripcion", "descripción", "movimiento", "operation", "description", "titular"]),
-    importe: buscar(["importe", "cantidad", "amount", "cargo", "abono", "movimiento"]),
+    fecha: buscar(["fecha operacion", "fecha", "date", "data", "f."]),
+    concepto: buscar(["concepto", "descripcion", "descripcion", "movimiento", "operation", "description", "titular"]),
+    importe: buscar(["importe", "cantidad", "amount", "cargo/abono", "cargo"]),
     saldo: buscar(["saldo", "balance"]),
-    referencia: buscar(["referencia", "ref.", "número", "numero", "operation id", "reference"]),
+    referencia: buscar(["numero de documento", "referencia", "ref.", "numero", "operation id", "reference"]),
   };
+}
+
+// Encuentra la fila de cabeceras: debe contener al menos "fecha" e "importe".
+function encontrarCabecera(filas) {
+  for (let i = 0; i < Math.min(filas.length, 30); i++) {
+    const fila = filas[i];
+    if (!fila || fila.every((c) => !c)) continue;
+    const texto = fila.map((c) => String(c ?? "").toLowerCase()).join(" ");
+    if (texto.includes("fecha") && (texto.includes("importe") || texto.includes("cargo"))) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 // Extrae filas de un workbook de xlsx (que también lee CSV).
@@ -76,14 +89,14 @@ function leerWorkbook(buffer, extension) {
 
 // Convierte filas crudas en movimientos válidos usando las cabeceras detectadas.
 function filasAMovimientos(filas) {
-  if (filas.length < 2) return [];
-  const cabeceras = filas[0];
+  const idxCabecera = encontrarCabecera(filas);
+  if (idxCabecera < 0 || idxCabecera + 1 >= filas.length) return [];
+  const cabeceras = filas[idxCabecera];
   const idx = detectarColumnas(cabeceras);
-  // Si no detecta fecha ni importe, probamos filas sin cabecera (raro).
   if (idx.fecha < 0 || idx.importe < 0) return [];
 
   const movimientos = [];
-  for (let i = 1; i < filas.length; i++) {
+  for (let i = idxCabecera + 1; i < filas.length; i++) {
     const fila = filas[i];
     if (!fila || fila.every((c) => !c)) continue;
     const fecha = parseFecha(fila[idx.fecha]);

@@ -3,7 +3,7 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
 import { IconBorrar, IconCheck } from "../components/icons.jsx";
 
-const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
+const fmtFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
 function ModalConciliar({ movimiento, facturas, onConciliar, onCerrar }) {
   const [elegida, setElegida] = useState("");
@@ -36,26 +36,20 @@ function ModalConciliar({ movimiento, facturas, onConciliar, onCerrar }) {
       <div className="modal-panel w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">Conciliar movimiento</h2>
         <p className="text-sm text-slate-400 mb-4">
-          {fecha(movimiento.fecha)} · {movimiento.concepto}
-          {" · "}
-          <span className="text-white font-semibold">{euros(Math.abs(movimiento.importe))}</span>
+          {fmtFecha(movimiento.fecha)} · {movimiento.concepto} · <span className="text-white font-semibold">{euros(Math.abs(movimiento.importe))}</span>
         </p>
 
         {!facturas ? (
           <p className="text-sm text-slate-500 py-6 text-center">Buscando facturas…</p>
         ) : facturas.length === 0 ? (
-          <p className="text-sm text-slate-500 py-6 text-center">
-            No hay facturas de compra pendientes que cuadren con este importe.
-          </p>
+          <p className="text-sm text-slate-500 py-6 text-center">No hay facturas de compra pendientes que cuadren con este importe.</p>
         ) : (
           <div className="space-y-2">
             {facturas.map((f) => (
               <label
                 key={f._id}
                 className={`flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors ${
-                  elegida === f._id
-                    ? "border-accent/40 bg-accent/10"
-                    : "border-white/10 hover:bg-white/[0.03]"
+                  elegida === f._id ? "border-accent/40 bg-accent/10" : "border-white/10 hover:bg-white/[0.03]"
                 }`}
               >
                 <input
@@ -67,9 +61,7 @@ function ModalConciliar({ movimiento, facturas, onConciliar, onCerrar }) {
                 />
                 <span className="flex-1">
                   <span className="text-white font-medium">{f.numeroFacturaProveedor || "s/n"}</span>
-                  <span className="block text-sm text-slate-300 truncate" title={f.proveedor?.nombre}>
-                    {f.proveedor?.nombre || "—"}
-                  </span>
+                  <span className="block text-sm text-slate-300 truncate" title={f.proveedor?.nombre}>{f.proveedor?.nombre || "—"}</span>
                   <span className="block text-xs text-slate-500">Pendiente: {euros(f.pendiente)}</span>
                 </span>
               </label>
@@ -107,12 +99,19 @@ export default function TesoreriaExtractosPage() {
 
   async function cargar() {
     try {
-      const r = await fetch(`/api/tesoreria/extractos?conciliados=${filtro === "pendientes" ? "0" : filtro === "conciliados" ? "1" : "todos"}`);
-      const datos = await r.json();
+      const conc = filtro === "pendientes" ? "0" : filtro === "conciliados" ? "1" : "todos";
+      const r = await fetch(`/api/tesoreria/extractos?conciliados=${conc}`);
+      const text = await r.text();
+      let datos = [];
+      try {
+        datos = JSON.parse(text);
+      } catch {
+        throw new Error(text.slice(0, 200) || `Error ${r.status} del servidor`);
+      }
       if (!r.ok) throw new Error(datos.error || "Error al cargar");
-      setLista(datos);
+      setLista(Array.isArray(datos) ? datos : []);
     } catch (e) {
-      setError(e.message);
+      setError(String(e?.message || e));
       setLista([]);
     }
   }
@@ -147,12 +146,18 @@ export default function TesoreriaExtractosPage() {
       const fd = new FormData();
       fd.append("extracto", f);
       const r = await fetch("/api/tesoreria/extractos/upload", { method: "POST", body: fd });
-      const datos = await r.json();
+      const text = await r.text();
+      let datos = {};
+      try {
+        datos = JSON.parse(text);
+      } catch {
+        throw new Error(text.slice(0, 200) || `Error ${r.status} del servidor`);
+      }
       if (!r.ok) throw new Error(datos.error || "Error al procesar");
       setAviso(`Se importaron ${datos.insertados} movimientos del extracto.`);
       await cargar();
-    } catch (err) {
-      setError(err.message);
+    } catch (e) {
+      setError(String(e?.message || e));
     } finally {
       setSubiendo(false);
     }
@@ -172,19 +177,12 @@ export default function TesoreriaExtractosPage() {
     else alert((await r.json()).error || "No se pudo borrar");
   }
 
-  const filtrada = (lista ?? []).filter((m) =
-    coincideBusqueda(
-      q,
-      fecha(m.fecha),
-      m.concepto,
-      m.referencia,
-      euros(m.importe),
-      m.notas
-    )
+  const filtrada = (lista ?? []).filter((mov) =
+    coincideBusqueda(q, fmtFecha(mov.fecha), mov.concepto || "", mov.referencia || "", euros(mov.importe), mov.notas || "")
   );
 
   return (
-    <>
+    <div>
       <CabeceraPagina
         titulo="Extractos bancarios"
         descripcion="Importa el extracto de tu banco y concilia los cargos con facturas de compra pendientes de pago."
@@ -209,18 +207,13 @@ export default function TesoreriaExtractosPage() {
           <option value="conciliados">Conciliados</option>
           <option value="todos">Todos</option>
         </select>
-        {q && (
-          <button onClick={() => setQ("")} className="btn-ghost text-xs">Limpiar</button>
-        )}
+        {q && <button onClick={() => setQ("")} className="btn-ghost text-xs">Limpiar</button>}
         <span className="text-xs text-slate-500 ml-auto">{filtrada.length} de {lista?.length ?? 0}</span>
       </div>
 
       <div className="panel px-3.5 py-2">
         {!lista ? null : lista.length === 0 ? (
-          <EstadoVacio
-            titulo="Sin movimientos importados"
-            descripcion="Sube un extracto bancario en CSV o Excel para empezar a conciliar."
-          />
+          <EstadoVacio titulo="Sin movimientos importados" descripcion="Sube un extracto bancario en CSV o Excel para empezar a conciliar." />
         ) : (
           <div className="overflow-x-auto">
             <table className="tabla">
@@ -241,30 +234,30 @@ export default function TesoreriaExtractosPage() {
                     <td colSpan={7} className="text-center text-slate-500 py-8">Ningún movimiento cumple esos filtros.</td>
                   </tr>
                 )}
-                {filtrada.map((m) => (
-                  <tr key={m._id} className={m.conciliadoCon?.tipo ? "opacity-70" : ""}>
-                    <td className="text-slate-400 num whitespace-nowrap">{fecha(m.fecha)}</td>
+                {filtrada.map((mov) => (
+                  <tr key={mov._id} className={mov.conciliadoCon?.tipo ? "opacity-70" : ""}>
+                    <td className="text-slate-400 num whitespace-nowrap">{fmtFecha(mov.fecha)}</td>
                     <td className="text-slate-300 max-w-[260px]">
-                      <span className="block truncate" title={m.concepto}>{m.concepto}</span>
+                      <span className="block truncate" title={mov.concepto}>{mov.concepto}</span>
                     </td>
-                    <td className="text-slate-500 text-sm num">{m.referencia || "—"}</td>
-                    <td className={`text-right whitespace-nowrap num font-semibold ${m.importe < 0 ? "text-rose-300" : "text-emerald-300"}`}>
-                      {euros(m.importe)}
+                    <td className="text-slate-500 text-sm num">{mov.referencia || "—"}</td>
+                    <td className={`text-right whitespace-nowrap num font-semibold ${mov.importe < 0 ? "text-rose-300" : "text-emerald-300"}`}>
+                      {euros(mov.importe)}
                     </td>
-                    <td className="text-right text-slate-500 whitespace-nowrap num">{euros(m.saldo)}</td>
+                    <td className="text-right text-slate-500 whitespace-nowrap num">{euros(mov.saldo)}</td>
                     <td>
-                      {m.conciliadoCon?.tipo ? (
+                      {mov.conciliadoCon?.tipo ? (
                         <Badge tono="green">Conciliado</Badge>
                       ) : (
                         <Badge tono="amber">Pendiente</Badge>
                       )}
                     </td>
                     <td className="text-right whitespace-nowrap">
-                      {!m.conciliadoCon?.tipo ? (
+                      {!mov.conciliadoCon?.tipo ? (
                         <button
                           onClick={() => {
-                            setConciliando(m);
-                            buscarCoincidencias(m);
+                            setConciliando(mov);
+                            buscarCoincidencias(mov);
                           }}
                           className="text-xs text-accent hover:underline mr-3"
                         >
@@ -272,7 +265,7 @@ export default function TesoreriaExtractosPage() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => desconciliar(m)}
+                          onClick={() => desconciliar(mov)}
                           className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-emerald-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle mr-2"
                           title="Desconciliar"
                         >
@@ -280,7 +273,7 @@ export default function TesoreriaExtractosPage() {
                         </button>
                       )}
                       <button
-                        onClick={() => borrar(m)}
+                        onClick={() => borrar(mov)}
                         title="Borrar movimiento"
                         className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors align-middle"
                       >
@@ -310,6 +303,6 @@ export default function TesoreriaExtractosPage() {
           }}
         />
       )}
-    </>
+    </div>
   );
 }
