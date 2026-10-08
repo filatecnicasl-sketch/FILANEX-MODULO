@@ -7,7 +7,7 @@ import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
 
 const VACIO = {
-  codigo: "", fechaAlta: "", nombre: "", nif: "", grupo: "", telefono: "", email: "",
+  codigo: "", fechaAlta: "", nombre: "", nif: "", grupo: "", telefono: "", telefono2: "", email: "",
   calle: "", ciudad: "", cp: "", provincia: "",
   iban: "", banco: "", bic: "",
   entregaCalle: "", entregaCiudad: "", entregaCp: "",
@@ -28,6 +28,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
       nif: inicial.nif ?? "",
       grupo: inicial.grupo ?? "",
       telefono: inicial.telefono ?? "",
+      telefono2: inicial.telefono2 ?? "",
       email: inicial.email ?? "",
       calle: inicial.direccion?.calle ?? "",
       ciudad: inicial.direccion?.ciudad ?? "",
@@ -106,6 +107,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
         nif: form.nif,
         grupo: form.grupo.trim() || undefined,
         telefono: form.telefono,
+        telefono2: form.telefono2,
         email: form.email,
         codigo: form.codigo.trim() || undefined, // si va vacío, el servidor asigna el siguiente
         fechaAlta: form.fechaAlta || undefined,
@@ -202,6 +204,17 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
                 <div>
                   <label className="text-sm text-slate-400 block mb-1">Teléfono</label>
                   <input value={form.telefono} onChange={poner("telefono")} className="input" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Teléfono 2</label>
+                  <input value={form.telefono2} onChange={poner("telefono2")} className="input" />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Email</label>
+                  <input type="email" value={form.email} onChange={poner("email")} className="input" />
                 </div>
               </div>
 
@@ -582,11 +595,19 @@ export default function ClientesPage() {
                     </td>
                     <td className="num text-[0.75rem] text-slate-500 whitespace-nowrap">{c.nif}</td>
                     <td className="num text-[0.75rem] text-slate-500 whitespace-nowrap">
-                      {c.telefono ? (
-                        <a href={`tel:${c.telefono}`} title="Llamar" className="hover:text-accent transition-colors">
-                          {c.telefono}
-                        </a>
-                      ) : "—"}
+                      <div className="flex flex-col gap-0.5">
+                        {c.telefono ? (
+                          <a href={`tel:${c.telefono}`} title="Llamar" className="hover:text-accent transition-colors">
+                            {c.telefono}
+                          </a>
+                        ) : null}
+                        {c.telefono2 ? (
+                          <a href={`tel:${c.telefono2}`} title="Llamar" className="hover:text-accent transition-colors">
+                            {c.telefono2}
+                          </a>
+                        ) : null}
+                        {!c.telefono && !c.telefono2 ? "—" : null}
+                      </div>
                     </td>
                     <td className="text-slate-500 max-w-[260px]">
                       {c.direccion?.calle || c.direccion?.ciudad ? (
@@ -618,6 +639,7 @@ export default function ClientesPage() {
                               ["Nombre", c.nombre],
                               ["NIF/CIF", c.nif],
                               ["Teléfono", c.telefono],
+                              ["Teléfono 2", c.telefono2],
                               ["Email", c.email],
                               ["Dirección", [c.direccion?.calle, c.direccion?.cp, c.direccion?.ciudad, c.direccion?.provincia].filter(Boolean).join(", ")],
                               ["Dirección de entrega", [c.direccionEntrega?.calle, c.direccionEntrega?.cp, c.direccionEntrega?.ciudad].filter(Boolean).join(", ")],

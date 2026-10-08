@@ -14,7 +14,7 @@ const upload = multer({
 });
 
 const CAMPOS = [
-  "codigo", "fechaAlta", "nombre", "nif", "grupo", "email", "telefono", "iban", "banco", "bic",
+  "codigo", "fechaAlta", "nombre", "nif", "grupo", "email", "telefono", "telefono2", "iban", "banco", "bic",
   "direccion", "direccionEntrega", "esAdministracionPublica", "comunicaciones", "notas",
 ];
 
@@ -57,7 +57,11 @@ router.get("/", async (req, res, next) => {
             { codigo: { $regex: q, $options: "i" } },
             { grupo: { $regex: q, $options: "i" } },
             { telefono: { $regex: q, $options: "i" } },
-            ...(patronTelefono ? [{ telefono: { $regex: patronTelefono } }] : []),
+            { telefono2: { $regex: q, $options: "i" } },
+            ...(patronTelefono ? [
+              { telefono: { $regex: patronTelefono } },
+              { telefono2: { $regex: patronTelefono } },
+            ] : []),
           ],
         }
       : {};
@@ -79,7 +83,7 @@ router.get("/", async (req, res, next) => {
     const lista = await Cliente.find(
       filtro,
       {
-        codigo: 1, nombre: 1, nif: 1, telefono: 1, email: 1, grupo: 1,
+        codigo: 1, nombre: 1, nif: 1, telefono: 1, telefono2: 1, email: 1, grupo: 1,
         direccion: 1, direccionEntrega: 1, comunicaciones: 1,
       }
     )
@@ -121,6 +125,7 @@ router.post("/rapido", async (req, res, next) => {
     const nombre = (req.body?.nombre ?? "").trim();
     if (!nombre) return res.status(400).json({ error: "El nombre es obligatorio" });
     const telefono = (req.body?.telefono ?? "").trim() || undefined;
+    const telefono2 = (req.body?.telefono2 ?? "").trim() || undefined;
     const email = (req.body?.email ?? "").trim() || undefined;
     const nif = normalizarNIF(req.body?.nif) || undefined;
     // Cuando el alta nace de una casilla "Nuevo", el teléfono es obligatorio.
@@ -146,6 +151,7 @@ router.post("/rapido", async (req, res, next) => {
       codigo,
       nombre,
       telefono,
+      telefono2,
       email,
       nif: nif ?? `SIN NIF ${codigo}`,
     });
@@ -191,6 +197,7 @@ const COLUMNAS = {
   nif: ["nif", "cif", "nif/cif", "cif/dni", "dni/cif", "dni", "cif o nif"],
   email: ["email", "correo", "e-mail"],
   telefono: ["telefono", "teléfono", "telefono 1", "teléfono 1", "movil", "móvil", "tel", "tfno"],
+  telefono2: ["telefono 2", "teléfono 2", "movil 2", "móvil 2", "tel2", "tfno2"],
   calle: ["direccion", "dirección", "calle"],
   ciudad: ["ciudad", "poblacion", "población", "localidad"],
   cp: ["cp", "codigo postal", "código postal", "c.p."],
@@ -282,6 +289,7 @@ router.post("/importar-excel", [upload.single("excel"), contextoTrasSubida], asy
           nif: nif ?? `SIN-NIF-${Date.now()}-${f}`,
           email: celda(fila, idx.email) || undefined,
           telefono: celda(fila, idx.telefono) || undefined,
+          telefono2: celda(fila, idx.telefono2) || undefined,
           iban: limpiarIban(celda(fila, idx.iban)),
           banco: celda(fila, idx.banco) || undefined,
           bic: celda(fila, idx.bic) || undefined,

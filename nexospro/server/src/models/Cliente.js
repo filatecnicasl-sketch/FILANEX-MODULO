@@ -15,6 +15,7 @@ const clienteSchema = new Schema(
     grupo: { type: String, trim: true, index: true, sparse: true },
     email: { type: String, index: true, sparse: true },
     telefono: { type: String, index: true, sparse: true },
+    telefono2: { type: String, index: true, sparse: true },
     iban: String, // para domiciliación en remesas SEPA
     banco: String,
     bic: String,

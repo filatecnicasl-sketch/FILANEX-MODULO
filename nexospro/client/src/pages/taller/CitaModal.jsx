@@ -859,14 +859,14 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
             </div>
             <div>
               <label className="text-sm text-slate-400 block mb-1">
-                {form.cliente ? "Nombre del cliente" : "Nombre del cliente *"}
+                {form.cliente ? "Nombre del cliente" : form.tipo === "peritaje" ? "Nombre del cliente (opcional)" : "Nombre del cliente *"}
               </label>
               <input
                 className={campo}
                 value={form.clienteNombre}
                 onChange={(e) => setForm((f) => ({ ...f, clienteNombre: e.target.value, cliente: "" }))}
                 placeholder={form.cliente ? "Cliente seleccionado de la cartera" : "Nombre completo"}
-                required={!form.cliente}
+                required={!form.cliente && form.tipo !== "peritaje"}
               />
               {!form.cliente && form.clienteNombre.trim() && (
                 <p className="text-[11px] text-teal-400 mt-1">

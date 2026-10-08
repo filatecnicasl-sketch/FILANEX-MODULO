@@ -14,6 +14,12 @@ function tonoMeses(meses) {
   return "bg-emerald-100 text-emerald-700 border-emerald-200";
 }
 
+function tonoAviso(aviso) {
+  if (aviso === 1) return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  if (aviso === 2) return "bg-amber-100 text-amber-700 border-amber-200";
+  return "bg-rose-100 text-rose-700 border-rose-200";
+}
+
 function Fila({ izquierda, chapas, derecha, telefono }) {
   return (
     <li className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
@@ -128,7 +134,7 @@ export default function EnergiaAgendaPage() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mb-3">
-              Contratos con fecha de fin en los próximos 60 días (o ya vencida).
+              Contratos con fecha de fin en los próximos 2 meses. Se generan 3 avisos automáticos: a 2 meses, a 1 mes y a 15 días.
             </p>
             {datos.renovaciones.length === 0 ? (
               <p className="text-sm text-slate-500 py-4 text-center">
@@ -144,12 +150,19 @@ export default function EnergiaAgendaPage() {
                     derecha={`${s.cups} · ${s.comercializadoraNombre ?? "—"} · fin ${fmtFecha(s.fechaFin)}`}
                     telefono={s.telefono}
                     chapas={
-                      <Chapa
-                        tono={s.dias < 0 ? "bg-rose-100 text-rose-700 border-rose-200" : s.dias <= 30 ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"}
-                        title="Días hasta el fin del contrato"
-                      >
-                        {s.dias < 0 ? "vencido" : `${s.dias} días`}
-                      </Chapa>
+                      <>
+                        <Chapa
+                          tono={s.dias < 0 ? "bg-rose-100 text-rose-700 border-rose-200" : s.dias <= 30 ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"}
+                          title="Días hasta el fin del contrato"
+                        >
+                          {s.dias < 0 ? "vencido" : `${s.dias} días`}
+                        </Chapa>
+                        {s.aviso && (
+                          <Chapa tono={tonoAviso(s.aviso)} title="Aviso de renovación que toca">
+                            {s.etiqueta}
+                          </Chapa>
+                        )}
+                      </>
                     }
                   />
                 ))}

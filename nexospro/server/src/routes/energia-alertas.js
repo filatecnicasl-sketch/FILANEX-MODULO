@@ -21,6 +21,12 @@ const DIAS_ESTUDIO = 7;
 const MESES_VENTANA_MIN = 7;
 const MESES_VENTANA_MAX = 10;
 
+function avisoRenovacion(dias) {
+  if (dias > 30) return { aviso: 1, etiqueta: "1.º aviso" };
+  if (dias > 15) return { aviso: 2, etiqueta: "2.º aviso" };
+  return { aviso: 3, etiqueta: "3.º aviso" };
+}
+
 // Meses completos transcurridos desde una fecha.
 function mesesDesde(fecha) {
   const f = new Date(fecha);
@@ -125,16 +131,22 @@ router.get("/", async (req, res, next) => {
     }, 0);
 
     res.json({
-      renovaciones: renovaciones.map((s) => ({
-        _id: s._id,
-        cups: s.cups,
-        tipo: s.tipo,
-        clienteNombre: s.clienteNombre ?? s.cliente?.nombre,
-        telefono: s.cliente?.telefono ?? null,
-        comercializadoraNombre: s.comercializadoraNombre,
-        fechaFin: s.fechaFin,
-        dias: Math.ceil((new Date(s.fechaFin).getTime() - ahora.getTime()) / (24 * 60 * 60 * 1000)),
-      })),
+      renovaciones: renovaciones.map((s) => {
+        const dias = Math.ceil((new Date(s.fechaFin).getTime() - ahora.getTime()) / (24 * 60 * 60 * 1000));
+        const { aviso, etiqueta } = avisoRenovacion(dias);
+        return {
+          _id: s._id,
+          cups: s.cups,
+          tipo: s.tipo,
+          clienteNombre: s.clienteNombre ?? s.cliente?.nombre,
+          telefono: s.cliente?.telefono ?? null,
+          comercializadoraNombre: s.comercializadoraNombre,
+          fechaFin: s.fechaFin,
+          dias,
+          aviso,
+          etiqueta,
+        };
+      }).sort((a, b) => a.dias - b.dias),
       porAntiguedad,
       estudiosSinRespuesta: estudiosSinRespuesta.map((e) => ({
         _id: e._id,
