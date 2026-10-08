@@ -551,7 +551,7 @@ export function buildCitaTaller() {
       // Datos de la cita
       tx("DATOS DE LA CITA", x, 88, w, 6, 10, true, "left", oscuro),
       fl("FECHA", "cita.fecha", x, 97, medio - 2),
-      fl("HORARIO", "cita.horario", x + medio + 2, 97, medio - 2),
+      fl("HORARIO RECEPCIÓN", "cita.horario", x + medio + 2, 97, medio - 2),
       fl("ESTADO", "cita.estado", x, 107, medio - 2),
       fl("ASEGURADORA / PARTICULAR", "cita.aseguradora", x + medio + 2, 107, medio - 2),
       linea(x, 118, w, "#d1d5db"),

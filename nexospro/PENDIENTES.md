@@ -4,15 +4,6 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## URGENTE / Revisar con detenimiento
 
-- [ ] **Flujo de citas: cliente nuevo sin pulsar "Dar de alta"** (acordado
-      repasar a fondo el 05/10/2026). Una cita en `filanex_montiel` quedó solo
-      con matrícula porque se rellenaron los campos del alta rápida pero no se
-      pulsó el botón. Se aplicó un parche de emergencia que guarda los datos
-      igual, pero hay que revisar todo el flujo: alta rápida desde citas de
-      taller y de servicio, búsqueda de cliente existente, comportamiento al
-      pulsar Enter sin coincidencias, y qué pasa si falla el alta o el cliente
-      cierra el modal sin guardar.
-
 ## Modelo comercial / precios (acordado 29/09/2026)
 
 - **Base facturación: 30 €/mes** (1 usuario, sin oferta). Oferta de captación:
@@ -220,10 +211,10 @@ así que por ese motivo no se repite; falta enterarse antes y recuperar rápido.
       Plazo legal de referencia: la factura a empresas se puede expedir hasta el
       día 16 del mes siguiente al devengo.
 
-## Octubre 2028 (VeriFactu)
+## 1 de octubre de 2028 (VeriFactu)
 
-- [ ] **Activar el envío a la AEAT.** Según última información, VeriFactu no
-      entra a funcionar hasta octubre de 2028. Días antes de esa fecha, en
+- [ ] **Activar el envío a la AEAT.** Según última información, VeriFactu entra
+      a funcionar el **1 de octubre de 2028**. Días antes de esa fecha, en
       Ajustes → Certificado habrá que cambiar el entorno de Pruebas a
       Producción. Hasta entonces las facturas se registran con huella y QR pero
       nacen como "no remitidas" y no se enviarán. Requiere tener subido el
