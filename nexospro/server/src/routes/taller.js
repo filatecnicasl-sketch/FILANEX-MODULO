@@ -1171,9 +1171,30 @@ router.get("/citas", async (req, res, next) => {
     }
     const lista = await Cita.find(filtro).sort({ fecha: 1, hora: 1 }).limit(500).lean();
 
+    // Datos del vehículo (marca/modelo) para mostrar en agendas y listados.
+    const vehiculoIds = [...new Set(lista.map((c) => c.vehiculo).filter(Boolean))];
+    const matriculas = [...new Set(lista.map((c) => c.matricula).filter(Boolean))];
+    const [vehiculosPorId, vehiculosPorMatricula] = await Promise.all([
+      vehiculoIds.length
+        ? Vehiculo.find({ _id: { $in: vehiculoIds } }).select("marca modelo matricula").lean().then((vs) =>
+            Object.fromEntries(vs.map((v) => [String(v._id), v]))
+          )
+        : {},
+      matriculas.length
+        ? Vehiculo.find({ matricula: { $in: matriculas } }).select("marca modelo matricula").lean().then((vs) => {
+            const mapa = {};
+            for (const v of vs) mapa[v.matricula] = v;
+            return mapa;
+          })
+        : {},
+    ]);
+    function datosVehiculo(c) {
+      const v = (c.vehiculo ? vehiculosPorId[String(c.vehiculo)] : null) ?? vehiculosPorMatricula[c.matricula] ?? {};
+      return { vehiculoMarca: v.marca || "", vehiculoModelo: v.modelo || "" };
+    }
+
     // Contexto extra para la vista principal: valoraciones del vehículo y
     // préstamo de cortesía activo vinculado a la cita o al cliente.
-    const matriculas = [...new Set(lista.map((c) => c.matricula).filter(Boolean))];
     const valoraciones = matriculas.length
       ? await Valoracion.find({ matricula: { $in: matriculas } }).select("numero matricula compania estado total").lean()
       : [];
@@ -1197,6 +1218,7 @@ router.get("/citas", async (req, res, next) => {
 
     res.json(lista.map((c) => ({
       ...c,
+      ...datosVehiculo(c),
       valoraciones: c.matricula ? (valPorMatricula[c.matricula] ?? []) : [],
       prestamoCortesia: prestamoPorCita[String(c._id)] ?? (c.clienteNombre ? prestamoPorCliente[c.clienteNombre] : undefined) ?? null,
     })));

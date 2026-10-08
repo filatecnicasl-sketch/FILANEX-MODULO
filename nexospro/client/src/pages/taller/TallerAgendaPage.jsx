@@ -48,6 +48,7 @@ export default function TallerAgendaPage() {
   const [aviso, setAviso] = useState(null); // confirmación de recepción creada
   const [q, setQ] = useState("");
   const [pestana, setPestana] = useState("citas"); // "citas" | "peritaje"
+  const [vistaPeritaje, setVistaPeritaje] = useState("agenda"); // "agenda" | "lista"
 
   // Búsqueda por cualquier campo visible de la cita; cada pestaña muestra
   // solo su tipo (las de peritaje van aparte).
@@ -67,7 +68,8 @@ export default function TallerAgendaPage() {
         c.presupuesto ? "presupuesto" : "",
         c.aseguradoraNombre,
         c.numeroSiniestro,
-        c.cortesia || c.prestamoCortesia ? "cortesia" : ""
+        c.cortesia || c.prestamoCortesia ? "cortesia" : "",
+        c.vehiculoModelo
       )
   );
 
@@ -162,84 +164,121 @@ export default function TallerAgendaPage() {
 
       {pestana === "peritaje" ? (
         // Citas de peritaje: el cliente deja el coche y viene el perito de
-        // la compañía. Lista plana ordenada por fecha y hora.
-        <div className="panel overflow-x-auto">
-          <table className="tabla">
-            <thead>
-              <tr>
-                <th className="whitespace-nowrap">Fecha</th>
-                <th className="whitespace-nowrap">Hora</th>
-                <th>Matrícula</th>
-                <th>Cliente</th>
-                <th>Teléfono</th>
-                <th>Compañía</th>
-                <th>Siniestro</th>
-                <th>Peritación</th>
-                <th>Estado</th>
-                <th className="text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...citasFiltradas]
-                .sort((a, b) => new Date(a.fecha) - new Date(b.fecha) || String(a.hora).localeCompare(String(b.hora)))
-                .map((c) => {
-                  const est = ESTADOS_CITA.find((e) => e.clave === c.estado);
-                  return (
-                    <tr key={c._id} className="cursor-pointer" onClick={() => setModal({ cita: c, fecha: aFechaInput(c.fecha), tipo: "peritaje" })}>
-                      <td className="whitespace-nowrap">{new Date(c.fecha).toLocaleDateString("es-ES")}</td>
-                      <td className="whitespace-nowrap font-medium">{c.hora}</td>
-                      <td className="font-medium">{c.matricula ?? "—"}</td>
-                      <td className="text-slate-600">{c.clienteNombre ?? "—"}</td>
-                      <td className="text-slate-500 num">{c.telefono ?? "—"}</td>
-                      <td className="text-slate-600">{c.aseguradoraNombre ?? "—"}</td>
-                      <td className="text-slate-500 num">{c.numeroSiniestro ?? "—"}</td>
-                      <td>
-                        {c.adjuntos?.length ? (
-                          <a
-                            href={c.adjuntos[0].url}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-semibold text-violet-600 hover:underline"
-                            title={c.adjuntos[0].nombre || "Abrir la peritación"}
-                          >
-                            Ver{c.adjuntos.length > 1 ? ` (${c.adjuntos.length})` : ""}
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 text-xs">—</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className="text-xs" style={{ color: est?.color ?? "#64748b" }}>{est?.nombre ?? c.estado}</span>
-                      </td>
-                      <td className="text-right text-xs whitespace-nowrap">
-                        {!["realizada", "cancelada"].includes(c.estado) && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRecepcion(c);
-                            }}
-                            className="font-semibold text-emerald-600 hover:text-emerald-800 hover:underline mr-2"
-                          >
-                            Recepcionar
-                          </button>
-                        )}
-                        <span className="text-accent">Abrir</span>
+        // la compañía. Vista tipo agenda (calendario) o lista plana.
+        <>
+          <div className="no-print flex flex-wrap items-center gap-2 mb-3">
+            <div className="inline-flex rounded-lg overflow-hidden border border-slate-300 bg-white text-[0.78125rem] font-semibold">
+              <button
+                type="button"
+                onClick={() => setVistaPeritaje("agenda")}
+                className={`px-3.5 py-2 ${vistaPeritaje === "agenda" ? "seg-activo" : "text-slate-500 hover:bg-slate-100"}`}
+              >
+                Agenda
+              </button>
+              <button
+                type="button"
+                onClick={() => setVistaPeritaje("lista")}
+                className={`px-3.5 py-2 ${vistaPeritaje === "lista" ? "seg-activo" : "text-slate-500 hover:bg-slate-100"}`}
+              >
+                Lista
+              </button>
+            </div>
+          </div>
+
+          {vistaPeritaje === "agenda" && !q.trim() ? (
+            <Calendario
+              citas={citasFiltradas}
+              etiquetaNueva="Nueva cita peritaje"
+              nombreElementos="peritajes"
+              onRango={(desde, hasta) => setRango({ desde, hasta })}
+              onNueva={(fecha) => setModal({ fecha, tipo: "peritaje" })}
+              onAbrir={(cita) => setModal({ cita, fecha: aFechaInput(cita.fecha), tipo: "peritaje" })}
+              onEstado={cambiarEstado}
+            />
+          ) : (
+            <div className="panel overflow-x-auto">
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th className="whitespace-nowrap">Fecha</th>
+                    <th className="whitespace-nowrap">Hora</th>
+                    <th>Matrícula</th>
+                    <th>Modelo</th>
+                    <th>Cliente</th>
+                    <th>Teléfono</th>
+                    <th>Compañía</th>
+                    <th>Siniestro</th>
+                    <th>Peritación</th>
+                    <th>Estado</th>
+                    <th className="text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...citasFiltradas]
+                    .sort((a, b) => new Date(a.fecha) - new Date(b.fecha) || String(a.hora).localeCompare(String(b.hora)))
+                    .map((c) => {
+                      const est = ESTADOS_CITA.find((e) => e.clave === c.estado);
+                      return (
+                        <tr key={c._id} className="cursor-pointer" onClick={() => setModal({ cita: c, fecha: aFechaInput(c.fecha), tipo: "peritaje" })}>
+                          <td className="whitespace-nowrap">{new Date(c.fecha).toLocaleDateString("es-ES")}</td>
+                          <td className="whitespace-nowrap font-medium">{c.hora}</td>
+                          <td className="font-medium">{c.matricula ?? "—"}</td>
+                          <td className="text-slate-600">
+                            {[c.vehiculoMarca, c.vehiculoModelo].filter(Boolean).join(" ") || "—"}
+                          </td>
+                          <td className="text-slate-600">{c.clienteNombre ?? "—"}</td>
+                          <td className="text-slate-500 num">{c.telefono ?? "—"}</td>
+                          <td className="text-slate-600">{c.aseguradoraNombre ?? "—"}</td>
+                          <td className="text-slate-500 num">{c.numeroSiniestro ?? "—"}</td>
+                          <td>
+                            {c.adjuntos?.length ? (
+                              <a
+                                href={c.adjuntos[0].url}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs font-semibold text-violet-600 hover:underline"
+                                title={c.adjuntos[0].nombre || "Abrir la peritación"}
+                              >
+                                Ver{c.adjuntos.length > 1 ? ` (${c.adjuntos.length})` : ""}
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-xs">—</span>
+                            )}
+                          </td>
+                          <td>
+                            <span className="text-xs" style={{ color: est?.color ?? "#64748b" }}>{est?.nombre ?? c.estado}</span>
+                          </td>
+                          <td className="text-right text-xs whitespace-nowrap">
+                            {!["realizada", "cancelada"].includes(c.estado) && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRecepcion(c);
+                                }}
+                                className="font-semibold text-emerald-600 hover:text-emerald-800 hover:underline mr-2"
+                              >
+                                Recepcionar
+                              </button>
+                            )}
+                            <span className="text-accent">Abrir</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  {citasFiltradas.length === 0 && (
+                    <tr>
+                      <td colSpan={11} className="text-center text-slate-500 py-8">
+                        {q.trim() ? `Sin resultados para «${q}».` : "No hay citas de peritaje en este periodo."}
                       </td>
                     </tr>
-                  );
-                })}
-              {citasFiltradas.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="text-center text-slate-500 py-8">
-                    {q.trim() ? `Sin resultados para «${q}».` : "No hay citas de peritaje en este periodo."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       ) : q.trim() ? (
         // Resultados de la búsqueda: lista plana de todas las citas que
         // coinciden, estén en el periodo visible o no.
