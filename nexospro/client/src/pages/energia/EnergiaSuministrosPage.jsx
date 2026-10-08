@@ -9,7 +9,7 @@ import ModalConsumos from "./ModalConsumos.jsx";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
 const VACIO = {
-  cups: "", tipo: "luz", clienteId: "", comercializadoraId: "",
+  cups: "", tipo: "luz", clienteId: "", comercializadoraId: "", canalDistribucionId: "",
   calle: "", cp: "", ciudad: "", provincia: "",
   tarifa: "", potenciaPunta: "", potenciaValle: "", consumoAnual: "", presupuestoAnual: "",
   estado: "activo", fechaAlta: "", fechaFin: "", notas: "",
@@ -37,6 +37,8 @@ export default function EnergiaSuministrosPage() {
   const [lista, setLista] = useState(null);
   const [clientes, setClientes] = useState([]);
   const [comercializadoras, setComercializadoras] = useState([]);
+  const [canales, setCanales] = useState([]);
+  const [canalesFiltrados, setCanalesFiltrados] = useState([]);
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -59,6 +61,7 @@ export default function EnergiaSuministrosPage() {
       s.cups,
       s.clienteNombre ?? s.cliente?.nombre,
       s.comercializadoraNombre ?? s.comercializadora?.nombre,
+      s.canalDistribucionNombre ?? s.canalDistribucion?.nombre,
       s.tarifa,
       s.direccion?.calle,
       s.direccion?.ciudad,
@@ -85,21 +88,34 @@ export default function EnergiaSuministrosPage() {
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setComercializadoras(Array.isArray(d) ? d : []))
       .catch(() => setComercializadoras([]));
+    fetch("/api/energia/canales")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => {
+        setCanales(Array.isArray(d) ? d : []);
+        setCanalesFiltrados(Array.isArray(d) ? d : []);
+      })
+      .catch(() => {
+        setCanales([]);
+        setCanalesFiltrados([]);
+      });
   }, []);
 
   function abrirNuevo() {
     setEditando(null);
     setForm(VACIO);
+    setCanalesFiltrados(canales);
     setModal(true);
   }
 
   function abrirEdicion(s) {
     setEditando(s);
+    const comercializadoraId = s.comercializadora?._id ?? "";
     setForm({
       cups: s.cups ?? "",
       tipo: s.tipo ?? "luz",
       clienteId: s.cliente?._id ?? "",
-      comercializadoraId: s.comercializadora?._id ?? "",
+      comercializadoraId,
+      canalDistribucionId: s.canalDistribucion?._id ?? "",
       calle: s.direccion?.calle ?? "",
       cp: s.direccion?.cp ?? "",
       ciudad: s.direccion?.ciudad ?? "",
@@ -114,6 +130,11 @@ export default function EnergiaSuministrosPage() {
       fechaFin: s.fechaFin ? new Date(s.fechaFin).toISOString().slice(0, 10) : "",
       notas: s.notas ?? "",
     });
+    setCanalesFiltrados(
+      comercializadoraId
+        ? canales.filter((c) => String(c.comercializadora?._id ?? c.comercializadora) === comercializadoraId)
+        : canales
+    );
     setModal(true);
   }
 
@@ -124,6 +145,7 @@ export default function EnergiaSuministrosPage() {
       tipo: form.tipo,
       cliente: form.clienteId || null,
       comercializadora: form.comercializadoraId || null,
+      canalDistribucion: form.canalDistribucionId || null,
       direccion: { calle: form.calle, cp: form.cp, ciudad: form.ciudad, provincia: form.provincia },
       tarifa: form.tarifa,
       potenciaPunta: form.potenciaPunta,
@@ -212,9 +234,12 @@ export default function EnergiaSuministrosPage() {
                   <th>CUPS</th>
                   <th>Cliente</th>
                   <th>Comercializadora</th>
+                  <th>Canal</th>
                   <th>Tarifa</th>
                   <th className="num">Potencia</th>
                   <th className="num" title="Coste medio de los últimos 12 meses: factura ÷ kWh. Los más caros son candidatos a estudio de ahorro">€/kWh (12 m.)</th>
+                  <th>Alta</th>
+                  <th>Creado</th>
                   <th>Estado</th>
                   <th className="text-right">Acciones</th>
                 </tr>
@@ -222,7 +247,7 @@ export default function EnergiaSuministrosPage() {
               <tbody>
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center text-slate-500 py-6">
+                    <td colSpan={11} className="text-center text-slate-500 py-6">
                       Ningún suministro coincide con esos filtros.
                     </td>
                   </tr>
@@ -240,6 +265,7 @@ export default function EnergiaSuministrosPage() {
                       )}
                     </td>
                     <td className="text-slate-300">{s.comercializadoraNombre ?? s.comercializadora?.nombre ?? "—"}</td>
+                    <td className="text-slate-300">{s.canalDistribucionNombre ?? s.canalDistribucion?.nombre ?? "—"}</td>
                     <td className="num text-slate-300 whitespace-nowrap">
                       {s.tarifa || "—"}
                       {s.consumoAnual > 0 && (
@@ -272,6 +298,12 @@ export default function EnergiaSuministrosPage() {
                           {Number(s.desviacionPresupuesto).toLocaleString("es-ES", { maximumFractionDigits: 0 })} € vs presupuesto
                         </p>
                       )}
+                    </td>
+                    <td className="text-slate-300 whitespace-nowrap text-xs">
+                      {s.fechaAlta ? new Date(s.fechaAlta).toLocaleDateString("es-ES") : "—"}
+                    </td>
+                    <td className="text-slate-400 whitespace-nowrap text-xs">
+                      {s.createdAt ? new Date(s.createdAt).toLocaleDateString("es-ES") : "—"}
                     </td>
                     <td><Badge tono={TONO_ESTADO[s.estado]}>{s.estado}</Badge>
                       {s.fechaFin && (() => {
@@ -381,9 +413,39 @@ export default function EnergiaSuministrosPage() {
               </div>
               <div className="text-sm text-slate-400">
                 Comercializadora actual
-                <select value={form.comercializadoraId} onChange={(e) => setForm((f) => ({ ...f, comercializadoraId: e.target.value }))} className="input">
+                <select
+                  value={form.comercializadoraId}
+                  onChange={(e) => {
+                    const comercializadoraId = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      comercializadoraId,
+                      canalDistribucionId: "",
+                    }));
+                    setCanalesFiltrados(
+                      comercializadoraId
+                        ? canales.filter((c) => String(c.comercializadora?._id ?? c.comercializadora) === comercializadoraId)
+                        : canales
+                    );
+                  }}
+                  className="input"
+                >
                   <option value="">— Sin asignar —</option>
                   {comercializadoras.map((c) => (
+                    <option key={c._id} value={c._id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="text-sm text-slate-400">
+                Canal de distribución
+                <select
+                  value={form.canalDistribucionId}
+                  onChange={(e) => setForm((f) => ({ ...f, canalDistribucionId: e.target.value }))}
+                  className="input"
+                  disabled={!form.comercializadoraId}
+                >
+                  <option value="">{form.comercializadoraId ? "— Sin canal —" : "Elige comercializadora"}</option>
+                  {canalesFiltrados.map((c) => (
                     <option key={c._id} value={c._id}>{c.nombre}</option>
                   ))}
                 </select>
@@ -467,6 +529,15 @@ export default function EnergiaSuministrosPage() {
                 <span className="text-xs text-slate-500">Para las alertas de renovación</span>
               </label>
             </div>
+
+            {editando?.createdAt && (
+              <div className="text-xs text-slate-500">
+                Suministro creado el {new Date(editando.createdAt).toLocaleDateString("es-ES")}
+                {editando.updatedAt && editando.updatedAt !== editando.createdAt && (
+                  <> · última modificación el {new Date(editando.updatedAt).toLocaleDateString("es-ES")}</>
+                )}
+              </div>
+            )}
 
             <label className="text-sm text-slate-400 block">
               Notas

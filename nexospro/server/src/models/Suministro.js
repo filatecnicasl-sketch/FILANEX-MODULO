@@ -21,6 +21,8 @@ const suministroSchema = new Schema(
     clienteNombre: String, // desnormalizado para listados rápidos
     comercializadora: { type: Schema.Types.ObjectId, ref: "Comercializadora" },
     comercializadoraNombre: String, // desnormalizado
+    canalDistribucion: { type: Schema.Types.ObjectId, ref: "CanalDistribucion" },
+    canalDistribucionNombre: String, // desnormalizado
     // Dirección del suministro (puede ser distinta a la fiscal del cliente).
     direccion: {
       calle: String,

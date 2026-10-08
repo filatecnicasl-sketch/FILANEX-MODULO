@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Suministro from "../models/Suministro.js";
 import Comercializadora from "../models/Comercializadora.js";
+import CanalDistribucion from "../models/CanalDistribucion.js";
 import ConsumoEnergia from "../models/ConsumoEnergia.js";
 import { extraerFacturaEnergia } from "../services/ocr-gemini.js";
 import { uploadMemoria } from "../middleware/upload.js";
@@ -12,7 +13,7 @@ import { periodoDesdeHace } from "../services/energia-stats.js";
 const router = Router();
 
 const CAMPOS = [
-  "cups", "tipo", "cliente", "comercializadora", "direccion",
+  "cups", "tipo", "cliente", "comercializadora", "canalDistribucion", "direccion",
   "tarifa", "potenciaPunta", "potenciaValle", "consumoAnual", "presupuestoAnual", "estado",
   "fechaAlta", "fechaFin", "notas",
 ];
@@ -50,6 +51,13 @@ async function denormalizar(datos) {
     const c = await Comercializadora.findById(datos.comercializadora).lean();
     datos.comercializadoraNombre = c?.nombre ?? undefined;
   }
+  if (datos.canalDistribucion === null || datos.canalDistribucion === "") {
+    datos.canalDistribucion = undefined;
+    datos.canalDistribucionNombre = undefined;
+  } else if (datos.canalDistribucion) {
+    const c = await CanalDistribucion.findById(datos.canalDistribucion).lean();
+    datos.canalDistribucionNombre = c?.nombre ?? undefined;
+  }
   return datos;
 }
 
@@ -63,6 +71,7 @@ router.get("/", async (req, res, next) => {
       .sort({ cups: 1 })
       .populate("cliente", "nombre nif grupo")
       .populate("comercializadora", "nombre")
+      .populate("canalDistribucion", "nombre comercializadora")
       .limit(500);
 
     // Agregado de los últimos 12 meses de consumos por suministro: kWh,

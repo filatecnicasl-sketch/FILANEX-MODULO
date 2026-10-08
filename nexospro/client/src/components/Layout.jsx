@@ -183,6 +183,7 @@ const gruposModulos = {
       { to: "/energia/campanas", etiqueta: "Campañas", fin: true, Icono: IconOcr, tono: "violet" },
       { to: "/energia/tramites", etiqueta: "Trámites", fin: true, Icono: IconFirma, tono: "sky" },
       { to: "/energia/comercializadoras", etiqueta: "Comercializadoras", fin: true, Icono: IconAseguradora, tono: "teal" },
+      { to: "/energia/canales", etiqueta: "Canales", fin: true, Icono: IconAseguradora, tono: "cyan" },
       { to: "/energia/comisiones", etiqueta: "Comisiones", fin: true, Icono: IconCobros, tono: "emerald" },
       { to: "/energia/autofacturas", etiqueta: "Autofacturas", fin: true, Icono: IconDocumentos, tono: "violet" },
       { to: "/ayuda/energia", etiqueta: "Ayuda energía", fin: true, Icono: IconAyuda, tono: "slate" },
