@@ -129,12 +129,12 @@ router.get("/", async (req, res, next) => {
 });
 
 // GET /api/tesoreria/extractos/coincidencias?importe=-123.45&fecha=2026-10-01
-// Busca facturas de compra validadas pendientes de pago cuyo total coincida
-// (con margen) con el importe absoluto del cargo.
+// Busca facturas de compra validadas cuyo total coincida (con margen) con el
+// importe absoluto del cargo. Incluye facturas ya pagadas para poder vincular
+// el movimiento bancario aunque el pago fuera por recibo domiciliado.
 router.get("/coincidencias", async (req, res, next) => {
   try {
     const importe = Math.abs(parseFloat(req.query.importe) || 0);
-    const fechaStr = req.query.fecha;
     if (!importe) return res.status(400).json({ error: "Falta importe" });
 
     const margen = 0.5; // € de diferencia admitida por redondeo.
@@ -144,7 +144,7 @@ router.get("/coincidencias", async (req, res, next) => {
     })
       .populate("proveedor", "nombre nif")
       .sort({ fechaExpedicion: -1 })
-      .limit(200);
+      .limit(300);
 
     const candidatas = facturas
       .map((f) => {
@@ -152,8 +152,8 @@ router.get("/coincidencias", async (req, res, next) => {
         const pendiente = Math.round(((f.total ?? 0) - pagado) * 100) / 100;
         return { ...f.toObject(), pendiente, pagado };
       })
-      .filter((f) => f.pendiente > 0 && Math.abs(f.pendiente - importe) <= margen)
-      .sort((a, b) => Math.abs(a.pendiente - importe) - Math.abs(b.pendiente - importe));
+      .filter((f) => Math.abs((f.total ?? 0) - importe) <= margen)
+      .sort((a, b) => Math.abs((a.total ?? 0) - importe) - Math.abs((b.total ?? 0) - importe));
 
     res.json({ importe, margen, candidatas });
   } catch (err) {
@@ -213,10 +213,12 @@ router.post("/:id/conciliar", async (req, res, next) => {
       if (fc.estado !== "validada") return res.status(409).json({ error: "Solo se concilian facturas validadas" });
       const pagado = fc.pagado();
       const pendiente = Math.round(((fc.total ?? 0) - pagado) * 100) / 100;
-      const importe = Math.min(pendiente, Math.abs(importePago ?? mov.importe ?? 0));
-      if (importe <= 0) return res.status(409).json({ error: "La factura ya está pagada" });
-      fc.pagos.push({ importe, fecha: mov.fecha ?? new Date(), metodo: "transferencia", nota: `Conciliado con extracto: ${mov.concepto}` });
-      await fc.save();
+      if (pendiente > 0) {
+        const importeAplicar = Math.min(pendiente, Math.abs(importePago ?? mov.importe ?? 0));
+        if (importeAplicar <= 0) return res.status(409).json({ error: "La factura ya está pagada" });
+        fc.pagos.push({ importe: importeAplicar, fecha: mov.fecha ?? new Date(), metodo: "transferencia", nota: `Conciliado con extracto: ${mov.concepto}` });
+        await fc.save();
+      }
       mov.conciliadoCon = { tipo, id: fc._id, fecha: new Date() };
       mov.notas = req.body.notas || mov.notas;
       await mov.save();
