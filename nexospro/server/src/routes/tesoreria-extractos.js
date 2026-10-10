@@ -155,20 +155,116 @@ router.get("/coincidencias", async (req, res, next) => {
         : Infinity;
       const diferencia = Math.min(diffEur, diffDiv);
       const importeReferencia = diffDiv < diffEur ? f.totalDivisa : f.total;
+      const diffFecha = Math.abs(
+        new Date(f.fechaExpedicion ?? f.createdAt).setHours(0, 0, 0, 0) - new Date(req.query.fecha || Date.now()).setHours(0, 0, 0, 0)
+      );
       return {
         ...f.toObject(),
         pendiente,
         pagado,
         diferencia,
         importeReferencia,
+        diffFecha,
       };
     });
 
     const candidatas = conDistancia
-      .sort((a, b) => a.diferencia - b.diferencia)
+      .sort((a, b) => {
+        if (a.diferencia !== b.diferencia) return a.diferencia - b.diferencia;
+        return a.diffFecha - b.diffFecha;
+      })
       .slice(0, 30);
 
     res.json({ importe, candidatas });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/tesoreria/extractos/conciliar-automatico
+// Concilia automáticamente todos los movimientos pendientes buscando por
+// importe, proximidad de fecha y, si existe, referencia bancaria.
+router.post("/conciliar-automatico", async (req, res, next) => {
+  try {
+    const { soloIds } = req.body || {};
+    const movimientosPendientes = await MovimientoBancario.find({
+      "conciliadoCon.tipo": null,
+      importe: { $lt: 0 },
+    }).sort({ fecha: -1 });
+
+    const facturas = await FacturaCompra.find({
+      estado: "validada",
+      total: { $gt: 0 },
+    }).populate("proveedor", "nombre nif");
+
+    const resultados = [];
+    const usadas = new Set();
+
+    for (const mov of movimientosPendientes) {
+      if (soloIds?.length && !soloIds.includes(String(mov._id))) continue;
+
+      const importe = Math.abs(mov.importe);
+      const fechaMov = new Date(mov.fecha).setHours(0, 0, 0, 0);
+      const referencia = String(mov.referencia || "").trim().toLowerCase();
+
+      let mejor = null;
+      let mejorPuntuacion = Infinity;
+
+      for (const fc of facturas) {
+        if (usadas.has(String(fc._id))) continue;
+        const pagado = fc.pagado();
+        const pendiente = Math.round(((fc.total ?? 0) - pagado) * 100) / 100;
+        const diffEur = Math.abs((fc.total ?? 0) - importe);
+        const diffDiv = fc.totalDivisa && fc.divisa !== "EUR"
+          ? Math.abs(fc.totalDivisa - importe)
+          : Infinity;
+        const diferencia = Math.min(diffEur, diffDiv);
+        if (diferencia > 0.01) continue; // importe exacto (con margen de céntimo)
+
+        const fechaFc = new Date(fc.fechaExpedicion ?? fc.createdAt).setHours(0, 0, 0, 0);
+        const diffFecha = Math.abs(fechaFc - fechaMov);
+        const diffDias = Math.ceil(diffFecha / (1000 * 60 * 60 * 24));
+
+        const refFc = String(fc.numeroFacturaProveedor || "").trim().toLowerCase();
+        const coincideRef = referencia && refFc && (referencia.includes(refFc) || refFc.includes(referencia));
+
+        // Puntuación: preferimos referencia, luego cercanía de fecha.
+        const puntuacion = (coincideRef ? 0 : 10000) + diffDias;
+        if (puntuacion < mejorPuntuacion) {
+          mejorPuntuacion = puntuacion;
+          mejor = { fc, pendiente };
+        }
+      }
+
+      if (mejor) {
+        const { fc, pendiente } = mejor;
+        if (pendiente > 0) {
+          const importeAplicar = Math.min(pendiente, importe);
+          if (importeAplicar > 0) {
+            fc.pagos.push({
+              importe: importeAplicar,
+              fecha: mov.fecha ?? new Date(),
+              metodo: "transferencia",
+              nota: `Conciliado automáticamente con extracto: ${mov.concepto}`,
+            });
+            await fc.save();
+          }
+        }
+        mov.conciliadoCon = { tipo: "factura_compra", id: fc._id, fecha: new Date() };
+        mov.notas = `Conciliación automática: ${fc.numeroFacturaProveedor || fc.proveedor?.nombre || "factura"}`;
+        await mov.save();
+        usadas.add(String(fc._id));
+        resultados.push({
+          movimiento: mov._id,
+          factura: fc._id,
+          numeroFacturaProveedor: fc.numeroFacturaProveedor,
+          importe,
+          automatico: true,
+        });
+      }
+    }
+
+    res.json({ ok: true, conciliados: resultados.length, resultados });
   } catch (err) {
     next(err);
   }

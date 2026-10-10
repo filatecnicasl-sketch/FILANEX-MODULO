@@ -11,6 +11,7 @@ export default function TesoreriaExtractosPage() {
   const [q, setQ] = useState("");
   const [filtro, setFiltro] = useState("pendientes");
   const [subiendo, setSubiendo] = useState(false);
+  const [conciliandoAuto, setConciliandoAuto] = useState(false);
   const [error, setError] = useState(null);
   const [aviso, setAviso] = useState(null);
   const [activo, setActivo] = useState(null);
@@ -52,6 +53,24 @@ export default function TesoreriaExtractosPage() {
       setCoincidencias(datos.candidatas);
     } catch (err) {
       setCoincidencias([]);
+    }
+  }
+
+  async function conciliarAutomatico() {
+    if (!window.confirm("¿Conciliar automáticamente todos los movimientos pendientes por importe, fecha y referencia?")) return;
+    setConciliandoAuto(true);
+    setError(null);
+    setAviso(null);
+    try {
+      const r = await fetch("/api/tesoreria/extractos/conciliar-automatico", { method: "POST" });
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "Error en conciliación automática");
+      setAviso(`Conciliación automática: ${datos.conciliados ?? 0} movimientos vinculados.`);
+      await cargar();
+    } catch (err) {
+      setError(String(err?.message || err));
+    } finally {
+      setConciliandoAuto(false);
     }
   }
 
@@ -123,6 +142,15 @@ export default function TesoreriaExtractosPage() {
           <option value="conciliados">Conciliados</option>
           <option value="todos">Todos</option>
         </select>
+        {filtro === "pendientes" && (
+          <button
+            onClick={conciliarAutomatico}
+            disabled={conciliandoAuto || subiendo}
+            className="btn-secondary text-sm"
+          >
+            {conciliandoAuto ? "Conciliando…" : "Conciliar automático"}
+          </button>
+        )}
         {q && <button onClick={() => setQ("")} className="btn-ghost text-xs">Limpiar</button>}
         <span className="text-xs text-slate-500 ml-auto">{filtrada.length} de {lista?.length ?? 0}</span>
       </div>
