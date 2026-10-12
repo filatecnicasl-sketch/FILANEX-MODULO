@@ -7,6 +7,7 @@ import OrdenTrabajo from "../models/OrdenTrabajo.js";
 import Tenant from "../models/plataforma/Tenant.js";
 import { alsEmpresa, conexionTenant, slugActual } from "../models/tenant.js";
 import { requiereModulo } from "../config/modulos.js";
+import { requiereRol } from "../middleware/auth.js";
 
 const router = Router();
 
