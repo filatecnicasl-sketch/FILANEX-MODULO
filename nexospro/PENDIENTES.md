@@ -220,6 +220,23 @@ así que por ese motivo no se repite; falta enterarse antes y recuperar rápido.
       nacen como "no remitidas" y no se enviarán. Requiere tener subido el
       certificado.
 
+## Calendario de auditorías (acordado 13/10/2026)
+
+Cadencia acordada tras la auditoría completa de octubre 2026:
+
+- [ ] **Revisión ligera — enero de 2027.** Solo del código añadido o tocado
+      desde octubre 2026 (conciliación bancaria con datos reales del cliente,
+      módulo de energía). 2-3 horas, no una auditoría completa.
+- [ ] **Auditoría completa — octubre de 2027.** Como la de octubre 2026
+      (seguridad, integridad, tesorería, rendimiento), con revisores
+      independientes. Además deja el terreno preparado para VeriFactu 2028.
+- [ ] **Revisión específica VeriFactu — primavera de 2028** (3-6 meses antes
+      del 1 de octubre de 2028): flujo de firma, huella encadenada,
+      reintentos y entorno de producción.
+- **Sin calendario fijo, revisión inmediata si:** módulo nuevo, integración
+      con un tercero (banco, AEAT, IMAP), vía nueva de mover dinero, o
+      crecimiento notable del número de empresas (tenants).
+
 ## Sin fecha
 
 - [ ] **Escalabilidad**: revisar índices, caché y procesos asíncronos antes de
