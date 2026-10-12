@@ -122,9 +122,17 @@ export default function ModalConciliar({ movimiento, candidatas, onConciliar, on
             onClick={() => guardar("manual", null)}
             disabled={guardando}
             className="btn-ghost"
-            title="Reintegro de cajero, traslado entre cuentas, comisiones…"
+            title="Cualquier apunte sin documento (traslado entre cuentas, error a anotar…)"
           >
             Sin factura
+          </button>
+          <button
+            onClick={() => guardar("movimiento_tesoreria", null)}
+            disabled={guardando}
+            className="btn-ghost"
+            title="Liquidación de remesa, reintegro de cajero, ingreso en efectivo…"
+          >
+            Tesorería
           </button>
           <button onClick={onCerrar} className="btn-ghost">Cancelar</button>
           <button

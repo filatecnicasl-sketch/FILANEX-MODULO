@@ -107,6 +107,23 @@ function buscarGrupoFacturas(ventasPorCliente, importe, fechaMov, usadas) {
   return mejor;
 }
 
+// Categorías especiales de tesorería que no tienen factura: liquidación de
+// remesas del banco, reintegros de cajero e ingresos en efectivo.
+const PATRONES_TESORERIA = [
+  { re: /liquidaci[oó]n\s+(de\s+)?(emis|remesa)/i, categoria: "liquidacion_remesa", esCargo: true, etiqueta: "Liquidación de remesa" },
+  { re: /comisi[oó]n.*remesa|remesa.*comisi[oó]n/i, categoria: "liquidacion_remesa", esCargo: true, etiqueta: "Comisión de remesa" },
+  { re: /reintegro|retirada\s+(de\s+)?(efectivo|efect)/i, categoria: "reintegro_cajero", esCargo: true, etiqueta: "Reintegro de cajero" },
+  { re: /ingreso\s+(en\s+)?efectivo|ingreso\s+cajero|ingreso\s+ventanilla/i, categoria: "ingreso_efectivo", esCargo: false, etiqueta: "Ingreso en efectivo" },
+];
+
+function categoriaTesoreria(concepto) {
+  const c = String(concepto ?? "");
+  for (const p of PATRONES_TESORERIA) {
+    if (p.re.test(c)) return p;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Parseo del extracto (CSV / Excel).
 // ---------------------------------------------------------------------------
@@ -470,6 +487,12 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           }
         }
       } else {
+        // Cargo: si es liquidación de remesa o reintegro de cajero, es un
+        // movimiento de tesorería sin factura (no buscar documento).
+        const catTes = categoriaTesoreria(concepto);
+        if (catTes && catTes.esCargo) {
+          mejor = { tipo: "movimiento_tesoreria", catTes, dias: 0, puntos: 0 };
+        } else {
         // Cargo: facturas de compra y gastos con importe exacto.
         for (const f of compras) {
           if (usadas.has(String(f._id))) continue;
@@ -493,6 +516,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           const dias = diasEntre(g.fecha, mov.fecha);
           const puntos = (coincideNombre ? 0 : 4000) + dias;
           if (!mejor || puntos < mejor.puntos) mejor = { tipo: "gasto", doc: g, puntos, dias, diff };
+        }
         }
       }
 
@@ -571,16 +595,47 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           }
         }
         descripcion = `remesa del ${new Date(remesa.fechaCargo).toLocaleDateString("es-ES")}`;
+      } else if (mejor.tipo === "movimiento_tesoreria") {
+        // Liquidación de remesa o reintegro de cajero: sin factura. Si es la
+        // liquidación/comisión del banco, se registra como gasto deducible.
+        if (mejor.catTes.categoria === "liquidacion_remesa") {
+          const yaExiste = await Gasto.findOne({
+            comercio: "Banco",
+            total: Math.round(importe * 100) / 100,
+            fecha: { $gte: new Date(new Date(mov.fecha).setHours(0, 0, 0, 0)), $lte: new Date(new Date(mov.fecha).setHours(23, 59, 59, 999)) },
+          });
+          if (!yaExiste) {
+            await Gasto.create({
+              fecha: mov.fecha ?? new Date(),
+              comercio: "Banco",
+              concepto: `${mejor.catTes.etiqueta} (${mov.concepto})`,
+              categoria: "comisiones_bancarias",
+              base: Math.round(importe * 100) / 100,
+              tipoIva: 0,
+              cuotaIva: 0,
+              total: Math.round(importe * 100) / 100,
+              conDatosFiscales: false,
+              ivaDeduciblePct: 0,
+              pagadoCon: "transferencia",
+              estado: "validado",
+              notas: `Conciliación automática extracto (${marcador})`,
+              origen: "manual",
+            });
+          }
+        }
+        descripcion = mejor.catTes.etiqueta;
       }
 
       mov.conciliadoCon = mejor.tipo === "facturas_venta"
         ? { tipo: mejor.tipo, id: mejor.grupo[0]._id, fecha: new Date() }
-        : { tipo: mejor.tipo, id: mejor.doc._id, fecha: new Date() };
+        : mejor.tipo === "movimiento_tesoreria"
+          ? { tipo: mejor.tipo, id: null, fecha: new Date() }
+          : { tipo: mejor.tipo, id: mejor.doc._id, fecha: new Date() };
       mov.notas = `Conciliación automática: ${descripcion}`;
       await mov.save();
       if (mejor.tipo === "facturas_venta") {
         for (const fv of mejor.grupo) usadas.add(String(fv._id));
-      } else {
+      } else if (mejor.tipo !== "movimiento_tesoreria") {
         usadas.add(String(mejor.doc._id));
       }
 
@@ -589,11 +644,13 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         ? `importe exacto (${importe} €), remesa a ${mejor.dias} días`
         : mejor.tipo === "facturas_venta"
           ? `suma exacta de ${mejor.grupo.length} facturas del mismo cliente (${importe} €)`
-          : mejor.puntos < 0
-            ? `referencia bancaria coincidente + ${mejor.dias} días`
-            : mejor.puntos < 4000
-              ? `nombre del concepto coincide + ${mejor.dias} días`
-              : `importe exacto, fecha a ${mejor.dias} días`;
+          : mejor.tipo === "movimiento_tesoreria"
+            ? `concepto bancario: ${mejor.catTes.etiqueta}`
+            : mejor.puntos < 0
+              ? `referencia bancaria coincidente + ${mejor.dias} días`
+              : mejor.puntos < 4000
+                ? `nombre del concepto coincide + ${mejor.dias} días`
+                : `importe exacto, fecha a ${mejor.dias} días`;
       await ConciliacionLog.create({
         accion: "conciliacion",
         modo: "automatica",
@@ -601,7 +658,9 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
         documento: {
           tipo: mejor.tipo,
-          id: mejor.tipo === "facturas_venta" ? mejor.grupo[0]._id : mejor.doc._id,
+          id: mejor.tipo === "facturas_venta" ? mejor.grupo[0]._id
+            : mejor.tipo === "movimiento_tesoreria" ? null
+            : mejor.doc._id,
           descripcion,
           criterio,
         },
@@ -611,7 +670,9 @@ router.post("/conciliar-automatico", async (req, res, next) => {
       resultados.push({
         movimiento: mov._id,
         tipo: mejor.tipo,
-        documento: mejor.tipo === "facturas_venta" ? mejor.grupo[0]._id : mejor.doc._id,
+        documento: mejor.tipo === "facturas_venta" ? mejor.grupo[0]._id
+          : mejor.tipo === "movimiento_tesoreria" ? null
+          : mejor.doc._id,
         descripcion,
         fecha: mov.fecha,
         concepto: mov.concepto,
@@ -694,7 +755,9 @@ router.post("/:id/conciliar", async (req, res, next) => {
     }
 
     const { tipo, id } = req.body;
-    if (!tipo || (!id && tipo !== "manual")) return res.status(400).json({ error: "Faltan tipo o id" });
+    if (!tipo || (!id && tipo !== "manual" && tipo !== "movimiento_tesoreria")) {
+      return res.status(400).json({ error: "Faltan tipo o id" });
+    }
     const marcador = `extracto:${mov._id}`;
     const importe = Math.abs(req.body.importePago ?? mov.importe ?? 0);
 
@@ -751,6 +814,29 @@ router.post("/:id/conciliar", async (req, res, next) => {
           await fv.save();
         }
       }
+    } else if (tipo === "movimiento_tesoreria") {
+      // Liquidación de remesa o reintegro: si es la liquidación del banco,
+      // se crea el gasto deducible. El usuario lo confirma a mano.
+      const catTes = categoriaTesoreria(mov.concepto);
+      if (catTes?.categoria === "liquidacion_remesa" && mov.importe < 0) {
+        const importeCargo = Math.abs(mov.importe);
+        await Gasto.create({
+          fecha: mov.fecha ?? new Date(),
+          comercio: "Banco",
+          concepto: `${catTes.etiqueta} (${mov.concepto})`,
+          categoria: "comisiones_bancarias",
+          base: importeCargo,
+          tipoIva: 0,
+          cuotaIva: 0,
+          total: importeCargo,
+          conDatosFiscales: false,
+          ivaDeduciblePct: 0,
+          pagadoCon: "transferencia",
+          estado: "validado",
+          notas: `Conciliado con extracto (${marcador})`,
+          origen: "manual",
+        });
+      }
     } else if (tipo !== "manual") {
       return res.status(400).json({ error: "Tipo de conciliación no soportado" });
     }
@@ -775,6 +861,9 @@ router.post("/:id/conciliar", async (req, res, next) => {
       descripcionManual = `remesa del ${r?.fechaCargo ? new Date(r.fechaCargo).toLocaleDateString("es-ES") : "?"}`;
     } else if (tipo === "manual") {
       descripcionManual = "sin factura (anotado a mano)";
+    } else if (tipo === "movimiento_tesoreria") {
+      const catTes = categoriaTesoreria(mov.concepto);
+      descripcionManual = catTes?.etiqueta || "movimiento de tesorería";
     }
 
     await ConciliacionLog.create({
@@ -824,6 +913,11 @@ router.delete("/:id/conciliacion", async (req, res, next) => {
         fv.cobros = (fv.cobros ?? []).filter((c) => !String(c.notas ?? "").includes(marcador));
         await fv.save();
       }
+    } else if (mov.conciliadoCon.tipo === "movimiento_tesoreria") {
+      // Si la conciliación automática creó un gasto (liquidación del banco),
+      // se borra al desconciliar para no dejar basura contable.
+      const marcadorEscapado = marcador.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      await Gasto.deleteMany({ notas: { $regex: marcadorEscapado }, comercio: "Banco" });
     }
 
     mov.conciliadoCon = { tipo: null, id: null, fecha: null };

@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-12",
+    tipo: "nuevo",
+    titulo: "Tesorería: liquidación de remesa, reintegros e ingresos en efectivo",
+    detalle:
+      "La conciliación automática ahora detecta los movimientos de tesorería sin factura: la liquidación o comisión de una remesa SEPA del banco (se registra como gasto deducible de 'Comisiones bancarias'), los reintegros de cajero (dinero que se saca en efectivo) y los ingresos en efectivo. Se etiquetan como 'Tesorería', sin necesidad de anotarlos como 'Sin factura', y en el modal de conciliar aparece la opción 'Tesorería' para estos casos.",
+  },
+  {
+    fecha: "2026-10-12",
     tipo: "mejora",
     titulo: "Tesorería: cobros con fecha real y referencia",
     detalle:

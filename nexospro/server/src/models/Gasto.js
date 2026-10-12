@@ -25,6 +25,7 @@ export const CATEGORIAS_GASTO = [
   { clave: "reparaciones", etiqueta: "Reparaciones y mantenimiento", deducible: 100, nota: "" },
   { clave: "alojamiento", etiqueta: "Alojamiento", deducible: 100, nota: "Hoteles en desplazamientos de trabajo" },
   { clave: "otros", etiqueta: "Otros gastos", deducible: 100, nota: "" },
+  { clave: "comisiones_bancarias", etiqueta: "Comisiones bancarias", deducible: 100, nota: "Liquidaciones de remesas, comisiones y mantenimiento de cuenta" },
 ];
 
 export const CLAVES_CATEGORIA = CATEGORIAS_GASTO.map((c) => c.clave);

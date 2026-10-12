@@ -147,6 +147,7 @@ export default function TesoreriaExtractosPage() {
     factura_venta: "Factura de venta",
     facturas_venta: "Grupo de ventas",
     remesa: "Remesa SEPA",
+    movimiento_tesoreria: "Tesorería",
     manual: "Sin factura",
   };
 

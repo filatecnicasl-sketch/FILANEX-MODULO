@@ -8,6 +8,7 @@ const ETIQUETA_CONCILIADO = {
   factura_venta: "Venta",
   facturas_venta: "Ventas",
   remesa: "Remesa",
+  movimiento_tesoreria: "Tesorería",
   manual: "Sin factura",
 };
 

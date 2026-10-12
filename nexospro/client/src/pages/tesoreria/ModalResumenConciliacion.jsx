@@ -8,6 +8,7 @@ const ETIQUETA_TIPO = {
   factura_venta: "Factura de venta",
   facturas_venta: "Grupo de ventas",
   remesa: "Remesa SEPA",
+  movimiento_tesoreria: "Tesorería",
 };
 
 export default function ModalResumenConciliacion({ resultados, onCerrar }) {
