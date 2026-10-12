@@ -37,7 +37,12 @@ function normalizarTexto(s) {
 function palabrasClave(nombre) {
   return normalizarTexto(nombre)
     .split(" ")
-    .filter((w) => w.length >= 4 && !PALABRAS_LEGALES.has(w));
+    .filter((w) => {
+      // Palabras largas siempre; números solo con 2+ dígitos: una cifra
+      // suelta del CIF ("2" de B12345678) casaría con cualquier concepto.
+      if (/^\d+$/.test(w)) return w.length >= 2;
+      return w.length >= 4 && !PALABRAS_LEGALES.has(w);
+    });
 }
 
 // ¿Alguna palabra clave del nombre aparece en el concepto bancario?
@@ -73,7 +78,11 @@ function buscarGrupoFacturas(ventasPorCliente, importe, fechaMov, usadas) {
         const dias = diasEntre(f.fechaExpedicion ?? f.createdAt, fechaMov);
         return dias <= 75;
       })
-      .sort((a, b) => new Date(b.fechaExpedicion ?? b.createdAt) - new Date(a.fechaExpedicion ?? a.createdAt))
+      // Solo con algo pendiente y que no superen por sí solas el objetivo:
+      // una factura ya cobrada nunca forma parte de la remesa.
+      .map((f) => ({ f, pendienteCent: Math.round(((f.total ?? 0) - (f.cobrado?.() ?? 0)) * 100) }))
+      .filter(({ pendienteCent }) => pendienteCent > 0 && pendienteCent <= objetivo)
+      .sort((a, b) => new Date(b.f.fechaExpedicion ?? b.f.createdAt) - new Date(a.f.fechaExpedicion ?? a.f.createdAt))
       .slice(0, 15);
 
     const grupos = [];
@@ -81,14 +90,13 @@ function buscarGrupoFacturas(ventasPorCliente, importe, fechaMov, usadas) {
 
     const dfs = (i, restante) => {
       if (restante === 0 && elegidas.length >= 2) {
-        grupos.push([...elegidas]);
+        grupos.push(elegidas.map((e) => e.f));
         return;
       }
       if (i >= candidatas.length || restante < 0 || elegidas.length >= 8) return;
-      const total = Math.round((candidatas[i].total ?? 0) * 100);
-      if (total > 0 && total <= restante) {
+      if (candidatas[i].pendienteCent <= restante) {
         elegidas.push(candidatas[i]);
-        dfs(i + 1, restante - total);
+        dfs(i + 1, restante - candidatas[i].pendienteCent);
         elegidas.pop();
       }
       dfs(i + 1, restante);
@@ -138,15 +146,22 @@ function parseFecha(v) {
   // dd/mm/yyyy o dd-mm-yyyy (día primero, formato español)
   let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
   if (m) {
+    const dia = parseInt(m[1], 10);
+    const mes = parseInt(m[2], 10);
     const anyo = m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10);
-    const prueba = new Date(Date.UTC(anyo, parseInt(m[2], 10) - 1, parseInt(m[1], 10)));
-    return isNaN(prueba.getTime()) ? null : prueba;
+    const prueba = new Date(Date.UTC(anyo, mes - 1, dia));
+    // Sin validar, "31/02/2026" se convertiría en 3 de marzo sin avisar.
+    if (isNaN(prueba.getTime())) return null;
+    if (prueba.getUTCFullYear() !== anyo || prueba.getUTCMonth() !== mes - 1 || prueba.getUTCDate() !== dia) return null;
+    return prueba;
   }
   // yyyy-mm-dd (ISO)
   m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
   if (m) {
     const prueba = new Date(Date.UTC(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)));
-    return isNaN(prueba.getTime()) ? null : prueba;
+    if (isNaN(prueba.getTime())) return null;
+    if (prueba.getUTCMonth() !== parseInt(m[2], 10) - 1 || prueba.getUTCDate() !== parseInt(m[3], 10)) return null;
+    return prueba;
   }
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
@@ -215,7 +230,17 @@ function encontrarCabecera(filas) {
 }
 
 // Extrae filas de un workbook de xlsx (que también lee CSV).
+// Los CSV se decodifican a mano primero (UTF-8 con fallback a Latin-1 y
+// sin BOM) para que los conceptos con tildes no lleguen corruptos.
 function leerWorkbook(buffer, extension) {
+  if (extension === "csv" || extension === "txt") {
+    let texto = buffer.toString("utf8");
+    if (texto.includes("\uFFFD")) texto = buffer.toString("latin1");
+    if (texto.charCodeAt(0) === 0xfeff) texto = texto.slice(1);
+    const wb = XLSX.read(texto, { type: "string" });
+    const hoja = wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: "" });
+  }
   const wb = XLSX.read(buffer, { type: "buffer", codepage: 65001 });
   const hoja = wb.Sheets[wb.SheetNames[0]];
   return XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: "" });
@@ -235,7 +260,12 @@ function filasAMovimientos(filas) {
     if (!fila || fila.every((c) => !c)) continue;
     const fecha = parseFecha(fila[idx.fecha]);
     const importe = parseImporte(fila[idx.importe]);
-    if (!fecha || importe === null) continue;
+    if (!fecha || importe === null) {
+      if (importe === null && String(fila[idx.importe] ?? "").trim() !== "") {
+        console.warn(`Extracto: importe ilegible "${fila[idx.importe]}" en la fila "${fila[idx.concepto]}"`);
+      }
+      continue;
+    }
     const concepto = idx.concepto >= 0 ? String(fila[idx.concepto] ?? "").trim() : "";
     if (!concepto) continue;
     const saldo = idx.saldo >= 0 ? parseImporte(fila[idx.saldo]) ?? 0 : 0;
@@ -448,14 +478,24 @@ router.post("/conciliar-automatico", async (req, res, next) => {
 
       if (mov.importe > 0) {
         // Ingreso: preferir una remesa SEPA por importe total y fecha.
+        // Las remesas anuladas nunca casan. Si ninguna cuadra al céntimo,
+        // se admite una diferencia pequeña (el banco puede abonar la remesa
+        // menos la comisión), pero solo con la fecha muy pegada.
+        let remesaTolerante = null;
         for (const r of remesas) {
           if (usadas.has(String(r._id))) continue;
+          if (r.estado === "anulada") continue;
           const diff = Math.abs((r.total ?? 0) - importe);
-          if (diff > 0.02) continue;
           const dias = diasEntre(r.fechaCargo, mov.fecha);
-          if (dias > 10) continue;
-          if (!mejor || dias < mejor.dias) {
-            mejor = { tipo: "remesa", doc: r, dias, diff };
+          if (diff <= 0.02) {
+            if (dias > 10) continue;
+            if (!mejor || dias < mejor.dias) {
+              mejor = { tipo: "remesa", doc: r, dias, diff };
+            }
+          } else if (diff <= 5 && dias <= 5) {
+            if (!remesaTolerante || dias < remesaTolerante.dias) {
+              remesaTolerante = { tipo: "remesa", doc: r, dias, diff };
+            }
           }
         }
         // Si el banco trae un ingreso de una remesa pero la remesa no se
@@ -463,12 +503,19 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         if (!mejor) {
           for (const f of ventas) {
             if (usadas.has(String(f._id))) continue;
+            // Solo facturas con algo pendiente de cobro: una ya cobrada por
+            // otra vía no debe volver a casarse.
+            if (Math.round(((f.total ?? 0) - f.cobrado()) * 100) <= 0) continue;
             const diff = Math.abs((f.total ?? 0) - importe);
             if (diff > 0.02) continue;
             const cliente = f.cliente?.nombre || "";
             const coincideNombre = nombreEnConcepto(cliente, concepto);
+            // La referencia bancaria con el número de factura (3-2026-26)
+            // es la prueba más fuerte que hay: gana a todo.
+            const refVenta = normalizarTexto(f.serieNumero || "");
+            const coincideRef = referencia && refVenta && (referencia.includes(refVenta) || refVenta.includes(referencia));
             const dias = diasEntre(f.fechaExpedicion ?? f.createdAt, mov.fecha);
-            const puntos = (coincideNombre ? 0 : 4000) + dias;
+            const puntos = (coincideRef ? -10000 : 0) + (coincideNombre ? 0 : 4000) + dias;
             if (!mejor || puntos < mejor.puntos) {
               mejor = { tipo: "factura_venta", doc: f, puntos, dias, diff };
             }
@@ -486,6 +533,9 @@ router.post("/conciliar-automatico", async (req, res, next) => {
             };
           }
         }
+        // Último recurso: la remesa con diferencia pequeña (comisión del
+        // banco descontada del abono).
+        if (!mejor && remesaTolerante) mejor = remesaTolerante;
       } else {
         // Cargo: si es liquidación de remesa o reintegro de cajero, es un
         // movimiento de tesorería sin factura (no buscar documento).
@@ -496,6 +546,8 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         // Cargo: facturas de compra y gastos con importe exacto.
         for (const f of compras) {
           if (usadas.has(String(f._id))) continue;
+          // Solo facturas con algo pendiente de pago.
+          if (Math.round(((f.total ?? 0) - f.pagado()) * 100) <= 0) continue;
           const diffEur = Math.abs((f.total ?? 0) - importe);
           const diffDiv = f.totalDivisa && f.divisa !== "EUR" ? Math.abs(f.totalDivisa - importe) : Infinity;
           const diff = Math.min(diffEur, diffDiv);
@@ -520,13 +572,38 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         }
       }
 
-      if (!mejor) continue;
+      if (!mejor) {
+        // Sin candidato: queda registrado en la auditoría para saber qué
+        // movimientos revisó la pasada automática y no casó.
+        await ConciliacionLog.create({
+          accion: "conciliacion",
+          modo: "automatica",
+          movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
+          notas: `Sin candidato automático para "${mov.concepto}" (${importe} €)`,
+        }).catch(() => {});
+        continue;
+      }
 
       // Salvaguardas: sin nombre ni referencia que apoyen, solo si la fecha
       // es muy cercana (evita casar por casualidad importes repetidos).
-      if (mejor.tipo === "factura_compra" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
-      if (mejor.tipo === "gasto" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
-      if (mejor.tipo === "factura_venta" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
+      if (
+        (mejor.tipo === "factura_compra" && mejor.puntos >= 4000 && mejor.dias > 45) ||
+        (mejor.tipo === "gasto" && mejor.puntos >= 4000 && mejor.dias > 45) ||
+        (mejor.tipo === "factura_venta" && mejor.puntos >= 4000 && mejor.dias > 45)
+      ) {
+        await ConciliacionLog.create({
+          accion: "conciliacion",
+          modo: "automatica",
+          movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
+          documento: {
+            tipo: mejor.tipo,
+            id: mejor.doc?._id ?? null,
+            descripcion: mejor.doc?.serieNumero ?? mejor.doc?.numeroFacturaProveedor ?? mejor.doc?.comercio ?? "",
+            criterio: "descartado: sin nombre ni referencia y fecha lejana",
+          },
+        }).catch(() => {});
+        continue;
+      }
 
       // Reservar el movimiento en exclusiva: si otra ejecución paralela ya
       // lo concilió o lo tiene en curso, findOneAndUpdate no lo encuentra y
@@ -615,9 +692,11 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         descripcion = `${numeros.join(" + ")} · ${mejor.grupo[0].cliente?.nombre || "cliente"}`;
       } else if (mejor.tipo === "remesa") {
         const remesa = mejor.doc;
+        // Las facturas de la remesa ya están cargadas en memoria: no hay
+        // que consultar la base de datos por cada recibo.
         for (const recibo of remesa.recibos ?? []) {
           if (!recibo.facturaVenta) continue;
-          const fv = await FacturaVenta.findById(recibo.facturaVenta);
+          const fv = ventas.find((x) => String(x._id) === String(recibo.facturaVenta));
           if (!fv || fv.estado !== "emitida") continue;
           const pendienteFv = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
           if (pendienteFv > 0) {
@@ -820,15 +899,19 @@ router.post("/:id/conciliar", async (req, res, next) => {
       { $set: { bloqueo: new Date() } }
     );
     if (!claim) return res.status(409).json({ error: "El movimiento ya está conciliado" });
+    // Si la conciliación manual no llega a aplicarse (factura equivocada,
+    // ya pagada...), la reserva se libera al momento, no en 2 minutos.
+    const liberar = () =>
+      MovimientoBancario.updateOne({ _id: mov._id }, { $unset: { bloqueo: "" } }).catch(() => {});
 
     if (tipo === "factura_compra") {
       const fc = await FacturaCompra.findById(id);
-      if (!fc) return res.status(404).json({ error: "Factura no encontrada" });
-      if (fc.estado !== "validada") return res.status(409).json({ error: "Solo se concilian facturas validadas" });
+      if (!fc) { await liberar(); return res.status(404).json({ error: "Factura no encontrada" }); }
+      if (fc.estado !== "validada") { await liberar(); return res.status(409).json({ error: "Solo se concilian facturas validadas" }); }
       const pendiente = Math.round(((fc.total ?? 0) - fc.pagado()) * 100) / 100;
       if (pendiente > 0) {
         const importeAplicar = Math.min(pendiente, importe);
-        if (importeAplicar <= 0) return res.status(409).json({ error: "La factura ya está pagada" });
+        if (importeAplicar <= 0) { await liberar(); return res.status(409).json({ error: "La factura ya está pagada" }); }
         const notaPago = `Conciliado con extracto: ${mov.concepto} (${marcador})`;
         await FacturaCompra.updateOne(
           { _id: fc._id, "pagos.nota": { $ne: notaPago } },
@@ -837,15 +920,15 @@ router.post("/:id/conciliar", async (req, res, next) => {
       }
     } else if (tipo === "gasto") {
       const g = await Gasto.findById(id);
-      if (!g) return res.status(404).json({ error: "Gasto no encontrado" });
+      if (!g) { await liberar(); return res.status(404).json({ error: "Gasto no encontrado" }); }
     } else if (tipo === "factura_venta") {
       const fv = await FacturaVenta.findById(id);
-      if (!fv) return res.status(404).json({ error: "Factura no encontrada" });
-      if (fv.estado !== "emitida") return res.status(409).json({ error: "Solo se concilian facturas emitidas" });
+      if (!fv) { await liberar(); return res.status(404).json({ error: "Factura no encontrada" }); }
+      if (fv.estado !== "emitida") { await liberar(); return res.status(409).json({ error: "Solo se concilian facturas emitidas" }); }
       const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
       if (pendiente > 0) {
         const importeAplicar = Math.min(pendiente, importe);
-        if (importeAplicar <= 0) return res.status(409).json({ error: "La factura ya está cobrada" });
+        if (importeAplicar <= 0) { await liberar(); return res.status(409).json({ error: "La factura ya está cobrada" }); }
         const notaCobro = `Conciliado con extracto: ${mov.concepto} (${marcador})`;
         await FacturaVenta.updateOne(
           { _id: fv._id, "cobros.notas": { $ne: notaCobro } },
@@ -854,7 +937,7 @@ router.post("/:id/conciliar", async (req, res, next) => {
       }
     } else if (tipo === "remesa") {
       const remesa = await Remesa.findById(id);
-      if (!remesa) return res.status(404).json({ error: "Remesa no encontrada" });
+      if (!remesa) { await liberar(); return res.status(404).json({ error: "Remesa no encontrada" }); }
       for (const recibo of remesa.recibos ?? []) {
         if (!recibo.facturaVenta) continue;
         const fv = await FacturaVenta.findById(recibo.facturaVenta);
@@ -892,6 +975,7 @@ router.post("/:id/conciliar", async (req, res, next) => {
         });
       }
     } else if (tipo !== "manual") {
+      await liberar();
       return res.status(400).json({ error: "Tipo de conciliación no soportado" });
     }
 
