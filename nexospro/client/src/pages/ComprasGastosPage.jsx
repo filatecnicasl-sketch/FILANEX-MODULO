@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 // Compras → Gastos (tickets). Gasto de bolsillo justificado con ticket:
 // se hace la foto, la IA lee los datos y el gasto queda pendiente de revisar.
@@ -215,7 +216,7 @@ export default function ComprasGastosPage() {
                     <td className="text-right whitespace-nowrap">
                       {g.ficheroUrl && (
                         <a
-                          href={g.ficheroUrl}
+                          href={urlApiConSesion(g.ficheroUrl)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-slate-400 hover:text-accent hover:underline mr-3"
@@ -469,7 +470,7 @@ function FormGasto({ gasto, avisos = [], categorias, onGuardado, onCerrar }) {
 
           {gasto?.ficheroUrl && (
             <a
-              href={gasto.ficheroUrl}
+              href={urlApiConSesion(gasto.ficheroUrl)}
               target="_blank"
               rel="noreferrer"
               className="inline-block text-sm text-accent hover:underline"

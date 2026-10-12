@@ -27,6 +27,9 @@ const movimientoBancarioSchema = new Schema(
     archivoUrl: String,
     // Notas del usuario al conciliar.
     notas: String,
+    // Reserva temporal durante la conciliación automática: evita que dos
+    // ejecuciones paralelas procesen el mismo movimiento. Caduca sola.
+    bloqueo: { type: Date, default: null },
   },
   { timestamps: true }
 );

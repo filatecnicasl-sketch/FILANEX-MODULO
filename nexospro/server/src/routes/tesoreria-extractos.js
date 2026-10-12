@@ -528,6 +528,20 @@ router.post("/conciliar-automatico", async (req, res, next) => {
       if (mejor.tipo === "gasto" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
       if (mejor.tipo === "factura_venta" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
 
+      // Reservar el movimiento en exclusiva: si otra ejecución paralela ya
+      // lo concilió o lo tiene en curso, findOneAndUpdate no lo encuentra y
+      // se salta (evita cobros/pagos/gastos duplicados). El bloqueo caduca
+      // a los 2 minutos por si un proceso muere a mitad.
+      const claim = await MovimientoBancario.findOneAndUpdate(
+        {
+          _id: mov._id,
+          "conciliadoCon.tipo": null,
+          $or: [{ bloqueo: null }, { bloqueo: { $lt: new Date(Date.now() - 2 * 60 * 1000) } }],
+        },
+        { $set: { bloqueo: new Date() } }
+      );
+      if (!claim) continue;
+
       const marcador = `extracto:${mov._id}`;
       let descripcion = "";
 
@@ -535,13 +549,21 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         const fc = mejor.doc;
         const pendiente = Math.round(((fc.total ?? 0) - fc.pagado()) * 100) / 100;
         if (pendiente > 0) {
-          fc.pagos.push({
-            importe: Math.min(pendiente, importe),
-            fecha: mov.fecha ?? new Date(),
-            metodo: "transferencia",
-            nota: `Conciliación automática extracto: ${mov.concepto} (${marcador})`,
-          });
-          await fc.save();
+          // $push atómico + condición anti-duplicado por marcador.
+          const notaPago = `Conciliación automática extracto: ${mov.concepto} (${marcador})`;
+          await FacturaCompra.updateOne(
+            { _id: fc._id, "pagos.nota": { $ne: notaPago } },
+            {
+              $push: {
+                pagos: {
+                  importe: Math.min(pendiente, importe),
+                  fecha: mov.fecha ?? new Date(),
+                  metodo: "transferencia",
+                  nota: notaPago,
+                },
+              },
+            }
+          );
         }
         descripcion = fc.numeroFacturaProveedor || fc.proveedor?.nombre || "factura";
       } else if (mejor.tipo === "gasto") {
@@ -550,13 +572,20 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         const fv = mejor.doc;
         const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
         if (pendiente > 0) {
-          fv.cobros.push({
-            fecha: mov.fecha ?? new Date(),
-            importe: Math.min(pendiente, importe),
-            metodo: "transferencia",
-            notas: `Conciliación automática extracto: ${mov.concepto} (${marcador})`,
-          });
-          await fv.save();
+          const notaCobro = `Conciliación automática extracto: ${mov.concepto} (${marcador})`;
+          await FacturaVenta.updateOne(
+            { _id: fv._id, "cobros.notas": { $ne: notaCobro } },
+            {
+              $push: {
+                cobros: {
+                  fecha: mov.fecha ?? new Date(),
+                  importe: Math.min(pendiente, importe),
+                  metodo: "transferencia",
+                  notas: notaCobro,
+                },
+              },
+            }
+          );
         }
         descripcion = fv.serieNumero || fv.cliente?.nombre || "factura de venta";
       } else if (mejor.tipo === "facturas_venta") {
@@ -566,13 +595,20 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         for (const fv of mejor.grupo) {
           const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
           if (pendiente > 0) {
-            fv.cobros.push({
-              fecha: mov.fecha ?? new Date(),
-              importe: pendiente,
-              metodo: "remesa",
-              notas: `Conciliación automática remesa sin documento (${marcador})`,
-            });
-            await fv.save();
+            const notaCobro = `Conciliación automática remesa sin documento (${marcador})`;
+            await FacturaVenta.updateOne(
+              { _id: fv._id, "cobros.notas": { $ne: notaCobro } },
+              {
+                $push: {
+                  cobros: {
+                    fecha: mov.fecha ?? new Date(),
+                    importe: pendiente,
+                    metodo: "remesa",
+                    notas: notaCobro,
+                  },
+                },
+              }
+            );
           }
           numeros.push(fv.serieNumero || "factura");
         }
@@ -585,13 +621,20 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           if (!fv || fv.estado !== "emitida") continue;
           const pendienteFv = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
           if (pendienteFv > 0) {
-            fv.cobros.push({
-              fecha: mov.fecha ?? remesa.fechaCargo,
-              importe: Math.min(pendienteFv, recibo.importe ?? pendienteFv),
-              metodo: "remesa",
-              notas: `Conciliación automática remesa (${marcador})`,
-            });
-            await fv.save();
+            const notaCobro = `Conciliación automática remesa (${marcador})`;
+            await FacturaVenta.updateOne(
+              { _id: fv._id, "cobros.notas": { $ne: notaCobro } },
+              {
+                $push: {
+                  cobros: {
+                    fecha: mov.fecha ?? remesa.fechaCargo,
+                    importe: Math.min(pendienteFv, recibo.importe ?? pendienteFv),
+                    metodo: "remesa",
+                    notas: notaCobro,
+                  },
+                },
+              }
+            );
           }
         }
         descripcion = `remesa del ${new Date(remesa.fechaCargo).toLocaleDateString("es-ES")}`;
@@ -626,13 +669,22 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         descripcion = mejor.catTes.etiqueta;
       }
 
-      mov.conciliadoCon = mejor.tipo === "facturas_venta"
-        ? { tipo: mejor.tipo, id: mejor.grupo[0]._id, fecha: new Date() }
-        : mejor.tipo === "movimiento_tesoreria"
-          ? { tipo: mejor.tipo, id: null, fecha: new Date() }
-          : { tipo: mejor.tipo, id: mejor.doc._id, fecha: new Date() };
-      mov.notas = `Conciliación automática: ${descripcion}`;
-      await mov.save();
+      // Escritura final atómica: enlaces + notas + liberar el bloqueo.
+      const notasConciliacion = `Conciliación automática: ${descripcion}`;
+      await MovimientoBancario.updateOne(
+        { _id: mov._id },
+        {
+          $set: {
+            conciliadoCon: mejor.tipo === "facturas_venta"
+              ? { tipo: mejor.tipo, id: mejor.grupo[0]._id, fecha: new Date() }
+              : mejor.tipo === "movimiento_tesoreria"
+                ? { tipo: mejor.tipo, id: null, fecha: new Date() }
+                : { tipo: mejor.tipo, id: mejor.doc._id, fecha: new Date() },
+            notas: notasConciliacion,
+          },
+          $unset: { bloqueo: "" },
+        }
+      );
       if (mejor.tipo === "facturas_venta") {
         for (const fv of mejor.grupo) usadas.add(String(fv._id));
       } else if (mejor.tipo !== "movimiento_tesoreria") {
@@ -664,7 +716,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           descripcion,
           criterio,
         },
-        notas: mov.notas,
+        notas: notasConciliacion,
       });
 
       resultados.push({
@@ -761,6 +813,14 @@ router.post("/:id/conciliar", async (req, res, next) => {
     const marcador = `extracto:${mov._id}`;
     const importe = Math.abs(req.body.importePago ?? mov.importe ?? 0);
 
+    // Reservar el movimiento en exclusiva (evita doble conciliación manual
+    // o contra la automática en paralelo).
+    const claim = await MovimientoBancario.findOneAndUpdate(
+      { _id: mov._id, "conciliadoCon.tipo": null },
+      { $set: { bloqueo: new Date() } }
+    );
+    if (!claim) return res.status(409).json({ error: "El movimiento ya está conciliado" });
+
     if (tipo === "factura_compra") {
       const fc = await FacturaCompra.findById(id);
       if (!fc) return res.status(404).json({ error: "Factura no encontrada" });
@@ -769,13 +829,11 @@ router.post("/:id/conciliar", async (req, res, next) => {
       if (pendiente > 0) {
         const importeAplicar = Math.min(pendiente, importe);
         if (importeAplicar <= 0) return res.status(409).json({ error: "La factura ya está pagada" });
-        fc.pagos.push({
-          importe: importeAplicar,
-          fecha: mov.fecha ?? new Date(),
-          metodo: "transferencia",
-          nota: `Conciliado con extracto: ${mov.concepto} (${marcador})`,
-        });
-        await fc.save();
+        const notaPago = `Conciliado con extracto: ${mov.concepto} (${marcador})`;
+        await FacturaCompra.updateOne(
+          { _id: fc._id, "pagos.nota": { $ne: notaPago } },
+          { $push: { pagos: { importe: importeAplicar, fecha: mov.fecha ?? new Date(), metodo: "transferencia", nota: notaPago } } }
+        );
       }
     } else if (tipo === "gasto") {
       const g = await Gasto.findById(id);
@@ -788,13 +846,11 @@ router.post("/:id/conciliar", async (req, res, next) => {
       if (pendiente > 0) {
         const importeAplicar = Math.min(pendiente, importe);
         if (importeAplicar <= 0) return res.status(409).json({ error: "La factura ya está cobrada" });
-        fv.cobros.push({
-          fecha: mov.fecha ?? new Date(),
-          importe: importeAplicar,
-          metodo: "transferencia",
-          notas: `Conciliado con extracto: ${mov.concepto} (${marcador})`,
-        });
-        await fv.save();
+        const notaCobro = `Conciliado con extracto: ${mov.concepto} (${marcador})`;
+        await FacturaVenta.updateOne(
+          { _id: fv._id, "cobros.notas": { $ne: notaCobro } },
+          { $push: { cobros: { fecha: mov.fecha ?? new Date(), importe: importeAplicar, metodo: "transferencia", notas: notaCobro } } }
+        );
       }
     } else if (tipo === "remesa") {
       const remesa = await Remesa.findById(id);
@@ -805,13 +861,11 @@ router.post("/:id/conciliar", async (req, res, next) => {
         if (!fv || fv.estado !== "emitida") continue;
         const pendienteFv = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
         if (pendienteFv > 0) {
-          fv.cobros.push({
-            fecha: mov.fecha ?? remesa.fechaCargo,
-            importe: Math.min(pendienteFv, recibo.importe ?? pendienteFv),
-            metodo: "remesa",
-            notas: `Conciliado con extracto: remesa (${marcador})`,
-          });
-          await fv.save();
+          const notaCobro = `Conciliado con extracto: remesa (${marcador})`;
+          await FacturaVenta.updateOne(
+            { _id: fv._id, "cobros.notas": { $ne: notaCobro } },
+            { $push: { cobros: { fecha: mov.fecha ?? remesa.fechaCargo, importe: Math.min(pendienteFv, recibo.importe ?? pendienteFv), metodo: "remesa", notas: notaCobro } } }
+          );
         }
       }
     } else if (tipo === "movimiento_tesoreria") {
@@ -841,9 +895,16 @@ router.post("/:id/conciliar", async (req, res, next) => {
       return res.status(400).json({ error: "Tipo de conciliación no soportado" });
     }
 
+    const notasFinales = req.body.notas || mov.notas;
+    await MovimientoBancario.updateOne(
+      { _id: mov._id },
+      {
+        $set: { conciliadoCon: { tipo, id: id || null, fecha: new Date() }, notas: notasFinales },
+        $unset: { bloqueo: "" },
+      }
+    );
     mov.conciliadoCon = { tipo, id: id || null, fecha: new Date() };
-    mov.notas = req.body.notas || mov.notas;
-    await mov.save();
+    mov.notas = notasFinales;
 
     // Descripción legible del documento para el registro.
     let descripcionManual = tipo;
@@ -893,35 +954,39 @@ router.delete("/:id/conciliacion", async (req, res, next) => {
 
     const anterior = { ...mov.conciliadoCon };
     const marcador = `extracto:${mov._id}`;
+    const marcadorRegex = new RegExp(marcador.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
+    // $pull atómico de pagos/cobros creados por esta conciliación: dos
+    // desconciliaciones simultáneas no pueden duplicar ni perder nada.
     if (mov.conciliadoCon.tipo === "factura_compra") {
-      const fc = await FacturaCompra.findById(mov.conciliadoCon.id);
-      if (fc) {
-        fc.pagos = (fc.pagos ?? []).filter((p) => !String(p.nota ?? "").includes(marcador));
-        await fc.save();
-      }
+      await FacturaCompra.updateOne(
+        { _id: mov.conciliadoCon.id },
+        { $pull: { pagos: { nota: { $regex: marcadorRegex } } } }
+      );
     } else if (mov.conciliadoCon.tipo === "factura_venta") {
-      const fv = await FacturaVenta.findById(mov.conciliadoCon.id);
-      if (fv) {
-        fv.cobros = (fv.cobros ?? []).filter((c) => !String(c.notas ?? "").includes(marcador));
-        await fv.save();
-      }
+      await FacturaVenta.updateOne(
+        { _id: mov.conciliadoCon.id },
+        { $pull: { cobros: { notas: { $regex: marcadorRegex } } } }
+      );
     } else if (mov.conciliadoCon.tipo === "remesa" || mov.conciliadoCon.tipo === "facturas_venta") {
       // Los cobros se repartieron entre varias facturas: buscar por marcador.
-      const afectadas = await FacturaVenta.find({ "cobros.notas": { $regex: marcador.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") } });
+      const afectadas = await FacturaVenta.find({ "cobros.notas": { $regex: marcadorRegex } }, "_id");
       for (const fv of afectadas) {
-        fv.cobros = (fv.cobros ?? []).filter((c) => !String(c.notas ?? "").includes(marcador));
-        await fv.save();
+        await FacturaVenta.updateOne(
+          { _id: fv._id },
+          { $pull: { cobros: { notas: { $regex: marcadorRegex } } } }
+        );
       }
     } else if (mov.conciliadoCon.tipo === "movimiento_tesoreria") {
       // Si la conciliación automática creó un gasto (liquidación del banco),
       // se borra al desconciliar para no dejar basura contable.
-      const marcadorEscapado = marcador.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      await Gasto.deleteMany({ notas: { $regex: marcadorEscapado }, comercio: "Banco" });
+      await Gasto.deleteMany({ notas: { $regex: marcadorRegex }, comercio: "Banco" });
     }
 
-    mov.conciliadoCon = { tipo: null, id: null, fecha: null };
-    await mov.save();
+    await MovimientoBancario.updateOne(
+      { _id: mov._id },
+      { $set: { conciliadoCon: { tipo: null, id: null, fecha: null } } }
+    );
 
     await ConciliacionLog.create({
       accion: "desconciliacion",

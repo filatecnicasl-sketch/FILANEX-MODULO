@@ -5,6 +5,7 @@ import ModalVerificacionOCR from "../components/ModalVerificacionOCR.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
 import { IconImprimir } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 const TONO = { borrador: "slate", confirmado: "cyan", facturado: "green" };
 const NOMBRE = { borrador: "Borrador", confirmado: "Confirmado", facturado: "Facturado" };
@@ -244,7 +245,7 @@ export default function ComprasAlbaranesPage() {
                       </button>
                       {a.ocr?.ficheroUrl && (
                         <a
-                          href={a.ocr.ficheroUrl}
+                          href={urlApiConSesion(a.ocr.ficheroUrl)}
                           target="_blank"
                           rel="noreferrer"
                           title="Abrir el PDF del albarán recibido"

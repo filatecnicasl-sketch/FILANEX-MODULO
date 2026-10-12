@@ -600,17 +600,21 @@ router.post("/:id/conciliar", async (req, res, next) => {
 });
 
 // Registra un pago (total o parcial) de una factura de compra validada.
+// $push atómico: dos pagos simultáneos no se pisan entre sí.
 router.post("/:id/pagos", async (req, res, next) => {
   try {
     const { importe, fecha, metodo, nota } = req.body;
     if (!(importe > 0)) return res.status(400).json({ error: "importe debe ser mayor que cero" });
-    const factura = await FacturaCompra.findById(req.params.id);
-    if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
-    if (factura.estado !== "validada") {
+    const factura = await FacturaCompra.findOneAndUpdate(
+      { _id: req.params.id, estado: "validada" },
+      { $push: { pagos: { importe, fecha: fecha ? new Date(fecha) : new Date(), metodo, nota } } },
+      { new: true }
+    );
+    if (!factura) {
+      const existe = await FacturaCompra.findById(req.params.id).lean();
+      if (!existe) return res.status(404).json({ error: "Factura no encontrada" });
       return res.status(409).json({ error: "Solo se pagan facturas validadas" });
     }
-    factura.pagos.push({ importe, fecha: fecha ? new Date(fecha) : new Date(), metodo, nota });
-    await factura.save();
     res.json(conPagos(await factura.populate("proveedor", "nombre nif")));
   } catch (err) {
     next(err);

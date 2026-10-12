@@ -5,6 +5,7 @@ import ModalVerificacionOCR from "../components/ModalVerificacionOCR.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
 import { IconImprimir, IconBorrar, IconEditar } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 const TONO = { pendiente_revision: "amber", validada: "green", rechazada: "red" };
 const NOMBRE = { pendiente_revision: "Pendiente", validada: "Validada", rechazada: "Rechazada" };
@@ -431,7 +432,7 @@ export default function ComprasFacturasPage() {
                       </button>
                       {f.ocr?.ficheroUrl && (
                         <a
-                          href={f.ocr.ficheroUrl}
+                          href={urlApiConSesion(f.ocr.ficheroUrl)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-accent hover:underline mr-3"

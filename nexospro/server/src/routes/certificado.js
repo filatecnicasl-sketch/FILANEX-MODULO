@@ -10,6 +10,7 @@ import { statSync } from "node:fs";
 import Empresa from "../models/Empresa.js";
 import { slugActual } from "../models/tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { requiereRol } from "../middleware/auth.js";
 import { cifrar, descifrar } from "../services/cifrado.js";
 import { actualizarEnv } from "../services/env.js";
 import { uploadMemoria } from "../middleware/upload.js";
@@ -58,7 +59,8 @@ router.get("/", async (req, res, next) => {
 });
 
 // Sube y valida el certificado (.pfx / .p12) con su contraseña.
-router.post("/", [uploadMemoria.single("certificado"), contextoTrasSubida], async (req, res) => {
+// Solo administradores: cambia la identidad con la que se firma ante la AEAT.
+router.post("/", [requiereRol("admin"), uploadMemoria.single("certificado"), contextoTrasSubida], async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No se ha subido ningún archivo" });
     const nombre = (req.file.originalname ?? "").toLowerCase();
@@ -94,7 +96,8 @@ router.post("/", [uploadMemoria.single("certificado"), contextoTrasSubida], asyn
 
 // Cambia el entorno VeriFactu (pruebas / produccion). Es un ajuste global
 // del servidor, común a todas las empresas de la instalación.
-router.put("/entorno", (req, res) => {
+// Solo administradores.
+router.put("/entorno", requiereRol("admin"), (req, res) => {
   const entorno = req.body.entorno === "produccion" ? "produccion" : "pruebas";
   actualizarEnv({ AEAT_ENTORNO: entorno });
   estado().then(
@@ -123,7 +126,8 @@ router.get("/probar", async (req, res) => {
   }
 });
 
-router.delete("/", async (req, res) => {
+// Solo administradores: quitar el certificado desactiva el envío a la AEAT.
+router.delete("/", requiereRol("admin"), async (req, res) => {
   try {
     const empresa = await Empresa.findOne();
     if (empresa?.certificado?.ruta) {

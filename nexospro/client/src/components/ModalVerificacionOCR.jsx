@@ -3,6 +3,7 @@ import EditorLineas, { totalesDeLineas } from "./EditorLineas.jsx";
 import SelectorContacto from "./SelectorContacto.jsx";
 import { Badge, euros } from "./ui.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 // Verificación al terminar una importación OCR (factura o albarán de compra):
 // muestra lo que Gemini ha entendido — proveedor, nº, fecha, líneas y avisos —
@@ -143,7 +144,7 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
           )}
           {doc.ocr?.ficheroUrl && (
             <a
-              href={doc.ocr.ficheroUrl}
+              href={urlApiConSesion(doc.ocr.ficheroUrl)}
               target="_blank"
               rel="noreferrer"
               className="text-xs text-accent hover:underline"

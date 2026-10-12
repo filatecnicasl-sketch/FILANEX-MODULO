@@ -5,6 +5,7 @@ import { MODULOS, MODULOS_ACTIVABLES } from "../config/modulos.js";
 import { asegurarSeries } from "../services/numeracion.js";
 import { METODOS_PAGO_DEFECTO } from "../services/metodos-pago.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { requiereRol } from "../middleware/auth.js";
 import { uploadMemoria, guardarSubida, borrarSubida } from "../middleware/upload.js";
 
 const router = Router();
@@ -48,7 +49,8 @@ router.get("/", async (req, res, next) => {
 });
 
 // Guarda las series de numeración (Sistema → Series).
-router.put("/series", async (req, res, next) => {
+// Solo administradores: cambiar prefijos/años afecta a la numeración fiscal.
+router.put("/series", requiereRol("admin"), async (req, res, next) => {
   try {
     const empresa = await Empresa.findOne();
     if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });
@@ -144,7 +146,8 @@ function limpiarMetodosPago(lista) {
 // Actualiza datos fiscales y SEPA. Las series y contadores no se tocan aquí.
 // Si la instalación aún no tiene empresa (primera configuración del
 // asistente), se crea con estos datos.
-router.put("/", async (req, res, next) => {
+// Solo administradores: NIF, razón social, IBAN y módulos contratados.
+router.put("/", requiereRol("admin"), async (req, res, next) => {
   try {
     let empresa = await Empresa.findOne();
     if (!empresa) empresa = new Empresa();

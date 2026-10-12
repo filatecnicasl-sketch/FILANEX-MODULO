@@ -491,23 +491,31 @@ router.post("/:id/anular", async (req, res, next) => {
 });
 
 // Registra un cobro (total o parcial) de una factura emitida.
+// $push atómico: dos cobros simultáneos no se pisan entre sí.
 const METODOS_COBRO = new Set(["transferencia", "efectivo", "tarjeta", "remesa", "otro"]);
 router.post("/:id/cobros", async (req, res, next) => {
   try {
     const { importe, fecha, metodo, notas } = req.body;
     if (!(importe > 0)) return res.status(400).json({ error: "importe debe ser mayor que cero" });
-    const factura = await FacturaVenta.findById(req.params.id);
-    if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
-    if (factura.estado !== "emitida") {
+    const factura = await FacturaVenta.findOneAndUpdate(
+      { _id: req.params.id, estado: "emitida" },
+      {
+        $push: {
+          cobros: {
+            importe,
+            fecha: fecha ? new Date(fecha) : new Date(),
+            metodo: METODOS_COBRO.has(metodo) ? metodo : "otro",
+            notas,
+          },
+        },
+      },
+      { new: true }
+    );
+    if (!factura) {
+      const existe = await FacturaVenta.findById(req.params.id).lean();
+      if (!existe) return res.status(404).json({ error: "Factura no encontrada" });
       return res.status(409).json({ error: "Solo se cobran facturas emitidas" });
     }
-    factura.cobros.push({
-      importe,
-      fecha: fecha ? new Date(fecha) : new Date(),
-      metodo: METODOS_COBRO.has(metodo) ? metodo : "otro",
-      notas,
-    });
-    await factura.save();
     res.json(conTesoreria(factura));
   } catch (err) {
     next(err);
@@ -520,12 +528,16 @@ router.post("/:id/cobros", async (req, res, next) => {
 // vuelve a aparecer como pendiente o parcial según lo que quede cobrado.
 router.delete("/:id/cobros/:cobroId", async (req, res, next) => {
   try {
-    const factura = await FacturaVenta.findById(req.params.id);
-    if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
-    const cobro = factura.cobros.id(req.params.cobroId);
-    if (!cobro) return res.status(404).json({ error: "Cobro no encontrado" });
-    cobro.deleteOne();
-    await factura.save();
+    const factura = await FacturaVenta.findOneAndUpdate(
+      { _id: req.params.id, "cobros._id": req.params.cobroId },
+      { $pull: { cobros: { _id: req.params.cobroId } } },
+      { new: true }
+    );
+    if (!factura) {
+      const existe = await FacturaVenta.findById(req.params.id).lean();
+      if (!existe) return res.status(404).json({ error: "Factura no encontrada" });
+      return res.status(404).json({ error: "Cobro no encontrado" });
+    }
     res.json(conTesoreria(factura));
   } catch (err) {
     next(err);

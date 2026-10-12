@@ -21,7 +21,8 @@ const PALETA = [
 function urlImagen(ruta) {
   if (!ruta) return null;
   if (ruta.startsWith("http")) return ruta;
-  return ruta.startsWith("/") ? ruta : `/uploads/${ruta}`;
+  // /uploads/* exige sesión: el token viaja como ?sesion=
+  return urlApiConSesion(ruta.startsWith("/") ? ruta : `/uploads/${ruta}`);
 }
 
 function iniciales(texto) {

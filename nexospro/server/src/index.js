@@ -159,6 +159,11 @@ app.use((err, req, res, next) => {
   if (err?.status === 403) {
     return res.status(403).json({ error: err.message });
   }
+  // Errores de validación con estado propio (p. ej. líneas de factura
+  // absurdas): se devuelve el mensaje claro al usuario, no un 500.
+  if (Number.isInteger(err?.status) && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ error: err.message });
+  }
   console.error(err);
   res.status(500).json({ error: "Error interno del servidor" });
 });

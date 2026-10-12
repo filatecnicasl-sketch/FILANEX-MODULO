@@ -1,6 +1,7 @@
 import { Router } from "express";
 import path from "node:path";
 import { leerArchivo, existeArchivo } from "../services/storage.js";
+import { requiereAuth } from "../middleware/auth.js";
 
 const MIME = {
   ".png": "image/png",
@@ -32,16 +33,20 @@ async function servirArchivo(res, next, prefijo, ruta) {
     const buffer = await leerArchivo(remoto);
     const contentType = MIME[path.extname(ruta).toLowerCase()] || "application/octet-stream";
     res.setHeader("Content-Type", contentType);
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    // private: son archivos de la empresa (extractos, firmas, fotos);
+    // ningún proxy o caché compartida debe guardarlos.
+    res.setHeader("Cache-Control", "private, max-age=3600");
     res.send(buffer);
   } catch (err) {
     next(err);
   }
 }
 
-// Sirve archivos desde S3/R2 o disco local manteniendo las URLs públicas
-// /uploads/<ruta>. Los certificados PFX nunca se sirven por aquí.
-router.get("/uploads/*", async (req, res, next) => {
+// Sirve archivos desde S3/R2 o disco local. Requiere sesión válida
+// (cabecera Authorization o ?sesion= para <img>/window.open): sin ella,
+// nadie puede leer extractos bancarios, firmas o fotos por URL.
+// Los certificados PFX nunca se sirven por aquí.
+router.get("/uploads/*", requiereAuth, async (req, res, next) => {
   await servirArchivo(res, next, "uploads", req.params[0]);
 });
 

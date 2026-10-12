@@ -4,6 +4,7 @@ import SelectorContacto from "../components/SelectorContacto.jsx";
 import { Badge, EstadoVacio, euros } from "../components/ui.jsx";
 import { IconArticulos, IconEditar, IconBorrar, IconImprimir } from "../components/icons.jsx";
 import { imprimirFicha } from "../utils/imprimir.js";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 const VACIO = {
   tipo: "articulo", codigo: "", descripcion: "", detalle: "", unidad: "ud",
@@ -25,7 +26,8 @@ async function subirImagen(archivo) {
 function urlImagen(ruta) {
   if (!ruta) return null;
   if (ruta.startsWith("http")) return ruta;
-  return ruta.startsWith("/") ? ruta : `/uploads/${ruta}`;
+  // /uploads/* exige sesión: el token viaja como ?sesion=
+  return urlApiConSesion(ruta.startsWith("/") ? ruta : `/uploads/${ruta}`);
 }
 
 function SelectorImagen({ valor, onCambio }) {

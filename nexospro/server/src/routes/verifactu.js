@@ -5,6 +5,7 @@ import Empresa from "../models/Empresa.js";
 import { reenviarPendientes } from "../services/verifactu-reintento.js";
 import { certificadoActual } from "../services/certificadoEmpresa.js";
 import { politicaEnvio } from "../services/verifactu-envio.js";
+import { requiereRol } from "../middleware/auth.js";
 
 const router = Router();
 
@@ -38,7 +39,8 @@ router.get("/estado", async (req, res, next) => {
 // marca como "no_remitido" y queda fuera de la cola para siempre. A partir de
 // la activación, cada factura nueva se remite en el acto, como exige la
 // norma. Así el interruptor nunca provoca un envío masivo retroactivo.
-router.put("/envio", async (req, res, next) => {
+// Solo administradores: activar/desactivar la remisión a la AEAT.
+router.put("/envio", requiereRol("admin"), async (req, res, next) => {
   try {
     const activo = Boolean(req.body?.envioActivo);
     const empresa = await Empresa.findOne();
@@ -77,7 +79,8 @@ router.put("/envio", async (req, res, next) => {
 
 // Reenvía a la AEAT los registros que quedaron pendientes (emitidos sin
 // certificado o con un fallo de remisión). La AEAT admite subsanación.
-router.post("/reenviar-pendientes", async (req, res, next) => {
+// Solo administradores.
+router.post("/reenviar-pendientes", requiereRol("admin"), async (req, res, next) => {
   try {
     const cert = await certificadoActual();
     if (!cert) {
