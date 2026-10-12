@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-12",
     tipo: "seguridad",
+    titulo: "Auditoría fases 2-5: aislamiento total entre empresas y numeración infalible",
+    detalle:
+      "Segunda tanda de la auditoría interna: (1) un usuario ya no puede leer los archivos subidos de OTRA empresa aunque adivine la dirección; (2) las búsquedas de clientes, artículos y proveedores ya no se pueden romper escribiendo caracteres especiales; (3) las peticiones a la IA (OCR, asistente Nexo) tienen un cupo propio para que nadie pueda disparar el coste; (4) al emitir una factura, un doble clic o un reintento ya no puede duplicarla: se reserva antes de numerar y firmar; (5) la numeración de presupuestos, albaranes y pedidos de compra pasa a ser atómica, imposible que dos documentos compartan número; (6) la conciliación bancaria solo casa facturas con algo pendiente, admite remesas con pequeña diferencia (comisión del banco), detecta el número de factura en la referencia bancaria y registra en la auditoría también los movimientos que no encontró pareja; (7) las tareas automáticas del servidor (reintento VeriFactu, copias de seguridad, correos de campañas de energía) ya no pueden solaparse consigo mismas.",
+  },
+  {
+    fecha: "2026-10-12",
+    tipo: "seguridad",
     titulo: "Endurecimiento de seguridad y fiabilidad (auditoría, fase 1)",
     detalle:
       "Primera tanda de correcciones de la auditoría interna: los archivos subidos (firmas, extractos, fotos de artículos) ya no son públicos, exigen sesión iniciada; los cobros, pagos y conciliaciones ahora se escriben en la base de datos de forma atómica, por lo que dos usuarios trabajando a la vez no pueden pisarse; el servidor valida las líneas de las facturas (cantidad, precio, descuento e IVA) antes de firmarlas en VeriFactu; la protección anti-duplicados de la cola sin conexión reserva la operación antes de ejecutarla; y las operaciones críticas (certificado AEAT, entorno y envío VeriFactu, datos fiscales y series de la empresa) quedan reservadas a administradores.",
