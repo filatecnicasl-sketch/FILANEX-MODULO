@@ -20,7 +20,7 @@ const conciliacionLogSchema = new Schema(
     },
     // Documento con el que se vinculó (o del que se desvinculó).
     documento: {
-      tipo: { type: String, enum: ["factura_compra", "gasto", "factura_venta", "remesa", "manual"] },
+      tipo: { type: String, enum: ["factura_compra", "gasto", "factura_venta", "facturas_venta", "remesa", "manual"] },
       id: { type: Schema.Types.ObjectId, default: null },
       descripcion: String,
       // Detalle de por qué casó (puntuación, referencia, nombre...) en automática.
