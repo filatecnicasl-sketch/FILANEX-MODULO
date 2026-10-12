@@ -2,6 +2,14 @@ import { euros } from "../../components/ui.jsx";
 
 const formatearFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
+const ETIQUETA_CONCILIADO = {
+  factura_compra: "Factura",
+  gasto: "Gasto",
+  factura_venta: "Venta",
+  remesa: "Remesa",
+  manual: "Sin factura",
+};
+
 export default function FilaMovimiento({ movimiento, onConciliar, onDesconciliar, onBorrar }) {
   return (
     <tr className={movimiento.conciliadoCon?.tipo ? "opacity-70" : ""}>
@@ -16,7 +24,12 @@ export default function FilaMovimiento({ movimiento, onConciliar, onDesconciliar
       <td className="text-right text-slate-500 whitespace-nowrap num">{euros(movimiento.saldo)}</td>
       <td>
         {movimiento.conciliadoCon?.tipo ? (
-          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Conciliado</span>
+          <span
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            title={movimiento.notas || undefined}
+          >
+            {ETIQUETA_CONCILIADO[movimiento.conciliadoCon.tipo] ?? "Conciliado"}
+          </span>
         ) : (
           <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">Pendiente</span>
         )}

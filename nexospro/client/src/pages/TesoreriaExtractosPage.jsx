@@ -45,12 +45,16 @@ export default function TesoreriaExtractosPage() {
   async function buscarCoincidencias(mov) {
     setCoincidencias(null);
     try {
-      const r = await fetch(
-        `/api/tesoreria/extractos/coincidencias?importe=${Math.abs(mov.importe)}&fecha=${new Date(mov.fecha).toISOString().slice(0, 10)}`
-      );
+      const params = new URLSearchParams({
+        importe: String(Math.abs(mov.importe)),
+        fecha: new Date(mov.fecha).toISOString().slice(0, 10),
+        concepto: mov.concepto || "",
+        signo: mov.importe >= 0 ? "1" : "-1",
+      });
+      const r = await fetch(`/api/tesoreria/extractos/coincidencias?${params}`);
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al buscar");
-      setCoincidencias(datos.candidatas);
+      setCoincidencias(datos.candidatas ?? []);
     } catch (err) {
       setCoincidencias([]);
     }
@@ -93,7 +97,8 @@ export default function TesoreriaExtractosPage() {
         throw new Error(text.slice(0, 200) || `Error ${r.status}`);
       }
       if (!r.ok) throw new Error(datos.error || "Error al procesar");
-      setAviso(`Se importaron ${datos.insertados} movimientos.`);
+      const dup = datos.duplicados ? ` (${datos.duplicados} duplicados ignorados)` : "";
+      setAviso(`Se importaron ${datos.insertados} movimientos.${dup}`);
       await cargar();
     } catch (err) {
       setError(String(err?.message || err));
@@ -197,7 +202,7 @@ export default function TesoreriaExtractosPage() {
       {activo && (
         <ModalConciliar
           movimiento={activo}
-          facturas={coincidencias}
+          candidatas={coincidencias}
           onConciliar={() => {
             setActivo(null);
             setCoincidencias(null);
