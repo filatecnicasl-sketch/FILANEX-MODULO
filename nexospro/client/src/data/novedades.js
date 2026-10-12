@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-12",
+    tipo: "correccion",
+    titulo: "Tesorería: conciliación automática de ingresos",
+    detalle:
+      "La conciliación automática ya vincula también los ingresos bancarios directamente con su factura de venta cuando el banco informa una remesa pero esa remesa no se generó dentro de FILANEX. Comprueba importe exacto y fecha cercana, no duplica un cobro que ya exista y deja el movimiento registrado en el historial de conciliaciones.",
+  },
+  {
     fecha: "2026-10-08",
     tipo: "nuevo",
     titulo: "Conciliación bancaria por extracto",

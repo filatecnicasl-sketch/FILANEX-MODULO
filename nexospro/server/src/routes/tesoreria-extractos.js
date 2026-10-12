@@ -336,7 +336,7 @@ router.get("/registro", async (req, res, next) => {
 // Reglas estrictas para no equivocarse: importe exacto (±1 céntimo) y,
 // como preferencia, que el nombre del proveedor/comercio aparezca en el
 // concepto del banco, o que la referencia bancaria coincida, o fecha muy
-// cercana. Los ingresos se casan con remesas SEPA por importe total.
+// cercana. Los ingresos se casan con remesas SEPA o facturas de venta.
 // ---------------------------------------------------------------------------
 
 router.post("/conciliar-automatico", async (req, res, next) => {
@@ -351,6 +351,8 @@ router.post("/conciliar-automatico", async (req, res, next) => {
       .populate("proveedor", "nombre nif");
     const gastos = await Gasto.find({ total: { $gt: 0 } });
     const remesas = await Remesa.find({ total: { $gt: 0 } }).sort({ fechaCargo: -1 });
+    const ventas = await FacturaVenta.find({ estado: "emitida", total: { $gt: 0 } })
+      .populate("cliente", "nombre nif");
 
     // Documentos ya vinculados (por movimientos anteriores o de esta tanda).
     const usadas = new Set(
@@ -369,7 +371,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
       let mejor = null;
 
       if (mov.importe > 0) {
-        // Ingreso: casar con una remesa SEPA por importe total y fecha.
+        // Ingreso: preferir una remesa SEPA por importe total y fecha.
         for (const r of remesas) {
           if (usadas.has(String(r._id))) continue;
           const diff = Math.abs((r.total ?? 0) - importe);
@@ -378,6 +380,22 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           if (dias > 10) continue;
           if (!mejor || dias < mejor.dias) {
             mejor = { tipo: "remesa", doc: r, dias, diff };
+          }
+        }
+        // Si el banco trae un ingreso de una remesa pero la remesa no se
+        // generó/guardó en FILANEX, casar directamente con la factura.
+        if (!mejor) {
+          for (const f of ventas) {
+            if (usadas.has(String(f._id))) continue;
+            const diff = Math.abs((f.total ?? 0) - importe);
+            if (diff > 0.02) continue;
+            const cliente = f.cliente?.nombre || "";
+            const coincideNombre = nombreEnConcepto(cliente, concepto);
+            const dias = diasEntre(f.fechaExpedicion ?? f.createdAt, mov.fecha);
+            const puntos = (coincideNombre ? 0 : 4000) + dias;
+            if (!mejor || puntos < mejor.puntos) {
+              mejor = { tipo: "factura_venta", doc: f, puntos, dias, diff };
+            }
           }
         }
       } else {
@@ -413,6 +431,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
       // es muy cercana (evita casar por casualidad importes repetidos).
       if (mejor.tipo === "factura_compra" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
       if (mejor.tipo === "gasto" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
+      if (mejor.tipo === "factura_venta" && mejor.puntos >= 4000 && mejor.dias > 45) continue;
 
       const marcador = `extracto:${mov._id}`;
       let descripcion = "";
@@ -432,6 +451,19 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         descripcion = fc.numeroFacturaProveedor || fc.proveedor?.nombre || "factura";
       } else if (mejor.tipo === "gasto") {
         descripcion = mejor.doc.comercio || "gasto";
+      } else if (mejor.tipo === "factura_venta") {
+        const fv = mejor.doc;
+        const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
+        if (pendiente > 0) {
+          fv.cobros.push({
+            fecha: mov.fecha ?? new Date(),
+            importe: Math.min(pendiente, importe),
+            metodo: "transferencia",
+            notas: `Conciliación automática extracto: ${mov.concepto} (${marcador})`,
+          });
+          await fv.save();
+        }
+        descripcion = fv.serieNumero || fv.cliente?.nombre || "factura de venta";
       } else if (mejor.tipo === "remesa") {
         const remesa = mejor.doc;
         for (const recibo of remesa.recibos ?? []) {
