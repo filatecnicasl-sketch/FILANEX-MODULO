@@ -1,6 +1,7 @@
 import { Router } from "express";
 import XLSX from "xlsx";
 import MovimientoBancario from "../models/MovimientoBancario.js";
+import ConciliacionLog from "../models/ConciliacionLog.js";
 import FacturaCompra from "../models/FacturaCompra.js";
 import FacturaVenta from "../models/FacturaVenta.js";
 import Gasto from "../models/Gasto.js";
@@ -316,6 +317,21 @@ router.get("/coincidencias", async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
+// Registro histórico de conciliaciones (auditoría).
+// ---------------------------------------------------------------------------
+
+// GET /api/tesoreria/extractos/registro?limite=100
+router.get("/registro", async (req, res, next) => {
+  try {
+    const limite = Math.min(parseInt(req.query.limite, 10) || 200, 500);
+    const lista = await ConciliacionLog.find({}).sort({ createdAt: -1 }).limit(limite);
+    res.json(lista);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Conciliación automática.
 // Reglas estrictas para no equivocarse: importe exacto (±1 céntimo) y,
 // como preferencia, que el nombre del proveedor/comercio aparezca en el
@@ -440,6 +456,24 @@ router.post("/conciliar-automatico", async (req, res, next) => {
       mov.notas = `Conciliación automática: ${descripcion}`;
       await mov.save();
       usadas.add(String(mejor.doc._id));
+
+      // Criterio que motivó el enlace (para el registro de auditoría).
+      const criterio = mejor.tipo === "remesa"
+        ? `importe exacto (${importe} €), remesa a ${mejor.dias} días`
+        : mejor.puntos < 0
+          ? `referencia bancaria coincidente + ${mejor.dias} días`
+          : mejor.puntos < 4000
+            ? `nombre del concepto coincide + ${mejor.dias} días`
+            : `importe exacto, fecha a ${mejor.dias} días`;
+      await ConciliacionLog.create({
+        accion: "conciliacion",
+        modo: "automatica",
+        usuario: req.usuario?.email || "",
+        movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
+        documento: { tipo: mejor.tipo, id: mejor.doc._id, descripcion, criterio },
+        notas: mov.notas,
+      });
+
       resultados.push({
         movimiento: mov._id,
         tipo: mejor.tipo,
@@ -590,6 +624,34 @@ router.post("/:id/conciliar", async (req, res, next) => {
     mov.conciliadoCon = { tipo, id: id || null, fecha: new Date() };
     mov.notas = req.body.notas || mov.notas;
     await mov.save();
+
+    // Descripción legible del documento para el registro.
+    let descripcionManual = tipo;
+    if (tipo === "factura_compra") {
+      const fc = await FacturaCompra.findById(id).populate("proveedor", "nombre");
+      descripcionManual = `${fc?.numeroFacturaProveedor || "factura"}${fc?.proveedor?.nombre ? ` · ${fc.proveedor.nombre}` : ""}`;
+    } else if (tipo === "gasto") {
+      const g = await Gasto.findById(id);
+      descripcionManual = g?.comercio || "gasto";
+    } else if (tipo === "factura_venta") {
+      const fv = await FacturaVenta.findById(id).populate("cliente", "nombre");
+      descripcionManual = `${fv?.serieNumero || "factura"}${fv?.cliente?.nombre ? ` · ${fv.cliente.nombre}` : ""}`;
+    } else if (tipo === "remesa") {
+      const r = await Remesa.findById(id);
+      descripcionManual = `remesa del ${r?.fechaCargo ? new Date(r.fechaCargo).toLocaleDateString("es-ES") : "?"}`;
+    } else if (tipo === "manual") {
+      descripcionManual = "sin factura (anotado a mano)";
+    }
+
+    await ConciliacionLog.create({
+      accion: "conciliacion",
+      modo: "manual",
+      usuario: req.usuario?.email || "",
+      movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
+      documento: { tipo, id: id || null, descripcion: descripcionManual, criterio: "elegido por el usuario" },
+      notas: mov.notas,
+    });
+
     res.json({ ok: true, movimiento: mov });
   } catch (err) {
     next(err);
@@ -606,6 +668,7 @@ router.delete("/:id/conciliacion", async (req, res, next) => {
     if (!mov) return res.status(404).json({ error: "Movimiento no encontrado" });
     if (!mov.conciliadoCon?.tipo) return res.json({ ok: true });
 
+    const anterior = { ...mov.conciliadoCon };
     const marcador = `extracto:${mov._id}`;
 
     if (mov.conciliadoCon.tipo === "factura_compra") {
@@ -631,6 +694,21 @@ router.delete("/:id/conciliacion", async (req, res, next) => {
 
     mov.conciliadoCon = { tipo: null, id: null, fecha: null };
     await mov.save();
+
+    await ConciliacionLog.create({
+      accion: "desconciliacion",
+      modo: "manual",
+      usuario: req.usuario?.email || "",
+      movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
+      documento: {
+        tipo: anterior.tipo,
+        id: anterior.id,
+        descripcion: mov.notas || "",
+        criterio: "deshecho por el usuario (pagos/cobros revertidos)",
+      },
+      notas: mov.notas,
+    });
+
     res.json({ ok: true });
   } catch (err) {
     next(err);

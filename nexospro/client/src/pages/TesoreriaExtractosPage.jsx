@@ -18,10 +18,24 @@ export default function TesoreriaExtractosPage() {
   const [activo, setActivo] = useState(null);
   const [coincidencias, setCoincidencias] = useState(null);
   const [resumenAuto, setResumenAuto] = useState(null);
+  const [registro, setRegistro] = useState(null);
   const inputRef = useRef(null);
 
   async function cargar() {
     try {
+      if (filtro === "registro") {
+        const r = await fetch("/api/tesoreria/extractos/registro");
+        const text = await r.text();
+        let datos = [];
+        try {
+          datos = JSON.parse(text);
+        } catch {
+          throw new Error(text.slice(0, 200) || `Error ${r.status}`);
+        }
+        if (!r.ok) throw new Error(datos.error || "Error al cargar el registro");
+        setRegistro(Array.isArray(datos) ? datos : []);
+        return;
+      }
       const conc = filtro === "pendientes" ? "0" : filtro === "conciliados" ? "1" : "todos";
       const r = await fetch(`/api/tesoreria/extractos?conciliados=${conc}`);
       const text = await r.text();
@@ -127,6 +141,28 @@ export default function TesoreriaExtractosPage() {
     coincideBusqueda(q, fmtFecha(mov.fecha), mov.concepto || "", mov.referencia || "", euros(mov.importe), mov.notas || "")
   );
 
+  const ETIQUETA_DOC = {
+    factura_compra: "Factura de compra",
+    gasto: "Gasto",
+    factura_venta: "Factura de venta",
+    remesa: "Remesa SEPA",
+    manual: "Sin factura",
+  };
+
+  const registroFiltrado = (registro ?? []).filter((e) =>
+    coincideBusqueda(
+      q,
+      new Date(e.createdAt ?? e.movimiento?.fecha).toLocaleString("es-ES"),
+      e.movimiento?.concepto || "",
+      e.documento?.descripcion || "",
+      e.usuario || "",
+      e.documento?.criterio || "",
+      e.notas || ""
+    )
+  );
+
+  const esRegistro = filtro === "registro";
+
   return (
     <div>
       <CabeceraPagina
@@ -143,11 +179,12 @@ export default function TesoreriaExtractosPage() {
       {aviso && <div className="mb-4 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">{aviso}</div>}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <InputBusqueda value={q} onChange={setQ} placeholder="Buscar por fecha, concepto, importe…" />
+        <InputBusqueda value={q} onChange={setQ} placeholder={esRegistro ? "Buscar por fecha, concepto, usuario…" : "Buscar por fecha, concepto, importe…"} />
         <select value={filtro} onChange={(e) => setFiltro(e.target.value)} className="input">
           <option value="pendientes">Pendientes</option>
           <option value="conciliados">Conciliados</option>
           <option value="todos">Todos</option>
+          <option value="registro">Registro de conciliaciones</option>
         </select>
         {filtro === "pendientes" && (
           <button
@@ -159,9 +196,72 @@ export default function TesoreriaExtractosPage() {
           </button>
         )}
         {q && <button onClick={() => setQ("")} className="btn-ghost text-xs">Limpiar</button>}
-        <span className="text-xs text-slate-500 ml-auto">{filtrada.length} de {lista?.length ?? 0}</span>
+        <span className="text-xs text-slate-500 ml-auto">
+          {esRegistro ? `${registroFiltrado.length} de ${registro?.length ?? 0}` : `${filtrada.length} de ${lista?.length ?? 0}`}
+        </span>
       </div>
 
+      {esRegistro ? (
+        <div className="panel px-3.5 py-2">
+          {!registro ? null : registro.length === 0 ? (
+            <EstadoVacio titulo="Sin conciliaciones registradas" descripcion="Cada vez que concilies o desconcilies un movimiento, quedará anotado aquí." />
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th>Cuándo</th>
+                    <th>Acción</th>
+                    <th>Movimiento</th>
+                    <th className="text-right">Importe</th>
+                    <th>Vinculado a</th>
+                    <th>Criterio</th>
+                    <th>Usuario</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {registroFiltrado.length === 0 && (
+                    <tr><td colSpan={7} className="text-center text-slate-500 py-8">Sin resultados.</td></tr>
+                  )}
+                  {registroFiltrado.map((e) => (
+                    <tr key={e._id}>
+                      <td className="whitespace-nowrap text-slate-400">
+                        {new Date(e.createdAt).toLocaleString("es-ES")}
+                      </td>
+                      <td>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border ${
+                          e.accion === "desconciliacion"
+                            ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                            : e.modo === "automatica"
+                              ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/20"
+                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        }`}>
+                          {e.accion === "desconciliacion" ? "Desconciliado" : e.modo === "automatica" ? "Automática" : "Manual"}
+                        </span>
+                      </td>
+                      <td className="max-w-[240px]">
+                        <span className="block truncate" title={e.movimiento?.concepto}>{e.movimiento?.concepto}</span>
+                        <span className="block text-xs text-slate-500">{fmtFecha(e.movimiento?.fecha)}</span>
+                      </td>
+                      <td className="text-right whitespace-nowrap">{euros(Math.abs(e.movimiento?.importe ?? 0))}</td>
+                      <td className="max-w-[220px]">
+                        <span className="text-[10px] font-semibold uppercase rounded-full bg-white/5 text-slate-300 border border-white/10 px-1.5 py-0.5 mr-1.5">
+                          {ETIQUETA_DOC[e.documento?.tipo] ?? e.documento?.tipo}
+                        </span>
+                        <span className="text-slate-200">{e.documento?.descripcion}</span>
+                      </td>
+                      <td className="max-w-[200px] text-xs text-slate-400">
+                        <span className="block truncate" title={e.documento?.criterio}>{e.documento?.criterio}</span>
+                      </td>
+                      <td className="text-xs text-slate-400">{e.usuario || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="panel px-3.5 py-2">
         {!lista ? null : lista.length === 0 ? (
           <EstadoVacio titulo="Sin movimientos" descripcion="Sube un extracto bancario para empezar." />
@@ -200,6 +300,7 @@ export default function TesoreriaExtractosPage() {
           </div>
         )}
       </div>
+      )}
 
       {activo && (
         <ModalConciliar
