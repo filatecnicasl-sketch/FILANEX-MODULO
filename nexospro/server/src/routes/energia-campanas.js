@@ -283,7 +283,8 @@ router.post("/correo/probar", requiereRol("admin"), async (req, res, next) => {
 
 // Pasada a mano: conecta, procesa los correos sin leer de la carpeta y
 // devuelve el resumen (cuántas campañas nuevas, qué se ignoró...).
-router.post("/correo/revisar", async (req, res, next) => {
+// Solo administradores: dispara la conexión IMAP del buzón.
+router.post("/correo/revisar", requiereRol("admin"), async (req, res, next) => {
   try {
     res.json(await revisarCorreoCampanas());
   } catch (err) {

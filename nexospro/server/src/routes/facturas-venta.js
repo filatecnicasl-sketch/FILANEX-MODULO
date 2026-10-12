@@ -65,6 +65,15 @@ router.post("/", async (req, res, next) => {
       return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
     }
     const totales = calcularTotales(lineas);
+    if (!Number.isFinite(totales.total)) {
+      return res.status(422).json({ error: "El total de la factura no es válido. Revisa las líneas." });
+    }
+    // El vencimiento nunca puede ser anterior a la fecha de expedición:
+    // descuadraría la antigüedad de saldos y la conciliación.
+    const fechaExpedicion = req.body.fechaExpedicion ? new Date(req.body.fechaExpedicion) : new Date();
+    if (req.body.vencimiento && new Date(req.body.vencimiento) < fechaExpedicion) {
+      return res.status(400).json({ error: "El vencimiento no puede ser anterior a la fecha de expedición" });
+    }
     const empresa = await Empresa.findOne();
     const datos = {
       ...req.body,
@@ -120,6 +129,13 @@ router.put("/:id", async (req, res, next) => {
       return res.status(400).json({ error: "cliente y al menos una línea con descripción son obligatorios" });
     }
     const totales = calcularTotales(lineas);
+    if (!Number.isFinite(totales.total)) {
+      return res.status(422).json({ error: "El total de la factura no es válido. Revisa las líneas." });
+    }
+    const vencimientoNuevo = req.body.vencimiento ? new Date(req.body.vencimiento) : factura.vencimiento;
+    if (vencimientoNuevo && factura.fechaExpedicion && vencimientoNuevo < factura.fechaExpedicion) {
+      return res.status(400).json({ error: "El vencimiento no puede ser anterior a la fecha de expedición" });
+    }
     const empresa = await Empresa.findById(factura.empresa) ?? (await Empresa.findOne());
     const metodo = buscarMetodoPago(empresa, req.body.metodoPago);
     const cambios = {
@@ -154,11 +170,29 @@ router.put("/:id", async (req, res, next) => {
 // encadenada, QR y (si hay certificado configurado) remisión a la AEAT.
 router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
   try {
+    // Reserva atómica antes de empezar: un doble clic o un reintento de la
+    // cola offline solo puede entrar una vez; el segundo recibe 409 y no
+    // genera un segundo registro VeriFactu ni gasta un número.
+    const claim = await FacturaVenta.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        estado: "borrador",
+        $or: [{ emisionEnCurso: null }, { emisionEnCurso: { $lt: new Date(Date.now() - 2 * 60 * 1000) } }],
+      },
+      { $set: { emisionEnCurso: new Date() } }
+    );
+    if (!claim) {
+      const existe = await FacturaVenta.findById(req.params.id).lean();
+      if (!existe) return res.status(404).json({ error: "Factura no encontrada" });
+      if (existe.estado !== "borrador") {
+        return res.status(409).json({ error: `La factura ya está ${existe.estado}` });
+      }
+      return res.status(409).json({ error: "La factura se está emitiendo. Espera un momento." });
+    }
+
+    try {
     const factura = await FacturaVenta.findById(req.params.id).populate("cliente", "nombre nif");
     if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
-    if (factura.estado !== "borrador") {
-      return res.status(409).json({ error: `La factura ya está ${factura.estado}` });
-    }
 
     // La fecha de un borrador es provisional (el día en que se creó); la
     // factura nace legalmente al validar. Si se valida otro día, la fecha de
@@ -244,6 +278,7 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
     factura.numero = numero;
     factura.serieNumero = serieNumero;
     factura.estado = "emitida";
+    factura.emisionEnCurso = null;
     factura.verifactu = {
       huella,
       huellaAnterior,
@@ -292,6 +327,17 @@ router.post("/:id/emitir", serializarRegistro, async (req, res, next) => {
     }
 
     res.json(factura);
+    } catch (errorEmision) {
+      // Si la emisión no llegó a terminar, la reserva se libera para que el
+      // borrador pueda emitirse de nuevo (los registros VeriFactu creados a
+      // medias quedan enlazados a la factura y no molestan: solo uno llega
+      // a existir por reserva).
+      await FacturaVenta.updateOne(
+        { _id: req.params.id, estado: "borrador" },
+        { $unset: { emisionEnCurso: "" } }
+      ).catch(() => {});
+      throw errorEmision;
+    }
   } catch (err) {
     next(err);
   }

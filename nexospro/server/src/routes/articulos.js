@@ -10,6 +10,7 @@ import { siguienteCodigoArticulo } from "../services/codigoArticulo.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
 import { slugActual } from "../models/tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { escaparRegex } from "../utils/regex.js";
 
 const router = ExpressRouter();
 
@@ -86,13 +87,14 @@ function limpiar(body) {
 router.get("/", async (req, res, next) => {
   try {
     const q = (req.query.q ?? "").trim();
+    const qEscapado = escaparRegex(q);
     const filtro = q
       ? {
           $or: [
-            { descripcion: { $regex: q, $options: "i" } },
-            { codigo: { $regex: q, $options: "i" } },
-            { referenciaProveedor: { $regex: q, $options: "i" } },
-            { codigoBarras: { $regex: q, $options: "i" } },
+            { descripcion: { $regex: qEscapado, $options: "i" } },
+            { codigo: { $regex: qEscapado, $options: "i" } },
+            { referenciaProveedor: { $regex: qEscapado, $options: "i" } },
+            { codigoBarras: { $regex: qEscapado, $options: "i" } },
           ],
         }
       : {};

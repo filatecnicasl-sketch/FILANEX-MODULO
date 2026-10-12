@@ -206,7 +206,9 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
     const nombreCom = String(extraccion.comercializadora?.nombre ?? "").trim();
     let comercializadoraSugerida = null;
     if (nombreCom) {
-      const sinEspacios = nombreCom.replace(/[^0-9A-Z]/gi, "").toUpperCase();
+      // El nombre viene del OCR (entrada externa): se limita a 40 chars para
+      // que el regex construido letra a letra no crezca sin control.
+      const sinEspacios = nombreCom.replace(/[^0-9A-Z]/gi, "").toUpperCase().slice(0, 40);
       comercializadoraSugerida = await Comercializadora.findOne({
         nombre: { $regex: sinEspacios.split("").join("[^a-z0-9]*"), $options: "i" },
       });

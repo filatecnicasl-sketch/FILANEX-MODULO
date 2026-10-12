@@ -3,7 +3,7 @@ import PresupuestoCompra, { ESTADOS_PRESUPUESTO_COMPRA } from "../models/Presupu
 import PedidoCompra from "../models/PedidoCompra.js";
 import Empresa from "../models/Empresa.js";
 import { calcularTotales } from "../services/totales.js";
-import { tomarNumero } from "../services/numeracion.js";
+import { tomarNumeroAtomico } from "../services/numeracion.js";
 
 const router = Router();
 
@@ -11,7 +11,7 @@ const router = Router();
 async function siguienteNumero(tipo) {
   const empresa = await Empresa.findOne();
   if (!empresa) throw new Error("No hay empresa configurada");
-  const { serieNumero } = tomarNumero(empresa, tipo);
+  const { serieNumero } = await tomarNumeroAtomico(empresa, tipo);
   await empresa.save();
   return serieNumero;
 }

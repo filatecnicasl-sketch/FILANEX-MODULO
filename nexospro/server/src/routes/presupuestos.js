@@ -5,7 +5,7 @@ import AlbaranVenta from "../models/AlbaranVenta.js";
 import Empresa from "../models/Empresa.js";
 import { calcularTotales, limpiarLineas } from "../services/totales.js";
 import { metodoPagoDefecto } from "../services/metodos-pago.js";
-import { tomarNumero } from "../services/numeracion.js";
+import { tomarNumeroAtomico } from "../services/numeracion.js";
 import { moverStock } from "../services/stock.js";
 
 const router = Router();
@@ -32,8 +32,7 @@ router.post("/", async (req, res, next) => {
     const empresa = await Empresa.findOne();
     if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
 
-    const { numero, serieNumero } = tomarNumero(empresa, "presupuestoVenta");
-    await empresa.save();
+    const { numero, serieNumero } = await tomarNumeroAtomico(empresa, "presupuestoVenta");
 
     const presupuesto = await Presupuesto.create({
       ...req.body,
@@ -154,8 +153,7 @@ router.post("/:id/albaran", async (req, res, next) => {
     if (p.albaranVenta) return res.status(409).json({ error: "El presupuesto ya tiene albarán" });
     const empresa = await Empresa.findById(p.empresa) ?? (await Empresa.findOne());
     if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
-    const { serie, numero, serieNumero } = tomarNumero(empresa, "albaranVenta");
-    await empresa.save();
+    const { serie, numero, serieNumero } = await tomarNumeroAtomico(empresa, "albaranVenta");
     const albaran = await AlbaranVenta.create({
       empresa: p.empresa,
       cliente: p.cliente,

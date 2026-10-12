@@ -11,6 +11,7 @@ import PresupuestoCompra from "../models/PresupuestoCompra.js";
 import { siguienteCodigoFicha } from "../services/codigoFicha.js";
 import { buscarPorNif, errorNifDuplicado } from "../services/nifDuplicado.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { escaparRegex } from "../utils/regex.js";
 
 const router = Router();
 const upload = multer({
@@ -33,13 +34,14 @@ function limpiar(body) {
 router.get("/", async (req, res, next) => {
   try {
     const q = (req.query.q ?? "").trim();
+    const qEscapado = escaparRegex(q);
     const filtro = q
       ? {
           $or: [
-            { nombre: { $regex: q, $options: "i" } },
-            { nif: { $regex: q, $options: "i" } },
-            { email: { $regex: q, $options: "i" } },
-            { codigo: { $regex: q, $options: "i" } },
+            { nombre: { $regex: qEscapado, $options: "i" } },
+            { nif: { $regex: qEscapado, $options: "i" } },
+            { email: { $regex: qEscapado, $options: "i" } },
+            { codigo: { $regex: qEscapado, $options: "i" } },
           ],
         }
       : {};

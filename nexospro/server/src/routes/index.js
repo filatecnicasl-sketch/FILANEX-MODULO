@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import clientes from "./clientes.js";
 import proveedores from "./proveedores.js";
 import articulos from "./articulos.js";
@@ -47,6 +48,17 @@ import { auditoria as registroAuditoria } from "../middleware/auditoria.js";
 
 const router = Router();
 
+// Limitadores específicos para las rutas caras: cada llamada a la IA (OCR,
+// asistente) tiene coste económico y tiempo de cómputo alto; el cupo global
+// de la API (300/min) es demasiado generoso para ellas.
+const limitadorIa = rateLimit({
+  windowMs: 60 * 1000,
+  max: process.env.STRESS_TEST === "true" ? 100000 : 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas peticiones a la IA. Espera un momento." },
+});
+
 // Público: login y alta del primer administrador.
 router.use("/auth", auth);
 // Público con token propio de centralita (no hay sesión de usuario).
@@ -58,6 +70,19 @@ router.use("/admin/tenants", adminTenants);
 // Todo lo demás exige sesión y se ejecuta dentro del contexto de la empresa
 // del token (sus consultas van a la base de datos de esa empresa).
 router.use(requiereAuth, middlewareEmpresa);
+// Las llamadas a la IA (OCR de facturas/valoraciones, asistente Nexo) van
+// con cupo propio, más estricto que el general.
+router.use([
+  "/facturas-compra/ocr",
+  "/gastos/ticket",
+  "/asesoria/documentos/ocr",
+  "/asistente",
+  "/energia/suministros/ocr",
+  "/energia/estudios/ocr",
+  "/energia/campanas/ocr",
+  "/taller/valoraciones/importar-pdf",
+  "/taller/valoraciones/importar",
+], limitadorIa);
 // Reenvíos desde la cola sin conexión: la misma clave nunca se ejecuta dos veces.
 router.use(idempotencia);
 // Trazabilidad: cada alta/cambio/borrado queda registrado con su usuario.

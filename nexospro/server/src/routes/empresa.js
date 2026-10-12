@@ -255,7 +255,8 @@ router.get("/modulos", async (req, res) => {
 });
 
 // Sube el logo de la empresa (PNG, JPG o WEBP, máx. 600 KB). Aparece en los documentos.
-router.post("/logo", [uploadMemoria.single("archivo"), contextoTrasSubida], async (req, res, next) => {
+// Solo administradores: sale en facturas y documentos oficiales.
+router.post("/logo", [requiereRol("admin"), uploadMemoria.single("archivo"), contextoTrasSubida], async (req, res, next) => {
   try {
     const empresa = await Empresa.findOne();
     if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });
@@ -272,8 +273,8 @@ router.post("/logo", [uploadMemoria.single("archivo"), contextoTrasSubida], asyn
   }
 });
 
-// Quita el logo de la empresa.
-router.delete("/logo", async (req, res, next) => {
+// Quita el logo de la empresa. Solo administradores.
+router.delete("/logo", requiereRol("admin"), async (req, res, next) => {
   try {
     const empresa = await Empresa.findOne();
     if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });

@@ -23,6 +23,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
+// Cabeceras de seguridad en todas las respuestas (equivalente a helmet
+// sin añadir dependencias): anti-clickjacking, anti-sniffing de MIME y
+// política de referidos. La app es una SPA propia, no se incrusta en iframes.
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "same-origin");
+  next();
+});
+
 // Detrás de Nginx (producción): sin esto Express ve siempre la IP del proxy
 // (127.0.0.1) y el rate limiting agruparía a TODOS los clientes en el mismo
 // cupo, de forma que un usuario podría bloquear el login de los demás.
@@ -156,6 +166,11 @@ app.use((err, req, res, next) => {
   if (err?.name === "MongooseError") {
     return res.status(503).json({ error: "Base de datos no disponible" });
   }
+  // ID malformado en la URL (findById con texto que no es ObjectId):
+  // es un error del cliente, no del servidor.
+  if (err?.name === "CastError" && err?.kind === "ObjectId") {
+    return res.status(400).json({ error: "Identificador no válido" });
+  }
   if (err?.status === 403) {
     return res.status(403).json({ error: err.message });
   }
@@ -164,7 +179,7 @@ app.use((err, req, res, next) => {
   if (Number.isInteger(err?.status) && err.status >= 400 && err.status < 500) {
     return res.status(err.status).json({ error: err.message });
   }
-  console.error(err);
+  console.error(err?.stack || err?.message || err);
   res.status(500).json({ error: "Error interno del servidor" });
 });
 

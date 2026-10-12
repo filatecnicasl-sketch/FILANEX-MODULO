@@ -107,7 +107,8 @@ router.put("/entorno", requiereRol("admin"), (req, res) => {
 });
 
 // Revalida el certificado guardado (detecta borrado/corrupción posterior).
-router.get("/probar", async (req, res) => {
+// Solo administradores: descifra la passphrase del PFX.
+router.get("/probar", requiereRol("admin"), async (req, res) => {
   try {
     const empresa = await Empresa.findOne().select("certificado").lean();
     const cert = empresa?.certificado;

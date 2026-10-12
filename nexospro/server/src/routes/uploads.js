@@ -31,11 +31,17 @@ async function servirArchivo(res, next, prefijo, ruta) {
       return res.status(404).json({ error: "Archivo no encontrado" });
     }
     const buffer = await leerArchivo(remoto);
-    const contentType = MIME[path.extname(ruta).toLowerCase()] || "application/octet-stream";
+    const ext = path.extname(ruta).toLowerCase();
+    const contentType = MIME[ext] || "application/octet-stream";
     res.setHeader("Content-Type", contentType);
     // private: son archivos de la empresa (extractos, firmas, fotos);
     // ningún proxy o caché compartida debe guardarlos.
     res.setHeader("Cache-Control", "private, max-age=3600");
+    // Un SVG subido puede llevar <script>: se sirve sin permitir scripts
+    // para que no ejecute JS en el origen de la aplicación.
+    if (ext === ".svg") {
+      res.setHeader("Content-Security-Policy", "script-src 'none'");
+    }
     res.send(buffer);
   } catch (err) {
     next(err);
@@ -45,9 +51,17 @@ async function servirArchivo(res, next, prefijo, ruta) {
 // Sirve archivos desde S3/R2 o disco local. Requiere sesión válida
 // (cabecera Authorization o ?sesion= para <img>/window.open): sin ella,
 // nadie puede leer extractos bancarios, firmas o fotos por URL.
+// Además la ruta solo puede apuntar a la carpeta del propio tenant
+// (uploads/<slug>/...): con sesión de la empresa A no se leen archivos
+// de la empresa B aunque se adivine su slug.
 // Los certificados PFX nunca se sirven por aquí.
 router.get("/uploads/*", requiereAuth, async (req, res, next) => {
-  await servirArchivo(res, next, "uploads", req.params[0]);
+  const ruta = req.params[0] || "";
+  const slug = req.usuario?.t;
+  if (!slug || !ruta.startsWith(`${slug}/`)) {
+    return res.status(403).json({ error: "No tienes acceso a este archivo" });
+  }
+  await servirArchivo(res, next, "uploads", ruta);
 });
 
 export default router;

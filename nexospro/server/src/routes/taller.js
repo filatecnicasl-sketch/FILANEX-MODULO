@@ -1,4 +1,5 @@
 ﻿import { Router } from "express";
+import mongoose from "mongoose";
 import multer from "multer";
 import Vehiculo from "../models/Vehiculo.js";
 import OrdenTrabajo, { ESTADOS_OT } from "../models/OrdenTrabajo.js";
@@ -30,6 +31,7 @@ import { uploadMemoria, borrarSubida } from "../middleware/upload.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
 import { slugActual } from "../models/tenant.js";
 import { sincronizarWhatsAppCita } from "../services/whatsapp.js";
+import { escaparRegex } from "../utils/regex.js";
 
 const router = Router();
 
@@ -156,6 +158,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
     if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });
 
     const matricula = vehiculo.matricula;
+    const matriculaEscapada = escaparRegex(matricula);
     const clienteId = vehiculo.cliente;
 
     // Órdenes de trabajo de esta matrícula
@@ -176,7 +179,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
         { "origen.ordenTrabajo": { $in: ordenIds } },
         { "origen.presupuesto": { $in: idsPresupuestosOrden } },
         { "origen.presupuestos": { $in: idsPresupuestosOrden } },
-        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
+        { cliente: clienteId, "lineas.descripcion": { $regex: matriculaEscapada, $options: "i" } },
       ],
     })
       .sort({ createdAt: -1 })
@@ -189,7 +192,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
         { "origen.presupuesto": { $in: idsPresupuestosOrden } },
         { "origen.presupuestos": { $in: idsPresupuestosOrden } },
         { "origen.albaranes": { $in: albaranes.map((a) => a._id) } },
-        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
+        { cliente: clienteId, "lineas.descripcion": { $regex: matriculaEscapada, $options: "i" } },
       ],
     })
       .sort({ createdAt: -1 })
@@ -209,7 +212,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
     const presupuestos = await Presupuesto.find({
       $or: [
         { _id: { $in: idsPresupuestos } },
-        { cliente: clienteId, "lineas.descripcion": { $regex: matricula, $options: "i" } },
+        { cliente: clienteId, "lineas.descripcion": { $regex: matriculaEscapada, $options: "i" } },
       ],
     })
       .sort({ createdAt: -1 })
@@ -1853,6 +1856,11 @@ router.post("/valoraciones", async (req, res, next) => {
     let compania = req.body.compania || undefined;
     let aseguradora = req.body.aseguradora || undefined;
     if (aseguradora) {
+      // ID de aseguradora del cuerpo: se valida formato y existencia para
+      // no grabar una referencia basura en la valoración.
+      if (!mongoose.isValidObjectId(aseguradora)) {
+        return res.status(400).json({ error: "La aseguradora indicada no es válida" });
+      }
       const a = await Aseguradora.findById(aseguradora).lean();
       if (!a) return res.status(404).json({ error: "Aseguradora no encontrada" });
       compania = a.nombre;

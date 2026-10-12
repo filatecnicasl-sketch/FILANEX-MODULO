@@ -85,6 +85,10 @@ const facturaVentaSchema = new Schema(
       default: "borrador",
       index: true,
     },
+    // Reserva temporal de emisión: la pone /emitir antes de numerar y firmar
+    // para que un doble clic o un reintento no emitan dos veces el mismo
+    // borrador. Caduca sola a los 2 minutos si el proceso muere a mitad.
+    emisionEnCurso: { type: Date, default: null },
     // Si es una rectificativa: factura original que rectifica (importes en negativo).
     rectifica: { type: Schema.Types.ObjectId, ref: "FacturaVenta", index: true },
     vencimiento: Date,

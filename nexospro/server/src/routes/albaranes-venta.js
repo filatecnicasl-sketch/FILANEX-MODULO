@@ -5,7 +5,7 @@ import Empresa from "../models/Empresa.js";
 import Presupuesto from "../models/Presupuesto.js";
 import { calcularTotales, limpiarLineas } from "../services/totales.js";
 import { metodoPagoDefecto } from "../services/metodos-pago.js";
-import { tomarNumero } from "../services/numeracion.js";
+import { tomarNumeroAtomico } from "../services/numeracion.js";
 import { validarNIF, normalizarNIF } from "../services/validacion.js";
 import { guardarArchivo, urlPublica } from "../services/storage.js";
 import { slugActual } from "../models/tenant.js";
@@ -36,8 +36,7 @@ router.post("/", async (req, res, next) => {
     const empresa = await Empresa.findOne();
     if (!empresa) return res.status(503).json({ error: "No hay empresa configurada" });
 
-    const { numero, serieNumero } = tomarNumero(empresa, "albaranVenta");
-    await empresa.save();
+    const { numero, serieNumero } = await tomarNumeroAtomico(empresa, "albaranVenta");
 
     const albaran = await AlbaranVenta.create({
       ...req.body,

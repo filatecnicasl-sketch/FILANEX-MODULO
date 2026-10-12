@@ -168,3 +168,42 @@ export async function tomarNumeroOrdenTrabajoAtomico() {
   return `OT-${String(contador.valor).padStart(6, "0")}`;
 }
 
+// Modelo y campo donde se guarda la numeración de cada tipo: sirven para
+// inicializar el contador atómico al máximo ya usado la primera vez.
+const MODELOS_NUMERACION = {
+  presupuestoVenta: { modelo: "PresupuestoVenta", campo: "serieNumero" },
+  albaranVenta: { modelo: "AlbaranVenta", campo: "serieNumero" },
+  presupuestoCompra: { modelo: "PresupuestoCompra", campo: "serieNumero" },
+  pedidoCompra: { modelo: "PedidoCompra", campo: "serieNumero" },
+  albaranCompra: { modelo: "AlbaranCompra", campo: "serieNumero" },
+};
+
+// Versión atómica de tomarNumero() para TODOS los tipos: usa la colección
+// de contadores con $inc, por lo que dos altas simultáneas nunca comparten
+// número (antes el incremento iba sobre el documento Empresa en memoria y
+// se podían pisar). Misma salida que tomarNumero.
+export async function tomarNumeroAtomico(empresa, tipo) {
+  const cfg = CAMPOS[tipo];
+  if (!cfg) throw new Error(`Tipo de numeración desconocido: ${tipo}`);
+  asegurarSeries(empresa);
+  const lista = empresa[cfg.lista];
+  const serie = lista.find((s) => s.defecto) ?? lista[0];
+  const clave = `${tipo}:${serie.nombre}`;
+
+  const def = MODELOS_NUMERACION[tipo];
+  if (def) {
+    const { default: Modelo } = await import(`../models/${def.modelo}.js`);
+    await inicializarSiEsNuevo(clave, Modelo, def.campo, {
+      [def.campo]: new RegExp(`^${serie.nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-`),
+    });
+  }
+
+  const contador = await Contador.findOneAndUpdate(
+    { clave },
+    { $inc: { valor: 1 } },
+    { new: true, upsert: true }
+  );
+  const numero = contador.valor;
+  return { serie: serie.nombre, numero, serieNumero: `${serie.nombre}-${numero}` };
+}
+

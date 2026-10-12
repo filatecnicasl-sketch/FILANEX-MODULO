@@ -53,7 +53,7 @@ router.post("/verificar", soloAdmin, async (req, res, next) => {
   }
 });
 
-router.post("/prueba", async (req, res, next) => {
+router.post("/prueba", soloAdmin, async (req, res, next) => {
   try {
     const resultado = await enviarPruebaCorreo(req.body);
     res.json(resultado);
@@ -62,7 +62,7 @@ router.post("/prueba", async (req, res, next) => {
   }
 });
 
-router.post("/enviar-documento", async (req, res, next) => {
+router.post("/enviar-documento", soloAdmin, async (req, res, next) => {
   try {
     const resultado = await enviarDocumentoCorreo(req.body);
     res.json(resultado);

@@ -4,7 +4,7 @@ import FacturaVenta from "../models/FacturaVenta.js";
 import AlbaranVenta from "../models/AlbaranVenta.js";
 import Empresa from "../models/Empresa.js";
 import { calcularTotales, limpiarLineas } from "../services/totales.js";
-import { tomarNumero } from "../services/numeracion.js";
+import { tomarNumeroAtomico } from "../services/numeracion.js";
 
 const router = Router();
 
@@ -65,8 +65,7 @@ router.post("/generar", async (req, res, next) => {
     for (const rec of pendientes) {
       let documento;
       if (rec.tipoDocumento === "albaran") {
-        const { numero, serieNumero } = tomarNumero(empresa, "albaranVenta");
-        await empresa.save();
+        const { numero, serieNumero } = await tomarNumeroAtomico(empresa, "albaranVenta");
         documento = await AlbaranVenta.create({
           empresa: rec.empresa,
           cliente: rec.cliente,

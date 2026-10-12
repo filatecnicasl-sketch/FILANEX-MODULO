@@ -53,6 +53,18 @@ router.post("/", async (req, res, next) => {
       return res.status(400).json({ error: "Todas las facturas ya están cobradas" });
     }
 
+    const totalRemesa = Math.round(conImporte.reduce((s, r) => s + r.importe, 0) * 100) / 100;
+
+    // Guarda de seguridad: una remesa con total imposible (NaN por un
+    // importe corrupto, o cero pese a haber recibos) no se crea; si se
+    // colara, la conciliación bancaria la casaría con cualquier movimiento
+    // del mismo importe erróneo.
+    if (!Number.isFinite(totalRemesa) || totalRemesa <= 0) {
+      return res.status(422).json({
+        error: "La remesa no tiene un total válido. Revisa las facturas seleccionadas.",
+      });
+    }
+
     const xml = xmlRemesaSepa({
       empresa,
       fechaCargo: new Date(fechaCargo),
@@ -73,7 +85,7 @@ router.post("/", async (req, res, next) => {
       empresa: empresa._id,
       fechaCargo: new Date(fechaCargo),
       recibos: conImporte,
-      total: Math.round(conImporte.reduce((s, r) => s + r.importe, 0) * 100) / 100,
+      total: totalRemesa,
       xml,
     });
     await FacturaVenta.updateMany(

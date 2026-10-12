@@ -51,13 +51,13 @@ router.get("/", async (req, res, next) => {
     const busqueda = q
       ? {
           $or: [
-            { nombre: { $regex: q, $options: "i" } },
-            { nif: { $regex: q, $options: "i" } },
-            { email: { $regex: q, $options: "i" } },
-            { codigo: { $regex: q, $options: "i" } },
-            { grupo: { $regex: q, $options: "i" } },
-            { telefono: { $regex: q, $options: "i" } },
-            { telefono2: { $regex: q, $options: "i" } },
+            { nombre: { $regex: escapar(q), $options: "i" } },
+            { nif: { $regex: escapar(q), $options: "i" } },
+            { email: { $regex: escapar(q), $options: "i" } },
+            { codigo: { $regex: escapar(q), $options: "i" } },
+            { grupo: { $regex: escapar(q), $options: "i" } },
+            { telefono: { $regex: escapar(q), $options: "i" } },
+            { telefono2: { $regex: escapar(q), $options: "i" } },
             ...(patronTelefono ? [
               { telefono: { $regex: patronTelefono } },
               { telefono2: { $regex: patronTelefono } },

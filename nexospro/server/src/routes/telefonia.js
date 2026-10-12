@@ -207,7 +207,8 @@ webhookTelefonia.post("/evento", async (req, res, next) => {
 
 // Simulador de llamada entrante: para probar el popup sin centralita.
 // Si pasan 12 s sin respuesta, queda como perdida.
-router.post("/simular", async (req, res, next) => {
+// Solo administradores: crea llamadas falsas en el historial del tenant.
+router.post("/simular", requiereRol("admin"), async (req, res, next) => {
   try {
     let numero = req.body?.numero;
     if (!numero) {
