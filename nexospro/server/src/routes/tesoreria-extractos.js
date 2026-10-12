@@ -445,6 +445,9 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         tipo: mejor.tipo,
         documento: mejor.doc._id,
         descripcion,
+        fecha: mov.fecha,
+        concepto: mov.concepto,
+        proveedor: mejor.tipo === "factura_compra" ? (mejor.doc.proveedor?.nombre || "") : "",
         importe,
         automatico: true,
       });

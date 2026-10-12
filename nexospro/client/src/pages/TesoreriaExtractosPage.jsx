@@ -3,6 +3,7 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
 import FilaMovimiento from "./tesoreria/FilaMovimiento.jsx";
 import ModalConciliar from "./tesoreria/ModalConciliar.jsx";
+import ModalResumenConciliacion from "./tesoreria/ModalResumenConciliacion.jsx";
 
 const fmtFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
@@ -16,6 +17,7 @@ export default function TesoreriaExtractosPage() {
   const [aviso, setAviso] = useState(null);
   const [activo, setActivo] = useState(null);
   const [coincidencias, setCoincidencias] = useState(null);
+  const [resumenAuto, setResumenAuto] = useState(null);
   const inputRef = useRef(null);
 
   async function cargar() {
@@ -69,7 +71,7 @@ export default function TesoreriaExtractosPage() {
       const r = await fetch("/api/tesoreria/extractos/conciliar-automatico", { method: "POST" });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error en conciliación automática");
-      setAviso(`Conciliación automática: ${datos.conciliados ?? 0} movimientos vinculados.`);
+      setResumenAuto(datos.resultados ?? []);
       await cargar();
     } catch (err) {
       setError(String(err?.message || err));
@@ -212,6 +214,13 @@ export default function TesoreriaExtractosPage() {
             setActivo(null);
             setCoincidencias(null);
           }}
+        />
+      )}
+
+      {resumenAuto && (
+        <ModalResumenConciliacion
+          resultados={resumenAuto}
+          onCerrar={() => setResumenAuto(null)}
         />
       )}
     </div>
