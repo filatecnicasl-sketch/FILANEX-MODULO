@@ -61,20 +61,27 @@ function diasEntre(a, b) {
 // ---------------------------------------------------------------------------
 
 // Normaliza una fecha que puede venir como string o Date.
+// Las cadenas dd/mm/yyyy o dd-mm-yyyy (formato bancario español) se interpretan
+// SIEMPRE como día primero; si el año va delante se toma como ISO.
 function parseFecha(v) {
-  if (!v) return null;
+  if (v == null || v === "") return null;
   if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
-  const d = new Date(v);
-  if (!isNaN(d.getTime())) return d;
-  // Prueba formato dd/mm/aaaa o dd-mm-aaaa.
-  const partes = String(v).trim().split(/[\/\-]/);
-  if (partes.length === 3) {
-    const [d1, m1, y1] = partes.map((p) => parseInt(p, 10));
-    const anyo = y1 < 100 ? 2000 + y1 : y1;
-    const prueba = new Date(anyo, m1 - 1, d1);
-    if (!isNaN(prueba.getTime())) return prueba;
+  const s = String(v).trim();
+  // dd/mm/yyyy o dd-mm-yyyy (día primero, formato español)
+  let m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if (m) {
+    const anyo = m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10);
+    const prueba = new Date(Date.UTC(anyo, parseInt(m[2], 10) - 1, parseInt(m[1], 10)));
+    return isNaN(prueba.getTime()) ? null : prueba;
   }
-  return null;
+  // yyyy-mm-dd (ISO)
+  m = s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  if (m) {
+    const prueba = new Date(Date.UTC(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10)));
+    return isNaN(prueba.getTime()) ? null : prueba;
+  }
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 // Limpia un importe: quita separadores de miles y normaliza decimales.
@@ -99,21 +106,30 @@ function parseImporte(v) {
 }
 
 // Detecta qué columna corresponde a cada campo buscando cabeceras comunes.
+// Busca coincidencia exacta primero (evita que "Fecha Valor" se tome como
+// fecha o como concepto, y que la columna "Divisa" se tome como saldo).
 function detectarColumnas(cabeceras) {
-  const lower = cabeceras.map((h) => String(h ?? "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+  const norm = (h) => String(h ?? "").toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[.\s]+/g, " ");
+  const lower = cabeceras.map(norm);
   const buscar = (alternativas) => {
+    // 1) exacta
     for (const alt of alternativas) {
-      const idx = lower.findIndex((h) => h.includes(alt));
+      const idx = lower.findIndex((h) => h === alt);
+      if (idx >= 0) return idx;
+    }
+    // 2) contenida (evitando la palabra "divisa")
+    for (const alt of alternativas) {
+      const idx = lower.findIndex((h) => h.includes(alt) && !h.includes("divisa"));
       if (idx >= 0) return idx;
     }
     return -1;
   };
   return {
-    fecha: buscar(["fecha operacion", "fecha", "date", "data", "f."]),
-    concepto: buscar(["concepto", "descripcion", "descripcion", "movimiento", "operation", "description", "titular"]),
+    fecha: buscar(["fecha operacion", "fecha", "date", "data", "f. operacion"]),
+    concepto: buscar(["concepto", "descripcion", "movimiento", "operation", "description", "titular", "detalle"]),
     importe: buscar(["importe", "cantidad", "amount", "cargo/abono", "cargo"]),
-    saldo: buscar(["saldo", "balance"]),
-    referencia: buscar(["numero de documento", "referencia", "ref.", "numero", "operation id", "reference"]),
+    saldo: buscar(["saldo", "balance", "saldo disponible"]),
+    referencia: buscar(["numero de documento", "referencia", "ref", "numero", "operation id", "reference", "numero documento"]),
   };
 }
 
