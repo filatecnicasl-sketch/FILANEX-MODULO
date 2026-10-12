@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-12",
+    tipo: "seguridad",
+    titulo: "Endurecimiento de seguridad y fiabilidad (auditoría, fase 1)",
+    detalle:
+      "Primera tanda de correcciones de la auditoría interna: los archivos subidos (firmas, extractos, fotos de artículos) ya no son públicos, exigen sesión iniciada; los cobros, pagos y conciliaciones ahora se escriben en la base de datos de forma atómica, por lo que dos usuarios trabajando a la vez no pueden pisarse; el servidor valida las líneas de las facturas (cantidad, precio, descuento e IVA) antes de firmarlas en VeriFactu; la protección anti-duplicados de la cola sin conexión reserva la operación antes de ejecutarla; y las operaciones críticas (certificado AEAT, entorno y envío VeriFactu, datos fiscales y series de la empresa) quedan reservadas a administradores.",
+  },
+  {
+    fecha: "2026-10-12",
     tipo: "nuevo",
     titulo: "Tesorería: liquidación de remesa, reintegros e ingresos en efectivo",
     detalle:
