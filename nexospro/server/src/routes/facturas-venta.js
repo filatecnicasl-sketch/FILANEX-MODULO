@@ -491,6 +491,7 @@ router.post("/:id/anular", async (req, res, next) => {
 });
 
 // Registra un cobro (total o parcial) de una factura emitida.
+const METODOS_COBRO = new Set(["transferencia", "efectivo", "tarjeta", "remesa", "otro"]);
 router.post("/:id/cobros", async (req, res, next) => {
   try {
     const { importe, fecha, metodo, notas } = req.body;
@@ -500,7 +501,12 @@ router.post("/:id/cobros", async (req, res, next) => {
     if (factura.estado !== "emitida") {
       return res.status(409).json({ error: "Solo se cobran facturas emitidas" });
     }
-    factura.cobros.push({ importe, fecha: fecha ? new Date(fecha) : new Date(), metodo, notas });
+    factura.cobros.push({
+      importe,
+      fecha: fecha ? new Date(fecha) : new Date(),
+      metodo: METODOS_COBRO.has(metodo) ? metodo : "otro",
+      notas,
+    });
     await factura.save();
     res.json(conTesoreria(factura));
   } catch (err) {

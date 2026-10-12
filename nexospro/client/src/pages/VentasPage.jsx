@@ -484,7 +484,9 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar, onQuit
             <ul className="text-sm space-y-1">
               {f.cobros.map((c) => (
                 <li key={c._id} className="flex items-center justify-between gap-3 text-slate-300">
-                  <span className="num">{fecha(c.fecha)}{c.metodo ? ` · ${c.metodo}` : ""}</span>
+                  <span className="num" title={c.notas || undefined}>
+                    {fecha(c.fecha)}{c.metodo ? ` · ${c.metodo}` : ""}{c.notas ? ` · ${c.notas}` : ""}
+                  </span>
                   <span className="flex items-center gap-3">
                     <span className="num">{euros(c.importe)}</span>
                     {onQuitarCobro && (

@@ -12,16 +12,33 @@ const fechaVencimiento = (f) => {
 };
 const esVencida = (f) => fechaVencimiento(f) < new Date() && f.total - f.cobrado > 0;
 
+// Métodos de cobro con etiqueta legible (el valor es el que guarda el modelo).
+const METODOS = [
+  { v: "transferencia", t: "Transferencia" },
+  { v: "efectivo", t: "Efectivo" },
+  { v: "tarjeta", t: "Tarjeta" },
+  { v: "remesa", t: "Remesa SEPA" },
+  { v: "otro", t: "Otro" },
+];
+
+// Fecha de hoy en formato yyyy-mm-dd para el input type="date".
+const hoyInput = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 function FilaCobro({ f, seleccion, onToggle, cobroForm, setCobroForm, onRegistrar }) {
   const pendiente = f.total - f.cobrado;
   const conIban = !!f.cliente?.iban;
   const vencida = esVencida(f);
+  const formulario = cobroForm?.id === f._id;
   return (
     <div
-      className={`panel px-5 py-4 flex items-center gap-4 ${
+      className={`panel px-5 py-4 ${
         vencida ? "!bg-rose-50/50 !border-rose-200/50" : ""
       }`}
     >
+      <div className="flex items-center gap-4">
       {conIban && !f.remesa ? (
         <input
           type="checkbox"
@@ -63,7 +80,7 @@ function FilaCobro({ f, seleccion, onToggle, cobroForm, setCobroForm, onRegistra
       <p className="num text-[1.0625rem] font-semibold text-[#0f172a] whitespace-nowrap">
         {euros(pendiente)}
       </p>
-      {cobroForm?.id === f._id ? (
+      {formulario ? (
         <span className="inline-flex items-center gap-2 shrink-0">
           <input
             type="number"
@@ -78,9 +95,9 @@ function FilaCobro({ f, seleccion, onToggle, cobroForm, setCobroForm, onRegistra
             onChange={(e) => setCobroForm({ ...cobroForm, metodo: e.target.value })}
             className="input !px-2 !py-1.5"
           >
-            {["transferencia", "efectivo", "tarjeta", "remesa", "otro"].map((m) => (
-              <option key={m} value={m}>
-                {m}
+            {METODOS.map((m) => (
+              <option key={m.v} value={m.v}>
+                {m.t}
               </option>
             ))}
           </select>
@@ -94,7 +111,13 @@ function FilaCobro({ f, seleccion, onToggle, cobroForm, setCobroForm, onRegistra
       ) : (
         <button
           onClick={() =>
-            setCobroForm({ id: f._id, importe: pendiente.toFixed(2), metodo: "transferencia" })
+            setCobroForm({
+              id: f._id,
+              importe: pendiente.toFixed(2),
+              metodo: "transferencia",
+              fecha: hoyInput(),
+              notas: "",
+            })
           }
           className="shrink-0 inline-flex items-center gap-1.5 text-[0.78125rem] font-semibold bg-emerald-600 text-white px-3.5 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
         >
@@ -113,6 +136,26 @@ function FilaCobro({ f, seleccion, onToggle, cobroForm, setCobroForm, onRegistra
           </svg>
           Marcar cobrada
         </button>
+      )}
+      </div>
+      {formulario && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 pl-14">
+          <span className="text-xs text-slate-500">Fecha del cobro</span>
+          <input
+            type="date"
+            value={cobroForm.fecha ?? ""}
+            onChange={(e) => setCobroForm({ ...cobroForm, fecha: e.target.value })}
+            className="input !px-2 !py-1.5 num"
+            title="Fecha real en que entró el dinero (p. ej. la del extracto bancario)"
+          />
+          <input
+            type="text"
+            value={cobroForm.notas ?? ""}
+            onChange={(e) => setCobroForm({ ...cobroForm, notas: e.target.value })}
+            placeholder="Referencia (opcional): nº operación, remesa SEPA…"
+            className="input !px-2 !py-1.5 flex-1 min-w-[200px]"
+          />
+        </div>
       )}
     </div>
   );
@@ -157,7 +200,13 @@ export default function TesoreriaCobrosPage() {
     const r = await fetch(`/api/facturas-venta/${f._id}/cobros`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ importe, metodo: cobroForm.metodo ?? "transferencia" }),
+      body: JSON.stringify({
+        importe,
+        metodo: cobroForm.metodo ?? "transferencia",
+        // Fecha real del cobro (por defecto hoy); y referencia opcional.
+        ...(cobroForm.fecha ? { fecha: cobroForm.fecha } : {}),
+        ...(cobroForm.notas?.trim() ? { notas: cobroForm.notas.trim() } : {}),
+      }),
     });
     if (r.ok) await cargar();
     else setError((await r.json()).error);

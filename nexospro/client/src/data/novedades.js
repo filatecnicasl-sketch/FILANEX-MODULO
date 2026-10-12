@@ -6,6 +6,20 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-12",
+    tipo: "mejora",
+    titulo: "Tesorería: cobros con fecha real y referencia",
+    detalle:
+      "Al marcar una factura como cobrada (Tesorería → Cobros) ahora se puede indicar la fecha real del cobro (por ejemplo, la del extracto bancario, no la de hoy) y una referencia opcional (nº de operación, remesa SEPA…). El método de cobro (transferencia, efectivo, tarjeta, remesa SEPA u otro) se elige con etiquetas claras, y en el detalle de la factura de venta se ve cada cobro con su fecha, método y referencia.",
+  },
+  {
+    fecha: "2026-10-12",
+    tipo: "mejora",
+    titulo: "Tesorería: conciliación de remesas con varias facturas",
+    detalle:
+      "Cuando el banco agrupa en un solo ingreso varias facturas del mismo cliente (emisión de remesa SEPA), la conciliación automática ahora encuentra el grupo de facturas cuya suma exacta iguale el importe del ingreso y las vincula todas, sin duplicar cobros ya registrados.",
+  },
+  {
+    fecha: "2026-10-12",
     tipo: "correccion",
     titulo: "Tesorería: conciliación automática de ingresos",
     detalle:
