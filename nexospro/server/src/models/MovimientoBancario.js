@@ -17,7 +17,7 @@ const movimientoBancarioSchema = new Schema(
     conciliadoCon: {
       tipo: {
         type: String,
-        enum: ["factura_compra", "gasto", "factura_venta", "remesa", "manual"],
+        enum: ["factura_compra", "gasto", "factura_venta", "facturas_venta", "remesa", "manual"],
         default: null,
       },
       id: { type: Schema.Types.ObjectId, default: null },

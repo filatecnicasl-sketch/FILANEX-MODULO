@@ -57,6 +57,56 @@ function diasEntre(a, b) {
   return Math.round(Math.abs(d1 - d2) / 86400000);
 }
 
+// Busca un grupo (2+) de facturas de venta del MISMO cliente cuya suma exacta
+// (en céntimos) iguale el importe del ingreso bancario. Cubre el caso de una
+// remesa SEPA emitida por el banco que agrupa varias facturas cuando la remesa
+// no se generó/guardó como documento en FILANEX.
+function buscarGrupoFacturas(ventasPorCliente, importe, fechaMov, usadas) {
+  const objetivo = Math.round(importe * 100);
+  let mejor = null;
+
+  for (const [clienteId, facturas] of ventasPorCliente) {
+    if (!clienteId) continue;
+    const candidatas = facturas
+      .filter((f) => !usadas.has(String(f._id)))
+      .filter((f) => {
+        const dias = diasEntre(f.fechaExpedicion ?? f.createdAt, fechaMov);
+        return dias <= 75;
+      })
+      .sort((a, b) => new Date(b.fechaExpedicion ?? b.createdAt) - new Date(a.fechaExpedicion ?? a.createdAt))
+      .slice(0, 15);
+
+    const grupos = [];
+    const elegidas = [];
+
+    const dfs = (i, restante) => {
+      if (restante === 0 && elegidas.length >= 2) {
+        grupos.push([...elegidas]);
+        return;
+      }
+      if (i >= candidatas.length || restante < 0 || elegidas.length >= 8) return;
+      const total = Math.round((candidatas[i].total ?? 0) * 100);
+      if (total > 0 && total <= restante) {
+        elegidas.push(candidatas[i]);
+        dfs(i + 1, restante - total);
+        elegidas.pop();
+      }
+      dfs(i + 1, restante);
+    };
+    dfs(0, objetivo);
+
+    for (const grupo of grupos) {
+      const diasTotal = grupo.reduce(
+        (s, f) => s + diasEntre(f.fechaExpedicion ?? f.createdAt, fechaMov),
+        0
+      );
+      if (!mejor || diasTotal < mejor.diasTotal) mejor = { grupo, diasTotal };
+    }
+  }
+
+  return mejor;
+}
+
 // ---------------------------------------------------------------------------
 // Parseo del extracto (CSV / Excel).
 // ---------------------------------------------------------------------------
@@ -354,6 +404,15 @@ router.post("/conciliar-automatico", async (req, res, next) => {
     const ventas = await FacturaVenta.find({ estado: "emitida", total: { $gt: 0 } })
       .populate("cliente", "nombre nif");
 
+    // Ventas agrupadas por cliente (para casar remesas de varias facturas).
+    const ventasPorCliente = new Map();
+    for (const f of ventas) {
+      const clave = f.cliente?._id ? String(f.cliente._id) : "";
+      if (!clave) continue;
+      if (!ventasPorCliente.has(clave)) ventasPorCliente.set(clave, []);
+      ventasPorCliente.get(clave).push(f);
+    }
+
     // Documentos ya vinculados (por movimientos anteriores o de esta tanda).
     const usadas = new Set(
       (await MovimientoBancario.find({ "conciliadoCon.id": { $ne: null } }, "conciliadoCon.id"))
@@ -396,6 +455,18 @@ router.post("/conciliar-automatico", async (req, res, next) => {
             if (!mejor || puntos < mejor.puntos) {
               mejor = { tipo: "factura_venta", doc: f, puntos, dias, diff };
             }
+          }
+        }
+        // Remesa SEPA que agrupa varias facturas del mismo cliente y no
+        // existe como documento en FILANEX: casar por suma exacta del grupo.
+        if (!mejor) {
+          const grupo = buscarGrupoFacturas(ventasPorCliente, importe, mov.fecha, usadas);
+          if (grupo) {
+            mejor = {
+              tipo: "facturas_venta",
+              grupo: grupo.grupo,
+              dias: Math.round(grupo.diasTotal / grupo.grupo.length),
+            };
           }
         }
       } else {
@@ -464,6 +535,24 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           await fv.save();
         }
         descripcion = fv.serieNumero || fv.cliente?.nombre || "factura de venta";
+      } else if (mejor.tipo === "facturas_venta") {
+        // Grupo de facturas del mismo cliente cobradas con una remesa SEPA
+        // que no existe como documento en FILANEX.
+        const numeros = [];
+        for (const fv of mejor.grupo) {
+          const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
+          if (pendiente > 0) {
+            fv.cobros.push({
+              fecha: mov.fecha ?? new Date(),
+              importe: pendiente,
+              metodo: "remesa",
+              notas: `Conciliación automática remesa sin documento (${marcador})`,
+            });
+            await fv.save();
+          }
+          numeros.push(fv.serieNumero || "factura");
+        }
+        descripcion = `${numeros.join(" + ")} · ${mejor.grupo[0].cliente?.nombre || "cliente"}`;
       } else if (mejor.tipo === "remesa") {
         const remesa = mejor.doc;
         for (const recibo of remesa.recibos ?? []) {
@@ -484,32 +573,45 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         descripcion = `remesa del ${new Date(remesa.fechaCargo).toLocaleDateString("es-ES")}`;
       }
 
-      mov.conciliadoCon = { tipo: mejor.tipo, id: mejor.doc._id, fecha: new Date() };
+      mov.conciliadoCon = mejor.tipo === "facturas_venta"
+        ? { tipo: mejor.tipo, id: mejor.grupo[0]._id, fecha: new Date() }
+        : { tipo: mejor.tipo, id: mejor.doc._id, fecha: new Date() };
       mov.notas = `Conciliación automática: ${descripcion}`;
       await mov.save();
-      usadas.add(String(mejor.doc._id));
+      if (mejor.tipo === "facturas_venta") {
+        for (const fv of mejor.grupo) usadas.add(String(fv._id));
+      } else {
+        usadas.add(String(mejor.doc._id));
+      }
 
       // Criterio que motivó el enlace (para el registro de auditoría).
       const criterio = mejor.tipo === "remesa"
         ? `importe exacto (${importe} €), remesa a ${mejor.dias} días`
-        : mejor.puntos < 0
-          ? `referencia bancaria coincidente + ${mejor.dias} días`
-          : mejor.puntos < 4000
-            ? `nombre del concepto coincide + ${mejor.dias} días`
-            : `importe exacto, fecha a ${mejor.dias} días`;
+        : mejor.tipo === "facturas_venta"
+          ? `suma exacta de ${mejor.grupo.length} facturas del mismo cliente (${importe} €)`
+          : mejor.puntos < 0
+            ? `referencia bancaria coincidente + ${mejor.dias} días`
+            : mejor.puntos < 4000
+              ? `nombre del concepto coincide + ${mejor.dias} días`
+              : `importe exacto, fecha a ${mejor.dias} días`;
       await ConciliacionLog.create({
         accion: "conciliacion",
         modo: "automatica",
         usuario: req.usuario?.email || "",
         movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
-        documento: { tipo: mejor.tipo, id: mejor.doc._id, descripcion, criterio },
+        documento: {
+          tipo: mejor.tipo,
+          id: mejor.tipo === "facturas_venta" ? mejor.grupo[0]._id : mejor.doc._id,
+          descripcion,
+          criterio,
+        },
         notas: mov.notas,
       });
 
       resultados.push({
         movimiento: mov._id,
         tipo: mejor.tipo,
-        documento: mejor.doc._id,
+        documento: mejor.tipo === "facturas_venta" ? mejor.grupo[0]._id : mejor.doc._id,
         descripcion,
         fecha: mov.fecha,
         concepto: mov.concepto,
@@ -715,7 +817,7 @@ router.delete("/:id/conciliacion", async (req, res, next) => {
         fv.cobros = (fv.cobros ?? []).filter((c) => !String(c.notas ?? "").includes(marcador));
         await fv.save();
       }
-    } else if (mov.conciliadoCon.tipo === "remesa") {
+    } else if (mov.conciliadoCon.tipo === "remesa" || mov.conciliadoCon.tipo === "facturas_venta") {
       // Los cobros se repartieron entre varias facturas: buscar por marcador.
       const afectadas = await FacturaVenta.find({ "cobros.notas": { $regex: marcador.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") } });
       for (const fv of afectadas) {

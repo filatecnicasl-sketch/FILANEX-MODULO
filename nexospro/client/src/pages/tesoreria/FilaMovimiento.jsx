@@ -6,6 +6,7 @@ const ETIQUETA_CONCILIADO = {
   factura_compra: "Factura",
   gasto: "Gasto",
   factura_venta: "Venta",
+  facturas_venta: "Ventas",
   remesa: "Remesa",
   manual: "Sin factura",
 };
