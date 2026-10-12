@@ -232,9 +232,21 @@ export async function ejecutarCopiasDiarias() {
 // la garantía la da el Programador de tareas de Windows (backup-local.mjs).
 export function iniciarCopiasSeguridad() {
   if (process.env.BACKUP_DESACTIVADO === "true") return;
+  // Guard contra solapes: si una pasada dura más de 24 h (muchos GB), la
+  // siguiente no arranca hasta que termine.
+  let enCurso = false;
+  const pasada = async () => {
+    if (enCurso) return;
+    enCurso = true;
+    try {
+      await ejecutarCopiasDiarias();
+    } finally {
+      enCurso = false;
+    }
+  };
   setTimeout(() => {
-    ejecutarCopiasDiarias();
-    setInterval(ejecutarCopiasDiarias, 24 * 60 * 60 * 1000);
+    pasada();
+    setInterval(pasada, 24 * 60 * 60 * 1000);
   }, msHastaProxima());
   console.log(`[backup] Copias diarias a las ${HORA}; se conservan ${RETENER} automáticas por empresa`);
 }

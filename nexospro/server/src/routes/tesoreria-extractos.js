@@ -62,6 +62,15 @@ function diasEntre(a, b) {
   return Math.round(Math.abs(d1 - d2) / 86400000);
 }
 
+// Cobrado/pagado acumulado: funciona con documentos hidratados y con lean()
+// (los métodos del esquema desaparecen al hacer lean).
+function sumaCobros(f) {
+  return (f.cobros ?? []).reduce((s, c) => s + (c.importe ?? 0), 0);
+}
+function sumaPagos(f) {
+  return (f.pagos ?? []).reduce((s, p) => s + (p.importe ?? 0), 0);
+}
+
 // Busca un grupo (2+) de facturas de venta del MISMO cliente cuya suma exacta
 // (en céntimos) iguale el importe del ingreso bancario. Cubre el caso de una
 // remesa SEPA emitida por el banco que agrupa varias facturas cuando la remesa
@@ -80,7 +89,7 @@ function buscarGrupoFacturas(ventasPorCliente, importe, fechaMov, usadas) {
       })
       // Solo con algo pendiente y que no superen por sí solas el objetivo:
       // una factura ya cobrada nunca forma parte de la remesa.
-      .map((f) => ({ f, pendienteCent: Math.round(((f.total ?? 0) - (f.cobrado?.() ?? 0)) * 100) }))
+      .map((f) => ({ f, pendienteCent: Math.round(((f.total ?? 0) - sumaCobros(f)) * 100) }))
       .filter(({ pendienteCent }) => pendienteCent > 0 && pendienteCent <= objetivo)
       .sort((a, b) => new Date(b.f.fechaExpedicion ?? b.f.createdAt) - new Date(a.f.fechaExpedicion ?? a.f.createdAt))
       .slice(0, 15);
@@ -326,7 +335,7 @@ router.get("/coincidencias", async (req, res, next) => {
         .sort({ fechaExpedicion: -1 })
         .limit(1000);
       for (const f of compras) {
-        const pagado = f.pagado();
+        const pagado = sumaPagos(f);
         const pendiente = Math.round(((f.total ?? 0) - pagado) * 100) / 100;
         const diff = Math.abs((f.total ?? 0) - importe);
         if (diff > margen) continue;
@@ -386,7 +395,7 @@ router.get("/coincidencias", async (req, res, next) => {
         .sort({ fechaExpedicion: -1 })
         .limit(1000);
       for (const f of ventas) {
-        const cobrado = f.cobrado();
+        const cobrado = sumaCobros(f);
         const pendiente = Math.round(((f.total ?? 0) - cobrado) * 100) / 100;
         const diff = Math.abs((f.total ?? 0) - importe);
         if (diff > margen) continue;
@@ -445,11 +454,20 @@ router.post("/conciliar-automatico", async (req, res, next) => {
     if (!pendientes.length) return res.json({ ok: true, conciliados: 0, resultados: [] });
 
     const compras = await FacturaCompra.find({ estado: "validada", total: { $gt: 0 } })
-      .populate("proveedor", "nombre nif");
-    const gastos = await Gasto.find({ total: { $gt: 0 } });
-    const remesas = await Remesa.find({ total: { $gt: 0 } }).sort({ fechaCargo: -1 });
+      .select("_id total pagos numeroFacturaProveedor proveedor fecha estado")
+      .populate("proveedor", "nombre nif")
+      .lean();
+    const gastos = await Gasto.find({ total: { $gt: 0 } })
+      .select("_id total comercio fecha categoria")
+      .lean();
+    const remesas = await Remesa.find({ total: { $gt: 0 } })
+      .select("_id total fechaCargo recibos estado")
+      .sort({ fechaCargo: -1 })
+      .lean();
     const ventas = await FacturaVenta.find({ estado: "emitida", total: { $gt: 0 } })
-      .populate("cliente", "nombre nif");
+      .select("_id total cobros serieNumero cliente fechaExpedicion createdAt estado")
+      .populate("cliente", "nombre nif")
+      .lean();
 
     // Ventas agrupadas por cliente (para casar remesas de varias facturas).
     const ventasPorCliente = new Map();
@@ -505,7 +523,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
             if (usadas.has(String(f._id))) continue;
             // Solo facturas con algo pendiente de cobro: una ya cobrada por
             // otra vía no debe volver a casarse.
-            if (Math.round(((f.total ?? 0) - f.cobrado()) * 100) <= 0) continue;
+            if (Math.round(((f.total ?? 0) - sumaCobros(f)) * 100) <= 0) continue;
             const diff = Math.abs((f.total ?? 0) - importe);
             if (diff > 0.02) continue;
             const cliente = f.cliente?.nombre || "";
@@ -547,7 +565,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         for (const f of compras) {
           if (usadas.has(String(f._id))) continue;
           // Solo facturas con algo pendiente de pago.
-          if (Math.round(((f.total ?? 0) - f.pagado()) * 100) <= 0) continue;
+          if (Math.round(((f.total ?? 0) - sumaPagos(f)) * 100) <= 0) continue;
           const diffEur = Math.abs((f.total ?? 0) - importe);
           const diffDiv = f.totalDivisa && f.divisa !== "EUR" ? Math.abs(f.totalDivisa - importe) : Infinity;
           const diff = Math.min(diffEur, diffDiv);
@@ -624,7 +642,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
 
       if (mejor.tipo === "factura_compra") {
         const fc = mejor.doc;
-        const pendiente = Math.round(((fc.total ?? 0) - fc.pagado()) * 100) / 100;
+        const pendiente = Math.round(((fc.total ?? 0) - sumaPagos(fc)) * 100) / 100;
         if (pendiente > 0) {
           // $push atómico + condición anti-duplicado por marcador.
           const notaPago = `Conciliación automática extracto: ${mov.concepto} (${marcador})`;
@@ -647,7 +665,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         descripcion = mejor.doc.comercio || "gasto";
       } else if (mejor.tipo === "factura_venta") {
         const fv = mejor.doc;
-        const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
+        const pendiente = Math.round(((fv.total ?? 0) - sumaCobros(fv)) * 100) / 100;
         if (pendiente > 0) {
           const notaCobro = `Conciliación automática extracto: ${mov.concepto} (${marcador})`;
           await FacturaVenta.updateOne(
@@ -670,7 +688,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
         // que no existe como documento en FILANEX.
         const numeros = [];
         for (const fv of mejor.grupo) {
-          const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
+          const pendiente = Math.round(((fv.total ?? 0) - sumaCobros(fv)) * 100) / 100;
           if (pendiente > 0) {
             const notaCobro = `Conciliación automática remesa sin documento (${marcador})`;
             await FacturaVenta.updateOne(
@@ -698,7 +716,7 @@ router.post("/conciliar-automatico", async (req, res, next) => {
           if (!recibo.facturaVenta) continue;
           const fv = ventas.find((x) => String(x._id) === String(recibo.facturaVenta));
           if (!fv || fv.estado !== "emitida") continue;
-          const pendienteFv = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
+          const pendienteFv = Math.round(((fv.total ?? 0) - sumaCobros(fv)) * 100) / 100;
           if (pendienteFv > 0) {
             const notaCobro = `Conciliación automática remesa (${marcador})`;
             await FacturaVenta.updateOne(
@@ -908,7 +926,7 @@ router.post("/:id/conciliar", async (req, res, next) => {
       const fc = await FacturaCompra.findById(id);
       if (!fc) { await liberar(); return res.status(404).json({ error: "Factura no encontrada" }); }
       if (fc.estado !== "validada") { await liberar(); return res.status(409).json({ error: "Solo se concilian facturas validadas" }); }
-      const pendiente = Math.round(((fc.total ?? 0) - fc.pagado()) * 100) / 100;
+      const pendiente = Math.round(((fc.total ?? 0) - sumaPagos(fc)) * 100) / 100;
       if (pendiente > 0) {
         const importeAplicar = Math.min(pendiente, importe);
         if (importeAplicar <= 0) { await liberar(); return res.status(409).json({ error: "La factura ya está pagada" }); }
@@ -925,7 +943,7 @@ router.post("/:id/conciliar", async (req, res, next) => {
       const fv = await FacturaVenta.findById(id);
       if (!fv) { await liberar(); return res.status(404).json({ error: "Factura no encontrada" }); }
       if (fv.estado !== "emitida") { await liberar(); return res.status(409).json({ error: "Solo se concilian facturas emitidas" }); }
-      const pendiente = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
+      const pendiente = Math.round(((fv.total ?? 0) - sumaCobros(fv)) * 100) / 100;
       if (pendiente > 0) {
         const importeAplicar = Math.min(pendiente, importe);
         if (importeAplicar <= 0) { await liberar(); return res.status(409).json({ error: "La factura ya está cobrada" }); }
@@ -942,7 +960,7 @@ router.post("/:id/conciliar", async (req, res, next) => {
         if (!recibo.facturaVenta) continue;
         const fv = await FacturaVenta.findById(recibo.facturaVenta);
         if (!fv || fv.estado !== "emitida") continue;
-        const pendienteFv = Math.round(((fv.total ?? 0) - fv.cobrado()) * 100) / 100;
+        const pendienteFv = Math.round(((fv.total ?? 0) - sumaCobros(fv)) * 100) / 100;
         if (pendienteFv > 0) {
           const notaCobro = `Conciliado con extracto: remesa (${marcador})`;
           await FacturaVenta.updateOne(

@@ -352,23 +352,31 @@ async function pasadaTenant(tenant) {
 }
 
 export function iniciarSondeoCorreosCampanas() {
+  // Guard contra solapes: una pasada IMAP lenta no se acumula con la siguiente.
+  let enCurso = false;
   const pasada = async () => {
-    let tenants = [];
+    if (enCurso) return;
+    enCurso = true;
     try {
-      tenants = await Tenant.find({ estado: { $nin: ["inactivo", "suspendido"] } }).lean();
-    } catch (e) {
-      console.warn("[energia-correo] No se pudieron listar las empresas:", e.message);
-      return;
-    }
-    for (const tenant of tenants) {
+      let tenants = [];
       try {
-        const r = await pasadaTenant(tenant);
-        if (r?.ok && r.campanas > 0) {
-          console.log(`[energia-correo] (${tenant.slug}): ${r.mensaje}`);
-        }
+        tenants = await Tenant.find({ estado: { $nin: ["inactivo", "suspendido"] } }).lean();
       } catch (e) {
-        console.warn(`[energia-correo] Pasada fallida (${tenant.slug}):`, e.message);
+        console.warn("[energia-correo] No se pudieron listar las empresas:", e.message);
+        return;
       }
+      for (const tenant of tenants) {
+        try {
+          const r = await pasadaTenant(tenant);
+          if (r?.ok && r.campanas > 0) {
+            console.log(`[energia-correo] (${tenant.slug}): ${r.mensaje}`);
+          }
+        } catch (e) {
+          console.warn(`[energia-correo] Pasada fallida (${tenant.slug}):`, e.message);
+        }
+      }
+    } finally {
+      enCurso = false;
     }
   };
   setTimeout(pasada, 3 * 60 * 1000);

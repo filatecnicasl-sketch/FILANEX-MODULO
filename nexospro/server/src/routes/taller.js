@@ -1264,12 +1264,11 @@ router.post("/citas", async (req, res, next) => {
       }
       // Reasignar el vehículo a otro cliente si se marca la casilla.
       if (v && req.body.reasignarCliente && req.body.cliente) {
-        await Vehiculo.findByIdAndUpdate(
+        v = await Vehiculo.findByIdAndUpdate(
           v._id,
           { cliente: req.body.cliente, clienteNombre: req.body.clienteNombre || undefined },
-          { omitUndefined: true }
-        );
-        v = await Vehiculo.findById(v._id).lean();
+          { omitUndefined: true, new: true }
+        ).lean();
       }
       if (v) vehiculoId = v._id;
     }

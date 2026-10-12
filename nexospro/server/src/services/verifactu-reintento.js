@@ -75,26 +75,35 @@ async function pasadaTenant(tenant) {
 }
 
 export function iniciarReintentoVerifactu() {
+  // Guard contra solapes: si una pasada tarda más que el intervalo (muchas
+  // empresas, AEAT lenta), la siguiente no arranca hasta que termine.
+  let enCurso = false;
   const pasada = async () => {
-    let tenants = [];
+    if (enCurso) return;
+    enCurso = true;
     try {
-      tenants = await Tenant.find({ estado: { $nin: ["inactivo", "suspendido"] } }).lean();
-    } catch (e) {
-      console.warn("[verifactu] No se pudieron listar las empresas:", e.message);
-      return;
-    }
-    for (const tenant of tenants) {
+      let tenants = [];
       try {
-        const { procesados, resultados } = await pasadaTenant(tenant);
-        if (procesados > 0) {
-          const enviados = resultados.filter((r) => r.estado.startsWith("aceptado")).length;
-          console.log(
-            `[verifactu] Reintento automático (${tenant.slug}): ${enviados}/${procesados} registro(s) remitidos a la AEAT`
-          );
-        }
+        tenants = await Tenant.find({ estado: { $nin: ["inactivo", "suspendido"] } }).lean();
       } catch (e) {
-        console.warn(`[verifactu] Reintento fallido (${tenant.slug}):`, e.message);
+        console.warn("[verifactu] No se pudieron listar las empresas:", e.message);
+        return;
       }
+      for (const tenant of tenants) {
+        try {
+          const { procesados, resultados } = await pasadaTenant(tenant);
+          if (procesados > 0) {
+            const enviados = resultados.filter((r) => r.estado.startsWith("aceptado")).length;
+            console.log(
+              `[verifactu] Reintento automático (${tenant.slug}): ${enviados}/${procesados} registro(s) remitidos a la AEAT`
+            );
+          }
+        } catch (e) {
+          console.warn(`[verifactu] Reintento fallido (${tenant.slug}):`, e.message);
+        }
+      }
+    } finally {
+      enCurso = false;
     }
   };
   setTimeout(pasada, 2 * 60 * 1000);
