@@ -38,6 +38,15 @@ const suministroSchema = new Schema(
     estado: { type: String, enum: ["activo", "inactivo", "baja"], default: "activo" },
     fechaAlta: Date, // fecha de alta con la comercializadora actual
     fechaFin: Date, // fin del contrato: alimenta las alertas de renovación
+    // Documentación adjunta del suministro: contrato, factura que motivó el
+    // alta, burofax de la distribuidora… (igual que los adjuntos de citas).
+    documentos: [
+      {
+        url: String,
+        nombre: String,
+        fecha: { type: Date, default: Date.now },
+      },
+    ],
     notas: String,
   },
   { timestamps: true }

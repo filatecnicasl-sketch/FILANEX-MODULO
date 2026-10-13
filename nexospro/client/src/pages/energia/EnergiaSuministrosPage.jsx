@@ -49,6 +49,8 @@ export default function EnergiaSuministrosPage() {
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [importar, setImportar] = useState(false);
   const [consumosDe, setConsumosDe] = useState(null);
+  const [documentos, setDocumentos] = useState([]);
+  const [subiendoDocs, setSubiendoDocs] = useState(false);
 
   const grupos = [...new Set(clientes.map((c) => c.grupo).filter(Boolean))].sort();
 
@@ -104,11 +106,13 @@ export default function EnergiaSuministrosPage() {
     setEditando(null);
     setForm(VACIO);
     setCanalesFiltrados(canales);
+    setDocumentos([]);
     setModal(true);
   }
 
   function abrirEdicion(s) {
     setEditando(s);
+    setDocumentos(s.documentos ?? []);
     const comercializadoraId = s.comercializadora?._id ?? "";
     setForm({
       cups: s.cups ?? "",
@@ -176,6 +180,51 @@ export default function EnergiaSuministrosPage() {
     const r = await fetch(`/api/energia/suministros/${s._id}`, { method: "DELETE" });
     if (r.ok) cargar();
     else alert((await r.json()).error || "No se pudo borrar");
+  }
+
+  async function subirDocumentos(e) {
+    const archivos = [...(e.target.files ?? [])];
+    e.target.value = "";
+    if (!archivos.length || !editando?._id) return;
+    const datos = new FormData();
+    archivos.forEach((a) => datos.append("archivos", a));
+    setSubiendoDocs(true);
+    try {
+      const r = await fetch(`/api/energia/suministros/${editando._id}/documentos`, {
+        method: "POST",
+        body: datos,
+      });
+      const lista = await r.json();
+      if (r.ok) {
+        setDocumentos(lista);
+        cargar();
+      } else alert(lista.error || "No se pudo subir la documentación");
+    } catch {
+      alert("No se pudo subir la documentación");
+    } finally {
+      setSubiendoDocs(false);
+    }
+  }
+
+  async function quitarDocumento(d) {
+    if (!editando?._id) return;
+    setSubiendoDocs(true);
+    try {
+      const r = await fetch(`/api/energia/suministros/${editando._id}/documentos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: d.url }),
+      });
+      const lista = await r.json();
+      if (r.ok) {
+        setDocumentos(lista);
+        cargar();
+      } else alert(lista.error || "No se pudo quitar el documento");
+    } catch {
+      alert("No se pudo quitar el documento");
+    } finally {
+      setSubiendoDocs(false);
+    }
   }
 
   const poner = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -259,6 +308,11 @@ export default function EnergiaSuministrosPage() {
                     <td>
                       <p className="num text-[0.8rem] text-slate-200 whitespace-nowrap">{s.cups}</p>
                       <p className="mt-0.5"><Badge tono={TONO_TIPO[s.tipo]}>{s.tipo.toUpperCase()}</Badge></p>
+                      {(s.documentos?.length ?? 0) > 0 && (
+                        <p className="text-xs text-slate-500 mt-0.5" title="Documentación adjunta">
+                          {s.documentos.length} doc{s.documentos.length > 1 ? "s" : ""}
+                        </p>
+                      )}
                     </td>
                     <td>
                       <p className="text-slate-300">{s.clienteNombre ?? s.cliente?.nombre ?? "—"}</p>
@@ -549,6 +603,57 @@ export default function EnergiaSuministrosPage() {
               Notas
               <textarea value={form.notas} onChange={poner("notas")} className="input" rows={2} />
             </label>
+
+            {editando && (
+              <div className="rounded-xl border border-slate-600/40 p-4">
+                <p className="text-sm font-semibold text-slate-300 mb-1">Documentación</p>
+                <p className="text-xs text-slate-500 mb-3">
+                  Contrato, factura de la comercializadora, burofax de la distribuidora… PDF o imágenes.
+                </p>
+                {documentos.length > 0 && (
+                  <ul className="space-y-1.5 mb-3">
+                    {documentos.map((d) => (
+                      <li key={d.url} className="flex items-center gap-2 text-sm">
+                        <a
+                          href={d.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sky-300 hover:text-sky-200 hover:underline truncate"
+                          title={d.nombre}
+                        >
+                          {d.nombre}
+                        </a>
+                        {d.fecha && (
+                          <span className="text-xs text-slate-500 whitespace-nowrap">
+                            {new Date(d.fecha).toLocaleDateString("es-ES")}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => quitarDocumento(d)}
+                          disabled={subiendoDocs}
+                          className="ms-auto p-1 text-slate-400 hover:text-rose-400 disabled:opacity-50"
+                          title="Quitar documento"
+                        >
+                          <IconBorrar />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer">
+                  {subiendoDocs ? "Subiendo…" : "Añadir documentos"}
+                  <input
+                    type="file"
+                    multiple
+                    accept="application/pdf,image/png,image/jpeg,image/webp"
+                    onChange={subirDocumentos}
+                    disabled={subiendoDocs}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setModal(false)} className="btn-ghost">Cancelar</button>

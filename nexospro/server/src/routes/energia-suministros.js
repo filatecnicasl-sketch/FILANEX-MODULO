@@ -4,8 +4,10 @@ import Comercializadora from "../models/Comercializadora.js";
 import CanalDistribucion from "../models/CanalDistribucion.js";
 import ConsumoEnergia from "../models/ConsumoEnergia.js";
 import { extraerFacturaEnergia } from "../services/ocr-gemini.js";
-import { uploadMemoria } from "../middleware/upload.js";
+import { uploadMemoria, borrarSubida } from "../middleware/upload.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { guardarArchivo, urlPublica } from "../services/storage.js";
+import { slugActual } from "../models/tenant.js";
 import { periodoDesdeHace } from "../services/energia-stats.js";
 
 // CRUD de puntos de suministro (Energía). Se monta dentro del router de
@@ -160,7 +162,74 @@ router.delete("/:id", async (req, res, next) => {
   try {
     const suministro = await Suministro.findByIdAndDelete(req.params.id);
     if (!suministro) return res.status(404).json({ error: "Suministro no encontrado" });
+    // Los archivos de su documentación también se borran del almacenamiento.
+    for (const d of suministro.documentos ?? []) {
+      await borrarSubida(d.url).catch(() => {});
+    }
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Documentación del suministro ---
+//
+// Contratos, facturas, burofaxes de la distribuidora… Igual que los adjuntos
+// de las citas del taller: PDF o imágenes, máximo 6 archivos de 15 MB por
+// subida, y cada archivo queda dentro de la carpeta del tenant.
+const subidaDocumentos = uploadMemoria;
+
+router.post(
+  "/:id/documentos",
+  [subidaDocumentos.array("archivos", 6), contextoTrasSubida],
+  async (req, res, next) => {
+    try {
+      const suministro = await Suministro.findById(req.params.id);
+      if (!suministro) return res.status(404).json({ error: "Suministro no encontrado" });
+      if (!req.files?.length) return res.status(400).json({ error: "No llegó ningún archivo" });
+      const slug = slugActual();
+      const nuevos = [];
+      for (const f of req.files) {
+        const esPdf = f.mimetype === "application/pdf";
+        if (!esPdf && !f.mimetype.startsWith("image/")) continue;
+        const ext = esPdf
+          ? ".pdf"
+          : f.mimetype === "image/png"
+            ? ".png"
+            : f.mimetype === "image/webp"
+              ? ".webp"
+              : ".jpg";
+        const archivo = `sum-${suministro._id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+        const remoto = `uploads/${slug}/energia/suministros/${archivo}`;
+        await guardarArchivo(remoto, f.buffer, f.mimetype);
+        nuevos.push({ url: urlPublica(remoto), nombre: f.originalname || archivo, fecha: new Date() });
+      }
+      if (!nuevos.length) {
+        return res.status(400).json({ error: "Solo se admiten archivos PDF o imágenes" });
+      }
+      suministro.documentos = [...(suministro.documentos ?? []), ...nuevos];
+      await suministro.save();
+      res.status(201).json(suministro.documentos);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Quita un documento del suministro (body: { url }) y borra el archivo.
+router.delete("/:id/documentos", async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    const suministro = await Suministro.findById(req.params.id);
+    if (!suministro) return res.status(404).json({ error: "Suministro no encontrado" });
+    const antes = (suministro.documentos ?? []).length;
+    suministro.documentos = (suministro.documentos ?? []).filter((d) => d.url !== url);
+    if (suministro.documentos.length === antes) {
+      return res.status(404).json({ error: "Documento no encontrado" });
+    }
+    await suministro.save();
+    await borrarSubida(url).catch(() => {});
+    res.json(suministro.documentos);
   } catch (err) {
     next(err);
   }

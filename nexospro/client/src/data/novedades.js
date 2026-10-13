@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-13",
+    tipo: "nuevo",
+    titulo: "Energía: documentación de cada suministro",
+    detalle:
+      "Cada punto de suministro (Energía → Suministros) admite ahora su documentación adjunta: contrato con la comercializadora, facturas, burofaxes de la distribuidora… Se sube desde el propio suministro (botón «Añadir documentos», PDF o imágenes, hasta 6 archivos por vez), los archivos quedan guardados en la carpeta de tu empresa y en el listado se ve un contador de documentos por CUPS. Al borrar un suministro, su documentación se elimina también.",
+  },
+  {
     fecha: "2026-10-12",
     tipo: "seguridad",
     titulo: "Auditoría fases 2-5: aislamiento total entre empresas y numeración infalible",
