@@ -5,6 +5,7 @@ import { Badge, euros, Avatar, coincideBusqueda } from "../components/ui.jsx";
 import { IconImprimir, IconPdf, IconOjo, IconXml, IconBorrar } from "../components/icons.jsx";
 import EditorLineas, { lineaVacia } from "../components/EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
+import { useCierreProtegido } from "../lib/cierreProtegido.js";
 import SelectorContacto from "../components/SelectorContacto.jsx";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
@@ -76,14 +77,8 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
       .catch(() => setMetodosPago([{ nombre: "Transferencia", plazos: [], defecto: true }]));
   }, []);
 
-  // Cerrar con Escape, como el resto de ventanas del programa.
-  useEffect(() => {
-    const alPulsar = (e) => {
-      if (e.key === "Escape") onCerrar();
-    };
-    window.addEventListener("keydown", alPulsar);
-    return () => window.removeEventListener("keydown", alPulsar);
-  }, [onCerrar]);
+  // Cerrar con Escape: protegido (sin perder lo escrito por accidente).
+  const cierre = useCierreProtegido(onCerrar);
 
   // Al elegir un método con plazos, el vencimiento pasa al último plazo.
   function elegirMetodo(nombre) {
@@ -147,12 +142,13 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onCerrar}
+      {...cierre.fondoProps}
     >
       <div
         className="modal-panel w-full max-w-5xl max-h-[90vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={enterComoTab}
+        {...cierre.panelProps}
       >
         <h2 className="text-lg font-bold text-white mb-4">
           {inicial ? "Modificar factura borrador" : "Nueva factura (borrador)"}
@@ -323,19 +319,13 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar, onQuit
   const vf = f.verifactu ?? {};
   const fecha = (d) => (d ? new Date(d).toLocaleDateString("es-ES") : "—");
 
-  // Cerrar con Escape, como el resto de ventanas del programa.
-  useEffect(() => {
-    const alPulsar = (e) => {
-      if (e.key === "Escape") onCerrar();
-    };
-    window.addEventListener("keydown", alPulsar);
-    return () => window.removeEventListener("keydown", alPulsar);
-  }, [onCerrar]);
+  // Cerrar con Escape: protegido.
+  const cierre = useCierreProtegido(onCerrar);
 
   return (
     <div
       className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
-      onClick={onCerrar}
+      {...cierre.fondoProps}
     >
       <div
         className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-5"

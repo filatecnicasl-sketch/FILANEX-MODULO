@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import EditorLineas, { lineaVacia } from "./EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
+import { useCierreProtegido } from "../lib/cierreProtegido.js";
 import { euros } from "./ui.jsx";
 import SelectorContacto from "./SelectorContacto.jsx";
 
@@ -57,14 +58,8 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
 
   useEffect(() => setClientes(clientesProp), [clientesProp]);
 
-  // Cerrar con Escape, como el resto de ventanas del programa.
-  useEffect(() => {
-    const alPulsar = (e) => {
-      if (e.key === "Escape") onCerrar();
-    };
-    window.addEventListener("keydown", alPulsar);
-    return () => window.removeEventListener("keydown", alPulsar);
-  }, [onCerrar]);
+  // Cerrar con Escape: protegido (sin perder lo escrito por accidente).
+  const cierre = useCierreProtegido(onCerrar);
 
   // Al elegir un cliente con dirección de entrega en su ficha, se propone esa.
   function elegirCliente(id) {
@@ -117,19 +112,20 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onCerrar}
+      {...cierre.fondoProps}
     >
       <div
         className="modal-panel w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={enterComoTab}
+        {...cierre.panelProps}
       >
         {/* Cabecera fija */}
         <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-3 border-b border-white/5 shrink-0">
           <h2 className="text-lg font-bold text-white">{titulo}</h2>
           <button
             type="button"
-            onClick={onCerrar}
+            {...cierre.botonProps}
             className="text-slate-400 hover:text-white text-xl leading-none px-1"
             title="Cerrar (Escape)"
           >

@@ -7,6 +7,7 @@ import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 import { imprimirJustificanteCitaTaller } from "../../utils/imprimir-cita-taller.js";
 import { cargarClientesLigeros, invalidarClientesLigeros } from "../../lib/clientesLigeros.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 
 const CLASES_PILL_ESTADO = {
   amber: "bg-amber-100 text-amber-700 border-amber-200",
@@ -721,10 +722,14 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     else alert("No se pudo borrar");
   }
 
+  // Cierre protegido: ni Escape ni un clic fuera cierran la cita si hay datos
+  // escritos sin guardar (evita las citas que se quedaban a medias).
+  const cierre = useCierreProtegido(onCerrar);
+
   return (
     <>
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
+      <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} {...cierre.panelProps}>
         <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {cita
             ? `${cita.tipo === "peritaje" ? "Peritaje" : "Cita"} ${aFechaInput(cita.fecha)} ${cita.hora}`
@@ -1309,6 +1314,13 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
       <div
         className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
         onClick={() => setDialogoEntrada(false)}
+        // Escape aquí cierra solo este diálogo, no la cita entera.
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.stopPropagation();
+            setDialogoEntrada(false);
+          }
+        }}
       >
         <div className="modal-panel w-full max-w-2xl p-5" onClick={(e) => e.stopPropagation()}>
           <h3 className="text-base font-bold text-white mb-1">

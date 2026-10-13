@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-14",
+    tipo: "mejora",
+    titulo: "Ya no se pierde una factura o una cita por un Escape o un clic fuera",
+    detalle:
+      "Los editores de facturas, albaranes, presupuestos y citas ya no se cierran de golpe: si estás escribiendo en un campo, la tecla Esc solo saca el foco del campo; y si hay datos sin guardar, Esc o un clic fuera de la ventana piden confirmación antes de cerrar. Sin datos escritos, se cierran igual que antes, sin molestar.",
+  },
+  {
+    fecha: "2026-10-14",
     tipo: "nuevo",
     titulo: "Taller: listado de las citas del día para imprimir",
     detalle:

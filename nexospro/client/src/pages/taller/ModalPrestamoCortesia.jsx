@@ -205,7 +205,17 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+      onClick={onCerrar}
+      // Escape aquí cierra solo este diálogo, no la cita que hay debajo.
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onCerrar();
+        }
+      }}
+    >
       <div className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">{modoEdicion ? "Editar préstamo de cortesía" : "Nuevo préstamo de cortesía"}</h2>
         <form onSubmit={guardar} className="space-y-4">
