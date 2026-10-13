@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { PrintSheet } from "../editor/PrintSheet.jsx";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 /**
  * Imprime una plantilla del editor de formatos (Sistema → Formatos) rellena
@@ -21,10 +22,13 @@ export async function imprimirFormato(template, formData, signatures = {}) {
       .then((r) => (r.ok ? r.json() : {}))
       .then((e) => e?.logoUrl ?? "")
       .catch(() => "");
+    // Los archivos subidos exigen sesión (?sesion=) desde el endurecimiento
+    // de seguridad: sin ella el <img> del logo devolvería 401 y saldría vacío.
+    const logoSrc = logoUrl ? urlApiConSesion(logoUrl) : "";
     paginas = paginas.map((t) => ({
       ...t,
       elements: t.elements.map((e) =>
-        e.type === "image" && e.src === "{{empresa.logo}}" ? { ...e, src: logoUrl } : e
+        e.type === "image" && e.src === "{{empresa.logo}}" ? { ...e, src: logoSrc } : e
       ),
     }));
   }

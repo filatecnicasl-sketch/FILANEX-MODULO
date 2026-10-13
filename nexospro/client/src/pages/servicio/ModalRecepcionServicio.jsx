@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { SignatureField } from "../../editor/SignatureField.jsx";
 import { imprimirHojaEntradaServicio } from "../../components/MenuImprimirOrdenServicio.jsx";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const campo = "input w-full";
 
@@ -184,7 +185,7 @@ export default function ModalRecepcionServicio({ orden, recienCreada = false, on
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {fotos.map((f) => (
                   <div key={f} className="relative group">
-                    <img src={f} alt="estado" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                    <img src={urlApiConSesion(f)} alt="estado" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
                     <button
                       type="button"
                       onClick={() => quitarFoto(f)}
@@ -221,7 +222,7 @@ export default function ModalRecepcionServicio({ orden, recienCreada = false, on
                   </button>
                 </div>
                 <img
-                  src={firma.imagen}
+                  src={urlApiConSesion(firma.imagen)}
                   alt="Firma del cliente"
                   className="mt-2 h-20 rounded border border-emerald-200 bg-white"
                 />

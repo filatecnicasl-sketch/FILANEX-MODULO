@@ -7,6 +7,7 @@ import { IconEditar, IconBorrar, IconFirma, IconGraficas, IconComparativas } fro
 import ModalImportarEnergia from "./ModalImportarEnergia.jsx";
 import ModalConsumos from "./ModalConsumos.jsx";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const VACIO = {
   cups: "", tipo: "luz", clienteId: "", comercializadoraId: "", canalDistribucionId: "",
@@ -615,7 +616,7 @@ export default function EnergiaSuministrosPage() {
                     {documentos.map((d) => (
                       <li key={d.url} className="flex items-center gap-2 text-sm">
                         <a
-                          href={d.url}
+                          href={urlApiConSesion(d.url)}
                           target="_blank"
                           rel="noreferrer"
                           className="text-sky-300 hover:text-sky-200 hover:underline truncate"

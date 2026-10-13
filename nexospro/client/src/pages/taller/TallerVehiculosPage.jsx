@@ -5,6 +5,7 @@ import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../compo
 import { IconImprimir } from "../../components/icons.jsx";
 import { imprimirFicha } from "../../utils/imprimir.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const campo = "input w-full";
 const VACIO = { matricula: "", marca: "", modelo: "", km: "", tipo: "cliente", clienteId: "", clienteNombre: "", notas: "" };
@@ -432,7 +433,7 @@ function ModalHistorial({ vehiculo, onCerrar }) {
             className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-6"
             onClick={() => setFotoGrande(null)}
           >
-            <img src={fotoGrande} alt="Foto ampliada" className="max-w-full max-h-full rounded-xl" />
+            <img src={urlApiConSesion(fotoGrande)} alt="Foto ampliada" className="max-w-full max-h-full rounded-xl" />
           </div>
         )}
 
@@ -504,7 +505,7 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
           {doc.fotos.map((f) => (
             <button key={f} type="button" onClick={(e) => { e.stopPropagation(); onFoto(f); }} className="group">
               <img
-                src={f}
+                src={urlApiConSesion(f)}
                 alt="Foto"
                 className="w-full h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-80 transition-opacity"
               />

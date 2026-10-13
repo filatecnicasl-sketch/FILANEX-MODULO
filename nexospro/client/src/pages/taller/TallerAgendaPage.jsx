@@ -5,6 +5,7 @@ import CitaModal from "./CitaModal.jsx";
 import RecepcionRapida from "./RecepcionRapida.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { ESTADOS_CITA } from "./datos.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const NOMBRE_ESTADO = Object.fromEntries(ESTADOS_CITA.map((e) => [e.clave, e.nombre]));
 
@@ -233,7 +234,7 @@ export default function TallerAgendaPage() {
                           <td>
                             {c.adjuntos?.length ? (
                               <a
-                                href={c.adjuntos[0].url}
+                                href={urlApiConSesion(c.adjuntos[0].url)}
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}

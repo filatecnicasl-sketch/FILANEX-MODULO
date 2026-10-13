@@ -10,6 +10,7 @@ import {
   tonoEstadoDoc,
   tonoTipo,
 } from "./datos.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const DOC_VACIO = {
   tipo: "recibida",
@@ -72,7 +73,7 @@ function ModalDocumento({ cliente, inicial, onCerrar, onGuardado }) {
           {inicial ? "Revisar documento" : "Nuevo documento manual"}
         </h2>
         {inicial?.archivo && (
-          <a href={inicial.archivo} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline block mb-3">
+          <a href={urlApiConSesion(inicial.archivo)} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline block mb-3">
             Ver documento original
           </a>
         )}
@@ -357,7 +358,7 @@ export default function AsesoriaDocumentosPage() {
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   {d.archivo && (
-                    <a href={d.archivo} target="_blank" rel="noreferrer" className="btn-ghost text-xs mr-2">Ver</a>
+                    <a href={urlApiConSesion(d.archivo)} target="_blank" rel="noreferrer" className="btn-ghost text-xs mr-2">Ver</a>
                   )}
                   <button className="btn-ghost text-xs mr-2" onClick={() => setModal(d)}>Editar</button>
                   <button className="btn-ghost text-xs text-red-300" onClick={() => borrar(d)}>Borrar</button>

@@ -6,6 +6,7 @@ import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
 import { imprimirJustificanteCitaTaller } from "../../utils/imprimir-cita-taller.js";
 import { cargarClientesLigeros, invalidarClientesLigeros } from "../../lib/clientesLigeros.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const CLASES_PILL_ESTADO = {
   amber: "bg-amber-100 text-amber-700 border-amber-200",
@@ -1102,7 +1103,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
                     {adjuntos.map((a) => (
                       <li key={a.url} className="flex items-center gap-2 text-sm">
                         <a
-                          href={a.url}
+                          href={urlApiConSesion(a.url)}
                           target="_blank"
                           rel="noreferrer"
                           className="flex-1 truncate text-violet-300 hover:underline"

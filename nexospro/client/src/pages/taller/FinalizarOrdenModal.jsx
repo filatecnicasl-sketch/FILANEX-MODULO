@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const MEDIOS = [
   { clave: "telefono", nombre: "Teléfono" },
@@ -130,8 +131,8 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
           <div className="flex flex-wrap gap-2">
             {fotos.map((f) => (
               <span key={f} className="relative group">
-                <a href={f} target="_blank" rel="noreferrer">
-                  <img src={f} alt="Foto de la entrega" className="h-16 w-16 object-cover rounded-lg border border-slate-600" />
+                <a href={urlApiConSesion(f)} target="_blank" rel="noreferrer">
+                  <img src={urlApiConSesion(f)} alt="Foto de la entrega" className="h-16 w-16 object-cover rounded-lg border border-slate-600" />
                 </a>
                 <button
                   type="button"

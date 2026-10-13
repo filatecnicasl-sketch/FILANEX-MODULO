@@ -8,6 +8,7 @@ import FormOrden from "./FormOrden.jsx";
 import MenuImprimirOrden from "../../components/MenuImprimirOrden.jsx";
 import ModalRecepcion from "./ModalRecepcion.jsx";
 import FinalizarOrdenModal from "./FinalizarOrdenModal.jsx";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const fechaHora = (iso) =>
   iso
@@ -285,7 +286,7 @@ function AdjuntoValoracion({ orden }) {
   return (
     <div className="mt-2 flex items-center gap-2 text-[0.6875rem]">
       {orden.valoracionPdf?.ruta ? (
-        <a href={orden.valoracionPdf.ruta} target="_blank" rel="noreferrer" className="text-violet-600 hover:underline truncate" title={orden.valoracionPdf.nombre}>
+        <a href={urlApiConSesion(orden.valoracionPdf.ruta)} target="_blank" rel="noreferrer" className="text-violet-600 hover:underline truncate" title={orden.valoracionPdf.nombre}>
           PDF valoración
         </a>
       ) : (

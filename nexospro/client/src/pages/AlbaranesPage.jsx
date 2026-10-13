@@ -9,6 +9,7 @@ import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import EnviarCorreo from "../components/EnviarCorreo.jsx";
 import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 // Totales de un albarán a partir de sus líneas (con el descuento % aplicado).
 function totalesDe(a) {
@@ -468,7 +469,7 @@ export default function AlbaranesPage() {
                     )}
                     {a.firmaEntrega?.imagen && (
                       <a
-                        href={a.firmaEntrega.imagen}
+                        href={urlApiConSesion(a.firmaEntrega.imagen)}
                         target="_blank"
                         rel="noreferrer"
                         title={`Ver firma de ${a.firmaEntrega.nombre}`}

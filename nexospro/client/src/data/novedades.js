@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-13",
+    tipo: "correccion",
+    titulo: "Vuelven a verse logos, firmas, fotos y peritaciones",
+    detalle:
+      "El endurecimiento de seguridad de ayer exigía sesión para abrir cualquier archivo subido, pero varias pantallas enlazaban las imágenes sin ella: el logo de la empresa (Ajustes y documentos impresos), las firmas de recepción y de albaranes, las fotos de vehículos y entregas, las peritaciones de las citas, los adjuntos de propuestas y los documentos de asesoría. Todas vuelven a mostrarse, ahora con la sesión incluida en el enlace.",
+  },
+  {
+    fecha: "2026-10-13",
     tipo: "nuevo",
     titulo: "Energía: documentación de cada suministro",
     detalle:

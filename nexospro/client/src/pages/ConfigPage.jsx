@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import VinculoAsesoria from "../components/VinculoAsesoria.jsx";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 const campo = "w-full input";
 const etiqueta = "block text-[0.6875rem] font-semibold uppercase tracking-wider text-slate-400 mb-1.5";
@@ -75,7 +76,7 @@ export default function ConfigPage() {
     const r = await fetch("/api/empresa/logo", { method: "POST", body: datos });
     const json = await r.json();
     if (r.ok) {
-      setEmpresa((e) => ({ ...e, logoUrl: `${json.logoUrl}?t=${Date.now()}` }));
+      setEmpresa((e) => ({ ...e, logoUrl: urlApiConSesion(`${json.logoUrl}?t=${Date.now()}`) }));
       setAviso("Logo actualizado.");
     } else setError(json.error || "No se pudo subir el logo");
   }
@@ -143,7 +144,7 @@ export default function ConfigPage() {
         <div className="flex items-center gap-4 mb-6">
           <span className="w-[72px] h-[72px] rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
             {empresa.logoUrl ? (
-              <img src={empresa.logoUrl} alt="Logo de la empresa" className="max-w-full max-h-full object-contain" />
+              <img src={urlApiConSesion(empresa.logoUrl)} alt="Logo de la empresa" className="max-w-full max-h-full object-contain" />
             ) : (
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="18" rx="3" />

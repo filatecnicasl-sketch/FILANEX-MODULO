@@ -4,6 +4,7 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { TIPOS_APARATO, nombreTipoAparato } from "./datos.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
+import { urlApiConSesion } from "../../lib/sesion.js";
 
 const campo = "input w-full";
 const TIPO_INICIAL = TIPOS_APARATO[0]?.clave ?? "otro";
@@ -365,14 +366,14 @@ function ModalHistorial({ aparato, onCerrar }) {
                     {h.fotos.map((f) => (
                       <a
                         key={f}
-                        href={f}
+                        href={urlApiConSesion(f)}
                         target="_blank"
                         rel="noreferrer"
                         title="Abrir la foto en una pestaña nueva"
                         className="group"
                       >
                         <img
-                          src={f}
+                          src={urlApiConSesion(f)}
                           alt="Foto del estado"
                           className="w-full h-20 object-cover rounded-lg border border-slate-200 group-hover:opacity-80 transition-opacity"
                         />

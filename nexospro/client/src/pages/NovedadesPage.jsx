@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { CAMBIOS } from "../data/novedades.js";
-import { payloadToken, esSuperAdmin } from "../lib/sesion.js";
+import { payloadToken, esSuperAdmin, urlApiConSesion } from "../lib/sesion.js";
 
 const TIPOS = {
   nuevo: { etiqueta: "Nuevo", clases: "bg-emerald-100 text-emerald-700 border-emerald-200" },
@@ -314,9 +314,9 @@ export default function NovedadesPage() {
                   {p.adjuntos?.length > 0 && (
                     <div className="flex gap-2 flex-wrap mt-2">
                       {p.adjuntos.map((a, j) => (
-                        <a key={a.url} href={a.url} target="_blank" rel="noreferrer" title={a.nombre || "Ver captura"}>
+                        <a key={a.url} href={urlApiConSesion(a.url)} target="_blank" rel="noreferrer" title={a.nombre || "Ver captura"}>
                           <img
-                            src={a.url}
+                            src={urlApiConSesion(a.url)}
                             alt={a.nombre || `Captura ${j + 1}`}
                             className="h-16 w-16 object-cover rounded-lg border border-slate-200 hover:border-accent hover:opacity-80 transition-all"
                           />
