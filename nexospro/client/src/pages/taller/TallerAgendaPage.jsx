@@ -6,6 +6,7 @@ import RecepcionRapida from "./RecepcionRapida.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { ESTADOS_CITA } from "./datos.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
+import { imprimirInforme } from "../informes/comun.jsx";
 
 const NOMBRE_ESTADO = Object.fromEntries(ESTADOS_CITA.map((e) => [e.clave, e.nombre]));
 
@@ -112,9 +113,96 @@ export default function TallerAgendaPage() {
     cargar();
   }
 
+  // Listado de las citas del día en A4: el que se lleva el jefe de taller a
+  // primera hora para saber qué entra hoy (propuesta de Montiel).
+  async function imprimirDia() {
+    const hoy = aFechaInput(new Date());
+    try {
+      const [citasHoy, empresa] = await Promise.all([
+        fetch(`/api/taller/citas?desde=${hoy}&hasta=${hoy}`).then((r) => r.json()),
+        fetch("/api/empresa").then((r) => r.json()),
+      ]);
+      const normales = citasHoy
+        .filter((c) => c.tipo !== "peritaje")
+        .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+      const peritajes = citasHoy
+        .filter((c) => c.tipo === "peritaje")
+        .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
+      const secciones = [];
+      if (normales.length) {
+        secciones.push({
+          titulo: "Citas de recepción y entrega",
+          columnas: [
+            { etiqueta: "Hora" },
+            { etiqueta: "Matrícula" },
+            { etiqueta: "Vehículo" },
+            { etiqueta: "Cliente" },
+            { etiqueta: "Teléfono", num: true },
+            { etiqueta: "Motivo" },
+            { etiqueta: "Estado" },
+          ],
+          filas: normales.map((c) => [
+            c.hora ?? "",
+            c.matricula ?? "—",
+            [c.vehiculoMarca, c.vehiculoModelo].filter(Boolean).join(" ") || "—",
+            c.clienteNombre ?? "—",
+            c.telefono ?? "—",
+            c.motivo || "—",
+            NOMBRE_ESTADO[c.estado] ?? c.estado,
+          ]),
+        });
+      }
+      if (peritajes.length) {
+        secciones.push({
+          titulo: "Citas de peritaje",
+          columnas: [
+            { etiqueta: "Hora" },
+            { etiqueta: "Matrícula" },
+            { etiqueta: "Vehículo" },
+            { etiqueta: "Cliente" },
+            { etiqueta: "Compañía" },
+            { etiqueta: "Siniestro" },
+            { etiqueta: "Estado" },
+          ],
+          filas: peritajes.map((c) => [
+            c.hora ?? "",
+            c.matricula ?? "—",
+            [c.vehiculoMarca, c.vehiculoModelo].filter(Boolean).join(" ") || "—",
+            c.clienteNombre ?? "—",
+            c.aseguradoraNombre ?? "—",
+            c.numeroSiniestro ?? "—",
+            NOMBRE_ESTADO[c.estado] ?? c.estado,
+          ]),
+        });
+      }
+      if (!secciones.length) {
+        alert("No hay citas para hoy.");
+        return;
+      }
+      imprimirInforme({
+        titulo: "Citas del día",
+        subtitulo: new Date().toLocaleDateString("es-ES", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+        empresa,
+        secciones,
+        notaFinal:
+          "Las citas se ordenan por hora. Estados y teléfonos salen como están en la agenda.",
+      });
+    } catch {
+      alert("No se pudo preparar el listado del día.");
+    }
+  }
+
   return (
     <>
       <CabeceraPagina titulo="Citas del taller" descripcion="Citas de recepción y entrega de vehículos.">
+        <button type="button" onClick={imprimirDia} className="btn-ghost">
+          Imprimir día
+        </button>
         {pestana === "peritaje" && (
           <button
             onClick={() => setModal({ fecha: aFechaInput(new Date()), tipo: "peritaje" })}

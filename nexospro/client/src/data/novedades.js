@@ -5,6 +5,20 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-14",
+    tipo: "nuevo",
+    titulo: "Taller: listado de las citas del día para imprimir",
+    detalle:
+      "En Taller → Citas, el botón «Imprimir día» saca en A4 todas las citas de hoy: hora, matrícula, vehículo, cliente, teléfono, motivo y estado, con las citas de peritaje en su propia sección. Ideal para llevar a primera hora la hoja del día (sugerencia de Talleres Montiel).",
+  },
+  {
+    fecha: "2026-10-14",
+    tipo: "mejora",
+    titulo: "Ya no se corta el texto largo en los impresos",
+    detalle:
+      "Los cuadros de texto de las plantillas (descripción de la avería, trabajos solicitados, observaciones…) reducen automáticamente el tamaño de letra cuando el texto no cabe, en lugar de cortar lo que sobresalía. Las averías largas salen completas en la orden de trabajo.",
+  },
+  {
     fecha: "2026-10-13",
     tipo: "correccion",
     titulo: "Vuelven a verse logos, firmas, fotos y peritaciones",

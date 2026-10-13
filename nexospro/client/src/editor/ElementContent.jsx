@@ -137,7 +137,37 @@ function FieldView({ el, variant, formData, onFormValue, fs, mm }) {
 
 // ---------- Área de texto ----------
 function TextareaView({ el, variant, formData, onFormValue, fs, mm }) {
+  const print = variant === "print";
   const value = String(formData[el.fieldKey] ?? "");
+  const ref = useRef(null);
+  const [factor, setFactor] = useState(1);
+
+  // En impresión, si el texto no cabe en su cuadro (averías largas, daños
+  // detallados…) reduce la fuente hasta que quepa en vez de cortarlo.
+  // Igual que TextView: re-mide cuando termina de cargar la fuente.
+  useLayoutEffect(() => {
+    if (!print || !ref.current) return;
+    const node = ref.current;
+    let cancelado = false;
+
+    const ajustar = () => {
+      if (cancelado || !ref.current) return;
+      let f = 1;
+      node.style.fontSize = fs(el.fontSize);
+      while (f > 0.45 && node.scrollHeight > node.clientHeight + 1) {
+        f -= 0.05;
+        node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
+      }
+      setFactor(f);
+    };
+
+    ajustar();
+    document.fonts?.ready?.then(ajustar).catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [print, value, el.fontSize, el.w, el.h]);
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {el.label && (
@@ -154,7 +184,15 @@ function TextareaView({ el, variant, formData, onFormValue, fs, mm }) {
             style={{ fontSize: fs(el.fontSize), lineHeight: 1.3 }}
           />
         ) : (
-          <div className="h-full w-full overflow-hidden px-1" style={{ fontSize: fs(el.fontSize), lineHeight: 1.3, whiteSpace: "pre-wrap" }}>
+          <div
+            ref={ref}
+            className="h-full w-full overflow-hidden px-1"
+            style={{
+              fontSize: print ? `${(el.fontSize * factor).toFixed(2)}pt` : fs(el.fontSize),
+              lineHeight: 1.3,
+              whiteSpace: "pre-wrap",
+            }}
+          >
             {value}
           </div>
         )}
