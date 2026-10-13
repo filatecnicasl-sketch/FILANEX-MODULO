@@ -24,6 +24,13 @@ import { moverStock } from "../services/stock.js";
 
 const router = Router();
 
+function inicioDelDia(valor) {
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return null;
+  fecha.setHours(0, 0, 0, 0);
+  return fecha;
+}
+
 // Añade información de tesorería derivada (no persistida) a cada factura.
 function conTesoreria(f) {
   const obj = f.toObject ? f.toObject() : f;
@@ -70,8 +77,9 @@ router.post("/", async (req, res, next) => {
     }
     // El vencimiento nunca puede ser anterior a la fecha de expedición:
     // descuadraría la antigüedad de saldos y la conciliación.
-    const fechaExpedicion = req.body.fechaExpedicion ? new Date(req.body.fechaExpedicion) : new Date();
-    if (req.body.vencimiento && new Date(req.body.vencimiento) < fechaExpedicion) {
+    const fechaExpedicion = inicioDelDia(req.body.fechaExpedicion ?? new Date());
+    const vencimiento = req.body.vencimiento ? inicioDelDia(req.body.vencimiento) : null;
+    if (vencimiento && fechaExpedicion && vencimiento < fechaExpedicion) {
       return res.status(400).json({ error: "El vencimiento no puede ser anterior a la fecha de expedición" });
     }
     const empresa = await Empresa.findOne();
@@ -132,8 +140,9 @@ router.put("/:id", async (req, res, next) => {
     if (!Number.isFinite(totales.total)) {
       return res.status(422).json({ error: "El total de la factura no es válido. Revisa las líneas." });
     }
-    const vencimientoNuevo = req.body.vencimiento ? new Date(req.body.vencimiento) : factura.vencimiento;
-    if (vencimientoNuevo && factura.fechaExpedicion && vencimientoNuevo < factura.fechaExpedicion) {
+    const vencimientoNuevo = req.body.vencimiento ? inicioDelDia(req.body.vencimiento) : inicioDelDia(factura.vencimiento);
+    const fechaExpedicion = inicioDelDia(factura.fechaExpedicion);
+    if (vencimientoNuevo && fechaExpedicion && vencimientoNuevo < fechaExpedicion) {
       return res.status(400).json({ error: "El vencimiento no puede ser anterior a la fecha de expedición" });
     }
     const empresa = await Empresa.findById(factura.empresa) ?? (await Empresa.findOne());
