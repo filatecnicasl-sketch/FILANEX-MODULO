@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-14",
     tipo: "mejora",
+    titulo: "La lectura OCR aguanta los límites de cuota de Google",
+    detalle:
+      "Esta mañana Google denegó temporalmente las llamadas de IA por cuota agotada (error 429) y la lectura de facturas falló durante unos minutos. Ahora, si eso ocurre, se espera más tiempo entre reintentos (la ventana de cuota es de un minuto) y se prueba automáticamente la vía de reserva de IA Studio antes de dar el aviso de «OCR no disponible», con cuotas independientes de las de Vertex.",
+  },
+  {
+    fecha: "2026-10-14",
+    tipo: "mejora",
     titulo: "Extractos: un cargo puede conciliar varias facturas a la vez",
     detalle:
       "Algunos proveedores (IONOS, por ejemplo) agrupan varias facturas en un solo cargo del banco. Ahora, al conciliar un movimiento, las facturas de compra admiten selección múltiple: se marcan las que paga ese cargo, se comprueba que la suma cuadre y el registro de conciliaciones anota todas juntas. Al buscar coincidencias también aparecen las facturas pendientes del mismo proveedor aunque no cuadren solas, y las devoluciones del banco se pueden casar con sus abonos.",

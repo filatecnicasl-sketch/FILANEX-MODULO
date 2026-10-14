@@ -71,6 +71,14 @@ function esRecuperable(err) {
   );
 }
 
+// Cuota agotada (429 / RESOURCE_EXHAUSTED): la ventana de límite de Google es
+// por minuto, así que reintentar en 1 segundo solo quema otro intento. Se
+// espera bastante más antes de la siguiente llamada.
+function esLimiteCuota(err) {
+  const msg = String(err?.message ?? "");
+  return err?.status === 429 || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("high demand");
+}
+
 // Google devuelve este error cuando la IP de salida es de un centro de datos
 // o de un país no admitido. Reintentar no sirve de nada: hay que cambiar de
 // proveedor o salir por un proxy permitido.
@@ -139,7 +147,7 @@ async function generarConCliente({ ai, contents, esquema, modelos, timeoutMs, mo
         console.warn(`${motor} ${modelo} (intento ${intento + 1}): ${String(err?.message).slice(0, 160)}`);
         if (!esRecuperable(err)) throw err;
         if (err?.status === 404 || String(err?.message).includes("no longer available")) break;
-        await esperar(1200 * (intento + 1));
+        await esperar(esLimiteCuota(err) ? 10000 * (intento + 1) : 1200 * (intento + 1));
       } finally {
         clearTimeout(reloj);
       }
@@ -289,7 +297,11 @@ export async function generarJsonGemini({
     } catch (err) {
       console.error("Vertex AI:", err?.message);
       if (esErrorCredenciales(err)) credencialesRotas = true;
-      if (proveedor === "vertex" || !hayOpenAi()) {
+      // Si Vertex falla por cuota agotada (429) o otra causa transitoria y hay
+      // clave de AI Studio, se prueba como reserva antes de rendirse: son
+      // cuotas independientes y el usuario no debería notar nada.
+      const hayReservaGemini = Boolean(process.env.GEMINI_API_KEY) && !geminiBloqueado;
+      if (proveedor === "vertex" || (!hayOpenAi() && !hayReservaGemini)) {
         throw new Error(
           credencialesRotas
             ? `${etiqueta} ${MENSAJE_CONFIG_ROTA}`
@@ -423,7 +435,7 @@ async function generarTextoConCliente({ ai, historial, sistema, modelos, timeout
         console.warn(`${motor} ${modelo} (intento ${intento + 1}): ${String(err?.message).slice(0, 160)}`);
         if (!esRecuperable(err)) throw err;
         if (err?.status === 404 || String(err?.message).includes("no longer available")) break;
-        await esperar(1200 * (intento + 1));
+        await esperar(esLimiteCuota(err) ? 10000 * (intento + 1) : 1200 * (intento + 1));
       } finally {
         clearTimeout(reloj);
       }
