@@ -21,6 +21,15 @@ const subida = uploadMemoria;
 const PALABRAS_LEGALES = new Set([
   "sl", "slu", "sll", "sa", "s.a", "spa", "suc", "sucs", "ltd", "llc",
   "espana", "es", "the", "madrid", "slue", "sasu",
+  // Palabras genéricas de sector: aparecen en muchísimas razones sociales y
+  // provocaban falsos positivos ("Neotel SISTEMAS Y Redes" casaba con
+  // "Hispamicro SISTEMAS Informaticos").
+  "sistemas", "sistema", "servicios", "servicio", "informatica", "informaticos",
+  "informatica", "soluciones", "solucion", "tecnologia", "tecnologias",
+  "comercial", "grupo", "redes", "digital", "digitales", "global", "iberica",
+  "internacional", "consulting", "asesoria", "gestion", "proyectos",
+  "distribuciones", "suministros", "empresa", "compania", "cloud", "online",
+  "telecomunicaciones", "energia", "group", "inc", "corp", "limited", "cia",
 ]);
 
 function normalizarTexto(s) {
@@ -346,10 +355,14 @@ router.get("/coincidencias", async (req, res, next) => {
         const pendiente = Math.round(((f.total ?? 0) - pagado) * 100) / 100;
         const diff = Math.abs((f.total ?? 0) - importe);
         const proveedor = f.proveedor?.nombre || "";
+        const mismoTercero = nombreEnConcepto(proveedor, concepto);
+        const dias = diasEntre(f.fechaExpedicion ?? f.createdAt, fecha);
         // Aunque una factura no cuadre sola con el cargo, se ofrece si es del
-        // mismo proveedor que nombra el banco y sigue pendiente: puede ser que
-        // el cargo pague varias a la vez (el usuario las combina marcándolas).
-        const combinable = pendiente > 0 && nombreEnConcepto(proveedor, concepto);
+        // mismo proveedor que nombra el banco y es de fechas próximas: el
+        // cargo puede estar pagando varias a la vez (el usuario las combina
+        // marcándolas). Se ofrecen también las ya marcadas como pagadas, para
+        // poder rehacer una conciliación mal hecha.
+        const combinable = mismoTercero && dias <= 90;
         if (diff > margen && !combinable) continue;
         candidatas.push({
           tipo: "factura_compra",
@@ -362,8 +375,8 @@ router.get("/coincidencias", async (req, res, next) => {
           vinculada: yaVinculadas.has(String(f._id)),
           diferencia: Math.round(diff * 100) / 100,
           combinable: diff > margen,
-          mismoTercero: nombreEnConcepto(proveedor, concepto),
-          puntos: (nombreEnConcepto(proveedor, concepto) ? 0 : 5000) + diff * 100 + diasEntre(f.fechaExpedicion ?? f.createdAt, fecha),
+          mismoTercero,
+          puntos: (mismoTercero ? 0 : 5000) + diff * 100 + dias,
         });
       }
 
