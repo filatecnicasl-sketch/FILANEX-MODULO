@@ -322,10 +322,14 @@ router.get("/coincidencias", async (req, res, next) => {
     const margen = Math.max(10, importe * 0.05); // tolerancia amplia para elegir a mano
 
     // Documentos ya vinculados a otro movimiento: se marcan para no repetir.
-    const yaVinculadas = new Set(
-      (await MovimientoBancario.find({ "conciliadoCon.id": { $ne: null } }, "conciliadoCon.id"))
-        .map((m) => String(m.conciliadoCon.id))
-    );
+    const yaVinculadas = new Set();
+    for (const m of await MovimientoBancario.find(
+      { "conciliadoCon.id": { $ne: null } },
+      "conciliadoCon.id conciliadoCon.ids"
+    )) {
+      if (m.conciliadoCon?.id) yaVinculadas.add(String(m.conciliadoCon.id));
+      for (const x of m.conciliadoCon?.ids ?? []) yaVinculadas.add(String(x));
+    }
 
     const candidatas = [];
 
@@ -338,8 +342,12 @@ router.get("/coincidencias", async (req, res, next) => {
         const pagado = sumaPagos(f);
         const pendiente = Math.round(((f.total ?? 0) - pagado) * 100) / 100;
         const diff = Math.abs((f.total ?? 0) - importe);
-        if (diff > margen) continue;
         const proveedor = f.proveedor?.nombre || "";
+        // Aunque una factura no cuadre sola con el cargo, se ofrece si es del
+        // mismo proveedor que nombra el banco y sigue pendiente: puede ser que
+        // el cargo pague varias a la vez (el usuario las combina marcándolas).
+        const combinable = pendiente > 0 && nombreEnConcepto(proveedor, concepto);
+        if (diff > margen && !combinable) continue;
         candidatas.push({
           tipo: "factura_compra",
           _id: f._id,
@@ -350,6 +358,7 @@ router.get("/coincidencias", async (req, res, next) => {
           pendiente,
           vinculada: yaVinculadas.has(String(f._id)),
           diferencia: Math.round(diff * 100) / 100,
+          combinable: diff > margen,
           puntos: (nombreEnConcepto(proveedor, concepto) ? 0 : 5000) + diff * 100 + diasEntre(f.fechaExpedicion ?? f.createdAt, fecha),
         });
       }
@@ -372,6 +381,31 @@ router.get("/coincidencias", async (req, res, next) => {
         });
       }
     } else {
+      // Abonos de proveedores (facturas de compra en negativo): cuadran con
+      // las devoluciones que abona el banco (p. ej. IONOS reembolsando una
+      // cuota). Se ofrecen como candidatas también en los ingresos.
+      const abonos = await FacturaCompra.find({ estado: "validada", total: { $lt: 0 } })
+        .populate("proveedor", "nombre nif")
+        .sort({ fechaExpedicion: -1 })
+        .limit(200);
+      for (const f of abonos) {
+        const diff = Math.abs(Math.abs(f.total ?? 0) - importe);
+        if (diff > margen) continue;
+        const proveedor = f.proveedor?.nombre || "";
+        candidatas.push({
+          tipo: "factura_compra",
+          _id: f._id,
+          etiqueta: `Abono ${f.numeroFacturaProveedor || "s/n"}`,
+          subtitulo: proveedor || "—",
+          fecha: f.fechaExpedicion ?? f.createdAt,
+          total: f.total,
+          pendiente: 0,
+          vinculada: yaVinculadas.has(String(f._id)),
+          diferencia: Math.round(diff * 100) / 100,
+          puntos: (nombreEnConcepto(proveedor, concepto) ? 0 : 5000) + diff * 100 + diasEntre(f.fechaExpedicion ?? f.createdAt, fecha),
+        });
+      }
+
       const remesas = await Remesa.find({ total: { $gt: 0 } }).sort({ fechaCargo: -1 }).limit(200);
       for (const r of remesas) {
         const diff = Math.abs((r.total ?? 0) - importe);
@@ -904,11 +938,21 @@ router.post("/:id/conciliar", async (req, res, next) => {
     }
 
     const { tipo, id } = req.body;
-    if (!tipo || (!id && tipo !== "manual" && tipo !== "movimiento_tesoreria")) {
+    // Un mismo cargo puede pagar varias facturas (típico de proveedores como
+    // IONOS que agrupan): se admite ids: [id1, id2, ...] en factura_compra.
+    const ids = Array.isArray(req.body.ids)
+      ? req.body.ids.filter(Boolean)
+      : id
+        ? [id]
+        : [];
+    if (ids.length > 1 && tipo !== "factura_compra") {
+      return res.status(400).json({ error: "Solo las facturas de compra admiten conciliación múltiple" });
+    }
+    if (!tipo || (!ids.length && tipo !== "manual" && tipo !== "movimiento_tesoreria")) {
       return res.status(400).json({ error: "Faltan tipo o id" });
     }
     const marcador = `extracto:${mov._id}`;
-    const importe = Math.abs(req.body.importePago ?? mov.importe ?? 0);
+    const importe = Math.round(Math.abs(req.body.importePago ?? mov.importe ?? 0) * 100) / 100;
 
     // Reservar el movimiento en exclusiva (evita doble conciliación manual
     // o contra la automática en paralelo).
@@ -923,18 +967,24 @@ router.post("/:id/conciliar", async (req, res, next) => {
       MovimientoBancario.updateOne({ _id: mov._id }, { $unset: { bloqueo: "" } }).catch(() => {});
 
     if (tipo === "factura_compra") {
-      const fc = await FacturaCompra.findById(id);
-      if (!fc) { await liberar(); return res.status(404).json({ error: "Factura no encontrada" }); }
-      if (fc.estado !== "validada") { await liberar(); return res.status(409).json({ error: "Solo se concilian facturas validadas" }); }
-      const pendiente = Math.round(((fc.total ?? 0) - sumaPagos(fc)) * 100) / 100;
-      if (pendiente > 0) {
-        const importeAplicar = Math.min(pendiente, importe);
-        if (importeAplicar <= 0) { await liberar(); return res.status(409).json({ error: "La factura ya está pagada" }); }
-        const notaPago = `Conciliado con extracto: ${mov.concepto} (${marcador})`;
-        await FacturaCompra.updateOne(
-          { _id: fc._id, "pagos.nota": { $ne: notaPago } },
-          { $push: { pagos: { importe: importeAplicar, fecha: mov.fecha ?? new Date(), metodo: "transferencia", nota: notaPago } } }
-        );
+      // El importe del cargo se reparte entre las facturas elegidas, en el
+      // orden en que lleguen, hasta agotarlo (cada una queda con su pago
+      // parcial o total y el mismo marcador para poder deshacerlo junto).
+      let restante = importe;
+      for (const idFc of ids) {
+        const fc = await FacturaCompra.findById(idFc);
+        if (!fc) { await liberar(); return res.status(404).json({ error: "Factura no encontrada" }); }
+        if (fc.estado !== "validada") { await liberar(); return res.status(409).json({ error: "Solo se concilian facturas validadas" }); }
+        const pendiente = Math.round(((fc.total ?? 0) - sumaPagos(fc)) * 100) / 100;
+        if (pendiente > 0 && restante > 0) {
+          const importeAplicar = Math.min(pendiente, restante);
+          const notaPago = `Conciliado con extracto: ${mov.concepto} (${marcador})`;
+          await FacturaCompra.updateOne(
+            { _id: fc._id, "pagos.nota": { $ne: notaPago } },
+            { $push: { pagos: { importe: importeAplicar, fecha: mov.fecha ?? new Date(), metodo: "transferencia", nota: notaPago } } }
+          );
+          restante = Math.round((restante - importeAplicar) * 100) / 100;
+        }
       }
     } else if (tipo === "gasto") {
       const g = await Gasto.findById(id);
@@ -1001,18 +1051,23 @@ router.post("/:id/conciliar", async (req, res, next) => {
     await MovimientoBancario.updateOne(
       { _id: mov._id },
       {
-        $set: { conciliadoCon: { tipo, id: id || null, fecha: new Date() }, notas: notasFinales },
+        $set: {
+          conciliadoCon: { tipo, id: ids[0] ?? null, ids, fecha: new Date() },
+          notas: notasFinales,
+        },
         $unset: { bloqueo: "" },
       }
     );
-    mov.conciliadoCon = { tipo, id: id || null, fecha: new Date() };
+    mov.conciliadoCon = { tipo, id: ids[0] ?? null, ids, fecha: new Date() };
     mov.notas = notasFinales;
 
     // Descripción legible del documento para el registro.
     let descripcionManual = tipo;
     if (tipo === "factura_compra") {
-      const fc = await FacturaCompra.findById(id).populate("proveedor", "nombre");
-      descripcionManual = `${fc?.numeroFacturaProveedor || "factura"}${fc?.proveedor?.nombre ? ` · ${fc.proveedor.nombre}` : ""}`;
+      const fcs = await FacturaCompra.find({ _id: { $in: ids } }).populate("proveedor", "nombre");
+      const numeros = fcs.map((fc) => fc?.numeroFacturaProveedor || "factura");
+      const proveedor = fcs[0]?.proveedor?.nombre;
+      descripcionManual = `${numeros.join(" + ")}${proveedor ? ` · ${proveedor}` : ""}`;
     } else if (tipo === "gasto") {
       const g = await Gasto.findById(id);
       descripcionManual = g?.comercio || "gasto";
@@ -1034,7 +1089,7 @@ router.post("/:id/conciliar", async (req, res, next) => {
       modo: "manual",
       usuario: req.usuario?.email || "",
       movimiento: { id: mov._id, fecha: mov.fecha, concepto: mov.concepto, importe: mov.importe },
-      documento: { tipo, id: id || null, descripcion: descripcionManual, criterio: "elegido por el usuario" },
+      documento: { tipo, id: ids[0] ?? null, descripcion: descripcionManual, criterio: "elegido por el usuario" },
       notas: mov.notas,
     });
 
@@ -1061,10 +1116,15 @@ router.delete("/:id/conciliacion", async (req, res, next) => {
     // $pull atómico de pagos/cobros creados por esta conciliación: dos
     // desconciliaciones simultáneas no pueden duplicar ni perder nada.
     if (mov.conciliadoCon.tipo === "factura_compra") {
-      await FacturaCompra.updateOne(
-        { _id: mov.conciliadoCon.id },
-        { $pull: { pagos: { nota: { $regex: marcadorRegex } } } }
-      );
+      // Puede haber varias facturas pagadas con el mismo cargo: se buscan
+      // por el marcador, igual que las remesas.
+      const afectadas = await FacturaCompra.find({ "pagos.nota": { $regex: marcadorRegex } }, "_id");
+      for (const fc of afectadas) {
+        await FacturaCompra.updateOne(
+          { _id: fc._id },
+          { $pull: { pagos: { nota: { $regex: marcadorRegex } } } }
+        );
+      }
     } else if (mov.conciliadoCon.tipo === "factura_venta") {
       await FacturaVenta.updateOne(
         { _id: mov.conciliadoCon.id },

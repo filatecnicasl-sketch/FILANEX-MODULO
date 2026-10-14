@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-14",
     tipo: "mejora",
+    titulo: "Extractos: un cargo puede conciliar varias facturas a la vez",
+    detalle:
+      "Algunos proveedores (IONOS, por ejemplo) agrupan varias facturas en un solo cargo del banco. Ahora, al conciliar un movimiento, las facturas de compra admiten selección múltiple: se marcan las que paga ese cargo, se comprueba que la suma cuadre y el registro de conciliaciones anota todas juntas. Al buscar coincidencias también aparecen las facturas pendientes del mismo proveedor aunque no cuadren solas, y las devoluciones del banco se pueden casar con sus abonos.",
+  },
+  {
+    fecha: "2026-10-14",
+    tipo: "mejora",
     titulo: "Ya no se pierde una factura o una cita por un Escape o un clic fuera",
     detalle:
       "Los editores de facturas, albaranes, presupuestos y citas ya no se cierran de golpe: si estás escribiendo en un campo, la tecla Esc solo saca el foco del campo; y si hay datos sin guardar, Esc o un clic fuera de la ventana piden confirmación antes de cerrar. Sin datos escritos, se cierran igual que antes, sin molestar.",
