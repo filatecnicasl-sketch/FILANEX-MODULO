@@ -9,7 +9,7 @@ export const CAMBIOS = [
     tipo: "mejora",
     titulo: "Facturas de compra: no se pueden dar de alta dos veces, y el OCR lee la divisa",
     detalle:
-      "Al dar de alta una factura (a mano o importando el PDF) se comprueba que no exista ya otra del mismo proveedor con el mismo número: si existe, el programa lo avisa y no la crea. La comparación también caza las confusiones típicas de teclear una O donde va un cero (o una I donde va un 1), para que un número escrito a mano no esquive el control. Además, el OCR detecta ahora la moneda del documento: las facturas en dólares se guardan con sus importes en $ y el tipo de cambio del Banco Central Europeo del día de la factura, editable en la revisión.",
+      "Al dar de alta una factura (a mano o importando el PDF) se comprueba que no exista ya otra del mismo proveedor con el mismo número: si existe, el programa lo avisa y no la crea. La comparación también caza las confusiones típicas de teclear una O donde va un cero (o una I donde va un 1), para que un número escrito a mano no esquive el control. Además, al importar un PDF, el número de factura se contrasta con el texto interno del documento y se copia tal cual lo emitió el proveedor. Y el OCR detecta la moneda: las facturas en dólares se guardan con sus importes en $ y el tipo de cambio del Banco Central Europeo del día de la factura, editable en la revisión.",
   },
   {
     fecha: "2026-10-14",
