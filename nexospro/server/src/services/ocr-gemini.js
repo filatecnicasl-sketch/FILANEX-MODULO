@@ -169,7 +169,13 @@ async function afinarNumeroConTextoPdf(fichero, extraccion) {
   try {
     const { PDFParse } = await import("pdf-parse");
     parser = new PDFParse({ data: fichero.buffer });
-    const texto = (await parser.getText())?.text ?? "";
+    // Los PDF a veces separan con caracteres invisibles de control (\u0000,
+    // tabuladores raros...) lo que visualmente es un único número: se
+    // sustituyen por un guion para que el número salga entero en el texto.
+    const texto = ((await parser.getText())?.text ?? "").replace(
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F]+/g,
+      "-"
+    );
     const runs = texto.match(/[A-Za-z0-9][A-Za-z0-9-]{2,}/g) ?? [];
     const candidatos = [
       ...new Set(
