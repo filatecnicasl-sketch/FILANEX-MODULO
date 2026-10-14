@@ -140,6 +140,8 @@ export function FiltroFechas({ desde, hasta, onCambio, atajo, onAtajo, anyo, onA
 }
 
 // Carga un endpoint de informes cada vez que cambian las fechas.
+// Si la URL ya trae query params (p. ej. ?formato=json), los conserva y
+// añade desde/hasta con el separador correcto.
 export function useInforme(url, desde, hasta) {
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
@@ -151,7 +153,8 @@ export function useInforme(url, desde, hasta) {
     const params = new URLSearchParams();
     if (desde) params.set("desde", desde);
     if (hasta) params.set("hasta", hasta);
-    fetch(`${url}?${params}`)
+    const sep = url.includes("?") ? "&" : "?";
+    fetch(`${url}${sep}${params}`)
       .then(async (r) => {
         const j = await r.json().catch(() => ({}));
         if (!r.ok) throw new Error(j.error || "No se pudo cargar el informe");

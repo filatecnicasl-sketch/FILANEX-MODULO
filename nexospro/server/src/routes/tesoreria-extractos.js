@@ -1180,4 +1180,124 @@ router.delete("/:id", async (req, res, next) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Informe de conciliaciones: listado completo de movimientos bancarios
+// conciliados con su documento asociado. Devuelve JSON o CSV.
+// ---------------------------------------------------------------------------
+
+router.get("/informe-conciliaciones", async (req, res, next) => {
+  try {
+    const formato = req.query.formato || "json";
+    const desde = req.query.desde ? new Date(req.query.desde) : null;
+    const hasta = req.query.hasta ? new Date(req.query.hasta) : null;
+
+    const filtro = { "conciliadoCon.id": { $exists: true, $ne: null } };
+    if (desde || hasta) {
+      filtro.fecha = {};
+      if (desde) filtro.fecha.$gte = desde;
+      if (hasta) {
+        const h = new Date(hasta);
+        h.setHours(23, 59, 59, 999);
+        filtro.fecha.$lte = h;
+      }
+    }
+
+    const movimientos = await MovimientoBancario.find(filtro).sort({ fecha: 1 }).lean();
+
+    const facturasCompraIds = [];
+    const facturasVentaIds = [];
+    for (const m of movimientos) {
+      const tipo = m.conciliadoCon?.tipo;
+      if (tipo === "factura_compra") facturasCompraIds.push(m.conciliadoCon.id);
+      else if (tipo === "factura_venta") facturasVentaIds.push(m.conciliadoCon.id);
+    }
+
+    const [compras, ventas] = await Promise.all([
+      FacturaCompra.find({ _id: { $in: facturasCompraIds } }).populate("proveedor", "nombre").lean(),
+      FacturaVenta.find({ _id: { $in: facturasVentaIds } }).populate("cliente", "nombre").lean(),
+    ]);
+
+    const comprasMap = compras.reduce((map, f) => {
+      map[String(f._id)] = f;
+      return map;
+    }, {});
+    const ventasMap = ventas.reduce((map, f) => {
+      map[String(f._id)] = f;
+      return map;
+    }, {});
+
+    const filas = movimientos.map((m) => {
+      const tipo = m.conciliadoCon?.tipo || "desconocido";
+      let documento = "";
+      let tercero = "";
+      let importeDoc = "";
+
+      if (tipo === "factura_compra") {
+        const f = comprasMap[String(m.conciliadoCon.id)];
+        documento = f ? `Factura compra ${f.numeroFacturaProveedor || "s/n"}` : "Factura compra no encontrada";
+        tercero = f?.proveedor?.nombre || "";
+        importeDoc = f ? f.total.toFixed(2) : "";
+      } else if (tipo === "factura_venta") {
+        const f = ventasMap[String(m.conciliadoCon.id)];
+        documento = f ? `Factura venta ${f.serieNumero || "s/n"}` : "Factura venta no encontrada";
+        tercero = f?.cliente?.nombre || "";
+        importeDoc = f ? f.total.toFixed(2) : "";
+      } else if (tipo === "facturas_venta") {
+        documento = `Varias facturas de venta (${m.conciliadoCon.ids?.length || "?"})`;
+        tercero = "";
+        importeDoc = "";
+      } else if (tipo === "gasto") {
+        documento = "Gasto";
+      } else if (tipo === "remesa") {
+        documento = "Remesa SEPA";
+      } else {
+        documento = `${tipo} (${m.conciliadoCon.id})`;
+      }
+
+      return {
+        fecha: m.fecha ? new Date(m.fecha).toISOString().slice(0, 10) : "",
+        importe: m.importe,
+        concepto: m.concepto || "",
+        tipo,
+        documento,
+        tercero,
+        importeDocumento: importeDoc,
+        cuadra: importeDoc ? Math.abs(Math.abs(m.importe) - parseFloat(importeDoc)) < 0.01 : null,
+      };
+    });
+
+    if (formato === "csv") {
+      const cabeceras = ["Fecha", "Importe", "Concepto", "Tipo", "Documento", "Tercero", "Importe documento", "Cuadra"];
+      const lineas = filas.map((f) =>
+        [
+          f.fecha,
+          f.importe.toFixed(2),
+          f.concepto,
+          f.tipo,
+          f.documento,
+          f.tercero,
+          f.importeDocumento,
+          f.cuadra === null ? "" : f.cuadra ? "SÍ" : "NO",
+        ].map((c) => JSON.stringify(c))
+      );
+      const csv = [cabeceras.join(";"), ...lineas.map((l) => l.join(";"))].join("\n");
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", "attachment; filename=conciliaciones.csv");
+      return res.send("\ufeff" + csv);
+    }
+
+    const totalCargos = filas.filter((f) => f.importe < 0).reduce((s, f) => s + Math.abs(f.importe), 0);
+    const totalIngresos = filas.filter((f) => f.importe > 0).reduce((s, f) => s + f.importe, 0);
+
+    res.json({
+      total: filas.length,
+      totalCargos,
+      totalIngresos,
+      filas,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
