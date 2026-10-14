@@ -279,20 +279,20 @@ export function Documentos({ url, nombre, titulo, desde, hasta, tituloNumero }) 
           horizontal
           secciones={[{
             columnas: [
-              { etiqueta: tituloNumero }, { etiqueta: "Fecha" }, { etiqueta: "Contacto" },
+              { etiqueta: tituloNumero }, { etiqueta: "Fecha" }, { etiqueta: "Contacto" }, { etiqueta: "NIF/CIF" },
               { etiqueta: "Base", num: true }, { etiqueta: "IVA", num: true },
               { etiqueta: "Total", num: true }, { etiqueta: "Estado" },
             ],
             filas: filas.map((f) => [
-              f.numero, fmtFecha(f.fecha), f.contacto, euros(f.base), euros(f.cuotaIva), euros(f.total), f.estadoPago,
+              f.numero, fmtFecha(f.fecha), f.contacto, f.nif, euros(f.base), euros(f.cuotaIva), euros(f.total), f.estadoPago,
             ]),
-            pie: ["TOTALES", "", "", euros(t?.base), euros(t?.cuotaIva), euros(t?.total), ""],
+            pie: ["TOTALES", "", "", "", euros(t?.base), euros(t?.cuotaIva), euros(t?.total), ""],
           }]}
         />
         <BotonCSV
           nombre={nombre}
-          cabeceras={[tituloNumero, "Fecha", "Contacto", "Base", "IVA", "Total", "Estado"]}
-          filas={filas.map((f) => [f.numero, fmtFecha(f.fecha), f.contacto, f.base, f.cuotaIva, f.total, f.estadoPago])}
+          cabeceras={[tituloNumero, "Fecha", "Contacto", "NIF/CIF", "Base", "IVA", "Total", "Estado"]}
+          filas={filas.map((f) => [f.numero, fmtFecha(f.fecha), f.contacto, f.nif, f.base, f.cuotaIva, f.total, f.estadoPago])}
         />
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -302,6 +302,7 @@ export function Documentos({ url, nombre, titulo, desde, hasta, tituloNumero }) 
           { etiqueta: tituloNumero },
           { etiqueta: "Fecha" },
           { etiqueta: "Contacto" },
+          { etiqueta: "NIF/CIF" },
           { etiqueta: "Base", num: true },
           { etiqueta: "IVA", num: true },
           { etiqueta: "Total", num: true },
@@ -312,6 +313,7 @@ export function Documentos({ url, nombre, titulo, desde, hasta, tituloNumero }) 
             <Td>{f.numero}</Td>
             <Td>{fmtFecha(f.fecha)}</Td>
             <Td>{f.contacto}</Td>
+            <Td>{f.nif}</Td>
             <TdNum>{euros(f.base)}</TdNum>
             <TdNum>{euros(f.cuotaIva)}</TdNum>
             <TdNum fuerte>{euros(f.total)}</TdNum>
@@ -321,6 +323,7 @@ export function Documentos({ url, nombre, titulo, desde, hasta, tituloNumero }) 
         pie={t && (
           <>
             <Td>TOTALES</Td>
+            <Td />
             <Td />
             <Td />
             <TdNum fuerte>{euros(t.base)}</TdNum>
