@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-15",
+    tipo: "nuevo",
+    titulo: "Buzón de correo entrante: consulta el correo de la empresa y importa facturas desde él",
+    detalle:
+      "En Ajustes → Correo hay una sección nueva, Buzón entrante, donde se conecta la cuenta de correo de la empresa (Gmail con contraseña de aplicación u otro correo IMAP), cifrada igual que el resto de contraseñas. Desde Compras → Facturas, el botón «Del correo» abre un listado de los mensajes recientes con adjuntos PDF o imagen: al elegir uno, el adjunto baja del correo y se procesa con la misma IA de OCR que el botón «Importar PDF», abriéndose después la ventana de revisión. Así las facturas que llegan al correo se dan de alta sin descargarlas a mano.",
+  },
+  {
     fecha: "2026-10-14",
     tipo: "mejora",
     titulo: "Clientes: documentación adjunta (NIF, CIF, escrituras…) y suministros ordenados",

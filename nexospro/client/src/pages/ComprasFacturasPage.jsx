@@ -131,6 +131,137 @@ function ModalConciliar({ factura, onGuardado, onCerrar }) {
   );
 }
 
+// Modal "Importar del correo": lista los mensajes del buzón entrante de la
+// empresa (Ajustes → Correo) que traen adjuntos PDF o imagen y manda el
+// adjunto elegido al mismo OCR que usa "Importar PDF (IA)".
+function ModalCorreo({ onImportado, onCerrar }) {
+  const [mensajes, setMensajes] = useState(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
+  const [importando, setImportando] = useState(null); // "uid:indice"
+
+  async function cargarMensajes(texto = busqueda) {
+    setCargando(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({ soloAdjuntos: "1", limite: "30" });
+      if (texto.trim()) params.set("busqueda", texto.trim());
+      const r = await fetch(`/api/correo/entrante/mensajes?${params}`);
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "No se pudo leer el buzón");
+      setMensajes(datos);
+    } catch (e) {
+      setError(e.message);
+      setMensajes([]);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  useEffect(() => {
+    cargarMensajes("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function importarAdjunto(m, indice, nombre) {
+    setImportando(`${m.uid}:${indice}`);
+    setError(null);
+    try {
+      const r = await fetch(
+        `/api/correo/entrante/mensajes/${m.uid}/adjunto?carpeta=${encodeURIComponent(m.carpeta ?? "INBOX")}&indice=${indice}`
+      );
+      if (!r.ok) throw new Error((await r.json()).error || "No se pudo bajar el adjunto");
+      const blob = await r.blob();
+      const fichero = new File([blob], nombre || "factura.pdf", {
+        type: blob.type || "application/pdf",
+      });
+      const fd = new FormData();
+      fd.append("documento", fichero);
+      const rOcr = await fetch("/api/facturas-compra/ocr", { method: "POST", body: fd });
+      const datos = await rOcr.json();
+      if (!rOcr.ok) throw new Error(datos.error || "Error al procesar el documento");
+      onImportado(datos);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setImportando(null);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+      <div className="modal-panel w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-white mb-1">Importar del correo</h2>
+        <p className="text-sm text-slate-400 mb-4">
+          Mensajes recientes del buzón de la empresa con adjuntos PDF o imagen. Elige uno y se procesará con IA.
+        </p>
+
+        <div className="flex gap-2 mb-4">
+          <InputBusqueda
+            value={busqueda}
+            onChange={setBusqueda}
+            placeholder="Buscar por remitente o asunto…"
+          />
+          <button className="btn-ghost whitespace-nowrap" onClick={() => cargarMensajes()} disabled={cargando}>
+            {cargando ? "Buscando…" : "Buscar"}
+          </button>
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-400 mb-4">
+            {error}
+            {/buzón entrante configurado/i.test(error) && (
+              <span className="block text-slate-400 mt-1">Configúralo en Ajustes → Correo → Buzón entrante.</span>
+            )}
+          </p>
+        )}
+
+        {!mensajes ? (
+          <p className="text-sm text-slate-500 py-6 text-center">Leyendo el buzón…</p>
+        ) : mensajes.length === 0 ? (
+          <p className="text-sm text-slate-500 py-6 text-center">
+            {cargando ? "Leyendo el buzón…" : "No hay correos con adjuntos válidos."}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {mensajes.map((m) => (
+              <div key={m.uid} className="rounded-xl border border-white/10 px-4 py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-white font-medium truncate" title={m.de}>
+                    {m.deNombre || m.de || "(desconocido)"}
+                  </span>
+                  <span className="text-xs text-slate-500 whitespace-nowrap num">
+                    {m.fecha ? new Date(m.fecha).toLocaleDateString("es-ES") : ""}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-400 truncate" title={m.asunto}>{m.asunto}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {m.adjuntos.map((a, i) => (
+                    <button
+                      key={`${m.uid}-${i}`}
+                      onClick={() => importarAdjunto({ ...m, carpeta: m.carpeta }, i, a.nombre)}
+                      disabled={importando !== null}
+                      className="btn-ghost text-xs"
+                      title={a.nombre}
+                    >
+                      {importando === `${m.uid}:${i}` ? "Procesando…" : a.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onCerrar} className="btn-ghost">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ComprasFacturasPage() {
   const [lista, setLista] = useState(null);
   const [q, setQ] = useState("");
@@ -146,6 +277,7 @@ export default function ComprasFacturasPage() {
   const [conciliando, setConciliando] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
   const [verificando, setVerificando] = useState(null); // { tipo, documento }
+  const [delCorreo, setDelCorreo] = useState(false);
   const inputRef = useRef(null);
 
   // Filtra por texto (todos los campos visibles) + estado, pago, origen y
@@ -251,6 +383,9 @@ export default function ComprasFacturasPage() {
         </button>
         <button onClick={() => inputRef.current?.click()} disabled={subiendo} className="btn-ghost">
           {subiendo ? "Procesando…" : "Importar PDF (IA)"}
+        </button>
+        <button onClick={() => setDelCorreo(true)} className="btn-ghost">
+          Del correo
         </button>
         <button onClick={() => setFormManual(true)} className="btn-primary">
           Nueva manual
@@ -533,6 +668,16 @@ export default function ComprasFacturasPage() {
           factura={conciliando}
           onGuardado={() => { setConciliando(null); cargar(); }}
           onCerrar={() => setConciliando(null)}
+        />
+      )}
+      {delCorreo && (
+        <ModalCorreo
+          onImportado={(datos) => {
+            setDelCorreo(false);
+            setVerificando(datos);
+            cargar();
+          }}
+          onCerrar={() => setDelCorreo(false)}
         />
       )}
       {verificando && (

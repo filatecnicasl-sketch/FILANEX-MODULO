@@ -74,7 +74,7 @@ export function normalizarConfiguracionEntrante(body = {}, empresa) {
   };
 }
 
-function conexionImap(conf, password) {
+export function conexionImap(conf, password) {
   return new ImapFlow({
     host: conf.host,
     port: Number(conf.puerto) || 993,
@@ -87,7 +87,7 @@ function conexionImap(conf, password) {
   });
 }
 
-function mensajeErrorEntrante(error, tipo) {
+export function mensajeErrorEntrante(error, tipo) {
   const codigo = error?.authenticationFailed || error?.code;
   const texto = error?.response || error?.message || "";
   if (tipo === "gmail" && (codigo === "AuthenticationFailed" || /AUTHENTICATIONFAILED/i.test(texto))) {

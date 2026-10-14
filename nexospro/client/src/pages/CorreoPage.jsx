@@ -17,6 +17,16 @@ const VACIO = {
   password: "",
 };
 
+const VACIO_ENTRANTE = {
+  activo: false,
+  tipo: "gmail",
+  usuario: "",
+  host: "",
+  puerto: 993,
+  carpeta: "INBOX",
+  password: "",
+};
+
 function cambiarTipo(valor, form, setForm) {
   if (valor === "gmail") {
     setForm({
@@ -46,6 +56,13 @@ export default function CorreoPage() {
   const [verificando, setVerificando] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
+  // Buzón entrante (IMAP/Gmail) para consultar correos y bajar facturas.
+  const [entrante, setEntrante] = useState(null);
+  const [entranteGuardada, setEntranteGuardada] = useState(false);
+  const [guardandoEntrante, setGuardandoEntrante] = useState(false);
+  const [probandoEntrante, setProbandoEntrante] = useState(false);
+  const [estadoEntrante, setEstadoEntrante] = useState(null);
+
   useEffect(() => {
     fetch("/api/correo/configuracion")
       .then((r) => r.json())
@@ -54,7 +71,54 @@ export default function CorreoPage() {
         setGuardada(Boolean(datos.passwordGuardada));
       })
       .catch(() => setEstado({ error: "No se pudo cargar la configuración de correo." }));
+    fetch("/api/correo/entrante/config")
+      .then((r) => r.json())
+      .then((datos) => {
+        setEntrante({ ...VACIO_ENTRANTE, ...datos, password: "" });
+        setEntranteGuardada(Boolean(datos.passwordGuardada));
+      })
+      .catch(() => setEstadoEntrante({ error: "No se pudo cargar la configuración del buzón." }));
   }, []);
+
+  function ponerEntrante(nombre, valor) {
+    setEntrante((actual) => ({ ...actual, [nombre]: valor }));
+  }
+
+  async function guardarEntrante() {
+    setGuardandoEntrante(true);
+    setEstadoEntrante(null);
+    try {
+      const respuesta = await fetch("/api/correo/entrante/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entrante),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) throw new Error(datos.error || "No se pudo guardar el buzón");
+      setEntrante({ ...VACIO_ENTRANTE, ...datos, password: "" });
+      setEntranteGuardada(Boolean(datos.passwordGuardada));
+      setEstadoEntrante({ ok: "Buzón entrante guardado." });
+    } catch (error) {
+      setEstadoEntrante({ error: error.message });
+    } finally {
+      setGuardandoEntrante(false);
+    }
+  }
+
+  async function probarEntrante() {
+    setProbandoEntrante(true);
+    setEstadoEntrante(null);
+    try {
+      const respuesta = await fetch("/api/correo/entrante/probar", { method: "POST" });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) throw new Error(datos.error || "No se pudo conectar");
+      setEstadoEntrante({ ok: `Conexión correcta — ${datos.sinLeer} correos sin leer en la carpeta.` });
+    } catch (error) {
+      setEstadoEntrante({ error: error.message });
+    } finally {
+      setProbandoEntrante(false);
+    }
+  }
 
   function poner(campoNombre, valor) {
     setForm((actual) => ({ ...actual, [campoNombre]: valor }));
@@ -207,6 +271,80 @@ export default function CorreoPage() {
         </div>
         {form.ultimoError && <p className="text-xs text-amber-400 mt-3">Último aviso del servidor: {form.ultimoError}</p>}
       </div>
+
+      {entrante && (
+        <div className="panel p-6 mb-6">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
+            <div>
+              <h2 className="text-white font-semibold">Buzón entrante (recibir)</h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Conecta el correo de la empresa para consultar correos recibidos y bajar facturas de proveedores desde Compras → Facturas.
+              </p>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-slate-300 pt-2">
+              <input type="checkbox" checked={entrante.activo} onChange={(e) => ponerEntrante("activo", e.target.checked)} />
+              Activar buzón entrante
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4">
+            <div>
+              <label className={etiqueta}>Tipo de buzón</label>
+              <select
+                className={campo}
+                value={entrante.tipo}
+                onChange={(e) => {
+                  const tipo = e.target.value;
+                  setEntrante((actual) => ({
+                    ...actual,
+                    tipo,
+                    host: tipo === "gmail" ? "imap.gmail.com" : actual.host === "imap.gmail.com" ? "" : actual.host,
+                    puerto: 993,
+                  }));
+                }}
+              >
+                <option value="gmail">Gmail</option>
+                <option value="imap">Otro (IMAP)</option>
+              </select>
+            </div>
+            <div>
+              <label className={etiqueta}>Cuenta de correo</label>
+              <input type="email" className={campo} value={entrante.usuario} onChange={(e) => ponerEntrante("usuario", e.target.value)} placeholder="empresa@gmail.com" />
+            </div>
+            <div>
+              <label className={etiqueta}>Contraseña</label>
+              <input type="password" className={campo} value={entrante.password} onChange={(e) => ponerEntrante("password", e.target.value)} placeholder={entranteGuardada ? "Guardada — escribe solo para cambiarla" : "Contraseña de aplicación"} autoComplete="new-password" />
+            </div>
+            <div>
+              <label className={etiqueta}>Servidor IMAP</label>
+              <input className={campo} value={entrante.host} onChange={(e) => ponerEntrante("host", e.target.value)} placeholder="imap.tudominio.com" disabled={entrante.tipo === "gmail"} />
+            </div>
+            <div>
+              <label className={etiqueta}>Puerto</label>
+              <input type="number" min="1" max="65535" className={campo} value={entrante.puerto} onChange={(e) => ponerEntrante("puerto", e.target.value)} />
+            </div>
+            <div>
+              <label className={etiqueta}>Carpeta a consultar</label>
+              <input className={campo} value={entrante.carpeta} onChange={(e) => ponerEntrante("carpeta", e.target.value)} placeholder="INBOX" />
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2 items-center">
+            <button className="btn-ghost" onClick={guardarEntrante} disabled={guardandoEntrante}>
+              {guardandoEntrante ? "Guardando…" : "Guardar buzón"}
+            </button>
+            <button className="btn-ghost" onClick={probarEntrante} disabled={probandoEntrante || !entranteGuardada}>
+              {probandoEntrante ? "Comprobando…" : "Probar buzón"}
+            </button>
+            <p className="text-xs text-slate-500">
+              {entranteGuardada ? "Guarda después de cambiar la contraseña y pruébalo." : "Falta guardar la contraseña."}
+            </p>
+          </div>
+          {estadoEntrante?.ok && <p className="text-sm text-emerald-600 mt-3">{estadoEntrante.ok}</p>}
+          {estadoEntrante?.error && <p className="text-sm text-red-400 mt-3">{estadoEntrante.error}</p>}
+          {entrante.ultimoError && <p className="text-xs text-amber-400 mt-3">Último aviso del servidor: {entrante.ultimoError}</p>}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="panel p-6">
