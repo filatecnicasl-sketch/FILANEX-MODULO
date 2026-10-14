@@ -8,9 +8,10 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
       -18,08 € (04/08). Son facturas que el usuario no ha pasado todavía
       (las 6 de la carpeta —0009 a 0014— ya están dadas de alta, validadas
       y conciliadas al céntimo, 14/10).
-- [ ] **Borrador OCR huérfano "IX1C52EV-0001"** (28/07, 50, proveedor sin
-      asignar, pendiente_revision): no casa con ningún cargo del banco.
-      Preguntar al usuario qué es (¿otra factura de Emergent? ¿descartar?).
+- [ ] **Tres cargos de Moonshot AI sin factura**: -35,63 € (15/07),
+      -35,16 € (17/08) y -34,99 € (15/09). El top-up de 50 $ del 28/07 ya
+      está dado de alta y conciliado (IX1C52EV-0001, proveedor Moonshot
+      creado, 14/10). Pedir al usuario los PDFs de estas tres.
 - [ ] **Cargo IONOS de -149,44 € del 06/07** sin conciliar: son casi seguro
       facturas de junio (2T) no dadas de alta. El usuario aún no ha decidido
       entre subirlas o marcar "Sin factura".
