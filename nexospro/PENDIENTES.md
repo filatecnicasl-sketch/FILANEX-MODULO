@@ -79,6 +79,14 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Ideas en estudio (propuestas internas)
 
+- **Calendly (calendly.com) — valorar si nos conviene** (pedido 14/10/2026):
+  agenda online donde el cliente reserva hora él mismo con un enlace
+  (disponibilidad, recordatorios, integración con Google Calendar). Plan
+  gratuito muy limitado; de pago por asiento. Dos caminos a estudiar:
+  (a) integrarlo por su API/webhook para que las reservas caigan solas en
+  las citas de FILANEX, o (b) construir la "reserva online" nativa (enlace
+  público por taller que vuelca en la agenda, sin cuota externa ni datos
+  del cliente en terceros). Decidir con el usuario.
 - **Nexo — fase 2 (agente que ejecuta acciones)**: APLAZADO por el usuario
   (21/09/2026, "de momento Nexo se queda así"). Diseño acordado: Nexo crearía
   citas/clientes y consultaría agenda y facturación, con confirmación en el
