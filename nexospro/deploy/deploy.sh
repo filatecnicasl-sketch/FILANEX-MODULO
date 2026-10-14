@@ -19,7 +19,7 @@ npm install
 npm run build
 
 echo "==> Reiniciando API"
-pm2 restart filanex-api
+pm2 restart filanex-server
 
 echo "==> Despliegue completado"
 pm2 status
