@@ -78,23 +78,40 @@ const subida = uploadMemoria;
 
 // Un mismo proveedor no puede tener dos facturas con el mismo número: es la
 // forma más segura de cazar un alta repetida (manual o importada por OCR).
-// La comparación ignora mayúsculas/minúsculas y espacios de más.
+// La comparación ignora mayúsculas/minúsculas y espacios de más, y también
+// las confusiones clásicas O↔0 e I↔1 (un número tecleado a mano puede
+// llevar una O donde el PDF pone un cero: a la vista son idénticas).
+function claveNumero(numero) {
+  return String(numero ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/O/g, "0")
+    .replace(/I/g, "1");
+}
+
 async function facturaDuplicada(proveedorId, numero, excluirId) {
   const n = String(numero ?? "").trim();
   if (!proveedorId || !n) return null;
+  const clave = claveNumero(n);
   const filtro = {
     proveedor: proveedorId,
     estado: { $ne: "rechazada" },
-    numeroFacturaProveedor: { $regex: `^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+    numeroFacturaProveedor: { $ne: null },
   };
   if (excluirId) filtro._id = { $ne: excluirId };
-  return FacturaCompra.findOne(filtro).populate("proveedor", "nombre");
+  const candidatas = await FacturaCompra.find(filtro).select("numeroFacturaProveedor").lean();
+  for (const c of candidatas) {
+    if (claveNumero(c.numeroFacturaProveedor) === clave) {
+      return FacturaCompra.findById(c._id).populate("proveedor", "nombre");
+    }
+  }
+  return null;
 }
 
 function mensajeDuplicada(dup, numero) {
   const fecha = dup.fechaExpedicion ?? dup.createdAt;
   const cuando = fecha ? new Date(fecha).toLocaleDateString("es-ES") : "fecha desconocida";
-  return `Ya existe una factura de ${dup.proveedor?.nombre ?? "ese proveedor"} con el número ${numero} (del ${cuando}). No se puede dar de alta dos veces: si la acabas de importar, la tienes pendiente en Revisión OCR.`;
+  return `Ya existe una factura de ${dup.proveedor?.nombre ?? "ese proveedor"} con el número ${dup.numeroFacturaProveedor ?? numero} (del ${cuando}). No se puede dar de alta dos veces: si la acabas de importar, la tienes pendiente en Revisión OCR.`;
 }
 
 // Tipo de cambio USD→EUR del Banco Central Europeo (api.frankfurter.app
