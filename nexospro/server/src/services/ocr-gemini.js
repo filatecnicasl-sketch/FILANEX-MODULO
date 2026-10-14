@@ -144,6 +144,7 @@ Reglas:
 - RETENCIÓN DE IRPF: muchas facturas de profesionales (asesores, gestores, técnicos, abogados) llevan una línea "Retención IRPF −15 %" o "Ret. a cta IRPF". Si aparece, pon el porcentaje en retencionPorcentaje (15, 19, 7, 2, 1...) y el importe en positivo en retencionImporte. Si NO hay retención, omítelos. NO la metas como línea más: es un descuento fiscal del total, no una línea del documento.
 - esArrendamiento: true solo si la factura es claramente de alquiler de local, oficina o nave (arrendamiento urbano), porque esas retenciones van al modelo 115 y no al 111.
 - total: el importe final que hay que PAGAR al proveedor. Si la factura tiene retención, es base + IVA − retención (el total impreso del papel, que ya la descuenta).
+- numeroDocumento: cópialo EXACTAMENTE, carácter a carácter. Los números de factura mezclan cifras y letras (p. ej. 5PS3H0LY-0001 lleva un CERO): distingue con mucho cuidado el cero (0) de la letra O mayúscula, y el uno (1) de las letras I, l y L. Si el PDF tiene texto seleccionable, copia el número del TEXTO REAL del documento, no del aspecto visual de la fuente (muchas fuentes dibujan el 0 igual que una O).
 - divisa: la moneda de TODOS los importes del documento. Fíjate en el símbolo ($, €, £) o en el código ISO (USD, EUR, GBP...). Si es euros, EUR; si es dólares, USD; cualquier otra, OTRA.
 - confianza: tu seguridad global en la extracción (0 = ilegible, 1 = perfecta).
 - No inventes datos: si un campo no aparece en el documento, omítelo.`;
