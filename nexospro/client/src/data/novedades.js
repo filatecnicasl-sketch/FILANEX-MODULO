@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-14",
     tipo: "mejora",
+    titulo: "Clientes: documentación adjunta (NIF, CIF, escrituras…) y suministros ordenados",
+    detalle:
+      "En la ficha de cada cliente hay una pestaña nueva, Documentos, donde se pueden adjuntar su NIF/CIF, escrituras, poderes o contratos (PDF o imágenes, hasta 6 archivos por subida). Al borrar un cliente, sus documentos se borran también del almacenamiento. Y en Energía → Suministros, la lista sale ordenada de lo más actual a lo más antiguo por fecha de alta.",
+  },
+  {
+    fecha: "2026-10-14",
+    tipo: "mejora",
     titulo: "Facturas de compra: no se pueden dar de alta dos veces, y el OCR lee la divisa",
     detalle:
       "Al dar de alta una factura (a mano o importando el PDF) se comprueba que no exista ya otra del mismo proveedor con el mismo número: si existe, el programa lo avisa y no la crea. La comparación también caza las confusiones típicas de teclear una O donde va un cero (o una I donde va un 1), para que un número escrito a mano no esquive el control. Además, al importar un PDF, el número de factura se contrasta con el texto interno del documento y se copia tal cual lo emitió el proveedor. Y el OCR detecta la moneda: las facturas en dólares se guardan con sus importes en $ y el tipo de cambio del Banco Central Europeo del día de la factura, editable en la revisión.",

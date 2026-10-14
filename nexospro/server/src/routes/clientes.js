@@ -6,6 +6,9 @@ import { siguienteCodigoFicha } from "../services/codigoFicha.js";
 import { buscarPorNif, errorNifDuplicado } from "../services/nifDuplicado.js";
 import { normalizarNIF } from "../services/validacion.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
+import { guardarArchivo, urlPublica } from "../services/storage.js";
+import { slugActual } from "../models/tenant.js";
+import { borrarSubida } from "../middleware/upload.js";
 
 const router = Router();
 const upload = multer({
@@ -184,7 +187,77 @@ router.delete("/:id", async (req, res, next) => {
   try {
     const cliente = await Cliente.findByIdAndDelete(req.params.id);
     if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
+    // Los documentos adjuntos también se borran del almacenamiento.
+    for (const d of cliente.documentos ?? []) {
+      await borrarSubida(d.url).catch(() => {});
+    }
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Documentación del cliente ---
+//
+// NIF/CIF, escrituras, poderes, contratos… Igual que los adjuntos de los
+// suministros de energía: PDF o imágenes, máximo 6 archivos de 15 MB por
+// subida, y cada archivo queda dentro de la carpeta del tenant.
+const subidaDocumentos = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024, files: 6 },
+});
+
+router.post(
+  "/:id/documentos",
+  [subidaDocumentos.array("archivos", 6), contextoTrasSubida],
+  async (req, res, next) => {
+    try {
+      const cliente = await Cliente.findById(req.params.id);
+      if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
+      if (!req.files?.length) return res.status(400).json({ error: "No llegó ningún archivo" });
+      const slug = slugActual();
+      const nuevos = [];
+      for (const f of req.files) {
+        const esPdf = f.mimetype === "application/pdf";
+        if (!esPdf && !f.mimetype.startsWith("image/")) continue;
+        const ext = esPdf
+          ? ".pdf"
+          : f.mimetype === "image/png"
+            ? ".png"
+            : f.mimetype === "image/webp"
+              ? ".webp"
+              : ".jpg";
+        const archivo = `cli-${cliente._id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+        const remoto = `uploads/${slug}/clientes/${archivo}`;
+        await guardarArchivo(remoto, f.buffer, f.mimetype);
+        nuevos.push({ url: urlPublica(remoto), nombre: f.originalname || archivo, fecha: new Date() });
+      }
+      if (!nuevos.length) {
+        return res.status(400).json({ error: "Solo se admiten archivos PDF o imágenes" });
+      }
+      cliente.documentos = [...(cliente.documentos ?? []), ...nuevos];
+      await cliente.save();
+      res.status(201).json(cliente.documentos);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Quita un documento del cliente (body: { url }) y borra el archivo.
+router.delete("/:id/documentos", async (req, res, next) => {
+  try {
+    const { url } = req.body;
+    const cliente = await Cliente.findById(req.params.id);
+    if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
+    const antes = (cliente.documentos ?? []).length;
+    cliente.documentos = (cliente.documentos ?? []).filter((d) => d.url !== url);
+    if (cliente.documentos.length === antes) {
+      return res.status(404).json({ error: "Documento no encontrado" });
+    }
+    await cliente.save();
+    await borrarSubida(url).catch(() => {});
+    res.json(cliente.documentos);
   } catch (err) {
     next(err);
   }

@@ -44,6 +44,15 @@ const clienteSchema = new Schema(
       },
     },
     notas: String,
+    // Documentación adjunta del cliente: NIF/CIF, escrituras, poderes,
+    // contratos… (igual que los adjuntos de suministros de energía).
+    documentos: [
+      {
+        url: String,
+        nombre: String,
+        fecha: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

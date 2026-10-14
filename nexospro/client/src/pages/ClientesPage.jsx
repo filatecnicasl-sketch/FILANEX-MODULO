@@ -5,6 +5,7 @@ import { IconEditar, IconBorrar, IconImprimir } from "../components/icons.jsx";
 import { imprimirFicha } from "../utils/imprimir.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
+import { urlApiConSesion } from "../lib/sesion.js";
 
 const VACIO = {
   codigo: "", fechaAlta: "", nombre: "", nif: "", grupo: "", telefono: "", telefono2: "", email: "",
@@ -53,6 +54,9 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
   const [vehiculoActivo, setVehiculoActivo] = useState(null);
   const [historial, setHistorial] = useState({ ordenes: [], citas: [], valoraciones: [] });
   const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  // Documentación adjunta del cliente (NIF/CIF, escrituras, poderes…).
+  const [documentos, setDocumentos] = useState(inicial?.documentos ?? []);
+  const [subiendoDocs, setSubiendoDocs] = useState(false);
 
   const tallerActivo = modulos.includes("taller");
 
@@ -140,12 +144,51 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
     }
   }
 
+  async function subirDocumentos(e) {
+    const archivos = e.target.files;
+    if (!archivos?.length) return;
+    setSubiendoDocs(true);
+    setError(null);
+    try {
+      const cuerpo = new FormData();
+      for (const f of archivos) cuerpo.append("archivos", f);
+      const r = await fetch(`/api/clientes/${inicial._id}/documentos`, { method: "POST", body: cuerpo });
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "Error al subir");
+      setDocumentos(datos);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubiendoDocs(false);
+      e.target.value = "";
+    }
+  }
+
+  async function quitarDocumento(doc) {
+    setSubiendoDocs(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/clientes/${inicial._id}/documentos`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: doc.url }),
+      });
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "Error al quitar");
+      setDocumentos(datos);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubiendoDocs(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
       <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">{editando ? `Editar ${inicial.nombre}` : "Nuevo cliente"}</h2>
 
-        {editando && tallerActivo && (
+        {editando && (
           <div className="flex gap-1 mb-4 border-b border-white/10 pb-1">
             <button
               type="button"
@@ -158,16 +201,29 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
             >
               Ficha
             </button>
+            {tallerActivo && (
+              <button
+                type="button"
+                onClick={() => setTab("vehiculos")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
+                  tab === "vehiculos"
+                    ? "bg-accent text-white"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                }`}
+              >
+                Vehículos
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setTab("vehiculos")}
+              onClick={() => setTab("documentos")}
               className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
-                tab === "vehiculos"
+                tab === "documentos"
                   ? "bg-accent text-white"
                   : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
-              Vehículos
+              Documentos
             </button>
           </div>
         )}
@@ -420,6 +476,59 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === "documentos" && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-300">Documentación del cliente</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  NIF/CIF, escrituras, poderes, contratos… PDF o imágenes.
+                </p>
+              </div>
+              {documentos.length > 0 && (
+                <ul className="space-y-1.5">
+                  {documentos.map((d) => (
+                    <li key={d.url} className="flex items-center gap-2 text-sm">
+                      <a
+                        href={urlApiConSesion(d.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-300 hover:text-sky-200 hover:underline truncate"
+                        title={d.nombre}
+                      >
+                        {d.nombre}
+                      </a>
+                      {d.fecha && (
+                        <span className="text-xs text-slate-500 whitespace-nowrap">
+                          {new Date(d.fecha).toLocaleDateString("es-ES")}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => quitarDocumento(d)}
+                        disabled={subiendoDocs}
+                        className="ms-auto p-1 text-slate-400 hover:text-rose-400 disabled:opacity-50"
+                        title="Quitar documento"
+                      >
+                        <IconBorrar />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer">
+                {subiendoDocs ? "Subiendo…" : "Añadir documentos"}
+                <input
+                  type="file"
+                  multiple
+                  accept="application/pdf,image/png,image/jpeg,image/webp"
+                  onChange={subirDocumentos}
+                  disabled={subiendoDocs}
+                  className="hidden"
+                />
+              </label>
             </div>
           )}
 

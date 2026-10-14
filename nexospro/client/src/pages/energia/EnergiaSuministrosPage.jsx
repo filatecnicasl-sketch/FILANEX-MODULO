@@ -55,22 +55,30 @@ export default function EnergiaSuministrosPage() {
 
   const grupos = [...new Set(clientes.map((c) => c.grupo).filter(Boolean))].sort();
 
-  const filtrada = (lista ?? []).filter((s) => {
-    if (filtroTipo !== "todos" && s.tipo !== filtroTipo) return false;
-    if (filtroEstado !== "todos" && s.estado !== filtroEstado) return false;
-    if (filtroGrupo && s.cliente?.grupo !== filtroGrupo) return false;
-    return coincideBusqueda(
-      q,
-      s.cups,
-      s.clienteNombre ?? s.cliente?.nombre,
-      s.comercializadoraNombre ?? s.comercializadora?.nombre,
-      s.canalDistribucionNombre ?? s.canalDistribucion?.nombre,
-      s.tarifa,
-      s.direccion?.calle,
-      s.direccion?.ciudad,
-      s.cliente?.grupo
-    );
-  });
+  const filtrada = (lista ?? [])
+    .filter((s) => {
+      if (filtroTipo !== "todos" && s.tipo !== filtroTipo) return false;
+      if (filtroEstado !== "todos" && s.estado !== filtroEstado) return false;
+      if (filtroGrupo && s.cliente?.grupo !== filtroGrupo) return false;
+      return coincideBusqueda(
+        q,
+        s.cups,
+        s.clienteNombre ?? s.cliente?.nombre,
+        s.comercializadoraNombre ?? s.comercializadora?.nombre,
+        s.canalDistribucionNombre ?? s.canalDistribucion?.nombre,
+        s.tarifa,
+        s.direccion?.calle,
+        s.direccion?.ciudad,
+        s.cliente?.grupo
+      );
+    })
+    // Del más actual al más antiguo (petición de Rolusur): por fecha de alta
+    // en la comercializadora; si no tiene, por fecha de creación.
+    .sort((a, b) => {
+      const fa = new Date(a.fechaAlta ?? a.createdAt ?? 0).getTime();
+      const fb = new Date(b.fechaAlta ?? b.createdAt ?? 0).getTime();
+      return fb - fa;
+    });
 
   async function cargar() {
     try {
