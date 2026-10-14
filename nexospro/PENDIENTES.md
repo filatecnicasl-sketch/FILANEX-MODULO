@@ -4,17 +4,13 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## URGENTE / Revisar con detenimiento
 
-- [ ] **Altas de las 6 facturas de Emergent (USD) + conciliar con el banco**
-      (pausado a petición del usuario, 14/10). PDFs en
-      `D:\Users\Francis\Desktop\ENVIO 2026\3º TRIMESTRE\RECIBIDAS\EMERGENT`
-      (PJQ0IGLM-0009 a 0014, ¡con CERO, no O!). Hechos ya: el OCR lee la
-      divisa y contrasta el número con el texto del PDF; existe un borrador
-      antiguo de la 0009 (PJQOIGLM con O, 50 € EUR, proveedor sin asignar)
-      que hay que DESCARTAR antes de reimportarla. Cargos del banco pendientes
-      de casar: 18,22 (06/07) · 45,56 (08/07) · 90,75 (10/07, posiblemente
-      2 facturas juntas) · 45,37 ×2 (10/07) · 45,35 (13/07) · 45,31 (22/07) ·
-      18,08 (04/08). Usar tipoCambio real del banco = cargo € / total $ para
-      que cuadre la conciliación.
+- [ ] **Dos cargos de Emergent de 20 $ sin factura**: -18,22 € (06/07) y
+      -18,08 € (04/08). Son facturas que el usuario no ha pasado todavía
+      (las 6 de la carpeta —0009 a 0014— ya están dadas de alta, validadas
+      y conciliadas al céntimo, 14/10).
+- [ ] **Borrador OCR huérfano "IX1C52EV-0001"** (28/07, 50, proveedor sin
+      asignar, pendiente_revision): no casa con ningún cargo del banco.
+      Preguntar al usuario qué es (¿otra factura de Emergent? ¿descartar?).
 - [ ] **Cargo IONOS de -149,44 € del 06/07** sin conciliar: son casi seguro
       facturas de junio (2T) no dadas de alta. El usuario aún no ha decidido
       entre subirlas o marcar "Sin factura".
