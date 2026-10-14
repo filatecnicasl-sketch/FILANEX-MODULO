@@ -319,7 +319,10 @@ router.get("/coincidencias", async (req, res, next) => {
     const fecha = req.query.fecha || new Date().toISOString();
     const concepto = req.query.concepto || "";
     const ingreso = req.query.signo === "1";
-    const margen = Math.max(10, importe * 0.05); // tolerancia amplia para elegir a mano
+    // Tolerancia para ofrecer candidatas a mano. Antes el suelo era de 10 €,
+    // lo que en cargos pequeños (6 €, 18 €...) metía en la lista facturas de
+    // proveedores que no tenían nada que ver, solo por tener importe parecido.
+    const margen = Math.max(2, importe * 0.03);
 
     // Documentos ya vinculados a otro movimiento: se marcan para no repetir.
     const yaVinculadas = new Set();
@@ -359,6 +362,7 @@ router.get("/coincidencias", async (req, res, next) => {
           vinculada: yaVinculadas.has(String(f._id)),
           diferencia: Math.round(diff * 100) / 100,
           combinable: diff > margen,
+          mismoTercero: nombreEnConcepto(proveedor, concepto),
           puntos: (nombreEnConcepto(proveedor, concepto) ? 0 : 5000) + diff * 100 + diasEntre(f.fechaExpedicion ?? f.createdAt, fecha),
         });
       }
@@ -377,6 +381,7 @@ router.get("/coincidencias", async (req, res, next) => {
           pendiente: 0,
           vinculada: yaVinculadas.has(String(g._id)),
           diferencia: Math.round(diff * 100) / 100,
+          mismoTercero: nombreEnConcepto(g.comercio, concepto),
           puntos: (nombreEnConcepto(g.comercio, concepto) ? 0 : 5000) + diff * 100 + diasEntre(g.fecha, fecha),
         });
       }
@@ -402,6 +407,7 @@ router.get("/coincidencias", async (req, res, next) => {
           pendiente: 0,
           vinculada: yaVinculadas.has(String(f._id)),
           diferencia: Math.round(diff * 100) / 100,
+          mismoTercero: nombreEnConcepto(proveedor, concepto),
           puntos: (nombreEnConcepto(proveedor, concepto) ? 0 : 5000) + diff * 100 + diasEntre(f.fechaExpedicion ?? f.createdAt, fecha),
         });
       }
@@ -444,13 +450,25 @@ router.get("/coincidencias", async (req, res, next) => {
           pendiente,
           vinculada: yaVinculadas.has(String(f._id)),
           diferencia: Math.round(diff * 100) / 100,
+          mismoTercero: nombreEnConcepto(cliente, concepto),
           puntos: (nombreEnConcepto(cliente, concepto) ? 0 : 5000) + diff * 100 + diasEntre(f.fechaExpedicion ?? f.createdAt, fecha),
         });
       }
     }
 
     candidatas.sort((a, b) => a.puntos - b.puntos);
-    res.json({ importe, candidatas: candidatas.slice(0, 30) });
+
+    // Si el concepto del banco nombra a un proveedor/cliente que tenemos
+    // fichado, no tiene sentido ofrecer documentos de terceros distintos solo
+    // porque el importe se parezca. Se dejan únicamente los de ese tercero,
+    // más los de importe clavado (el banco a veces nombra a la pasarela de
+    // pago en lugar del proveedor real).
+    const hayTerceroReconocido = candidatas.some((c) => c.mismoTercero);
+    const finales = hayTerceroReconocido
+      ? candidatas.filter((c) => c.mismoTercero || c.diferencia <= 0.02 || c.tipo === "remesa")
+      : candidatas;
+
+    res.json({ importe, candidatas: finales.slice(0, 30) });
   } catch (err) {
     next(err);
   }
