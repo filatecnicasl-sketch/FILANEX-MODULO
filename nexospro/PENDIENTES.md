@@ -8,14 +8,11 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
       -18,08 € (04/08). Son facturas que el usuario no ha pasado todavía
       (las 6 de la carpeta —0009 a 0014— ya están dadas de alta, validadas
       y conciliadas al céntimo, 14/10).
-- [ ] **Cargo Moonshot/Novascent de julio sin factura**: -35,63 € (15/07),
-      es la suscripción Kimi de julio (JPDA3HSY-0001). Las de agosto
-      (JPDA3HSY-0002, -35,16 €) y septiembre (JPDA3HSY-0003, -34,99 €) ya
-      están dadas de alta y conciliadas (14/10). Pedir al usuario el PDF
-      JPDA3HSY-0001 en platform.moonshot.ai → Billing. OJO: la empresa
-      facturó hasta julio como MOONSHOT AI PTE. LTD. y desde agosto como
-      NOVASCENT PRIVATE LIMITED (misma empresa, mismo GST; proveedor ya
-      renombrado con alias).
+- [ ] **Kimi/Novascent JPDA3HSY-0004 (octubre) a la espera del extracto 4T**:
+      dada de alta y validada con cambio BCE (34,86 €), pero sin conciliar —
+      cuando llegue el extracto del 4T, ajustar el tipoCambio al real de la
+      tarjeta (cargo € / 39 $) y conciliar. El resto de Moonshot/Novascent
+      (0001-0003 + top-up IX1C52EV) ya está todo conciliado (14/10).
 - [ ] **Cargo IONOS de -149,44 € del 06/07** sin conciliar: son casi seguro
       facturas de junio (2T) no dadas de alta. El usuario aún no ha decidido
       entre subirlas o marcar "Sin factura".
