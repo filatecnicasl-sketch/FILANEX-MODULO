@@ -149,8 +149,46 @@ Reglas:
 - confianza: tu seguridad global en la extracción (0 = ilegible, 1 = perfecta).
 - No inventes datos: si un campo no aparece en el documento, omítelo.`;
 
+// Cero (0), O, uno (1), I, l y L son visualmente casi idénticos y hasta los
+// modelos de IA los confunden al leer una factura. Cuando el PDF tiene capa
+// de texto (los PDF "de verdad", no escaneados), el número de documento está
+// ahí tal cual lo emitió el proveedor: se contrasta lo que leyó la IA con
+// esa capa y, si hay una sola coincidencia inequívoca, se toma el texto real.
+function claveAmbigua(texto) {
+  return String(texto ?? "")
+    .toUpperCase()
+    .replace(/O/g, "0")
+    .replace(/[IL]/g, "1");
+}
+
+async function afinarNumeroConTextoPdf(fichero, extraccion) {
+  const numero = extraccion?.numeroDocumento;
+  if (!numero || fichero?.mimetype !== "application/pdf" || !fichero.buffer) return;
+  if (!/[O0IlL1]/.test(numero)) return;
+  try {
+    const { default: pdfParse } = await import("pdf-parse");
+    const texto = (await pdfParse(fichero.buffer))?.text ?? "";
+    const runs = texto.match(/[A-Za-z0-9][A-Za-z0-9-]{2,}/g) ?? [];
+    const candidatos = [
+      ...new Set(
+        runs.filter((t) => claveAmbigua(t) === claveAmbigua(numero) && t !== numero)
+      ),
+    ];
+    if (candidatos.length === 1) {
+      extraccion.numeroDocumento = candidatos[0];
+      extraccion._ocr = extraccion._ocr ?? {};
+      extraccion._ocr.numeroAfinado = true;
+    }
+  } catch {
+    // PDF sin capa de texto (escaneado) o error de lectura: se queda
+    // el número tal como lo leyó la IA.
+  }
+}
+
 export async function extraerDocumentoCompra(fichero) {
-  return generarJson(fichero, PROMPT, esquemaDocumento, revisarDocumentoCompra);
+  const extraccion = await generarJson(fichero, PROMPT, esquemaDocumento, revisarDocumentoCompra);
+  await afinarNumeroConTextoPdf(fichero, extraccion);
+  return extraccion;
 }
 
 // --- Tickets de gasto (facturas simplificadas) ---
