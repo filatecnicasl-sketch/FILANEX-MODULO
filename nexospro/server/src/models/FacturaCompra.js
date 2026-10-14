@@ -8,6 +8,9 @@ const facturaCompraSchema = new Schema(
     proveedor: { type: Schema.Types.ObjectId, ref: "Proveedor", index: true },
     numeroFacturaProveedor: { type: String, index: true, sparse: true },
     fechaExpedicion: { type: Date, index: true },
+    // Fecha de vencimiento del pago impresa en la factura del proveedor.
+    // Si no se conoce, tesorería la estima como expedición + 30 días.
+    vencimiento: { type: Date, index: true },
     notas: String,
     lineas: [lineaSchema],
     // Divisa en la que el proveedor emite la factura. Por defecto EUR.

@@ -466,6 +466,7 @@ export default function ComprasFacturasPage() {
                   <th>Nº proveedor</th>
                   <th>Proveedor</th>
                   <th>Fecha</th>
+                  <th>Vence</th>
                   <th>Origen</th>
                   <th>Conciliación</th>
                   <th className="text-right">Ret. IRPF</th>
@@ -478,13 +479,25 @@ export default function ComprasFacturasPage() {
               <tbody>
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="text-center text-slate-500 py-8">
+                    <td colSpan={11} className="text-center text-slate-500 py-8">
                       Ninguna factura cumple esos filtros.
                     </td>
                   </tr>
                 )}
                 {filtrada.map((f) => {
                   const sumaAlbaranes = (f.albaranes ?? []).reduce((s, a) => s + (a.total ?? 0), 0);
+                  // Vencimiento: el real si está guardado; si no, estimado a
+                  // 30 días (marcado con ~). Rojo si está vencida y sin pagar.
+                  const sinPagar = f.estadoPago !== "pagada" && f.estado === "validada";
+                  const vencCalc = (() => {
+                    if (f.vencimiento) return { d: new Date(f.vencimiento), aprox: false };
+                    const d = new Date(f.fechaExpedicion ?? f.createdAt ?? Date.now());
+                    d.setDate(d.getDate() + 30);
+                    return { d, aprox: true };
+                  })();
+                  const dias = Math.ceil((vencCalc.d - Date.now()) / 86400000);
+                  const vencida = sinPagar && dias < 0;
+                  const cerca = sinPagar && dias >= 0 && dias <= 7;
                   const conciliacion =
                     (f.albaranes ?? []).length === 0
                       ? null
@@ -500,6 +513,25 @@ export default function ComprasFacturasPage() {
                       <span className="block truncate" title={f.proveedor?.nombre}>{f.proveedor?.nombre ?? "—"}</span>
                     </td>
                     <td className="text-slate-400 num">{fecha(f.fechaExpedicion)}</td>
+                    <td className="whitespace-nowrap num">
+                      {vencida ? (
+                        <span className="font-semibold text-rose-400" title={`Vencida hace ${-dias} día(s)`}>
+                          {vencCalc.d.toLocaleDateString("es-ES")}
+                        </span>
+                      ) : cerca ? (
+                        <span className="font-semibold text-amber-300" title={`Vence en ${dias} día(s)`}>
+                          {vencCalc.d.toLocaleDateString("es-ES")}
+                        </span>
+                      ) : (
+                        <span
+                          className={sinPagar ? "text-slate-400" : "text-slate-600"}
+                          title={vencCalc.aprox ? "Estimado: fecha + 30 días (la factura no indica vencimiento)" : ""}
+                        >
+                          {vencCalc.aprox ? "~" : ""}
+                          {vencCalc.d.toLocaleDateString("es-ES")}
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <Badge tono={f.origen === "ocr" ? "cyan" : "slate"}>
                         {f.origen === "ocr" ? "IA" : "Manual"}
@@ -613,7 +645,7 @@ export default function ComprasFacturasPage() {
                 })}
                 {filtrada.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="text-center text-slate-500 py-8">
+                    <td colSpan={11} className="text-center text-slate-500 py-8">
                       Sin resultados para «{q}».
                     </td>
                   </tr>
@@ -650,6 +682,7 @@ export default function ComprasFacturasPage() {
             fecha: editando.fechaExpedicion
               ? new Date(editando.fechaExpedicion).toISOString().slice(0, 10)
               : new Date().toISOString().slice(0, 10),
+            vencimiento: editando.vencimiento ?? null,
             numeroFacturaProveedor: editando.numeroFacturaProveedor ?? "",
             notas: editando.notas ?? "",
             lineas: editando.lineas ?? [],

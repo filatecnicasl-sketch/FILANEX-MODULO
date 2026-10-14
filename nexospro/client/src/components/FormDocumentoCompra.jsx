@@ -28,6 +28,10 @@ export default function FormDocumentoCompra({
   );
   const [proveedorId, setProveedorId] = useState(inicial?.proveedor ?? "");
   const [fecha, setFecha] = useState(inicial?.fecha ?? new Date().toISOString().slice(0, 10));
+  // Vencimiento del pago (opcional): si no se pone, Pagos lo estima a 30 días.
+  const [vencimiento, setVencimiento] = useState(
+    inicial?.vencimiento ? new Date(inicial.vencimiento).toISOString().slice(0, 10) : ""
+  );
   const [numeroProveedor, setNumeroProveedor] = useState(inicial?.[campoNumero] ?? "");
   const [notas, setNotas] = useState(inicial?.notas ?? "");
   const [lineas, setLineas] = useState(
@@ -87,6 +91,7 @@ export default function FormDocumentoCompra({
           })),
       };
       if (conNumeroProveedor) cuerpo[campoNumero] = numeroProveedor || undefined;
+      if (conTotalReal) cuerpo.vencimiento = vencimiento || null;
       if (conTotalReal && Number.isFinite(totalRealNum)) {
         cuerpo.totalReal = divisa === "USD" ? Math.round(totalRealNum * tcNum * 100) / 100 : totalRealNum;
       }
@@ -138,6 +143,18 @@ export default function FormDocumentoCompra({
                 className="input w-full"
               />
             </div>
+            {conTotalReal && (
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Vencimiento</label>
+                <input
+                  type="date"
+                  value={vencimiento}
+                  onChange={(e) => setVencimiento(e.target.value)}
+                  className="input w-full"
+                  title="Fecha límite de pago impresa en la factura; si se deja vacía, Pagos la estima a 30 días"
+                />
+              </div>
+            )}
             {conNumeroProveedor && (
               <div>
                 <label className="text-sm text-slate-400 block mb-1">{etiquetaNumero}</label>

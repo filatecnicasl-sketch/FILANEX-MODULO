@@ -93,6 +93,11 @@ const esquemaDocumento = {
     },
     numeroDocumento: { type: "STRING" },
     fecha: { type: "STRING", description: "Formato YYYY-MM-DD" },
+    fechaVencimiento: {
+      type: "STRING",
+      description:
+        "Fecha de vencimiento del pago impresa en la factura ('vencimiento', 'páguese antes del', 'fecha de pago'...), formato YYYY-MM-DD. Si la factura no la indica, omítela",
+    },
     lineas: {
       type: "ARRAY",
       items: {
@@ -139,6 +144,7 @@ Reglas:
 - lineas[].tipo: "servicio" si no es un bien físico almacenable (telefonía, luz, agua, alquiler, consultoría, reparaciones, seguros...); "articulo" si son unidades de un producto.
 - lineas[].familia: categoría comercial corta en minúsculas y sin acentos (informatica, telefonia, perifericos, componentes, papeleria, fontaneria, electricidad, ferreteria, alimentacion...). Sirve para aplicar el margen de venta por familia. Vacío si no está claro.
 - Fecha en formato YYYY-MM-DD. Importes numéricos sin símbolo de moneda ni separador de miles.
+- fechaVencimiento: SOLO si la factura imprime una fecha de vencimiento del pago. Es la fecha LÍMITE en que hay que pagar, no la fecha de emisión ni la de operación. Si no aparece, omítela: nunca la inventes ni pongas "fecha + 30 días".
 - iva como porcentaje (21, 10, 4, 0). Si una línea no indica IVA, usa el tipo general del documento.
 - descuento: si la línea lleva descuento (columnas "dto", "%", "desc.", bonificaciones...), pon en precioUnitario el precio BRUTO (antes del descuento) y en descuento el porcentaje. Si el precio impreso ya es neto o no hay descuento, pon descuento 0. Así cantidad × precio × (1 - descuento/100) debe cuadrar con el importe de la línea.
 - RETENCIÓN DE IRPF: muchas facturas de profesionales (asesores, gestores, técnicos, abogados) llevan una línea "Retención IRPF −15 %" o "Ret. a cta IRPF". Si aparece, pon el porcentaje en retencionPorcentaje (15, 19, 7, 2, 1...) y el importe en positivo en retencionImporte. Si NO hay retención, omítelos. NO la metas como línea más: es un descuento fiscal del total, no una línea del documento.

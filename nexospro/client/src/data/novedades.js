@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-15",
     tipo: "nuevo",
+    titulo: "Facturas de compra: vencimiento real del pago, visible en todas partes",
+    detalle:
+      "Las facturas de compra ahora guardan la fecha de vencimiento que imprime el proveedor. Al importar un PDF, la IA la lee del documento; en el alta manual y en la revisión hay un campo «Vencimiento» para ponerla o corregirla. En Compras → Facturas hay una columna «Vence» (en rojo si está vencida sin pagar, en ámbar si vence esta semana, con ~ si es estimada) y en Tesorería → Pagos se usa la fecha real en vez de la estimación de 30 días: las que no la traen se marcan con ~ para distinguirlas, y la lista se ordena por lo que antes vence. Así no vuelve a pillarte por sorpresa un cobro domiciliado que aún no ha llegado su fecha.",
+  },
+  {
+    fecha: "2026-10-15",
+    tipo: "nuevo",
     titulo: "Buzón de correo entrante: consulta el correo de la empresa y importa facturas desde él",
     detalle:
       "En Ajustes → Correo hay una sección nueva, Buzón entrante, donde se conecta la cuenta de correo de la empresa (Gmail con contraseña de aplicación u otro correo IMAP), cifrada igual que el resto de contraseñas. Desde Compras → Facturas, el botón «Del correo» abre un listado de los mensajes recientes con adjuntos PDF o imagen: al elegir uno, el adjunto baja del correo y se procesa con la misma IA de OCR que el botón «Importar PDF», abriéndose después la ventana de revisión. Así las facturas que llegan al correo se dan de alta sin descargarlas a mano.",

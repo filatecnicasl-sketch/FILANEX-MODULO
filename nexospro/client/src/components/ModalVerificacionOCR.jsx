@@ -24,6 +24,11 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
     const iso = esFactura ? doc.fechaExpedicion : doc.fecha;
     return iso ? new Date(iso).toISOString().slice(0, 10) : "";
   });
+  // Vencimiento del pago impreso en la factura (lo lee el OCR si está).
+  const [vencimiento, setVencimiento] = useState(() => {
+    const iso = doc.vencimiento ?? extra.fechaVencimiento;
+    return iso ? new Date(iso).toISOString().slice(0, 10) : "";
+  });
   const [lineas, setLineas] = useState(
     (doc.lineas ?? []).map((l) => ({
       descripcion: l.descripcion ?? "",
@@ -89,6 +94,7 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
     if (proveedorId) cuerpo.proveedor = proveedorId;
     if (esFactura) cuerpo.numeroFacturaProveedor = numero || undefined;
     else cuerpo.numeroAlbaran = numero || undefined;
+    if (esFactura) cuerpo.vencimiento = vencimiento || null;
     if (esFactura) {
       cuerpo.divisa = divisa;
       cuerpo.tipoCambio = tcNum;
@@ -219,6 +225,18 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
                 className="input w-full"
               />
             </div>
+            {esFactura && (
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">Vencimiento</label>
+                <input
+                  type="date"
+                  value={vencimiento}
+                  onChange={(e) => setVencimiento(e.target.value)}
+                  className="input w-full"
+                  title="Fecha límite de pago impresa en la factura; si se deja vacía, Pagos la estima a 30 días"
+                />
+              </div>
+            )}
             {esFactura && (
               <>
                 <div>

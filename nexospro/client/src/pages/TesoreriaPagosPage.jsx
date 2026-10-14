@@ -3,18 +3,22 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Avatar, euros } from "../components/ui.jsx";
 
 const fmtFecha = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "—");
-// Vencimiento por defecto: fecha de expedición + 30 días.
+// Vencimiento del pago: el real guardado en la factura si está, y si no
+// estimado como fecha de expedición + 30 días (marcado como aproximado).
 const fechaVencimiento = (f) => {
+  if (f.vencimiento) return new Date(f.vencimiento);
   const d = new Date(f.fechaExpedicion ?? f.createdAt ?? Date.now());
   d.setDate(d.getDate() + 30);
   return d;
 };
+const esAproximado = (f) => !f.vencimiento;
 const pendienteDe = (f) => f.total - (f.pagado ?? 0);
 const esVencida = (f) => fechaVencimiento(f) < new Date() && pendienteDe(f) > 0.005;
 
 function FilaPago({ f, pagoForm, setPagoForm, onRegistrar }) {
   const pendiente = pendienteDe(f);
   const vencida = esVencida(f);
+  const aprox = esAproximado(f);
   return (
     <div
       className={`panel px-5 py-4 flex items-center gap-4 ${
@@ -33,8 +37,11 @@ function FilaPago({ f, pagoForm, setPagoForm, onRegistrar }) {
         </p>
         <p className="num text-[0.71875rem] text-slate-400 mt-0.5">
           {f.numeroFacturaProveedor ?? "s/n"} · {fmtFecha(f.fechaExpedicion)} ·{" "}
-          <span className={vencida ? "text-rose-500 font-medium" : ""}>
-            vence {fmtFecha(fechaVencimiento(f))}
+          <span
+            className={vencida ? "text-rose-500 font-medium" : ""}
+            title={aprox ? "Estimado (fecha + 30 días): esta factura no tiene vencimiento guardado" : "Vencimiento impreso en la factura"}
+          >
+            vence {aprox ? "~" : ""}{fmtFecha(fechaVencimiento(f))}
           </span>
         </p>
       </div>
@@ -131,6 +138,8 @@ export default function TesoreriaPagosPage() {
 
   const totalPendiente = pendientes.reduce((s, f) => s + pendienteDe(f), 0);
   const vencidas = pendientes.filter(esVencida);
+  // Lo primero que hay que pagar, primero: orden por vencimiento.
+  const pendientesOrdenadas = [...pendientes].sort((a, b) => fechaVencimiento(a) - fechaVencimiento(b));
 
   const gruposProveedor = (() => {
     const m = new Map();
@@ -192,7 +201,7 @@ export default function TesoreriaPagosPage() {
             Vencidas
           </p>
           <p className="num text-[1.625rem] font-semibold text-rose-600 mt-1.5">{vencidas.length}</p>
-          <p className="text-xs text-rose-400/80 mt-1">Vencimiento: fecha + 30 días</p>
+          <p className="text-xs text-rose-400/80 mt-1">Vencimiento superado y sin pagar</p>
         </div>
       </div>
 
@@ -203,7 +212,7 @@ export default function TesoreriaPagosPage() {
         </div>
       ) : vista === "lista" ? (
         <div className="space-y-2.5">
-          {pendientes.map((f) => (
+          {pendientesOrdenadas.map((f) => (
             <FilaPago key={f._id} f={f} {...propsFila} />
           ))}
         </div>

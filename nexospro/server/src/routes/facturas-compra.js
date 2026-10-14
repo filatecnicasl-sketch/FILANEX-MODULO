@@ -222,10 +222,12 @@ router.post("/", async (req, res, next) => {
     const totales = calcularTotales(lineas);
     const totalesDivisa = divisa === "USD" ? calcularTotalesDivisa(lineas) : { ...totales };
     const retencionIrpf = normalizarRetencion(req.body, totales.baseImponible);
+    const vencimiento = req.body.vencimiento ? new Date(req.body.vencimiento) : undefined;
     const factura = await FacturaCompra.create({
       proveedor,
       numeroFacturaProveedor: numeroFacturaProveedor || undefined,
       fechaExpedicion: fecha ? new Date(fecha) : new Date(),
+      vencimiento,
       notas: notas || undefined,
       lineas,
       divisa,
@@ -409,6 +411,7 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
         proveedor: proveedor?._id ?? null,
         numeroFacturaProveedor: extraccion.numeroDocumento ?? null,
         fechaExpedicion: extraccion.fecha ? new Date(extraccion.fecha) : null,
+        vencimiento: extraccion.fechaVencimiento ? new Date(extraccion.fechaVencimiento) : undefined,
         lineas: lineasFactura,
         baseImponible: totalesDoc.baseImponible,
         cuotaIva: totalesDoc.cuotaIva,
@@ -481,6 +484,10 @@ router.put("/:id", async (req, res, next) => {
     }
     const fecha = req.body.fechaExpedicion ?? req.body.fecha;
     if (fecha !== undefined) fc.fechaExpedicion = fecha ? new Date(fecha) : fc.fechaExpedicion;
+    // Vencimiento del pago: se puede poner, cambiar o quitar (vacío = borrar).
+    if (req.body.vencimiento !== undefined) {
+      fc.vencimiento = req.body.vencimiento ? new Date(req.body.vencimiento) : null;
+    }
     if (notas !== undefined) fc.notas = notas || undefined;
     if (req.body.crearArticulos !== undefined) {
       fc.crearArticulos = req.body.crearArticulos !== false;
