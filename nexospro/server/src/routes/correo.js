@@ -227,7 +227,9 @@ router.get("/entrante/mensajes", async (req, res, next) => {
         const env = msg.envelope;
         const de = env.from?.map((f) => f.address).filter(Boolean).join(", ") ?? "";
         const asunto = env.subject ?? "(sin asunto)";
-        if (patron && !patron.test(de) && !patron.test(asunto) && !patron.test(env.from?.[0]?.name ?? "")) {
+        // Buscar también en nombres de adjunto (útil para encontrar "Invoice-").
+        const textoAdjuntos = validos.map((a) => a.nombre).join(" ");
+        if (patron && !patron.test(de) && !patron.test(asunto) && !patron.test(env.from?.[0]?.name ?? "") && !patron.test(textoAdjuntos)) {
           continue;
         }
         mensajes.push({
