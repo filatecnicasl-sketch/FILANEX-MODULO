@@ -21,6 +21,15 @@ import { cerrarPoolPdf } from "./services/pdfRenderer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Red de seguridad: un error no capturado en una tarea de fondo (IMAP,
+// IA, WhatsApp...) no debe tirar toda la API. Se registra y se sigue.
+process.on("uncaughtException", (e) => {
+  console.error("[uncaughtException] (controlado, el servidor sigue en marcha):", e?.stack || e);
+});
+process.on("unhandledRejection", (e) => {
+  console.error("[unhandledRejection] (controlado, el servidor sigue en marcha):", e?.stack || e);
+});
+
 const app = express();
 
 // Cabeceras de seguridad en todas las respuestas (equivalente a helmet

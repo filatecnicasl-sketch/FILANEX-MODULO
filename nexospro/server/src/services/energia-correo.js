@@ -75,7 +75,7 @@ export function normalizarConfiguracionEntrante(body = {}, empresa) {
 }
 
 export function conexionImap(conf, password) {
-  return new ImapFlow({
+  const client = new ImapFlow({
     host: conf.host,
     port: Number(conf.puerto) || 993,
     secure: true, // IMAP moderno es siempre TLS (993)
@@ -85,6 +85,15 @@ export function conexionImap(conf, password) {
     greetingTimeout: 20000,
     socketTimeout: 120000,
   });
+  // Sin este listener, un timeout de socket emite "error" en el cliente y,
+  // al no tener oyentes, Node lo trata como excepción no controlada y tira
+  // todo el proceso (afecta a toda la API, no solo al correo). El código que
+  // usa este cliente ya captura los fallos con try/catch en sus propios
+  // await; este listener solo evita el crash del proceso completo.
+  client.on("error", (e) => {
+    console.warn("[correo-imap] Error de conexión (controlado):", e?.message || e);
+  });
+  return client;
 }
 
 export function mensajeErrorEntrante(error, tipo) {
