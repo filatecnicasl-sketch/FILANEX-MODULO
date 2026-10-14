@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-14",
     tipo: "mejora",
+    titulo: "Facturas de compra: no se pueden dar de alta dos veces, y el OCR lee la divisa",
+    detalle:
+      "Al dar de alta una factura (a mano o importando el PDF) se comprueba que no exista ya otra del mismo proveedor con el mismo número: si existe, el programa lo avisa y no la crea. Además, el OCR detecta ahora la moneda del documento: las facturas en dólares se guardan con sus importes en $ y el tipo de cambio del Banco Central Europeo del día de la factura, editable en la revisión.",
+  },
+  {
+    fecha: "2026-10-14",
+    tipo: "mejora",
     titulo: "La lectura OCR aguanta los límites de cuota de Google",
     detalle:
       "Esta mañana Google denegó temporalmente las llamadas de IA por cuota agotada (error 429) y la lectura de facturas falló durante unos minutos. Ahora, si eso ocurre, se espera más tiempo entre reintentos (la ventana de cuota es de un minuto) y se prueba automáticamente la vía de reserva de IA Studio antes de dar el aviso de «OCR no disponible», con cuotas independientes de las de Vertex.",

@@ -29,23 +29,39 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
       descripcion: l.descripcion ?? "",
       cantidad: l.cantidad ?? 1,
       precioUnitario: l.precioUnitario ?? 0,
+      // Para poder cambiar la divisa a USD sin perder los precios: si el
+      // documento venía en euros, se parte de esos importes como dólares.
+      precioUnitarioDivisa: l.precioUnitarioDivisa ?? l.precioUnitario ?? 0,
       descuento: l.descuento ?? 0,
       iva: l.iva ?? 21,
     }))
   );
+  // Divisa del documento: el OCR la lee; se puede corregir aquí.
+  const [divisa, setDivisa] = useState(doc.divisa === "USD" ? "USD" : "EUR");
+  const [tipoCambio, setTipoCambio] = useState(
+    doc.tipoCambio != null && doc.tipoCambio > 0 ? String(doc.tipoCambio) : "1"
+  );
   const [ocupado, setOcupado] = useState(null); // "guardar" | "validar" | "descartar"
   const [error, setError] = useState(null);
+  const tcNum = parseFloat(String(tipoCambio).replace(",", ".")) || 1;
   // Total que pone en la factura del proveedor (el papel manda): si difiere
   // unos céntimos del calculado, se guarda como ajuste por redondeo.
-  const [totalReal, setTotalReal] = useState(doc.total != null ? String(doc.total) : "");
+  // En dólares se muestra el total del papel en dólares (totalDivisa).
+  const [totalReal, setTotalReal] = useState(
+    doc.total != null
+      ? String(doc.divisa === "USD" && doc.totalDivisa != null ? doc.totalDivisa : doc.total)
+      : ""
+  );
   // Si se desmarca, al validar no se crean artículos nuevos en el catálogo
   // (material que no se revende: queda solo el gasto de la factura).
   const [crearArticulos, setCrearArticulos] = useState(doc.crearArticulos !== false);
-  const calculado = totalesDeLineas(lineas);
+  const calculado = totalesDeLineas(lineas, divisa, tcNum);
   const totalRealNum = parseFloat(String(totalReal).replace(",", "."));
+  // El ajuste por redondeo se guarda en euros (el servidor trabaja en EUR).
+  const calculadoEur = divisa === "USD" ? calculado.totalEur : calculado.total;
   const ajuste =
     esFactura && Number.isFinite(totalRealNum)
-      ? Math.round((totalRealNum - calculado.total) * 100) / 100
+      ? Math.round((totalRealNum * (divisa === "USD" ? tcNum : 1) - calculadoEur) * 100) / 100
       : 0;
 
   useEffect(() => {
@@ -73,8 +89,13 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
     if (proveedorId) cuerpo.proveedor = proveedorId;
     if (esFactura) cuerpo.numeroFacturaProveedor = numero || undefined;
     else cuerpo.numeroAlbaran = numero || undefined;
-    if (esFactura && Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum;
-    if (esFactura) cuerpo.crearArticulos = crearArticulos;
+    if (esFactura) {
+      cuerpo.divisa = divisa;
+      cuerpo.tipoCambio = tcNum;
+      // El servidor espera el total del papel en euros.
+      if (Number.isFinite(totalRealNum)) cuerpo.totalReal = totalRealNum * (divisa === "USD" ? tcNum : 1);
+      cuerpo.crearArticulos = crearArticulos;
+    }
 
     const r = await fetch(urlDoc, {
       method: "PUT",
@@ -198,14 +219,52 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
                 className="input w-full"
               />
             </div>
+            {esFactura && (
+              <>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Divisa</label>
+                  <select
+                    value={divisa}
+                    onChange={(e) => setDivisa(e.target.value === "USD" ? "USD" : "EUR")}
+                    className="input w-full"
+                  >
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                  </select>
+                </div>
+                {divisa === "USD" && (
+                  <div>
+                    <label className="text-sm text-slate-400 block mb-1">Tipo de cambio (1 $ = ? €)</label>
+                    <input
+                      value={tipoCambio}
+                      onChange={(e) => setTipoCambio(e.target.value)}
+                      className="input w-full text-right"
+                      inputMode="decimal"
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
-          <EditorLineas lineas={lineas} setLineas={setLineas} precio="compra" conDescuento />
+          <EditorLineas
+            lineas={lineas}
+            setLineas={setLineas}
+            precio="compra"
+            conDescuento
+            divisa={divisa}
+            tipoCambio={tcNum}
+          />
 
           {esFactura && (
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-600/40 px-4 py-3">
               <span className="text-sm text-slate-400">
-                Total calculado: <strong className="text-slate-200">{euros(calculado.total)}</strong>
+                Total calculado:{" "}
+                <strong className="text-slate-200">
+                  {divisa === "USD"
+                    ? `$${calculado.total.toFixed(2)} ≈ ${euros(calculado.totalEur)}`
+                    : euros(calculado.total)}
+                </strong>
               </span>
               <label className="text-sm text-slate-400 flex items-center gap-2">
                 Total en la factura del proveedor:
@@ -215,6 +274,7 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
                   className="input w-28 text-right"
                   inputMode="decimal"
                 />
+                <span className="text-slate-500">{divisa === "USD" ? "$" : "€"}</span>
               </label>
               {Math.abs(ajuste) >= 0.005 && (
                 <span className="text-xs text-amber-300">

@@ -76,6 +76,52 @@ const router = Router();
 
 const subida = uploadMemoria;
 
+// Un mismo proveedor no puede tener dos facturas con el mismo número: es la
+// forma más segura de cazar un alta repetida (manual o importada por OCR).
+// La comparación ignora mayúsculas/minúsculas y espacios de más.
+async function facturaDuplicada(proveedorId, numero, excluirId) {
+  const n = String(numero ?? "").trim();
+  if (!proveedorId || !n) return null;
+  const filtro = {
+    proveedor: proveedorId,
+    estado: { $ne: "rechazada" },
+    numeroFacturaProveedor: { $regex: `^${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+  };
+  if (excluirId) filtro._id = { $ne: excluirId };
+  return FacturaCompra.findOne(filtro).populate("proveedor", "nombre");
+}
+
+function mensajeDuplicada(dup, numero) {
+  const fecha = dup.fechaExpedicion ?? dup.createdAt;
+  const cuando = fecha ? new Date(fecha).toLocaleDateString("es-ES") : "fecha desconocida";
+  return `Ya existe una factura de ${dup.proveedor?.nombre ?? "ese proveedor"} con el número ${numero} (del ${cuando}). No se puede dar de alta dos veces: si la acabas de importar, la tienes pendiente en Revisión OCR.`;
+}
+
+// Tipo de cambio USD→EUR del Banco Central Europeo (api.frankfurter.app
+// publica exactamente esos datos, sin clave). Con caché en memoria por día.
+const cacheTiposCambio = new Map();
+async function tipoCambioUsdEur(fechaIso) {
+  const clave = fechaIso || "latest";
+  if (cacheTiposCambio.has(clave)) return cacheTiposCambio.get(clave);
+  const pedir = async (fecha) => {
+    const r = await fetch(`https://api.frankfurter.app/${fecha}?from=USD&to=EUR`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!r.ok) return null;
+    const tc = Number((await r.json())?.rates?.EUR);
+    return tc > 0 ? Math.round(tc * 10000) / 10000 : null;
+  };
+  let valor = null;
+  try {
+    valor = await pedir(clave);
+    if (valor == null && fechaIso) valor = await pedir("latest");
+  } catch {
+    valor = null;
+  }
+  cacheTiposCambio.set(clave, valor);
+  return valor;
+}
+
 // Añade pagado acumulado y estado de pago derivados (no persistidos).
 function conPagos(f) {
   const obj = f.toObject ? f.toObject() : f;
@@ -146,6 +192,8 @@ router.post("/", async (req, res, next) => {
   try {
     const { proveedor, numeroFacturaProveedor, notas } = req.body;
     if (!proveedor) return res.status(400).json({ error: "El proveedor es obligatorio" });
+    const dup = await facturaDuplicada(proveedor, numeroFacturaProveedor);
+    if (dup) return res.status(409).json({ error: mensajeDuplicada(dup, String(numeroFacturaProveedor).trim()) });
     const { divisa, tipoCambio, lineas } = normalizarLineas(req.body);
     if (lineas.length === 0) return res.status(400).json({ error: "Añade al menos una línea" });
 
@@ -220,6 +268,41 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
       if (confianza < 0.75) avisos.push(`Confianza OCR baja (${Math.round(confianza * 100)}%)`);
 
       const proveedor = await buscarProveedor(extraccion.proveedor);
+
+      // Factura ya dada de alta: no se crea un duplicado. El usuario puede
+      // estar re-subiendo el mismo PDF sin darse cuenta.
+      if (
+        extraccion.tipoDocumento !== "albaran" &&
+        proveedor?._id &&
+        String(extraccion.numeroDocumento ?? "").trim()
+      ) {
+        const dup = await facturaDuplicada(proveedor._id, extraccion.numeroDocumento);
+        if (dup) {
+          return res
+            .status(409)
+            .json({ error: mensajeDuplicada(dup, String(extraccion.numeroDocumento).trim()) });
+        }
+      }
+
+      // Moneda del documento: si es en dólares, se buscan los importes en
+      // dólares y se convierten a euros con el tipo de cambio del BCE del
+      // día de la factura (el usuario lo revisa antes de validar).
+      const divisaDoc = extraccion.divisa === "USD" ? "USD" : "EUR";
+      let tipoCambio = 1;
+      if (divisaDoc === "USD") {
+        const tc = await tipoCambioUsdEur(extraccion.fecha);
+        tipoCambio = tc ?? 1;
+        avisos.push(
+          tc
+            ? `Factura en dólares: cambio 1 USD = ${tc.toFixed(4)} € (BCE del ${extraccion.fecha ?? "último día"}). Revísalo antes de validar.`
+            : "Factura en dólares: no se ha podido obtener el tipo de cambio del BCE. Se ha puesto a 1 — corrígelo antes de validar."
+        );
+      } else if (extraccion.divisa === "OTRA") {
+        avisos.push(
+          "El documento parece estar en una moneda que no es euro ni dólar: los importes se han guardado tal cual; revísalos antes de validar."
+        );
+      }
+
       const slug = slugActual();
       const nombreFichero = `${Date.now()}-${req.file.originalname.replace(/[^\w.\-]+/g, "_")}`;
       const remoto = `uploads/${slug}/documentos/${nombreFichero}`;
@@ -262,6 +345,25 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
       // céntimos (el proveedor redondeó distinto), se anota como ajuste.
       // La retención que la IA leyó se guarda ya en la factura: el total a
       // pagar al proveedor la descuenta.
+      // En dólares: las líneas guardan el precio en USD (precioUnitarioDivisa)
+      // y el convertido a euros; los totales del documento son los EUR.
+      const lineasFactura =
+        divisaDoc === "USD"
+          ? lineasDoc.map((l) => ({
+              ...l,
+              precioUnitarioDivisa: Number(l.precioUnitario) || 0,
+              precioUnitario: Math.round((Number(l.precioUnitario) || 0) * tipoCambio * 100) / 100,
+            }))
+          : lineasDoc;
+      const totalesDoc =
+        divisaDoc === "USD"
+          ? calcularTotales(lineasFactura)
+          : {
+              baseImponible: extraccion.baseImponible ?? 0,
+              cuotaIva: extraccion.cuotaIva ?? 0,
+              total: extraccion.total ?? 0,
+            };
+      const factorRet = divisaDoc === "USD" ? tipoCambio : 1;
       const retPorc = Number(extraccion.retencionPorcentaje) || 0;
       const retImp = Number(extraccion.retencionImporte) || 0;
       const retencionIrpf =
@@ -269,17 +371,17 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
           ? {
               porcentaje: retPorc,
               // Si la IA leyó el porcentaje pero no el importe, se calcula
-              // sobre la base imponible (céntimos redondeados).
+              // sobre la base imponible (céntimos redondeados), en euros.
               importe:
                 Math.abs(retImp) > 0
-                  ? Math.abs(retImp)
-                  : Math.round((extraccion.baseImponible ?? 0) * retPorc) / 100,
+                  ? Math.round(Math.abs(retImp) * factorRet * 100) / 100
+                  : Math.round((extraccion.baseImponible ?? 0) * factorRet * retPorc) / 100,
               modelo: extraccion.esArrendamiento ? "115" : "111",
             }
           : undefined;
       const ajusteOcr =
         Math.round(
-          ((extraccion.total ?? 0) - (extraccion.baseImponible ?? 0) - (extraccion.cuotaIva ?? 0) + (retencionIrpf?.importe ?? 0)) * 100
+          ((extraccion.total ?? 0) * factorRet - totalesDoc.baseImponible - totalesDoc.cuotaIva + (retencionIrpf?.importe ?? 0)) * 100
         ) / 100;
       if (retencionIrpf && !(extraccion._ocr?.avisos ?? []).some((a) => a.includes("IRPF"))) {
         avisos.push(
@@ -290,10 +392,13 @@ router.post("/ocr", subida.single("documento"), contextoTrasSubida, async (req, 
         proveedor: proveedor?._id ?? null,
         numeroFacturaProveedor: extraccion.numeroDocumento ?? null,
         fechaExpedicion: extraccion.fecha ? new Date(extraccion.fecha) : null,
-        lineas: lineasDoc,
-        baseImponible: extraccion.baseImponible ?? 0,
-        cuotaIva: extraccion.cuotaIva ?? 0,
-        total: extraccion.total ?? 0,
+        lineas: lineasFactura,
+        baseImponible: totalesDoc.baseImponible,
+        cuotaIva: totalesDoc.cuotaIva,
+        total: totalesDoc.total,
+        ...(divisaDoc === "USD"
+          ? { divisa: "USD", tipoCambio, totalDivisa: extraccion.total ?? calcularTotalesDivisa(lineasFactura).total }
+          : {}),
         ajusteRedondeo: Math.abs(ajusteOcr) <= MAX_AJUSTE_REDONDEO ? ajusteOcr : 0,
         retencionIrpf,
         estado: "pendiente_revision",
@@ -344,6 +449,15 @@ router.put("/:id", async (req, res, next) => {
     }
 
     const { proveedor, numeroFacturaProveedor, notas } = req.body;
+    // Si la corrección cambia el proveedor o el número, se comprueba que no
+    // choque con otra factura ya dada de alta (duplicado).
+    const provFinal = proveedor !== undefined ? proveedor || null : fc.proveedor;
+    const numFinal =
+      numeroFacturaProveedor !== undefined
+        ? String(numeroFacturaProveedor ?? "").trim()
+        : String(fc.numeroFacturaProveedor ?? "").trim();
+    const dup = await facturaDuplicada(provFinal, numFinal, fc._id);
+    if (dup) return res.status(409).json({ error: mensajeDuplicada(dup, numFinal) });
     if (proveedor !== undefined) fc.proveedor = proveedor || null;
     if (numeroFacturaProveedor !== undefined) {
       fc.numeroFacturaProveedor = numeroFacturaProveedor || undefined;
