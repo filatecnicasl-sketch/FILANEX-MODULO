@@ -1190,19 +1190,49 @@ router.get("/informe-conciliaciones", async (req, res, next) => {
     const formato = req.query.formato || "json";
     const desde = req.query.desde ? new Date(req.query.desde) : null;
     const hasta = req.query.hasta ? new Date(req.query.hasta) : null;
+    // estado: "conciliado" (por defecto, histórico), "pendiente" (solo sin
+    // conciliar, con el motivo) o "todos" (ambos, con columna de estado).
+    const estado = ["conciliado", "pendiente", "todos"].includes(req.query.estado)
+      ? req.query.estado
+      : "conciliado";
 
-    const filtro = { "conciliadoCon.id": { $exists: true, $ne: null } };
+    const filtroFecha = {};
     if (desde || hasta) {
-      filtro.fecha = {};
-      if (desde) filtro.fecha.$gte = desde;
+      if (desde) filtroFecha.$gte = desde;
       if (hasta) {
         const h = new Date(hasta);
         h.setHours(23, 59, 59, 999);
-        filtro.fecha.$lte = h;
+        filtroFecha.$lte = h;
       }
     }
 
+    const filtro = {};
+    if (Object.keys(filtroFecha).length) filtro.fecha = filtroFecha;
+    if (estado === "conciliado") filtro["conciliadoCon.id"] = { $exists: true, $ne: null };
+    else if (estado === "pendiente") filtro["conciliadoCon.tipo"] = null;
+    // estado === "todos": sin filtro adicional, se traen todos los movimientos.
+
     const movimientos = await MovimientoBancario.find(filtro).sort({ fecha: 1 }).lean();
+
+    // Para los no conciliados, se busca el motivo en el histórico de
+    // auditoría (última pasada automática que los revisó y no casó, o que
+    // encontró un candidato pero lo descartó por falta de confianza).
+    const pendientesIds = movimientos.filter((m) => !m.conciliadoCon?.id).map((m) => m._id);
+    const motivosPorId = new Map();
+    if (pendientesIds.length) {
+      const logs = await ConciliacionLog.find({
+        "movimiento.id": { $in: pendientesIds },
+        accion: "conciliacion",
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+      for (const log of logs) {
+        const id = String(log.movimiento.id);
+        if (motivosPorId.has(id)) continue; // ya se guardó el más reciente
+        motivosPorId.set(id, log.documento?.criterio || log.notas || "Sin candidato automático que coincida en importe");
+      }
+    }
+    const motivoDefecto = "Pendiente de revisar: no se ha ejecutado la conciliación automática sobre este movimiento, o se importó manualmente";
 
     const facturasCompraIds = [];
     const facturasVentaIds = [];
@@ -1227,12 +1257,17 @@ router.get("/informe-conciliaciones", async (req, res, next) => {
     }, {});
 
     const filas = movimientos.map((m) => {
-      const tipo = m.conciliadoCon?.tipo || "desconocido";
+      const conciliado = Boolean(m.conciliadoCon?.id);
+      const tipo = conciliado ? m.conciliadoCon.tipo : "pendiente";
       let documento = "";
       let tercero = "";
       let importeDoc = "";
+      let motivo = "";
 
-      if (tipo === "factura_compra") {
+      if (!conciliado) {
+        documento = "Sin conciliar";
+        motivo = motivosPorId.get(String(m._id)) || motivoDefecto;
+      } else if (tipo === "factura_compra") {
         const f = comprasMap[String(m.conciliadoCon.id)];
         documento = f ? `Factura compra ${f.numeroFacturaProveedor || "s/n"}` : "Factura compra no encontrada";
         tercero = f?.proveedor?.nombre || "";
@@ -1259,25 +1294,29 @@ router.get("/informe-conciliaciones", async (req, res, next) => {
         importe: m.importe,
         concepto: m.concepto || "",
         tipo,
+        conciliado,
         documento,
         tercero,
         importeDocumento: importeDoc,
+        motivo,
         cuadra: importeDoc ? Math.abs(Math.abs(m.importe) - parseFloat(importeDoc)) < 0.01 : null,
       };
     });
 
     if (formato === "csv") {
-      const cabeceras = ["Fecha", "Importe", "Concepto", "Tipo", "Documento", "Tercero", "Importe documento", "Cuadra"];
+      const cabeceras = ["Fecha", "Importe", "Concepto", "Estado", "Tipo", "Documento", "Tercero", "Importe documento", "Cuadra", "Motivo (si no conciliado)"];
       const lineas = filas.map((f) =>
         [
           f.fecha,
           f.importe.toFixed(2),
           f.concepto,
+          f.conciliado ? "Conciliado" : "Pendiente",
           f.tipo,
           f.documento,
           f.tercero,
           f.importeDocumento,
           f.cuadra === null ? "" : f.cuadra ? "SÍ" : "NO",
+          f.motivo,
         ].map((c) => JSON.stringify(c))
       );
       const csv = [cabeceras.join(";"), ...lineas.map((l) => l.join(";"))].join("\n");
@@ -1288,11 +1327,13 @@ router.get("/informe-conciliaciones", async (req, res, next) => {
 
     const totalCargos = filas.filter((f) => f.importe < 0).reduce((s, f) => s + Math.abs(f.importe), 0);
     const totalIngresos = filas.filter((f) => f.importe > 0).reduce((s, f) => s + f.importe, 0);
+    const totalPendientes = filas.filter((f) => !f.conciliado).length;
 
     res.json({
       total: filas.length,
       totalCargos,
       totalIngresos,
+      totalPendientes,
       filas,
     });
   } catch (err) {
