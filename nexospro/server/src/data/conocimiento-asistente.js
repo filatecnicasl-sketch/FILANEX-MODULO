@@ -83,12 +83,29 @@ Presupuesto → Pedido (opcional) → Albarán (opcional) → Factura.
 
 ### Compras y gastos
 - Facturas de compra y albaranes de compra se pueden dar de alta a mano o con
-  OCR: se sube el PDF/foto y la IA lee proveedor, líneas e importes.
+  OCR: se sube el PDF/foto y la IA lee proveedor, líneas e importes (incluida
+  la divisa si la factura no es en euros).
+- "Del correo" (Compras → Facturas): se conecta el buzón de correo de la
+  empresa (Gmail con contraseña de aplicación, u otro proveedor por IMAP) y
+  el programa trae las facturas que llegan por email para darlas de alta con
+  OCR sin descargarlas a mano.
+- El programa avisa si una factura de compra ya existe (mismo proveedor y
+  número) para evitar altas duplicadas al importar.
 - Gastos: tickets y recibos con foto, también leídos por IA.
 
 ### Tesorería
 - Cobros y pagos de cada factura, vencimientos, remesas SEPA para cobrar por
   domiciliación y facturas recurrentes (cuotas que se generan solas).
+- Extractos bancarios (Tesorería → Extractos): se sube el extracto del banco
+  (Excel/CSV) y el programa intenta conciliar cada movimiento con sus
+  facturas automáticamente, cruzando importe y el nombre del tercero que
+  aparece en el concepto del banco. Un movimiento puede quedar enlazado a
+  varias facturas a la vez (por ejemplo, un cargo agrupado con dos facturas
+  del mismo proveedor).
+- Lo que no concilia solo se revisa a mano abriendo el apunte: el modal
+  ofrece las facturas más probables de ese proveedor/cliente para elegir.
+- Informes → Tesorería: informe de conciliaciones, con filtros para ver solo
+  lo pendiente y por qué no ha conciliado.
 
 ## 3. VeriFactu (obligación fiscal)
 
@@ -129,9 +146,14 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
 ### Citas
 - Dos tipos: "Cita normal" (recepción/entrega) y "Peritaje" (el cliente deja
   el coche y viene el perito de la compañía: compañía obligatoria y nº de
-  siniestro). Las de peritaje tienen pestaña propia en Taller → Citas.
+  siniestro). Las de peritaje tienen su propia pestaña en Taller → Citas,
+  con vista de agenda o de listado (muestra marca/modelo del vehículo, para
+  ver de un vistazo todos los coches citados a peritar).
 - La cita guarda cliente (alta rápida con teléfono obligatorio), vehículo
-  (alta rápida con matrícula), motivo, cortesía, compañía y notas.
+  (alta rápida con matrícula), motivo, cortesía, compañía y notas. La cita
+  se guarda siempre, aunque falte completar algún dato o se cierre sin
+  querer tras imprimir el justificante: nunca se pierde por imprimir sin
+  guardar antes.
 - "Viene de presupuesto": casilla siempre marcada por defecto; si la cita
   tiene valoración/presupuesto vinculado, se muestra dentro de la cita.
 - Desde la cita se imprime el justificante de cita para el cliente y la hoja
@@ -182,7 +204,114 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
 ### Operarios
 - Ficha de cada mecánico/chapista con su coste/hora para márgenes.
 
-## 5. Módulo TPV (punto de venta)
+## 5. Módulo Energía (gestoría/canal de comercializadoras de luz y gas)
+
+Menú Energía: Panel, Suministros, Comercializadoras, Canales, Trámites,
+Comisiones, Estudios, Campañas, Autofacturas, Agenda, Ayuda energía.
+Es el módulo de las agencias/canales que venden contratos de luz y gas por
+cuenta de comercializadoras y cobran comisión por ello. Todo gira alrededor
+del **punto de suministro** (su código CUPS): es a este módulo lo que el
+vehículo es al taller.
+
+### Flujo típico
+Estudio de ahorro → Trámite (alta/cambio) → Contrato activo (Suministro) →
+Comisión cobrada. El estudio arranca pidiendo al cliente su última factura
+(se puede leer con IA); si acepta, se abre el trámite; al activarse, el
+suministro queda actualizado solo y empieza a generar comisión cada mes.
+
+### Comercializadoras (Energía → Comercializadoras)
+- Las compañías de luz/gas con las que trabaja la agencia. Su ficha guarda
+  las condiciones de comisión (distintas para luz y gas): pago único por
+  alta, €/mes por contrato activo y €/año recurrente. Lo que se deja a cero
+  no genera comisión. No se puede borrar si tiene suministros vinculados.
+
+### Canales de distribución (Energía → Canales)
+- Un **canal** es un distribuidor o intermediario por el que se dan de alta
+  los suministros (p. ej. una asesoría energética que revende contratos de
+  varias comercializadoras). Un canal puede trabajar con varias
+  comercializadoras a la vez; se da de alta con nombre, NIF, contacto y las
+  comercializadoras con las que opera. Sirve para distinguir de qué canal
+  viene cada cliente cuando una misma comercializadora se vende por varias
+  vías.
+
+### Suministros (Energía → Suministros)
+- Ficha por CUPS (22 caracteres, se normaliza solo): cliente, comercializadora
+  actual, luz o gas, dirección del suministro (puede ser distinta a la
+  fiscal), tarifa (2.0TD, 3.0TD…), potencia en kW y consumo anual en kWh.
+- Columna **€/kWh (12 m.)**: lo facturado entre lo consumido en los últimos
+  12 meses; en ámbar (≥0,25 €/kWh) son los contratos caros, mejores
+  candidatos a estudio de ahorro.
+- Se puede apuntar un **presupuesto anual (€)** por suministro para comparar
+  contra lo facturado real.
+- Consumos: botón de la gráfica de cada fila, histórico mensual de kWh e
+  importe, con media, total del año y gráfica de evolución.
+- Grupos de empresas: en la ficha del cliente hay un campo "Grupo"; poniendo
+  el mismo nombre en varias sociedades, el filtro "Grupo" de Suministros las
+  junta todas.
+
+### Trámites (Energía → Trámites)
+- Se abren al aceptar un estudio o directamente desde un suministro. Cuatro
+  tipos: alta, cambio de comercializadora, cambio de titular, baja.
+- Circuito de estados: Documentación → Enviado → En trámite → Activado (o
+  rechazado/cancelado), con nota en cada cambio.
+- Al **Activar**, el trámite actualiza el suministro solo (cambia
+  comercializadora, titular o lo da de baja); un trámite activado ya no se
+  edita ni se borra.
+
+### Comisiones (Energía → Comisiones)
+- La caja del canal: lo que debe cada comercializadora. Botón **Generar
+  mes** calcula, suministro a suministro: la mensual de cada contrato
+  activo, el pago único de las altas de ese mes y el recurrente anual en el
+  mes del aniversario. Generar dos veces el mismo mes no duplica nada.
+  Se marcan como cobradas con la flecha verde. "Nueva manual" para bonos o
+  pactos especiales.
+
+### Estudios de ahorro (Energía → Estudios)
+- Se puede leer la factura del cliente con IA ("Leer factura (IA)"): sube el
+  PDF/foto y rellena solo comercializadora actual, tarifa, consumo, potencias
+  y coste anual (anualiza el importe según los días que cubre la factura).
+- A la izquierda la situación actual, a la derecha la propuesta con una
+  comercializadora propia; calcula el ahorro en €/año y en % al momento. Un
+  selector permite rellenar la propuesta con una campaña de precios
+  publicada.
+- Circuito: borrador → enviado → aceptado/rechazado. Al aceptar, abre solo el
+  trámite de cambio de comercializadora sobre ese CUPS.
+
+### Campañas de precios (Energía → Campañas)
+- Cuando una comercializadora manda el PDF con sus tarifas, se sube con
+  "Leer campaña (IA)": lee comercializadora, tarifa, precios (único o por
+  tramos punta/llano/valle), potencia, mantenimiento, descuentos y vigencia.
+- Nace siempre "pendiente de revisión": hay que publicarla (botón del ojo)
+  para que aparezca en los estudios de ahorro.
+- **Recogida automática por correo**: se configura el buzón donde llegan las
+  campañas (botón "Correo") y el programa lo revisa cada 15 minutos solo,
+  leyendo los PDF adjuntos con IA. Con Gmail hace falta verificación en dos
+  pasos y una contraseña de aplicación (no la contraseña normal); con correo
+  profesional se usa IMAP a mano (host/puerto, normalmente 993). El campo
+  "Carpeta" permite vigilar solo una etiqueta/carpeta concreta.
+
+### Autofacturas (Energía → Autofacturas)
+- La liquidación mensual que manda cada comercializadora: se registra número,
+  mes y base imponible (IVA y total se calculan solos). Al lado se ve lo que
+  el programa calculó en Comisiones para ese mes y la diferencia, para
+  comprobar que no han liquidado de menos.
+
+### Agenda (Energía → Agenda)
+- Agenda automática del canal, sin apuntar nada a mano: suministros a punto
+  de cumplir un año (ventana de 7 a 10 meses desde el alta, antes de que
+  caduque la permanencia), contratos con fecha de fin próxima (60 días),
+  estudios enviados hace más de una semana sin respuesta, y consumos
+  anómalos (suben 25 % o más sobre su media: posible fuga o avería). También
+  muestra la huella de CO2 estimada de toda la cartera.
+
+### Panel e informe de cartera (Energía → Panel)
+- Resumen de suministros activos, trámites/estudios en curso con el ahorro
+  potencial, comisiones pendientes de cobrar, energía gestionada y
+  distribución por comercializadora, más las alertas de la agenda.
+- Botón "Imprimir / PDF": informe completo de cartera (energía gestionada,
+  CO2, ahorro conseguido, comisiones, contratos más caros).
+
+## 6. Módulo TPV (punto de venta)
 
 - Apertura de caja obligatoria antes de vender (importe inicial).
 - Terminal táctil: columna de categorías (familias, con color e imagen), rejilla
@@ -202,12 +331,12 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
   visor; formato del ticket en el editor de formatos; y preferencias de
   visión, como artículos redondos o cuadrados).
 
-## 6. Módulo Servicio Técnico (SAT)
+## 7. Módulo Servicio Técnico (SAT)
 
 - Aparatos (ficha por aparato con marca/modelo/nº serie), órdenes de
   reparación con estados y recepción, y agenda de citas a domicilio/tienda.
 
-## 7. Módulo Asesoría
+## 8. Módulo Asesoría
 
 - Cartera de clientes del despacho (empresas vinculadas: la asesoría ve los
   datos fiscales de sus clientes).
@@ -217,19 +346,19 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
   tesorería, calendario de fiscalidad (modelos y fechas), solicitudes de
   documentación y cierres de periodo.
 
-## 8. Módulo Telefonía
+## 9. Módulo Telefonía
 
 - Centralita IP (handSIP): historial de llamadas, identificación del cliente
   que llama (salta su ficha) y click-to-call desde la ficha.
 
-## 9. Agenda general
+## 10. Agenda general
 
 - Citas de cualquier tipo (no solo taller), con recordatorios por WhatsApp:
   el cliente autoriza en la cita y el programa envía confirmación y
   recordatorio según Ajustes → WhatsApp.
 - Dictado por voz: se habla y la IA rellena la cita.
 
-## 10. Ajustes (configuración completa)
+## 11. Ajustes (configuración completa)
 
 - Empresa: datos fiscales, logo (sale en los documentos).
 - Series: numeración de cada documento.
@@ -242,7 +371,7 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
 - Formatos: EDITOR DE FORMATOS de impresión (ver sección siguiente).
 - Copias de seguridad: copia de la base de datos descargable.
 
-## 11. Editor de formatos de impresión (muy importante)
+## 12. Editor de formatos de impresión (muy importante)
 
 Los documentos impresos (facturas, albaranes, presupuestos, órdenes de
 trabajo, partes de taller, contrato de cortesía, tickets…) se diseñan con el
@@ -257,16 +386,17 @@ editor en Ajustes → Formatos. Cada formato es una plantilla visual:
 - Consejo: para el contrato de cortesía y documentos especiales se crea un
   formato propio tipo "parte" y se maqueta ahí (no en Word).
 
-## 12. Ayudas y soporte dentro del programa
+## 13. Ayudas y soporte dentro del programa
 
 - Cada módulo tiene su propia ayuda (Ayuda taller, Ayuda TPV, Ayuda
-  asesoría…) y hay una Ayuda general con primeros pasos y configuración.
+  energía, Ayuda asesoría…) y hay una Ayuda general con primeros pasos y
+  configuración.
 - Ayuda → Novedades: qué se ha ido añadiendo y buzón de propuestas con
   capturas de pantalla.
 - Nexo, el asistente con IA (módulo Asistente IA), responde preguntas de uso
   y conoce la configuración actual de la empresa.
 
-## 13. Problemas frecuentes y solución rápida
+## 14. Problemas frecuentes y solución rápida
 
 - "No veo el cambio nuevo": caché de la PWA → borrar datos del sitio o
   incógnito.
@@ -278,6 +408,20 @@ editor en Ajustes → Formatos. Cada formato es una plantilla visual:
 - "VeriFactu da error": Ajustes → VeriFactu, revisar certificado y reintentos
   (el registro se reenvía solo).
 - "Cliente duplicado": fusionar borrando el sobrante y usando el NIF único.
+- "Una factura de compra en moneda extranjera (dólares, etc.)": se da de alta
+  con el importe ya convertido a euros (el campo de la factura es siempre en
+  €); conviene anotar en las notas el importe y la divisa original y guardar
+  el PDF de la factura real.
+- "El extracto del banco no encuentra la factura al conciliar": el programa
+  cruza importe (±3 %, mínimo 2 €) y nombre del tercero en el concepto del
+  banco; si el concepto no nombra al proveedor/cliente reconocible, hay que
+  conciliar a mano eligiendo la factura correcta en el buscador del modal.
+- "¿Cómo sé qué está conciliado y qué no?": Informes → Tesorería (informe de
+  conciliaciones) lista cada movimiento del extracto, si está conciliado, con
+  qué factura(s) y permite filtrar los pendientes.
+- "¿Cómo veo quién me debe o a quién le debo con su NIF/CIF?": Informes →
+  Ventas e Informes → Compras, pestaña Documentos, muestran el NIF/CIF del
+  cliente/proveedor en cada línea.
 `;
 
 // Reglas de comportamiento de la IA (qué debe y qué no debe hacer).
@@ -308,18 +452,25 @@ REGLAS:
    /ventas (facturas) · /presupuestos · /albaranes · /clientes · /proveedores
    /articulos · /compras/facturas · /compras/albaranes · /compras/gastos
    /compras/ocr · /tesoreria · /tesoreria/cobros · /tesoreria/pagos
-   /informes/ventas · /informes/compras · /informes/iva · /recurrencias
+   /tesoreria/extractos
+   /informes/ventas · /informes/compras · /informes/iva · /informes/tesoreria
+   /recurrencias
    /agenda · /configuracion · /series · /certificado · /correo · /whatsapp
    /usuarios · /formatos · /copias · /novedades
    /taller · /taller/agenda · /taller/vehiculos · /taller/ordenes
    /taller/valoraciones · /taller/aseguradoras · /taller/cortesia
    /taller/operarios · /taller/planning
+   /energia · /energia/suministros · /energia/comercializadoras
+   /energia/canales · /energia/tramites · /energia/comisiones
+   /energia/estudios · /energia/campanas · /energia/autofacturas
+   /energia/agenda
    /tpv · /tpv/tickets · /tpv/caja · /tpv/ajustes
    /servicio · /servicio/agenda · /servicio/aparatos · /servicio/ordenes
    /asesoria · /asesoria/cartera · /asesoria/documentos · /asesoria/libros
    /asesoria/fiscalidad · /asesoria/prevision · /asesoria/solicitudes
    /telefonia/llamadas · /ayuda/general · /ayuda/taller · /ayuda/tpv
    /ayuda/asesoria · /ayuda/facturacion · /ayuda/servicio · /ayuda/telefonia
+   /ayuda/energia
    Máximo 3 enlaces por respuesta, y solo los realmente útiles.
 7. Si la pregunta no es del programa (temas personales, otros programas…),
    responde brevemente que solo ayudas con FILANEX.

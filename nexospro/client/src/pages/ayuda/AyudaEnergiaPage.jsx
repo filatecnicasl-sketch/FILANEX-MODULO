@@ -39,6 +39,19 @@ export default function AyudaEnergiaPage() {
           </p>
         </Seccion>
 
+        <Seccion titulo="Canales de distribución (Energía → Canales)">
+          <p>
+            Un <b>canal</b> es el distribuidor o intermediario por el que das de alta los suministros
+            (por ejemplo, una asesoría energética que revende contratos de varias comercializadoras).
+            Da de alta el canal con su nombre, NIF y contacto, y marca las <b>comercializadoras</b> con
+            las que trabaja: un mismo canal puede trabajar con varias.
+          </p>
+          <p>
+            Sirve para distinguir de dónde viene cada cliente cuando una misma comercializadora se
+            vende por varias vías distintas (varios distribuidores de la misma compañía).
+          </p>
+        </Seccion>
+
         <Seccion titulo="Suministros (Energía → Suministros)">
           <Paso n={1}>
             Pulsa <K>Nuevo suministro</K> y escribe el <b>CUPS</b> (22 caracteres: ES + 20; el programa lo

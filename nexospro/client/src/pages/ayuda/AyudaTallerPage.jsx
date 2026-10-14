@@ -37,6 +37,24 @@ export default function AyudaTallerPage() {
             La caja de búsqueda de arriba encuentra citas por <b>cualquier dato</b>: matrícula, cliente,
             teléfono o motivo, estén en la fecha que estén.
           </p>
+          <Nota titulo="La cita se guarda sola, aunque imprimas el justificante">
+            Al pulsar <K>Imprimir hoja y finalizar</K> (o el justificante de cita) el programa guarda
+            primero los datos y después imprime: aunque la ventana se cierre o algo falle justo al
+            imprimir, la cita ya ha quedado guardada con lo escrito hasta ese momento.
+          </Nota>
+        </Seccion>
+
+        <Seccion titulo="Citas de peritaje (Taller → Citas, pestaña «Citas peritaje»)">
+          <p>
+            Son las citas en las que el cliente solo deja el coche para que venga el <b>perito</b> de la
+            compañía: llevan compañía de seguros y nº de siniestro obligatorios, y tienen su propia
+            pestaña (no se mezclan con las citas normales de taller/recepción).
+          </p>
+          <p>
+            Dentro de esa pestaña hay dos vistas: <b>Agenda</b> (calendario) y <b>Lista</b>, que muestra
+            todos los vehículos citados de un vistazo con su <b>marca y modelo</b>, matrícula, cliente,
+            teléfono, compañía, nº de siniestro y si ya tiene la peritación adjunta.
+          </p>
         </Seccion>
 
         <Seccion titulo="Recepción rápida (Panel u Órdenes → Recepción rápida)">

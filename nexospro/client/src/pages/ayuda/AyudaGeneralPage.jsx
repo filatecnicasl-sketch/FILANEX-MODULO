@@ -51,6 +51,18 @@ export default function AyudaGeneralPage() {
           </Paso>
         </Seccion>
 
+        <Seccion titulo="Compras">
+          <Paso n={1}>
+            <K>Compras → Facturas</K> admite alta manual, por OCR (sube el PDF/foto y la IA lee proveedor, líneas e importes, incluida la divisa si no es en euros) o <b>«Del correo»</b>: conecta el buzón de email de la empresa y trae las facturas que llegan por ahí.
+          </Paso>
+          <Paso n={2}>
+            Si una factura de compra ya existe (mismo proveedor y número), el programa avisa para no darla de alta duplicada.
+          </Paso>
+          <Paso n={3}>
+            <K>Compras → Gastos</K> registra tickets y recibos sueltos, también leíbles por IA.
+          </Paso>
+        </Seccion>
+
         <Seccion titulo="Artículos">
           <Paso n={1}>
             En <K>Artículos</K> das de alta lo que vendes o compras: descripción, código, precio, IVA, familia y stock.
@@ -87,6 +99,24 @@ export default function AyudaGeneralPage() {
           </Paso>
           <Paso n={3}>
             <K>Informes → Informes</K> permite exportar listados y cuadros de mando para revisar la marcha del negocio.
+          </Paso>
+          <Paso n={4}>
+            <K>Informes → Ventas</K> e <K>Informes → Compras</K>, pestaña «Documentos», muestran también el NIF/CIF del cliente o proveedor de cada factura.
+          </Paso>
+          <Paso n={5}>
+            <K>Informes → Tesorería</K> es el informe de conciliaciones: lista cada movimiento del extracto bancario, con qué factura(s) quedó enlazado y permite filtrar solo lo pendiente de conciliar.
+          </Paso>
+        </Seccion>
+
+        <Seccion titulo="Extractos bancarios y conciliación">
+          <Paso n={1}>
+            En <K>Tesorería → Extractos</K> se sube el extracto del banco (Excel o CSV). El programa intenta conciliar cada movimiento con sus facturas de forma automática, cruzando importe y el nombre del proveedor/cliente que aparece en el concepto.
+          </Paso>
+          <Paso n={2}>
+            Un mismo cargo puede quedar enlazado a varias facturas a la vez (por ejemplo, dos facturas del mismo proveedor cobradas juntas en un solo recibo).
+          </Paso>
+          <Paso n={3}>
+            Lo que no concilia solo se revisa a mano: al abrir el apunte aparece un buscador con las facturas más probables de ese tercero para elegir la correcta.
           </Paso>
         </Seccion>
 
