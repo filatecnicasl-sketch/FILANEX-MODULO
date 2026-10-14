@@ -165,9 +165,11 @@ async function afinarNumeroConTextoPdf(fichero, extraccion) {
   const numero = extraccion?.numeroDocumento;
   if (!numero || fichero?.mimetype !== "application/pdf" || !fichero.buffer) return;
   if (!/[O0IlL1]/.test(numero)) return;
+  let parser;
   try {
-    const { default: pdfParse } = await import("pdf-parse");
-    const texto = (await pdfParse(fichero.buffer))?.text ?? "";
+    const { PDFParse } = await import("pdf-parse");
+    parser = new PDFParse({ data: fichero.buffer });
+    const texto = (await parser.getText())?.text ?? "";
     const runs = texto.match(/[A-Za-z0-9][A-Za-z0-9-]{2,}/g) ?? [];
     const candidatos = [
       ...new Set(
@@ -182,6 +184,12 @@ async function afinarNumeroConTextoPdf(fichero, extraccion) {
   } catch {
     // PDF sin capa de texto (escaneado) o error de lectura: se queda
     // el número tal como lo leyó la IA.
+  } finally {
+    try {
+      await parser?.destroy();
+    } catch {
+      /* sin más */
+    }
   }
 }
 
