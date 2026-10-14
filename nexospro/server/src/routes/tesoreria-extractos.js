@@ -1238,8 +1238,14 @@ router.get("/informe-conciliaciones", async (req, res, next) => {
     const facturasVentaIds = [];
     for (const m of movimientos) {
       const tipo = m.conciliadoCon?.tipo;
-      if (tipo === "factura_compra") facturasCompraIds.push(m.conciliadoCon.id);
-      else if (tipo === "factura_venta") facturasVentaIds.push(m.conciliadoCon.id);
+      if (tipo === "factura_compra") {
+        // Un mismo cargo puede pagar varias facturas (IONOS agrupa varios
+        // contratos en un solo cobro): hay que traer TODAS, no solo la primera.
+        const ids = Array.isArray(m.conciliadoCon.ids) && m.conciliadoCon.ids.length
+          ? m.conciliadoCon.ids
+          : [m.conciliadoCon.id];
+        facturasCompraIds.push(...ids);
+      } else if (tipo === "factura_venta") facturasVentaIds.push(m.conciliadoCon.id);
     }
 
     const [compras, ventas] = await Promise.all([
@@ -1268,10 +1274,20 @@ router.get("/informe-conciliaciones", async (req, res, next) => {
         documento = "Sin conciliar";
         motivo = motivosPorId.get(String(m._id)) || motivoDefecto;
       } else if (tipo === "factura_compra") {
-        const f = comprasMap[String(m.conciliadoCon.id)];
-        documento = f ? `Factura compra ${f.numeroFacturaProveedor || "s/n"}` : "Factura compra no encontrada";
-        tercero = f?.proveedor?.nombre || "";
-        importeDoc = f ? f.total.toFixed(2) : "";
+        const ids = Array.isArray(m.conciliadoCon.ids) && m.conciliadoCon.ids.length
+          ? m.conciliadoCon.ids
+          : [m.conciliadoCon.id];
+        const facturas = ids.map((id) => comprasMap[String(id)]).filter(Boolean);
+        if (facturas.length > 1) {
+          documento = `Facturas compra ${facturas.map((f) => f.numeroFacturaProveedor || "s/n").join(" + ")}`;
+          tercero = facturas[0]?.proveedor?.nombre || "";
+          importeDoc = facturas.reduce((s, f) => s + (f.total || 0), 0).toFixed(2);
+        } else {
+          const f = facturas[0];
+          documento = f ? `Factura compra ${f.numeroFacturaProveedor || "s/n"}` : "Factura compra no encontrada";
+          tercero = f?.proveedor?.nombre || "";
+          importeDoc = f ? f.total.toFixed(2) : "";
+        }
       } else if (tipo === "factura_venta") {
         const f = ventasMap[String(m.conciliadoCon.id)];
         documento = f ? `Factura venta ${f.serieNumero || "s/n"}` : "Factura venta no encontrada";
