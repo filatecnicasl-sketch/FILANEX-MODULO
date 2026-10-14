@@ -13,6 +13,13 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
       cuando llegue el extracto del 4T, ajustar el tipoCambio al real de la
       tarjeta (cargo € / 39 $) y conciliar. El resto de Moonshot/Novascent
       (0001-0003 + top-up IX1C52EV) ya está todo conciliado (14/10).
+- [ ] **Tres cargos de use.ai sin factura**: -29,99 € (09/07), -29,99 € (06/08)
+      y -29,99 € (03/09). Suscripción YA CANCELADA por el usuario el 09/09
+      (no habrá más cargos). No tienen portal de facturas: hay que pedirlas
+      por correo a bill@use.ai (borrador del correo entregado al usuario el
+      14/10, con datos fiscales de FILA TECNICA S.L. / B75418350). Los tres
+      cargos quedan SIN conciliar a la espera de las facturas; si use.ai no
+      factura, decidir entre gasto sin factura (no deducible) o nada.
 - [ ] **Cargo IONOS de -149,44 € del 06/07** sin conciliar: son casi seguro
       facturas de junio (2T) no dadas de alta. El usuario aún no ha decidido
       entre subirlas o marcar "Sin factura".
