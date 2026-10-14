@@ -485,27 +485,68 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     }
   }
 
-  async function guardarCita(imprimirDespues = false) {
+  // Crea o actualiza la cita en el servidor y devuelve el documento guardado
+  // (o null si falló, con el error ya puesto en pantalla). No imprime nada
+  // ni cierra el modal: eso lo decide cada llamador. `overrides` permite fijar
+  // motivo/lineas sin esperar a que el estado del formulario se actualice
+  // (lo usa el diálogo de hoja de entrada al crear la cita al vuelo).
+  async function guardarDatosCita(overrides = {}) {
     const duracion = aMinutos(form.horaFin) - aMinutos(form.hora);
     if (duracion <= 0) {
       setError("La hora de fin debe ser posterior a la de inicio");
-      return false;
+      return null;
     }
     if (!form.clienteNombre?.trim() && !form.telefono?.trim() && !form.matricula?.trim()) {
       setError("Introduce al menos el cliente, el teléfono o la matrícula");
-      return false;
+      return null;
     }
     setGuardando(true);
     setError(null);
     try {
-      // Datos efectivos de cliente: si no se ha elegido uno de la cartera
-      // pero se ha escrito un nombre, damos de alta al cliente automáticamente
-      // al guardar la cita. Si no hay teléfono no se crea la ficha, pero el
-      // nombre y teléfono escritos viajan con la cita para no perderlos nunca.
-      let clienteId = form.cliente;
+      // Guarda la cita PRIMERO, con el nombre y teléfono escritos tal cual
+      // (aunque el cliente no tenga ficha todavía). Antes se intentaba dar de
+      // alta al cliente antes de guardar la cita: si fallaba la cita a
+      // mitad (ventana cerrada, error de red…) quedaba un cliente nuevo sin
+      // ninguna cita asociada (duplicados tipo "Adrián García"). Guardando
+      // la cita primero, en el peor de los casos solo falta la ficha del
+      // cliente — nunca falta la cita.
       let clienteNombre = (form.clienteNombre || "").trim();
       let telefono = (form.telefono || "").trim();
-      if (!clienteId && clienteNombre && telefono) {
+      const cortesiaVeh = vehiculos.find((v) => String(v._id) === String(form.cortesiaVehiculo));
+      const r = await fetch(`/api/taller/citas${cita ? `/${cita._id}` : ""}`, {
+        method: cita ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          cliente: form.cliente,
+          clienteNombre,
+          telefono,
+          duracion,
+          horaFin: undefined,
+          motivo: overrides.motivo ?? form.motivo,
+          lineas: overrides.lineas ?? lineasEntrada,
+          matricula: form.matricula || undefined,
+          marca: form.vehiculoNuevo && !matriculaExiste ? (form.marca || undefined) : undefined,
+          modelo: form.vehiculoNuevo && !matriculaExiste ? (form.modelo || undefined) : undefined,
+          tipo: form.tipo,
+          numeroSiniestro: form.tipo === "peritaje" ? (form.numeroSiniestro || undefined) : undefined,
+          franquicia: form.franquicia ? Number(form.franquicia) : 0,
+          entregaPrevista: form.entregaPrevista || null,
+          presupuesto: Boolean(form.presupuesto),
+          aseguradora: form.aseguradora || null,
+          cortesia: Boolean(form.cortesia),
+          cortesiaVehiculo: form.cortesia ? (form.cortesiaVehiculo || null) : null,
+          cortesiaMatricula: form.cortesia ? (cortesiaVeh?.matricula || undefined) : null,
+          reasignarCliente: reasignarCliente || undefined,
+        }),
+      });
+      let datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "No se pudo guardar la cita");
+
+      // Con la cita ya a salvo, se da de alta al cliente si hacía falta y se
+      // enlaza con la cita. Si esto falla (p. ej. teléfono duplicado), la
+      // cita no se pierde: solo falta vincular la ficha del cliente.
+      if (!form.cliente && clienteNombre && telefono) {
         try {
           const ra = await fetch("/api/clientes/rapido", {
             method: "POST",
@@ -522,43 +563,20 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           if (!ra.ok || !da?._id) throw new Error(da?.error || "No se pudo dar de alta el cliente");
           invalidarClientesLigeros();
           setClientes((l) => [da, ...l]);
-          clienteId = da._id;
-          clienteNombre = da.nombre;
-          telefono = da.telefono ?? telefono;
-        } catch {
-          // El alta falló (p. ej. teléfono duplicado): conservamos lo
-          // escrito para que la cita no quede vacía.
+          const rv = await fetch(`/api/taller/citas/${datos._id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cliente: da._id, clienteNombre: da.nombre, telefono: da.telefono ?? telefono }),
+          });
+          if (rv.ok) datos = await rv.json();
+        } catch (eCliente) {
+          // Se avisa (antes se callaba sin más): la cita ya está guardada,
+          // pero el cliente se queda sin ficha propia hasta corregirlo.
+          alert(
+            `La cita se ha guardado, pero no se ha podido dar de alta la ficha del cliente (${eCliente.message}). Puedes abrir la cita y volver a intentarlo, o dar de alta al cliente a mano.`
+          );
         }
       }
-      const cortesiaVeh = vehiculos.find((v) => String(v._id) === String(form.cortesiaVehiculo));
-      const r = await fetch(`/api/taller/citas${cita ? `/${cita._id}` : ""}`, {
-        method: cita ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          cliente: clienteId,
-          clienteNombre,
-          telefono,
-          duracion,
-          horaFin: undefined,
-          lineas: lineasEntrada,
-          matricula: form.matricula || undefined,
-          marca: form.vehiculoNuevo && !matriculaExiste ? (form.marca || undefined) : undefined,
-          modelo: form.vehiculoNuevo && !matriculaExiste ? (form.modelo || undefined) : undefined,
-          tipo: form.tipo,
-          numeroSiniestro: form.tipo === "peritaje" ? (form.numeroSiniestro || undefined) : undefined,
-          franquicia: form.franquicia ? Number(form.franquicia) : 0,
-          entregaPrevista: form.entregaPrevista || null,
-          presupuesto: Boolean(form.presupuesto),
-          aseguradora: form.aseguradora || null,
-          cortesia: Boolean(form.cortesia),
-          cortesiaVehiculo: form.cortesia ? (form.cortesiaVehiculo || null) : null,
-          cortesiaMatricula: form.cortesia ? (cortesiaVeh?.matricula || undefined) : null,
-          reasignarCliente: reasignarCliente || undefined,
-        }),
-      });
-      const datos = await r.json();
-      if (!r.ok) throw new Error(datos.error || "No se pudo guardar la cita");
       // Cita nueva con peritación elegida: se adjunta justo después de crearla.
       if (!cita && adjuntoPendiente) {
         try {
@@ -567,38 +585,45 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           alert("La cita se ha guardado, pero la peritación no se pudo adjuntar. Ábrela y súbela de nuevo.");
         }
       }
-      if (imprimirDespues) {
-        const cliente =
-          clientes.find((item) => String(item._id) === String(form.cliente)) || undefined;
-        const vehiculo =
-          vehiculos.find(
-            (item) => item.matricula?.toUpperCase() === form.matricula?.toUpperCase()
-          ) || { marca: form.marca, modelo: form.modelo };
-        const aseguradora = aseguradoras.find(
-          (item) => String(item._id) === String(form.aseguradora)
-        );
-        await imprimirJustificanteCitaTaller({
-          ...datos,
-          cliente,
-          vehiculo,
-          clienteNombre: form.clienteNombre,
-          telefono: form.telefono,
-          matricula: form.matricula,
-          motivo: form.motivo,
-          notas: form.notas,
-          aseguradoraNombre: form.aseguradoraNombre || aseguradora?.nombre || "",
-          cortesia: form.cortesia,
-          cortesiaMatricula: cortesiaVeh?.matricula || "",
-        });
-      }
-      onGuardada();
-      return true;
+      return datos;
     } catch (e2) {
       setError(e2.message);
-      return false;
+      return null;
     } finally {
       setGuardando(false);
     }
+  }
+
+  async function guardarCita(imprimirDespues = false) {
+    const datos = await guardarDatosCita();
+    if (!datos) return false;
+    if (imprimirDespues) {
+      const cliente =
+        clientes.find((item) => String(item._id) === String(form.cliente)) || undefined;
+      const vehiculo =
+        vehiculos.find(
+          (item) => item.matricula?.toUpperCase() === form.matricula?.toUpperCase()
+        ) || { marca: form.marca, modelo: form.modelo };
+      const cortesiaVeh = vehiculos.find((v) => String(v._id) === String(form.cortesiaVehiculo));
+      const aseguradora = aseguradoras.find(
+        (item) => String(item._id) === String(form.aseguradora)
+      );
+      await imprimirJustificanteCitaTaller({
+        ...datos,
+        cliente,
+        vehiculo,
+        clienteNombre: form.clienteNombre,
+        telefono: form.telefono,
+        matricula: form.matricula,
+        motivo: form.motivo,
+        notas: form.notas,
+        aseguradoraNombre: form.aseguradoraNombre || aseguradora?.nombre || "",
+        cortesia: form.cortesia,
+        cortesiaMatricula: cortesiaVeh?.matricula || "",
+      });
+    }
+    onGuardada();
+    return true;
   }
 
   async function guardar(e) {
@@ -647,6 +672,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
       const texto = textoEntrada.trim();
       const lineas = lineasEntrada.filter((l) => l.descripcion || l.manoObra || l.materiales);
       // Lo escrito aquí queda guardado en la cita (descripción y reparaciones).
+      let citaGuardada = cita;
       if (cita) {
         const actual = [cita.motivo, cita.notas].filter(Boolean).join(". ");
         const mismasLineas = JSON.stringify(cita.lineas ?? []) === JSON.stringify(lineas);
@@ -657,35 +683,42 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
             body: JSON.stringify({ motivo: texto, lineas }),
           }).catch(() => {});
         }
+      } else {
+        // Cita todavía sin crear: se guarda ya mismo (cliente, vehículo,
+        // motivo y reparaciones incluidos) antes de imprimir. Antes se
+        // imprimía sin guardar nada y, si la ventana se cerraba o fallaba
+        // la impresión, el cliente y la matrícula escritos se perdían.
+        citaGuardada = await guardarDatosCita({ motivo: texto, lineas });
+        if (!citaGuardada) return; // el error ya se muestra; no se cierra el diálogo
       }
-      const clienteId = cita?.cliente?._id ?? cita?.cliente ?? form.cliente;
-      const matricula = (cita?.matricula ?? form.matricula ?? "").toUpperCase();
+      const clienteId = citaGuardada?.cliente?._id ?? citaGuardada?.cliente ?? form.cliente;
+      const matricula = (citaGuardada?.matricula ?? form.matricula ?? "").toUpperCase();
       const cliente =
         clientes.find((c) => String(c._id) === String(clienteId)) ||
-        (cita?.cliente && typeof cita.cliente === "object" ? cita.cliente : null);
+        (citaGuardada?.cliente && typeof citaGuardada.cliente === "object" ? citaGuardada.cliente : null);
       const vehiculo = vehiculos.find((v) => v.matricula?.toUpperCase() === matricula);
       // Compañía/siniestro/franquicia de la propia cita: salen en la hoja de
       // entrada para que el cliente sepa qué paga él de su bolsillo.
       const aseguradoraNombre =
-        (cita?.aseguradoraNombre ?? form.aseguradoraNombre) ||
-        aseguradoras.find((a) => String(a._id) === String(cita?.aseguradora?._id ?? cita?.aseguradora ?? form.aseguradora))?.nombre ||
+        (citaGuardada?.aseguradoraNombre ?? form.aseguradoraNombre) ||
+        aseguradoras.find((a) => String(a._id) === String(citaGuardada?.aseguradora?._id ?? citaGuardada?.aseguradora ?? form.aseguradora))?.nombre ||
         "";
-      const franquicia = Number(cita?.franquicia ?? form.franquicia) || 0;
+      const franquicia = Number(citaGuardada?.franquicia ?? form.franquicia) || 0;
 
       const ok = await imprimirHojaEntrada({
-        numero: cita ? `CITA-${cita._id.slice(-6).toUpperCase()}` : "CITA NUEVA",
-        fechaEntrada: cita?.fecha ?? form.fecha,
+        numero: `CITA-${String(citaGuardada?._id ?? "").slice(-6).toUpperCase() || "?"}`,
+        fechaEntrada: citaGuardada?.fecha ?? form.fecha,
         // Solo sale la fecha de entrega si el taller la ha puesto; nunca se inventa.
-        fechaEntregaPrevista: (cita?.entregaPrevista ?? form.entregaPrevista) || undefined,
+        fechaEntregaPrevista: (citaGuardada?.entregaPrevista ?? form.entregaPrevista) || undefined,
         matricula,
         km: vehiculo?.km ?? "",
         motivo: texto || "Recepción desde cita",
         aseguradora: aseguradoraNombre,
-        numeroSiniestro: cita?.numeroSiniestro ?? form.numeroSiniestro ?? "",
+        numeroSiniestro: citaGuardada?.numeroSiniestro ?? form.numeroSiniestro ?? "",
         franquicia,
         cliente: cliente || undefined,
-        clienteNombre: (cita?.clienteNombre ?? form.clienteNombre) || cliente?.nombre || "",
-        telefono: (cita?.telefono ?? form.telefono) || cliente?.telefono || "",
+        clienteNombre: (citaGuardada?.clienteNombre ?? form.clienteNombre) || cliente?.nombre || "",
+        telefono: (citaGuardada?.telefono ?? form.telefono) || cliente?.telefono || "",
         vehiculo: vehiculo ? { marca: vehiculo.marca, modelo: vehiculo.modelo } : undefined,
         lineas,
       });
@@ -694,7 +727,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
       // nunca se quede sin documento.
       if (!ok) {
         const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
-        const html = hojaEntradaHtml(emp, cita ?? { ...form, motivo: texto }, cliente, vehiculo);
+        const html = hojaEntradaHtml(emp, citaGuardada ?? { ...form, motivo: texto }, cliente, vehiculo);
         const ventana = window.open("", "_blank", "width=900,height=700");
         if (!ventana) return alert("Permite las ventanas emergentes para imprimir");
         ventana.document.write(html);
@@ -703,6 +736,9 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
         setTimeout(() => ventana.print(), 250);
       }
       setDialogoEntrada(false);
+      // Si la cita era nueva, ya ha quedado creada: se cierra el formulario y
+      // se refresca la agenda, igual que al pulsar "Guardar".
+      if (!cita) onGuardada();
     } finally {
       setImprimiendoEntrada(false);
     }
@@ -1328,7 +1364,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
           </h3>
           <p className="text-xs text-slate-400 mb-3">
             Escribe la descripción de la avería / trabajos que pide el cliente. Sale impresa en el
-            cuadro grande de la hoja{cita ? " y queda guardada en la cita" : ""}.
+            cuadro grande de la hoja y queda guardada en la cita{!cita ? " (si todavía no existe, se crea al imprimir)" : ""}.
           </p>
           <textarea
             autoFocus
