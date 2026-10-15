@@ -4,16 +4,18 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## URGENTE / Revisar con detenimiento
 
-- [ ] **Importación de facturas del buzón filatecnicasl@gmail.com — PDFs ya
-      descargados, falta OCR + alta**: CAUSA RAÍZ encontrada (15/10): el
-      sondeo usaba "sin leer" como cursor y re-descargaba CORREOS ENTEROS
-      cada 15 min (654 sin leer = el abuso que Gmail castigó). CORREGIDO con
-      cursor por UID (commit `69f0355`): solo se procesa lo más nuevo que lo
-      ya visto, jamás se vuelve atrás. Los 38 PDFs que faltaban están ya en
-      `/tmp/facturas-faltantes/` del servidor con su `estado.json`; cuando
-      acabe el OCR, darlos de alta en Compras con su PDF y conciliarlos
-      (incluye ~12 de Link/Verdent LINKT-**** y ~13 de Moonshot
-      TMPKWC3S-**** que no estaban ni en el extracto que revisamos).
+- [ ] **Importación de facturas del buzón filatecnicasl@gmail.com — PDFs
+      descargados y OCR COMPLETO, falta alta + conciliación**: CAUSA RAÍZ
+      encontrada y corregida (15/10, cursor por UID, commit `69f0355`). Los
+      38 PDFs están en `/tmp/facturas-faltantes/` del servidor y su
+      `estado.json` ya tiene el OCR de todos (15/10): 8 de Emergent
+      (I2AMTLUM-0001, PJQ0IGLM-0001..0008), ~13 de Link/Verdent (LINKT-****,
+      ojo: LINKT-3199 viene dos veces, es la misma factura reenviada) y ~13
+      de Moonshot (TMPKWC3S-****, proveedor aún sin crear; en varias el OCR
+      confunde el proveedor con "FILATECNICA S.L." — es el destinatario).
+      Pendiente: dar de alta en Compras con su PDF (dedupe por
+      proveedor+número, LINKT-32550075 ya existe) y conciliar con el extracto.
+      Copia de seguridad de los PDFs en `/opt/filanex/facturas-pendientes/`.
 
 - [ ] **Dos cargos de Emergent de 20 $ sin factura**: -18,22 € (06/07) y
       -18,08 € (04/08). Son facturas que el usuario no ha pasado todavía
