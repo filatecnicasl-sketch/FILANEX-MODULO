@@ -4,16 +4,16 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## URGENTE / Revisar con detenimiento
 
-- [ ] **Importación de facturas del buzón filatecnicasl@gmail.com (reintento
-      programado)**: el 15/10 Gmail bloqueó el buzón por exceso de conexiones
-      (el sondeo cada 15 min del propio programa + los scripts de importación
-      masiva coincidieron). Desplegado ese mismo día el motor IMAP robusto
-      (commit `53c638b`: trozos de 8, backoff y pausa del buzón tras 3 fallos).
-      Queda un reintento automático en el servidor a las ~05:08
-      (`/tmp/reintentar-informe.sh` → `informe-facturas-faltantes.mjs`, log en
-      `/tmp/informe-faltantes-retry.log`). Al terminar: dar de alta las
-      facturas que falten, subirlas con su PDF y conciliarlas. LECCIÓN: no
-      lanzar nunca dos trabajos IMAP a la vez contra el mismo buzón.
+- [ ] **Importación de facturas del buzón filatecnicasl@gmail.com — PDFs ya
+      descargados, falta OCR + alta**: CAUSA RAÍZ encontrada (15/10): el
+      sondeo usaba "sin leer" como cursor y re-descargaba CORREOS ENTEROS
+      cada 15 min (654 sin leer = el abuso que Gmail castigó). CORREGIDO con
+      cursor por UID (commit `69f0355`): solo se procesa lo más nuevo que lo
+      ya visto, jamás se vuelve atrás. Los 38 PDFs que faltaban están ya en
+      `/tmp/facturas-faltantes/` del servidor con su `estado.json`; cuando
+      acabe el OCR, darlos de alta en Compras con su PDF y conciliarlos
+      (incluye ~12 de Link/Verdent LINKT-**** y ~13 de Moonshot
+      TMPKWC3S-**** que no estaban ni en el extracto que revisamos).
 
 - [ ] **Dos cargos de Emergent de 20 $ sin factura**: -18,22 € (06/07) y
       -18,08 € (04/08). Son facturas que el usuario no ha pasado todavía
