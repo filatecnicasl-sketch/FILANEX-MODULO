@@ -4,6 +4,7 @@ import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
 
 import { cargarClientesLigeros, invalidarClientesLigeros } from "../../lib/clientesLigeros.js";
+import { PROVINCIAS_ES } from "../../lib/provincias.js";
 const campo = "input w-full";
 
 /** Convierte "HH:MM" a minutos desde medianoche. */
@@ -88,6 +89,9 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
     telefono: cita?.telefono ?? "",
     email: cita?.email ?? "",
     nif: cita?.nif ?? "",
+    // Solo se usa al dar de alta un cliente nuevo desde la cita: viaja a la
+    // dirección de su ficha (no se guarda en la cita).
+    provincia: "",
     whatsappAutorizado: cita?.whatsappAutorizado ?? false,
     aparato: cita?.aparato?._id ?? cita?.aparato ?? "",
     aparatoDescripcion: cita?.aparatoDescripcion ?? "",
@@ -219,6 +223,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
               telefono,
               email: form.email?.trim() || undefined,
               nif: form.nif?.trim() || undefined,
+              provincia: form.provincia?.trim() || undefined,
               exigirTelefono: true,
             }),
           });
@@ -242,6 +247,8 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
           cliente: clienteId || null,
           clienteNombre,
           telefono,
+          // La provincia solo viaja al alta del cliente, no a la cita.
+          provincia: undefined,
           duracion,
           horaFin: undefined,
           aparato: form.aparato || null,
@@ -372,6 +379,26 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
                 placeholder="Evita duplicados si ya existe"
               />
             </div>
+            {!form.cliente && (
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">
+                  Provincia
+                  <span className="ml-1 text-xs font-normal text-slate-500">(se guarda en la ficha del cliente nuevo)</span>
+                </label>
+                <input
+                  className={campo}
+                  value={form.provincia ?? ""}
+                  onChange={(e) => actualizar("provincia", e.target.value)}
+                  placeholder="P. ej. Málaga"
+                  list="provincias-cita-servicio"
+                />
+                <datalist id="provincias-cita-servicio">
+                  {PROVINCIAS_ES.map((p) => (
+                    <option key={p} value={p} />
+                  ))}
+                </datalist>
+              </div>
+            )}
 
             {duplicados.length > 0 && (
               <div className="sm:col-span-2 rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2">

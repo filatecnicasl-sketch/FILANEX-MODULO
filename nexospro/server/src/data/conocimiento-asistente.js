@@ -37,6 +37,9 @@ Menú: Clientes, Proveedores, Artículos, Ventas, Compras, Tesorería, Informes.
 
 ### Clientes y proveedores
 - Alta desde su pantalla o "alta rápida" dentro de facturas, albaranes, citas…
+- En el alta de cliente se pide la provincia (con lista para autocompletar):
+  en el alta rápida de citas y agenda también hay un campo Provincia, y se
+  guarda en la dirección de la ficha del cliente.
 - El NIF/CIF se valida solo (letra correcta). Si hay duplicados, suele ser por
   escribir el NIF con formatos distintos: bórralo y créalo una vez.
 - La ficha del cliente muestra su historial (facturas, albaranes, y si hay
@@ -71,6 +74,12 @@ Menú: Clientes, Proveedores, Artículos, Ventas, Compras, Tesorería, Informes.
 Presupuesto → Pedido (opcional) → Albarán (opcional) → Factura.
 - Se puede convertir un documento en el siguiente con un clic (botón de
   "Pasar a…"), arrastrando líneas sin reescribir.
+- **Las facturas en borrador se pueden editar**: en Ventas → Facturas, cada
+  borrador tiene un botón de lápiz en su fila para modificarlo (cliente,
+  líneas, vencimiento, método de pago…), y también desde su detalle con
+  "Modificar borrador". Se puede cambiar todo mientras siga en borrador.
+- Una vez validada/emitida, la factura ya no se puede editar ni borrar
+  (VeriFactu): hay que hacer una rectificativa.
 - La factura se emite con serie y número atómicos (nunca se repiten ni hay
   huecos por dos usuarios a la vez).
 - Rectificativas: desde la factura, opción "Rectificar". Nunca se borra una

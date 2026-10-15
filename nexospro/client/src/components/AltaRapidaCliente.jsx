@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
+import { PROVINCIAS_ES } from "../lib/provincias.js";
 
 // Alta de cliente desde una cita o evento, con casilla "Nuevo".
 // El alta solo se hace marcando la casilla, y exige un teléfono para poder
@@ -10,6 +11,7 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
   const [nombre, setNombre] = useState(nombreInicial);
   const [telefono, setTelefono] = useState(telefonoInicial);
   const [nif, setNif] = useState("");
+  const [provincia, setProvincia] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -25,6 +27,7 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
     setNombre(nombreInicial);
     setTelefono(telefonoInicial);
     setNif("");
+    setProvincia("");
     setError(null);
     setAbierto((a) => !a);
   }
@@ -44,7 +47,13 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
       const r = await fetch("/api/clientes/rapido", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nombre: nombre.trim(), telefono: telefono.trim(), nif: nif.trim(), exigirTelefono: true }),
+        body: JSON.stringify({
+          nombre: nombre.trim(),
+          telefono: telefono.trim(),
+          nif: nif.trim(),
+          provincia: provincia.trim() || undefined,
+          exigirTelefono: true,
+        }),
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo crear el cliente");
@@ -92,6 +101,18 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
             onChange={(e) => setNif(e.target.value.toUpperCase())}
             placeholder="CIF / NIF"
           />
+          <input
+            className="input w-full"
+            value={provincia}
+            onChange={(e) => setProvincia(e.target.value)}
+            placeholder="Provincia"
+            list="provincias-alta-rapida"
+          />
+          <datalist id="provincias-alta-rapida">
+            {PROVINCIAS_ES.map((p) => (
+              <option key={p} value={p} />
+            ))}
+          </datalist>
           {error && <p className="text-xs text-rose-600">{error}</p>}
           <button type="button" onClick={crear} disabled={guardando} className="btn-primary text-xs px-3 py-1.5">
             {guardando ? "Creando…" : "Dar de alta"}

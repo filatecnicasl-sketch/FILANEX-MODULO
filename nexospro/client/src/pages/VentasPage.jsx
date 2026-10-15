@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Badge, euros, Avatar, coincideBusqueda } from "../components/ui.jsx";
-import { IconImprimir, IconPdf, IconOjo, IconXml, IconBorrar } from "../components/icons.jsx";
+import { IconImprimir, IconPdf, IconOjo, IconXml, IconBorrar, IconEditar } from "../components/icons.jsx";
 import EditorLineas, { lineaVacia } from "../components/EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import { useCierreProtegido } from "../lib/cierreProtegido.js";
@@ -862,6 +862,17 @@ export default function VentasPage() {
                           className={btnIcono}
                         >
                           <IconXml />
+                        </button>
+                      )}
+                      {f.estado === "borrador" && (
+                        <button
+                          onClick={() => {
+                            setFacturaEditar(f);
+                          }}
+                          title="Editar el borrador: se puede cambiar todo mientras no se valide"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors"
+                        >
+                          <IconEditar />
                         </button>
                       )}
                       {f.estado === "borrador" && (

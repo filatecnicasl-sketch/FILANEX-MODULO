@@ -131,6 +131,13 @@ router.post("/rapido", async (req, res, next) => {
     const telefono2 = (req.body?.telefono2 ?? "").trim() || undefined;
     const email = (req.body?.email ?? "").trim() || undefined;
     const nif = normalizarNIF(req.body?.nif) || undefined;
+    // Provincia (y ciudad/CP si se escriben): quedan guardadas en la
+    // dirección de la ficha para no completarlas después a mano.
+    const dir = {
+      ...(req.body?.ciudad ? { ciudad: req.body.ciudad.trim() } : {}),
+      ...(req.body?.cp ? { cp: req.body.cp.trim() } : {}),
+      ...(req.body?.provincia ? { provincia: req.body.provincia.trim() } : {}),
+    };
     // Cuando el alta nace de una casilla "Nuevo", el teléfono es obligatorio.
     if (req.body?.exigirTelefono && !telefono) {
       return res.status(400).json({ error: "Para dar de alta el cliente hay que indicar el teléfono" });
@@ -157,6 +164,7 @@ router.post("/rapido", async (req, res, next) => {
       telefono2,
       email,
       nif: nif ?? `SIN NIF ${codigo}`,
+      ...(Object.keys(dir).length > 0 ? { direccion: dir } : {}),
     });
     res.status(201).json(cliente);
   } catch (err) {

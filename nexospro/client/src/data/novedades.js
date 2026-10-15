@@ -6,6 +6,27 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-15",
+    tipo: "mejora",
+    titulo: "Facturas en borrador: edición directa desde el listado",
+    detalle:
+      "En Ventas → Facturas, cada factura en borrador tiene ahora un botón de lápiz en su fila para editarla al momento: cliente, líneas, vencimiento y método de pago se pueden cambiar mientras la factura siga en borrador, sin pasar por el detalle. Una vez validada, la factura ya no se puede tocar (lo exige VeriFactu) y hay que rectificarla, igual que antes.",
+  },
+  {
+    fecha: "2026-10-15",
+    tipo: "mejora",
+    titulo: "Alta de cliente: la provincia se pide también en el alta rápida",
+    detalle:
+      "El alta rápida de cliente (la de las citas y la agenda) tiene un campo Provincia con las 52 provincias para autocompletar. Lo que se escribe queda guardado en la dirección de la ficha del cliente, igual que en el alta completa de Clientes, y no hace falta completarlo después a mano.",
+  },
+  {
+    fecha: "2026-10-15",
+    tipo: "mejora",
+    titulo: "Taller: el tablero se limpia solo y el historial del vehículo, completo",
+    detalle:
+      "Las órdenes entregadas desaparecen del tablero a los 7 días de la entrega (quedan en el historial del vehículo y se pueden ver marcando «Ver archivadas»), para que el día a día no se llene de coches ya entregados. El historial del vehículo muestra ahora las fotos de la recepción y de la entrega, los kilómetros, la compañía, el siniestro y los daños de cada orden. Y al finalizar una orden hay un campo de notas para apuntar lo que queda pendiente (recambios que no llegaron, llamar al cliente…), visible en la orden y en el historial aunque el coche ya esté entregado.",
+  },
+  {
+    fecha: "2026-10-15",
     tipo: "nuevo",
     titulo: "Facturas de compra: vencimiento real del pago, visible en todas partes",
     detalle:
