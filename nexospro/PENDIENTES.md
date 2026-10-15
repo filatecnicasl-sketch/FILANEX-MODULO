@@ -4,6 +4,17 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## URGENTE / Revisar con detenimiento
 
+- [ ] **Importación de facturas del buzón filatecnicasl@gmail.com (reintento
+      programado)**: el 15/10 Gmail bloqueó el buzón por exceso de conexiones
+      (el sondeo cada 15 min del propio programa + los scripts de importación
+      masiva coincidieron). Desplegado ese mismo día el motor IMAP robusto
+      (commit `53c638b`: trozos de 8, backoff y pausa del buzón tras 3 fallos).
+      Queda un reintento automático en el servidor a las ~05:08
+      (`/tmp/reintentar-informe.sh` → `informe-facturas-faltantes.mjs`, log en
+      `/tmp/informe-faltantes-retry.log`). Al terminar: dar de alta las
+      facturas que falten, subirlas con su PDF y conciliarlas. LECCIÓN: no
+      lanzar nunca dos trabajos IMAP a la vez contra el mismo buzón.
+
 - [ ] **Dos cargos de Emergent de 20 $ sin factura**: -18,22 € (06/07) y
       -18,08 € (04/08). Son facturas que el usuario no ha pasado todavía
       (las 6 de la carpeta —0009 a 0014— ya están dadas de alta, validadas
