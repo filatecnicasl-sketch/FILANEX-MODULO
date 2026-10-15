@@ -10,7 +10,6 @@
 // El sondeo corre para cada empresa (multiempresa) siguiendo el patrón de
 // verifactu-reintento.js, y también se puede disparar a mano desde la
 // pantalla de campañas ("Revisar ahora").
-import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import Empresa from "../models/Empresa.js";
 import CampanaPrecios from "../models/CampanaPrecios.js";
@@ -19,6 +18,16 @@ import Tenant from "../models/plataforma/Tenant.js";
 import { alsEmpresa, conexionTenant } from "../models/tenant.js";
 import { extraerCampanaPrecios } from "./ocr-gemini.js";
 import { descifrar } from "./cifrado.js";
+import {
+  recorrerMensajesRobusto,
+  buzonEnCastigo,
+  conexionImap,
+  cerrarSeguro,
+  mensajeErrorEntrante,
+} from "./imap-robusto.js";
+
+// Re-exportados para mantener los imports existentes (p. ej. routes/correo.js).
+export { conexionImap, mensajeErrorEntrante } from "./imap-robusto.js";
 
 // Adjuntos que la IA sabe leer: PDF e imágenes.
 const MIME_VALIDOS = new Set([
@@ -74,42 +83,6 @@ export function normalizarConfiguracionEntrante(body = {}, empresa) {
   };
 }
 
-export function conexionImap(conf, password) {
-  const client = new ImapFlow({
-    host: conf.host,
-    port: Number(conf.puerto) || 993,
-    secure: true, // IMAP moderno es siempre TLS (993)
-    auth: { user: conf.usuario, pass: password },
-    logger: false,
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 120000,
-  });
-  // Sin este listener, un timeout de socket emite "error" en el cliente y,
-  // al no tener oyentes, Node lo trata como excepción no controlada y tira
-  // todo el proceso (afecta a toda la API, no solo al correo). El código que
-  // usa este cliente ya captura los fallos con try/catch en sus propios
-  // await; este listener solo evita el crash del proceso completo.
-  client.on("error", (e) => {
-    console.warn("[correo-imap] Error de conexión (controlado):", e?.message || e);
-  });
-  return client;
-}
-
-export function mensajeErrorEntrante(error, tipo) {
-  const codigo = error?.authenticationFailed || error?.code;
-  const texto = error?.response || error?.message || "";
-  if (tipo === "gmail" && (codigo === "AuthenticationFailed" || /AUTHENTICATIONFAILED/i.test(texto))) {
-    return "Gmail ha rechazado el acceso. Activa la verificación en dos pasos, permite IMAP en Gmail y usa una contraseña de aplicación.";
-  }
-  if (/AuthenticationFailed|INVALID/i.test(texto)) return "El servidor de correo ha rechazado el usuario o la contraseña.";
-  if (codigo === "ENOTFOUND" || codigo === "ECONNREFUSED" || codigo === "ETIMEDOUT") {
-    return "No se puede conectar con el servidor IMAP. Revisa host, puerto y que el puerto 993 esté abierto.";
-  }
-  if (/nonexistent|UNKNOWN\]/i.test(texto)) return "La carpeta/etiqueta indicada no existe en el buzón.";
-  return texto || "No se pudo conectar con el buzón";
-}
-
 // Comprueba usuario/contraseña/carpeta sin procesar nada. Devuelve el
 // número de correos sin leer de la carpeta.
 export async function probarCorreoEntrante() {
@@ -140,14 +113,6 @@ export async function probarCorreoEntrante() {
   } finally {
     cerrarSeguro(client);
   }
-}
-
-// Cerrar la conexión sin estallar: si connect() falló a medias, el cliente
-// puede no tener close() disponible (o no devolver una promesa).
-function cerrarSeguro(client) {
-  try {
-    Promise.resolve(client?.close?.()).catch(() => {});
-  } catch { /* ya estaba cerrado */ }
 }
 
 // ¿Merece la pena intentar leer este correo? Sin remitentes configurados
@@ -259,68 +224,101 @@ async function procesarMensaje({ uid, parsed, conf, empresa }) {
 
 // Una pasada del sondeo para la empresa ACTUAL (contexto de tenant abierto).
 // Si {silencioso} es false, los errores se lanzan para quien llamó.
+//
+// Usa el motor robusto de imap-robusto.js (lecciones del 14-15/10/2026):
+// búsqueda de no leídos primero, trozos de 8, reconexión con espera y
+// "castigo" del buzón tras fallos consecutivos (no insistir a Gmail).
 export async function revisarCorreoCampanas() {
   const empresa = await Empresa.findOne();
   const conf = empresa?.correoEntrante;
   if (!conf?.activo || !conf?.usuario || !conf?.passwordCifrada) {
     return { ok: false, mensaje: "El buzón de campañas no está configurado o está desactivado" };
   }
+  if (buzonEnCastigo(conf)) {
+    return { ok: false, mensaje: "El buzón está en pausa tras varios fallos de conexión; se reintentará más tarde" };
+  }
 
-  const client = conexionImap(conf, descifrar(conf.passwordCifrada));
+  const password = descifrar(conf.passwordCifrada);
   const resumen = { mensajes: 0, campanas: 0, detalles: [] };
+
   try {
-    await client.connect();
-    const lock = await client.getMailboxLock(conf.carpeta || "INBOX");
-    try {
-      const procesadosAhora = [];
-      for await (const msg of client.fetch(
-        { seen: false },
-        { uid: true, source: true },
-        { uid: true }
-      )) {
-        if (resumen.mensajes >= MAX_MENSAJES_POR_PASADA) break;
-        resumen.mensajes++;
-        let parsed;
+    // Conexión corta solo para la búsqueda de no leídos (operación barata).
+    let uidsNoLeidos = [];
+    {
+      const client = conexionImap(conf, password);
+      try {
+        await client.connect();
+        const lock = await client.getMailboxLock(conf.carpeta || "INBOX");
         try {
-          parsed = await simpleParser(msg.source);
-        } catch {
-          procesadosAhora.push({
-            messageId: `<uid-${msg.uid}@local>`,
-            fecha: new Date(),
-            resultado: "error",
-            detalle: "correo ilegible (mal formado)",
-          });
-          continue;
+          const todos = await client.search({ seen: false }, { uid: true });
+          // Los más recientes primero dentro del tope por pasada.
+          uidsNoLeidos = todos.slice(-MAX_MENSAJES_POR_PASADA).reverse();
+        } finally {
+          lock.release();
         }
-        const r = await procesarMensaje({ uid: msg.uid, parsed, conf, empresa });
-        if (r.resultado === "campana") resumen.campanas++;
-        resumen.detalles.push(`${parsed.subject ?? "(sin asunto)"} → ${r.resultado}: ${r.detalle}`);
-        procesadosAhora.push({
-          messageId: parsed.messageId || `<uid-${msg.uid}@local>`,
-          fecha: new Date(),
-          resultado: r.resultado,
-          detalle: String(r.detalle).slice(0, 300),
-        });
-        // Marcar como leído: la próxima pasada no vuelve a tocarlo.
-        try {
-          await client.messageFlagsAdd(String(msg.uid), ["\\Seen"], { uid: true });
-        } catch { /* no es fatal */ }
+        await client.logout();
+      } finally {
+        cerrarSeguro(client);
       }
+    }
+
+    if (uidsNoLeidos.length > 0) {
+      const yaEnPasada = new Set(); // evita duplicar campañas si un trozo se reintenta
+      const procesadosAhora = [];
+
+      const r = await recorrerMensajesRobusto({
+        conf,
+        password,
+        uids: uidsNoLeidos,
+        campos: { uid: true, source: true },
+        porMensaje: async (msg, client) => {
+          let parsed;
+          try {
+            parsed = await simpleParser(msg.source);
+          } catch {
+            procesadosAhora.push({ messageId: `<uid-${msg.uid}@local>`, fecha: new Date(), resultado: "error", detalle: "correo ilegible (mal formado)" });
+            return;
+          }
+          const messageId = parsed.messageId || `<sin-id-${msg.uid}@local>`;
+          if (yaEnPasada.has(messageId)) return;
+          yaEnPasada.add(messageId);
+
+          const resultado = await procesarMensaje({ uid: msg.uid, parsed, conf, empresa });
+          if (resultado.resultado === "campana") resumen.campanas++;
+          resumen.mensajes++;
+          resumen.detalles.push(`${parsed.subject ?? "(sin asunto)"} → ${resultado.resultado}: ${resultado.detalle}`);
+          procesadosAhora.push({
+            messageId,
+            fecha: new Date(),
+            resultado: resultado.resultado,
+            detalle: String(resultado.detalle).slice(0, 300),
+          });
+          // Marcar como leído: la próxima pasada no vuelve a tocarlo.
+          try {
+            await client.messageFlagsAdd(String(msg.uid), ["\\Seen"], { uid: true });
+          } catch { /* no es fatal */ }
+        },
+        alReintentar: (n, total, intento, error) => {
+          console.warn(`[energia-correo] Trozo ${n}/${total} falló (intento ${intento}): ${error?.message ?? error}`);
+        },
+      });
 
       if (procesadosAhora.length > 0) {
-        const previos = (empresa.correoEntrante?.procesados ?? []).map((p) => p.toObject ? p.toObject() : p);
+        const previos = (empresa.correoEntrante?.procesados ?? []).map((p) => (p.toObject ? p.toObject() : p));
         const combinados = [...procesadosAhora, ...previos]
           .filter((p, i, arr) => arr.findIndex((x) => x.messageId === p.messageId) === i)
           .slice(0, MAX_PROCESADOS);
         empresa.correoEntrante.procesados = combinados;
       }
-    } finally {
-      lock.release();
+      if (r.trozosFallidos > 0) {
+        resumen.detalles.push(`${r.trozosFallidos} grupo(s) de correos no se pudieron leer en esta pasada`);
+      }
     }
-    await client.logout();
 
     empresa.correoEntrante.ultimaPasada = new Date();
     empresa.correoEntrante.ultimoError = undefined;
+    empresa.correoEntrante.fallosConsecutivos = 0;
+    empresa.correoEntrante.ultimoIntento = new Date();
     await empresa.save();
     return {
       ok: true,
@@ -333,15 +331,18 @@ export async function revisarCorreoCampanas() {
             : "Sin correos nuevos",
     };
   } catch (error) {
+    // Lección 2: registrar el fallo y NO insistir. El contador de fallos
+    // consecutivos pone el buzón en pausa (buzonEnCastigo) para que el
+    // sondeo deje de darle la lata a Gmail hasta que se recupere solo.
     const mensaje = mensajeErrorEntrante(error, conf.tipo);
     empresa.correoEntrante.ultimaPasada = new Date();
+    empresa.correoEntrante.ultimoIntento = new Date();
     empresa.correoEntrante.ultimoError = mensaje;
+    empresa.correoEntrante.fallosConsecutivos = (Number(empresa.correoEntrante?.fallosConsecutivos) || 0) + 1;
     await empresa.save();
     const e = new Error(mensaje);
     e.status = 400;
     throw e;
-  } finally {
-    cerrarSeguro(client);
   }
 }
 

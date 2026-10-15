@@ -16,6 +16,7 @@ import {
   conexionImap,
   mensajeErrorEntrante,
 } from "../services/energia-correo.js";
+import { recorrerMensajesRobusto, descargarAdjuntoRobusto, DETENER } from "../services/imap-robusto.js";
 
 const router = Router();
 const soloAdmin = requiereRol("admin");
@@ -178,36 +179,60 @@ router.get("/entrante/carpetas", async (req, res, next) => {
 // Mensajes de una carpeta (los más recientes primero). Por defecto solo los
 // que traen adjuntos válidos (PDF o imagen); cada adjunto lleva su índice
 // para poder bajarlo con /entrante/mensajes/:uid/adjunto.
+//
+// Usa el motor robusto (imap-robusto.js): la búsqueda se hace en una
+// conexión corta y las estructuras se piden en TROZOS con reintentos —
+// pedir 100+ mensajes de golpe a Gmail acaba en timeout (lección del
+// 14-15/10/2026).
 router.get("/entrante/mensajes", async (req, res, next) => {
-  let client;
   try {
-    const { client: c, carpetaPorDefecto } = await conectarBuzonEntrante();
-    client = c;
-    const carpeta = String(req.query.carpeta ?? carpetaPorDefecto).slice(0, 120) || "INBOX";
+    const empresa = await Empresa.findOne();
+    const conf = empresa?.correoEntrante;
+    if (!conf?.usuario || !conf?.passwordCifrada) {
+      return res.status(400).json({ error: "Aún no hay buzón entrante configurado (Ajustes → Correo)" });
+    }
+    const password = descifrar(conf.passwordCifrada);
+    const carpeta = String(req.query.carpeta ?? conf.carpeta ?? "INBOX").slice(0, 120) || "INBOX";
     const limite = Math.min(Math.max(Math.trunc(Number(req.query.limite)) || 50, 1), 100);
     const soloAdjuntos = req.query.soloAdjuntos !== "0";
     const busqueda = String(req.query.busqueda ?? "").trim().slice(0, 120);
+    const patron = busqueda ? new RegExp(busqueda.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
 
-    client = await conectarBuzonEntrante();
-    const lock = await client.getMailboxLock(carpeta);
-    const mensajes = [];
-    try {
-      let uids;
-      if (busqueda) {
-        // OR sobre remitente y asunto; si el servidor no lo admite, se
-        // lista todo y se filtra aquí mismo.
+    // 1) Conexión corta para la búsqueda (operación barata).
+    let uids = null;
+    {
+      const client = conexionImap(conf, password);
+      try {
+        await client.connect();
+        const lock = await client.getMailboxLock(carpeta);
         try {
-          uids = await client.search({ or: [{ from: busqueda }, { subject: busqueda }] }, { uid: true });
-        } catch {
-          uids = null;
+          if (busqueda) {
+            try {
+              uids = await client.search({ or: [{ from: busqueda }, { subject: busqueda }] }, { uid: true });
+            } catch { uids = null; }
+          }
+          if (!uids) uids = await client.search({ all: true }, { uid: true });
+        } finally {
+          lock.release();
         }
+        await client.logout();
+      } finally {
+        try { client.close(); } catch { /* nada */ }
       }
-      if (!uids) uids = await client.search({ all: true }, { uid: true });
+    }
 
-      const ultimos = (uids ?? []).slice(-limite * (soloAdjuntos ? 3 : 1)).reverse();
-      const patron = busqueda ? new RegExp(busqueda.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
+    // Candidatos: los más recientes primero; se amplía el margen porque
+    // muchos no traen adjuntos válidos.
+    const candidatos = (uids ?? []).slice(-limite * (soloAdjuntos ? 3 : 1)).reverse();
 
-      for await (const msg of client.fetch(ultimos, { envelope: true, bodyStructure: true }, { uid: true })) {
+    // 2) Estructuras en trozos con reintentos.
+    const mensajes = [];
+    const resultado = await recorrerMensajesRobusto({
+      conf: { ...conf, carpeta },
+      password,
+      uids: candidatos,
+      campos: { envelope: true, bodyStructure: true },
+      porMensaje: (msg) => {
         const adjuntos = [];
         const recorrer = (nodo) => {
           if (nodo.disposition === "attachment" || nodo.dispositionParameters?.filename || nodo.parameters?.name) {
@@ -223,14 +248,13 @@ router.get("/entrante/mensajes", async (req, res, next) => {
         const validos = adjuntos.filter(
           (a) => MIME_ADJUNTOS.has(a.tipo) || /\.(pdf|png|jpe?g|webp)$/i.test(a.nombre)
         );
-        if (soloAdjuntos && !validos.length) continue;
+        if (soloAdjuntos && !validos.length) return;
         const env = msg.envelope;
         const de = env.from?.map((f) => f.address).filter(Boolean).join(", ") ?? "";
         const asunto = env.subject ?? "(sin asunto)";
-        // Buscar también en nombres de adjunto (útil para encontrar "Invoice-").
         const textoAdjuntos = validos.map((a) => a.nombre).join(" ");
         if (patron && !patron.test(de) && !patron.test(asunto) && !patron.test(env.from?.[0]?.name ?? "") && !patron.test(textoAdjuntos)) {
-          continue;
+          return;
         }
         mensajes.push({
           uid: msg.uid,
@@ -241,15 +265,18 @@ router.get("/entrante/mensajes", async (req, res, next) => {
           asunto,
           adjuntos: validos,
         });
-        if (mensajes.length >= limite) break;
-      }
-    } finally {
-      lock.release();
+        if (mensajes.length >= limite) return DETENER;
+      },
+      maxIntentos: 2, // es una pantalla interactiva: mejor responder rápido
+    });
+
+    if (resultado.trozosFallidos > 0 && mensajes.length === 0) {
+      return res.status(503).json({
+        error: "El buzón está tardando demasiado en responder (Gmail limita las conexiones). Espera un momento y vuelve a intentarlo.",
+      });
     }
-    await client.logout();
     res.json(mensajes);
   } catch (err) {
-    try { await client?.logout(); } catch { /* nada */ }
     if (err.status) return res.status(err.status).json({ error: err.message });
     if (/nonexistent|UNKNOWN\]|Mailbox/i.test(err?.message ?? "")) {
       return res.status(400).json({ error: "Esa carpeta no existe en el buzón." });
@@ -261,66 +288,35 @@ router.get("/entrante/mensajes", async (req, res, next) => {
 // Baja un adjunto concreto (por índice dentro del mensaje). El frontend lo
 // recoge como blob y lo manda al OCR como si lo subiera a mano.
 router.get("/entrante/mensajes/:uid/adjunto", async (req, res, next) => {
-  let client;
   try {
-    const { client: c, carpetaPorDefecto } = await conectarBuzonEntrante();
-    client = c;
-    const carpeta = String(req.query.carpeta ?? carpetaPorDefecto).slice(0, 120) || "INBOX";
-    const indice = Math.max(Math.trunc(Number(req.query.indice)) || 0, 0);
-    const lock = await client.getMailboxLock(carpeta);
-    let buffer = null;
-    let nombre = `adjunto-${indice}`;
-    let tipo = "application/octet-stream";
-    try {
-      // imapflow numera las partes desde 1; el índice público es 0-based
-      // sobre la lista de adjuntos válidos.
-      const estructura = await client.fetchOne(req.params.uid, { bodyStructure: true }, { uid: true });
-      const nodos = [];
-      const recorrer = (nodo) => {
-        if (nodo.disposition === "attachment" || nodo.dispositionParameters?.filename || nodo.parameters?.name) {
-          nodos.push(nodo);
-        }
-        (nodo.childNodes ?? []).forEach(recorrer);
-      };
-      recorrer(estructura?.bodyStructure ?? {});
-      // Mismo criterio de validez que el listado de mensajes, para que el
-      // índice del adjunto coincida con el que vio el frontend.
-      const validos = nodos.filter(
-        (n) =>
-          MIME_ADJUNTOS.has(n.type ? `${n.type}/${n.subtype}` : "") ||
-          /\.(pdf|png|jpe?g|webp)$/i.test(
-            n.dispositionParameters?.filename ?? n.parameters?.name ?? ""
-          )
-      );
-      const nodo = validos[indice];
-      if (!nodo) {
-        const e = new Error("Ese adjunto ya no está en el correo");
-        e.status = 404;
-        throw e;
-      }
-      nombre = nodo.dispositionParameters?.filename ?? nodo.parameters?.name ?? nombre;
-      tipo = nodo.type ? `${nodo.type}/${nodo.subtype}` : tipo;
-      // La parte a bajar: el part id del nodo (p. ej. "2") o su posición.
-      const parte = nodo.part || String(nodos.indexOf(nodo) + 1);
-      const descarga = await client.download(req.params.uid, parte, { uid: true });
-      const trozos = [];
-      for await (const trozo of descarga.content) trozos.push(trozo);
-      const total = trozos.reduce((s, t) => s + t.length, 0);
-      if (total > PESO_MAXIMO_ADJUNTO) {
-        const e = new Error("El adjunto es demasiado grande (máximo 15 MB)");
-        e.status = 400;
-        throw e;
-      }
-      buffer = Buffer.concat(trozos);
-    } finally {
-      lock.release();
+    const empresa = await Empresa.findOne();
+    const conf = empresa?.correoEntrante;
+    if (!conf?.usuario || !conf?.passwordCifrada) {
+      return res.status(400).json({ error: "Aún no hay buzón entrante configurado (Ajustes → Correo)" });
     }
-    await client.logout();
-    res.setHeader("Content-Type", tipo);
-    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(nombre)}"`);
+    const carpeta = String(req.query.carpeta ?? conf.carpeta ?? "INBOX").slice(0, 120) || "INBOX";
+    const indice = Math.max(Math.trunc(Number(req.query.indice)) || 0, 0);
+    const uid = Number(req.params.uid);
+
+    const esValido = (n) =>
+      MIME_ADJUNTOS.has(n.type ? `${n.type}/${n.subtype}` : "") ||
+      /\.(pdf|png|jpe?g|webp)$/i.test(n.dispositionParameters?.filename ?? n.parameters?.name ?? "");
+
+    const { buffer, nombre } = await descargarAdjuntoRobusto({
+      conf: { ...conf, carpeta },
+      password: descifrar(conf.passwordCifrada),
+      uid,
+      part: indice, // índice 0-based sobre la lista de adjuntos VÁLIDOS
+      esValido,
+    });
+
+    if (buffer.length > PESO_MAXIMO_ADJUNTO) {
+      return res.status(400).json({ error: "El adjunto es demasiado grande (máximo 15 MB)" });
+    }
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(nombre ?? `adjunto-${indice}`)}"`);
     res.send(buffer);
   } catch (err) {
-    try { await client?.logout(); } catch { /* nada */ }
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }

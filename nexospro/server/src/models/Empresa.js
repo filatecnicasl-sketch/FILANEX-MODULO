@@ -156,6 +156,11 @@ const empresaSchema = new Schema(
           detalle: String,
         },
       ],
+      // Backoff por buzón (lecciones del 14-15/10/2026): tras fallos de
+      // conexión consecutivos con Gmail/IMAP, el sondeo deja de insistir
+      // un rato para no agravar el bloqueo del buzón.
+      fallosConsecutivos: { type: Number, default: 0 },
+      ultimoIntento: Date,
     },
     // Preferencias de avisos (pantalla Sistema → Notificaciones).
     notificaciones: {
