@@ -226,8 +226,14 @@ async function procesarMensaje({ uid, parsed, conf, empresa }) {
 // Si {silencioso} es false, los errores se lanzan para quien llamó.
 //
 // Usa el motor robusto de imap-robusto.js (lecciones del 14-15/10/2026):
-// búsqueda de no leídos primero, trozos de 8, reconexión con espera y
-// "castigo" del buzón tras fallos consecutivos (no insistir a Gmail).
+// trozos de 8, reconexión con espera y "castigo" del buzón tras fallos
+// consecutivos (no insistir a Gmail).
+//
+// FIX CURSOR POR UID (15/10/2026): antes se usaba "sin leer" como cursor y
+// se re-descargaba el SOURCE COMPLETO de los mismos correos cada 15 min
+// (con un buzón 70 % sin leer, eso era el abuso que Gmail castigaba con
+// el bloqueo). Ahora el cursor es ultimoUidVisto: solo se descargan los
+// correos MÁS NUEVOS que lo ya visto, y jamás se vuelve hacia atrás.
 export async function revisarCorreoCampanas() {
   const empresa = await Empresa.findOne();
   const conf = empresa?.correoEntrante;
@@ -242,17 +248,39 @@ export async function revisarCorreoCampanas() {
   const resumen = { mensajes: 0, campanas: 0, detalles: [] };
 
   try {
-    // Conexión corta solo para la búsqueda de no leídos (operación barata).
-    let uidsNoLeidos = [];
+    // Conexión corta para la búsqueda y el mantenimiento del cursor.
+    let uidsNuevos = [];
     {
       const client = conexionImap(conf, password);
       try {
         await client.connect();
         const lock = await client.getMailboxLock(conf.carpeta || "INBOX");
         try {
-          const todos = await client.search({ seen: false }, { uid: true });
-          // Los más recientes primero dentro del tope por pasada.
-          uidsNoLeidos = todos.slice(-MAX_MENSAJES_POR_PASADA).reverse();
+          const uidValidity = String(client.mailbox?.uidValidity ?? "");
+          const cursorViejo = Number(conf.ultimoUidVisto) || 0;
+
+          // ¿Primera vez o buzón reconstruido? Inicializar al máximo SIN
+          // procesar histórico: el sondeo solo mira hacia adelante.
+          if (!conf.uidValidity || conf.uidValidity !== uidValidity || (!cursorViejo && !conf.uidValidity)) {
+            const todos = await client.search({ all: true }, { uid: true });
+            const maxUid = todos.length ? todos[todos.length - 1] : 0;
+            if (maxUid > cursorViejo) {
+              empresa.correoEntrante.ultimoUidVisto = maxUid;
+            }
+            empresa.correoEntrante.uidValidity = uidValidity;
+            await empresa.save();
+            if (!cursorViejo) {
+              console.log(`[energia-correo] Cursor inicializado a uid ${maxUid} (sin procesar histórico)`);
+            }
+          }
+
+          const desde = Number(empresa.correoEntrante.ultimoUidVisto) || 0;
+          if (desde > 0) {
+            // Solo lo que llegó DESPUÉS del cursor (uid desde+1 en adelante).
+            // El criterio "N:*" incluye el propio N si existe: se filtra luego.
+            const candidatos = await client.search({ uid: `${desde + 1}:*` }, { uid: true });
+            uidsNuevos = candidatos.filter((u) => u > desde).sort((a, b) => a - b);
+          }
         } finally {
           lock.release();
         }
@@ -262,14 +290,18 @@ export async function revisarCorreoCampanas() {
       }
     }
 
-    if (uidsNoLeidos.length > 0) {
+    // Tope por pasada: los más viejos primero (orden natural del cursor).
+    uidsNuevos = uidsNuevos.slice(0, MAX_MENSAJES_POR_PASADA);
+
+    if (uidsNuevos.length > 0) {
       const yaEnPasada = new Set(); // evita duplicar campañas si un trozo se reintenta
       const procesadosAhora = [];
+      let ultimoUidProcesado = Number(empresa.correoEntrante.ultimoUidVisto) || 0;
 
       const r = await recorrerMensajesRobusto({
         conf,
         password,
-        uids: uidsNoLeidos,
+        uids: uidsNuevos,
         campos: { uid: true, source: true },
         porMensaje: async (msg, client) => {
           let parsed;
@@ -277,6 +309,7 @@ export async function revisarCorreoCampanas() {
             parsed = await simpleParser(msg.source);
           } catch {
             procesadosAhora.push({ messageId: `<uid-${msg.uid}@local>`, fecha: new Date(), resultado: "error", detalle: "correo ilegible (mal formado)" });
+            ultimoUidProcesado = Math.max(ultimoUidProcesado, msg.uid);
             return;
           }
           const messageId = parsed.messageId || `<sin-id-${msg.uid}@local>`;
@@ -293,7 +326,9 @@ export async function revisarCorreoCampanas() {
             resultado: resultado.resultado,
             detalle: String(resultado.detalle).slice(0, 300),
           });
-          // Marcar como leído: la próxima pasada no vuelve a tocarlo.
+          // El cursor avanza: este correo jamás se volverá a descargar.
+          ultimoUidProcesado = Math.max(ultimoUidProcesado, msg.uid);
+          // Marcar como leído (solo cortesía visual para el usuario).
           try {
             await client.messageFlagsAdd(String(msg.uid), ["\\Seen"], { uid: true });
           } catch { /* no es fatal */ }
@@ -310,6 +345,9 @@ export async function revisarCorreoCampanas() {
           .slice(0, MAX_PROCESADOS);
         empresa.correoEntrante.procesados = combinados;
       }
+      // Avanzar el cursor solo hasta lo procesado: lo que falló se reintenta
+      // en la próxima pasada (el dedupe por messageId evita campañas dobles).
+      empresa.correoEntrante.ultimoUidVisto = ultimoUidProcesado;
       if (r.trozosFallidos > 0) {
         resumen.detalles.push(`${r.trozosFallidos} grupo(s) de correos no se pudieron leer en esta pasada`);
       }

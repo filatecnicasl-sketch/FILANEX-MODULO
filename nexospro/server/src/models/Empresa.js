@@ -161,6 +161,14 @@ const empresaSchema = new Schema(
       // un rato para no agravar el bloqueo del buzón.
       fallosConsecutivos: { type: Number, default: 0 },
       ultimoIntento: Date,
+      // Cursor de sondeo por UID (fix del 15/10/2026): solo se procesan los
+      // correos con UID mayor que este. Sustituye al antiguo cursor
+      // "sin leer", que re-descargaba los mismos correos una y otra vez
+      // (con 654 sin leer en el buzón, eso era el abuso que Gmail castigaba).
+      ultimoUidVisto: { type: Number, default: 0 },
+      // Si el servidor reconstruye el buzón (UIDVALIDITY cambia), los UID
+      // dejan de ser válidos y el cursor se reinicia al máximo actual.
+      uidValidity: { type: String, default: "" },
     },
     // Preferencias de avisos (pantalla Sistema → Notificaciones).
     notificaciones: {
