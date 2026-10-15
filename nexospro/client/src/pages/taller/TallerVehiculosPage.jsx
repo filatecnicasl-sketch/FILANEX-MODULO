@@ -8,7 +8,7 @@ import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
 
 const campo = "input w-full";
-const VACIO = { matricula: "", marca: "", modelo: "", km: "", tipo: "cliente", clienteId: "", clienteNombre: "", notas: "" };
+const VACIO = { matricula: "", marca: "", modelo: "", bastidor: "", color: "", combustible: "", anio: "", km: "", tipo: "cliente", clienteId: "", clienteNombre: "", notas: "" };
 
 export default function TallerVehiculosPage() {
   const [lista, setLista] = useState(null);
@@ -47,9 +47,13 @@ export default function TallerVehiculosPage() {
       v.matricula,
       v.marca,
       v.modelo,
+      v.bastidor,
+      v.color,
+      v.combustible,
       v.clienteNombre,
       telefonoCliente(v),
       v.tipo === "cortesia" ? "cortesia" : "cliente",
+      v.anio != null ? String(v.anio) : null,
       v.km != null ? String(v.km) : null
     )
   );
@@ -87,6 +91,10 @@ export default function TallerVehiculosPage() {
       matricula: v.matricula,
       marca: v.marca ?? "",
       modelo: v.modelo ?? "",
+      bastidor: v.bastidor ?? "",
+      color: v.color ?? "",
+      combustible: v.combustible ?? "",
+      anio: v.anio ?? "",
       km: v.km ?? "",
       tipo: v.tipo,
       clienteId: v.cliente ?? "",
@@ -108,6 +116,10 @@ export default function TallerVehiculosPage() {
       matricula: form.matricula,
       marca: form.marca || undefined,
       modelo: form.modelo || undefined,
+      bastidor: form.bastidor || undefined,
+      color: form.color || undefined,
+      combustible: form.combustible || undefined,
+      anio: form.anio ? Number(form.anio) : undefined,
       km: form.km ? Number(form.km) : undefined,
       tipo: form.tipo,
       cliente: form.clienteId || undefined,
@@ -178,6 +190,11 @@ export default function TallerVehiculosPage() {
                     <td className="font-bold text-white whitespace-nowrap num">{v.matricula}</td>
                     <td className="text-slate-300">
                       {[v.marca, v.modelo].filter(Boolean).join(" ") || "—"}
+                      {(v.anio != null || v.combustible || v.color) && (
+                        <p className="text-[0.6875rem] text-slate-500">
+                          {[v.anio, v.combustible, v.color].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
                     </td>
                     <td className="text-slate-300">{v.clienteNombre ?? "—"}</td>
                     <td className="text-slate-300 whitespace-nowrap num">{telefonoCliente(v) ?? "—"}</td>
@@ -298,6 +315,27 @@ export default function TallerVehiculosPage() {
                   <input className={campo} value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
                 </div>
                 <div>
+                  <label className="text-sm text-slate-400 block mb-1">Bastidor (VIN)</label>
+                  <input className={`${campo} uppercase`} value={form.bastidor} onChange={(e) => setForm({ ...form, bastidor: e.target.value.toUpperCase() })} />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Color</label>
+                  <input className={campo} value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Combustible</label>
+                  <input className={campo} list="combustibles-taller" value={form.combustible} onChange={(e) => setForm({ ...form, combustible: e.target.value })} />
+                  <datalist id="combustibles-taller">
+                    {["Gasolina", "Diésel", "Híbrido", "Híbrido enchufable", "Eléctrico", "GLP", "GNC"].map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Año</label>
+                  <input type="number" min="1900" max="2100" className={campo} value={form.anio} onChange={(e) => setForm({ ...form, anio: e.target.value })} />
+                </div>
+                <div>
                   <label className="text-sm text-slate-400 block mb-1">KM</label>
                   <input
                     type="number"
@@ -378,6 +416,18 @@ function ModalHistorial({ vehiculo, onCerrar }) {
               {[vehiculo.marca, vehiculo.modelo].filter(Boolean).join(" ") || "Vehículo"}
               {vehiculo.clienteNombre ? ` · ${vehiculo.clienteNombre}` : ""}
             </p>
+            {(vehiculo.anio != null || vehiculo.combustible || vehiculo.color || vehiculo.bastidor) && (
+              <p className="mt-0.5 text-xs text-slate-500">
+                {[
+                  vehiculo.anio,
+                  vehiculo.combustible,
+                  vehiculo.color,
+                  vehiculo.bastidor ? `Bastidor ${vehiculo.bastidor}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
           </div>
           <button onClick={onCerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
@@ -451,10 +501,20 @@ function ModalHistorial({ vehiculo, onCerrar }) {
 
 function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
   const fecha = doc.fecha ?? doc.createdAt;
-  const numero = doc.numero ?? doc.numeroOrden ?? "—";
+  const numero = doc.numero ?? doc.numeroOrden ?? doc.numOrden ?? "—";
   const cliente = doc.clienteNombre ?? doc.cliente?.nombre ?? "";
   const total = doc.total ?? 0;
   const estado = doc.estado ?? "";
+
+  // Órdenes de trabajo: fotos de la recepción y de la entrega, datos
+  // completos y tareas pendientes (propuesta 15/10 — historial completo).
+  const esOrden = tipo === "ordenes";
+  const fotosRecepcion = esOrden ? doc.recepcionDigital?.fotos ?? [] : [];
+  const fotosEntrega = esOrden ? doc.entrega?.fotos ?? [] : [];
+  const fotosSueltas = !esOrden ? doc.fotos ?? [] : [];
+  const notasPendientes = esOrden ? doc.entrega?.notas ?? "" : "";
+  const compania = esOrden ? doc.aseguradora?.nombre ?? "" : doc.compania ?? "";
+  const danios = esOrden ? doc.recepcionDigital?.danos ?? "" : "";
 
   const tonosEstado = {
     recepcion: "bg-sky-100 text-sky-700",
@@ -500,9 +560,66 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
       {doc.trabajos?.length > 0 && (
         <p className="text-xs text-slate-400 mt-1">{doc.trabajos.join(", ")}</p>
       )}
-      {doc.fotos?.length > 0 && (
+      {esOrden && (doc.km != null || compania || doc.numeroSiniestro || danios) && (
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.6875rem] text-slate-500">
+          {doc.km != null && <span className="num">{doc.km.toLocaleString("es-ES")} km</span>}
+          {compania && <span>{compania}</span>}
+          {doc.numeroSiniestro && <span>Siniestro {doc.numeroSiniestro}</span>}
+          {danios && <span title={danios}>Daños: {danios.length > 60 ? `${danios.slice(0, 60)}…` : danios}</span>}
+        </p>
+      )}
+      {notasPendientes && (
+        <p
+          className="mt-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800"
+          title={notasPendientes}
+        >
+          <span className="font-semibold">Pendiente:</span>{" "}
+          {notasPendientes.length > 140 ? `${notasPendientes.slice(0, 140)}…` : notasPendientes}
+        </p>
+      )}
+      {(fotosRecepcion.length > 0 || fotosEntrega.length > 0) && (
+        <div className="mt-2.5 space-y-2">
+          {fotosRecepcion.length > 0 && (
+            <div>
+              <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                Recepción ({fotosRecepcion.length})
+              </p>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {fotosRecepcion.map((f) => (
+                  <button key={f} type="button" onClick={(e) => { e.stopPropagation(); onFoto(f); }} className="group">
+                    <img
+                      src={urlApiConSesion(f)}
+                      alt="Foto recepción"
+                      className="w-full h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-80 transition-opacity"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {fotosEntrega.length > 0 && (
+            <div>
+              <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                Entrega ({fotosEntrega.length})
+              </p>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {fotosEntrega.map((f) => (
+                  <button key={f} type="button" onClick={(e) => { e.stopPropagation(); onFoto(f); }} className="group">
+                    <img
+                      src={urlApiConSesion(f)}
+                      alt="Foto entrega"
+                      className="w-full h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-80 transition-opacity"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {fotosSueltas.length > 0 && (
         <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2.5">
-          {doc.fotos.map((f) => (
+          {fotosSueltas.map((f) => (
             <button key={f} type="button" onClick={(e) => { e.stopPropagation(); onFoto(f); }} className="group">
               <img
                 src={urlApiConSesion(f)}
@@ -567,7 +684,9 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
             {doc.hora && <DatoDocumento etiqueta="Hora" valor={doc.hora} />}
             {doc.km != null && <DatoDocumento etiqueta="Kilómetros" valor={doc.km} />}
             {doc.numeroSiniestro && <DatoDocumento etiqueta="Nº siniestro" valor={doc.numeroSiniestro} />}
-            {doc.compania && <DatoDocumento etiqueta="Compañía" valor={doc.compania} />}
+            {(doc.compania || doc.aseguradora?.nombre) && (
+              <DatoDocumento etiqueta="Compañía" valor={doc.compania ?? doc.aseguradora?.nombre} />
+            )}
             {doc.fechaDesde && <DatoDocumento etiqueta="Desde" valor={new Date(doc.fechaDesde).toLocaleDateString("es-ES")} />}
             {doc.fechaHasta && <DatoDocumento etiqueta="Hasta" valor={new Date(doc.fechaHasta).toLocaleDateString("es-ES")} />}
           </div>
@@ -578,6 +697,13 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
               <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
                 {doc.motivo || doc.descripcion || doc.notas || doc.observaciones}
               </p>
+            </div>
+          )}
+
+          {doc.entrega?.notas && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">Tareas pendientes</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-amber-800">{doc.entrega.notas}</p>
             </div>
           )}
 

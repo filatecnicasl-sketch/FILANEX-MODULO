@@ -40,6 +40,10 @@ const ordenTrabajoSchema = new Schema(
       avisoFecha: Date, // cuándo se le avisó
       avisoMedio: { type: String, enum: ["telefono", "whatsapp", "sms", "email", "en_persona", undefined] },
       fotos: { type: [String], default: [] }, // rutas /uploads/...
+      // Tareas pendientes aunque el vehículo se entregue (recambios que no
+      // llegaron, llamar al cliente cuando llegue la pieza...). Queda a la
+      // vista en la orden y en el historial del vehículo (propuesta 15/10).
+      notas: { type: String, default: "", maxlength: 2000 },
     },
     // PDF original de la valoración o peritación de la aseguradora.
     valoracionPdf: {

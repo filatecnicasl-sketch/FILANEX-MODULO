@@ -161,8 +161,9 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
     const matriculaEscapada = escaparRegex(matricula);
     const clienteId = vehiculo.cliente;
 
-    // Órdenes de trabajo de esta matrícula
+    // Órdenes de trabajo de esta matrícula (con la compañía para el historial)
     const ordenes = await OrdenTrabajo.find({ matricula })
+      .populate("aseguradora", "nombre")
       .sort({ createdAt: -1 })
       .lean();
     const ordenIds = ordenes.map((o) => o._id);
@@ -310,6 +311,16 @@ router.get("/ordenes", async (req, res, next) => {
     const filtro = {};
     if (req.query.abiertas === "1") filtro.estado = { $in: ["recepcion", "en_curso"] };
     if (req.query.matricula) filtro.matricula = normalizarMatricula(req.query.matricula);
+    // Tablero limpio (propuesta 15/10): con ?tablero=1, las órdenes ENTREGADAS
+    // solo se muestran los 7 días siguientes a su entrega; después quedan
+    // únicamente en el historial del vehículo (no se pierden). El resto de
+    // llamadas (albaranes de compra, historial...) siguen viéndolo todo.
+    if (req.query.tablero === "1") {
+      filtro.$or = [
+        { estado: { $ne: "entregado" } },
+        { estado: "entregado", estadoActualizadoEn: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+      ];
+    }
     const lista = await OrdenTrabajo.find(filtro)
       .populate("aseguradora", "nombre")
       .populate("vehiculo", "marca modelo color")
@@ -469,6 +480,8 @@ router.put("/ordenes/:id", async (req, res, next) => {
             }
           : {}),
         fotos: Array.isArray(e.fotos) ? e.fotos : [],
+        // Tareas pendientes pese a la entrega (propuesta 15/10).
+        ...(typeof e.notas === "string" ? { notas: e.notas.slice(0, 2000) } : {}),
       };
     }
     const orden = await OrdenTrabajo.findByIdAndUpdate(req.params.id, cambios, { new: true, omitUndefined: true });

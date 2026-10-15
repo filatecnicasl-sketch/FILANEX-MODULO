@@ -28,6 +28,7 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
     orden.entrega?.fecha ? fechaLocalInput(new Date(orden.entrega.fecha)) : fechaLocalInput()
   );
   const [fotos, setFotos] = useState(orden.entrega?.fotos ?? []);
+  const [notas, setNotas] = useState(orden.entrega?.notas ?? "");
   const [clienteAvisado, setClienteAvisado] = useState(!!orden.entrega?.clienteAvisado);
   const [avisoMedio, setAvisoMedio] = useState(orden.entrega?.avisoMedio ?? "telefono");
   const [subiendo, setSubiendo] = useState(false);
@@ -78,6 +79,7 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
             clienteAvisado,
             avisoMedio: clienteAvisado ? avisoMedio : undefined,
             fotos,
+            notas,
           },
         }),
       });
@@ -149,6 +151,22 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
               {subiendo ? "Subiendo…" : "+ Fotos"}
             </label>
           </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-slate-400 block mb-1">
+            Notas de entrega · tareas pendientes
+          </label>
+          <textarea
+            className="input w-full min-h-[70px] resize-y"
+            placeholder="P. ej.: falta el retrovisor pedido, llamar al cliente cuando llegue la pieza…"
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            maxLength={2000}
+          />
+          <p className="mt-1 text-[0.6875rem] text-slate-500">
+            Quedará visible en la orden y en el historial del vehículo aunque ya esté entregado.
+          </p>
         </div>
 
         <div className="rounded-xl border border-slate-700 p-3">

@@ -19,7 +19,7 @@ const fechaHora = (iso) =>
 // cliente ya está avisado para la recogida.
 function BadgeEntrega({ orden }) {
   if (!orden.entrega) return null;
-  const { fecha: f, clienteAvisado, avisoMedio, fotos } = orden.entrega;
+  const { fecha: f, clienteAvisado, avisoMedio, fotos, notas } = orden.entrega;
   const medios = { telefono: "teléfono", whatsapp: "WhatsApp", sms: "SMS", email: "email", en_persona: "en persona" };
   return (
     <p className="mt-1 flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-[0.6875rem]">
@@ -31,6 +31,14 @@ function BadgeEntrega({ orden }) {
       {fotos?.length > 0 && (
         <span className="text-slate-400" title={`${fotos.length} foto(s) del vehículo terminado`}>
           📷 {fotos.length}
+        </span>
+      )}
+      {notas && (
+        <span
+          title={`Tareas pendientes: ${notas}`}
+          className="rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-1.5 py-px font-semibold"
+        >
+          Pendiente
         </span>
       )}
       {clienteAvisado ? (
@@ -311,6 +319,7 @@ export default function TallerOrdenesPage() {
   const [finalizando, setFinalizando] = useState(undefined); // orden en el modal de finalizar
   const [recepcionNueva, setRecepcionNueva] = useState(false); // recién creada (flujo recepción rápida)
   const [vista, setVista] = useState("tablero"); // "tablero" (kanban) | "lista"
+  const [verArchivadas, setVerArchivadas] = useState(false); // entregadas de más de 7 días
   const [params, setParams] = useSearchParams();
 
   // Abre directamente una orden cuando llega ?abrir=<id> (p. ej. desde el historial del vehículo).
@@ -327,7 +336,10 @@ export default function TallerOrdenesPage() {
 
   async function cargar() {
     try {
-      const r = await fetch("/api/taller/ordenes");
+      // ?tablero=1: el servidor oculta las entregadas de más de 7 días (se
+      // quedan solo en el historial del vehículo) para que el tablero no se
+      // llene de coches ya entregados (propuesta 15/10).
+      const r = await fetch(`/api/taller/ordenes${verArchivadas ? "" : "?tablero=1"}`);
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al cargar");
       setLista(datos);
@@ -339,7 +351,7 @@ export default function TallerOrdenesPage() {
 
   useEffect(() => {
     cargar();
-  }, []);
+  }, [verArchivadas]);
 
   async function cambiarEstado(o, estado) {
     // Al finalizar (trabajo terminado) o entregar (coche al cliente) se
@@ -435,13 +447,25 @@ export default function TallerOrdenesPage() {
         <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div>
       )}
 
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <input
           className="input w-full max-w-sm"
           placeholder="Buscar por nº, matrícula, cliente, teléfono, compañía o siniestro…"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />
+        <label
+          className="inline-flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none"
+          title="Las órdenes entregadas se archivan solas a los 7 días y quedan en el historial del vehículo"
+        >
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-emerald-500"
+            checked={verArchivadas}
+            onChange={(e) => setVerArchivadas(e.target.checked)}
+          />
+          Ver archivadas (entregadas hace más de 7 días)
+        </label>
       </div>
 
       {vista === "tablero" ? (
