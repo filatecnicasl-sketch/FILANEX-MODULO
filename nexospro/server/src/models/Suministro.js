@@ -35,7 +35,11 @@ const suministroSchema = new Schema(
     potenciaValle: { type: Number, default: 0 }, // kW contratados (luz)
     consumoAnual: { type: Number, default: 0 }, // kWh/año (dato del estudio)
     presupuestoAnual: { type: Number, default: 0 }, // €/año objetivo: alimenta la desviación
-    estado: { type: String, enum: ["activo", "inactivo", "baja"], default: "activo" },
+    // Ciclo del suministro (propuesta ROLUSUR 15/10): "en_tramite" mientras
+    // el alta/cambio de comercializadora está en proceso; cuando ya está
+    // activo en la comercializadora se pasa a "activo" y se pone la fecha de
+    // alta. "baja" cuando el suministro deja de existir.
+    estado: { type: String, enum: ["activo", "en_tramite", "baja"], default: "activo" },
     fechaAlta: Date, // fecha de alta con la comercializadora actual
     fechaFin: Date, // fin del contrato: alimenta las alertas de renovación
     // Documentación adjunta del suministro: contrato, factura que motivó el

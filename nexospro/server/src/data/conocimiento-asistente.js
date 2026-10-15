@@ -247,6 +247,12 @@ suministro queda actualizado solo y empieza a generar comisión cada mes.
 - Ficha por CUPS (22 caracteres, se normaliza solo): cliente, comercializadora
   actual, luz o gas, dirección del suministro (puede ser distinta a la
   fiscal), tarifa (2.0TD, 3.0TD…), potencia en kW y consumo anual en kWh.
+- **Estados del suministro**: Activo (ya está con la comercializadora, con su
+  fecha de alta), En trámite (el alta o cambio está en marcha) y Baja. Al
+  abrir un trámite de alta/cambio el suministro pasa solo a En trámite, y al
+  activar el trámite vuelve a Activo con la fecha de alta rellenada; si el
+  trámite se rechaza o cancela, el suministro vuelve a Activo con la
+  comercializadora que ya tenía. También se puede cambiar a mano en la ficha.
 - Columna **€/kWh (12 m.)**: lo facturado entre lo consumido en los últimos
   12 meses; en ámbar (≥0,25 €/kWh) son los contratos caros, mejores
   candidatos a estudio de ahorro.

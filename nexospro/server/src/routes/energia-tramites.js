@@ -56,7 +56,9 @@ async function aplicarEnSuministro(tramite) {
       s.comercializadora = tramite.comercializadoraDestino;
       s.comercializadoraNombre = com?.nombre ?? s.comercializadoraNombre;
     }
-    if (tramite.tipo === "alta") s.estado = "activo";
+    // Al activarse el trámite el suministro ya está con la nueva
+    // comercializadora: pasa a "activo" y se refleja la fecha de alta.
+    s.estado = "activo";
     s.fechaAlta = tramite.fechaActivacion ?? s.fechaAlta;
   } else if (tramite.tipo === "titular") {
     if (tramite.nuevoTitular) {
@@ -68,6 +70,25 @@ async function aplicarEnSuministro(tramite) {
   } else if (tramite.tipo === "baja") {
     s.estado = "baja";
   }
+  await s.save();
+}
+
+// Mientras un trámite de alta/cambio está en marcha, el suministro se ve
+// como "en trámite"; si el trámite se tira atrás, vuelve a estar activo
+// con la comercializadora que ya tenía (propuesta ROLUSUR 15/10).
+async function marcarEnTramite(tramite) {
+  const s = await Suministro.findById(tramite.suministro);
+  if (!s) return;
+  if (s.estado === "en_tramite") return;
+  s.estado = "en_tramite";
+  await s.save();
+}
+
+async function desmarcarEnTramite(tramite) {
+  const s = await Suministro.findById(tramite.suministro);
+  if (!s) return;
+  if (s.estado !== "en_tramite") return;
+  s.estado = "activo";
   await s.save();
 }
 
@@ -121,6 +142,9 @@ router.post("/", async (req, res, next) => {
     limpiarFechas(datos);
     datos.historia = [{ estado: "documentacion", nota: "Trámite abierto" }];
     const tramite = await Tramite.create(datos);
+    // El suministro entra en trámite desde el momento en que se abre el
+    // expediente de alta/cambio (se puede cambiar a mano en su ficha).
+    if (["alta", "cambio"].includes(tipo)) await marcarEnTramite(tramite);
     res.status(201).json(tramite);
   } catch (err) {
     next(err);
@@ -165,10 +189,20 @@ router.post("/:id/estado", async (req, res, next) => {
       return res.status(400).json({ error: `El trámite está ${tramite.estado} y no puede reabrirse` });
     }
     tramite.estado = estado;
-    if (estado === "enviado") tramite.fechaEnvio = fecha ? new Date(fecha) : new Date();
+    if (estado === "enviado") {
+      tramite.fechaEnvio = fecha ? new Date(fecha) : new Date();
+      // Enviado a la comercializadora: el suministro sigue en trámite (por
+      // si se abrió sin pasar por el alta/cambio automática).
+      if (["alta", "cambio"].includes(tramite.tipo)) await marcarEnTramite(tramite);
+    }
     if (estado === "activado") {
       tramite.fechaActivacion = fecha ? new Date(fecha) : new Date();
       await aplicarEnSuministro(tramite);
+    }
+    if (["rechazado", "cancelado"].includes(estado) && ["alta", "cambio"].includes(tramite.tipo)) {
+      // El cambio no salió adelante: el suministro vuelve a estar activo
+      // con la comercializadora que ya tenía.
+      await desmarcarEnTramite(tramite);
     }
     tramite.historia.push({ estado, nota: nota || undefined });
     await tramite.save();

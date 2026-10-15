@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-15",
     tipo: "mejora",
+    titulo: "Energía: nuevos estados del suministro (activo, en trámite, baja)",
+    detalle:
+      "Los suministros ya no tienen el estado «inactivo»: ahora son Activo, En trámite o Baja. El «En trámite» (ámbar) es para los altas y cambios de comercializadora que están en marcha: al abrir el trámite el suministro pasa solo a En trámite, y al activarlo vuelve a Activo con la fecha de alta rellenada; si el trámite se rechaza o cancela, el suministro vuelve a Activo con la comercializadora que ya tenía. También se puede cambiar a mano en la ficha, y el filtro de la lista tiene su propia opción «En trámite».",
+  },
+  {
+    fecha: "2026-10-15",
+    tipo: "mejora",
     titulo: "Facturas en borrador: edición directa desde el listado",
     detalle:
       "En Ventas → Facturas, cada factura en borrador tiene ahora un botón de lápiz en su fila para editarla al momento: cliente, líneas, vencimiento y método de pago se pueden cambiar mientras la factura siga en borrador, sin pasar por el detalle. Una vez validada, la factura ya no se puede tocar (lo exige VeriFactu) y hay que rectificarla, igual que antes.",

@@ -22,8 +22,13 @@ const TONO_TIPO = {
 };
 const TONO_ESTADO = {
   activo: "bg-emerald-400/10 text-emerald-300 border-emerald-400/30",
-  inactivo: "bg-slate-400/10 text-slate-400 border-slate-400/30",
+  en_tramite: "bg-amber-400/10 text-amber-300 border-amber-400/30",
   baja: "bg-rose-400/10 text-rose-300 border-rose-400/30",
+};
+const ETIQUETA_ESTADO = {
+  activo: "Activo",
+  en_tramite: "En trámite",
+  baja: "Baja",
 };
 
 function Badge({ tono, children }) {
@@ -270,7 +275,7 @@ export default function EnergiaSuministrosPage() {
             <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="input w-auto">
               <option value="todos">Estado: todos</option>
               <option value="activo">Activos</option>
-              <option value="inactivo">Inactivos</option>
+              <option value="en_tramite">En trámite</option>
               <option value="baja">Bajas</option>
             </select>
             {grupos.length > 0 && (
@@ -370,7 +375,7 @@ export default function EnergiaSuministrosPage() {
                     <td className="text-slate-400 whitespace-nowrap text-xs">
                       {s.createdAt ? new Date(s.createdAt).toLocaleDateString("es-ES") : "—"}
                     </td>
-                    <td><Badge tono={TONO_ESTADO[s.estado]}>{s.estado}</Badge>
+                    <td><Badge tono={TONO_ESTADO[s.estado]}>{ETIQUETA_ESTADO[s.estado] ?? s.estado}</Badge>
                       {s.fechaFin && (() => {
                         const dias = Math.ceil((new Date(s.fechaFin).getTime() - Date.now()) / 86400000);
                         return dias <= 60 ? (
@@ -581,9 +586,14 @@ export default function EnergiaSuministrosPage() {
                 Estado
                 <select value={form.estado} onChange={poner("estado")} className="input">
                   <option value="activo">Activo</option>
-                  <option value="inactivo">Inactivo</option>
+                  <option value="en_tramite">En trámite</option>
                   <option value="baja">Baja</option>
                 </select>
+                {form.estado === "en_tramite" && (
+                  <span className="text-xs text-slate-500">
+                    Cambio de comercializadora en marcha: pásalo a Activo (con su fecha de alta) cuando ya esté con la nueva
+                  </span>
+                )}
               </label>
             </div>
 
