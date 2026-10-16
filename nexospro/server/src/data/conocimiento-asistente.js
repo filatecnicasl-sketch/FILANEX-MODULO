@@ -167,6 +167,11 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
   tiene valoración/presupuesto vinculado, se muestra dentro de la cita.
 - Desde la cita se imprime el justificante de cita para el cliente y la hoja
   de entrada.
+- **Listado del día** (botón "Imprimir día" en Taller → Citas): al lado del
+  botón se elige la fecha (hoy por defecto, o el día que sea, p. ej. el
+  lunes siguiente) y saca en A4 todas las citas de ese día —recepciones y
+  entregadas por una parte y peritajes por otra— con hora, matrícula,
+  vehículo, cliente, teléfono y motivo.
 - Si una matrícula cambia de dueño (coche vendido), al dar la cita con otro
   cliente el programa avisa y permite reasignar el vehículo conservando el
   historial.
@@ -198,6 +203,11 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
 - Impresión: menú imprimir de la OT → "Orden de trabajo" (con formato).
   La hoja de entrada se imprime desde la cita/recepción, no desde la OT.
 - Planning: vista de carga de trabajo por día/operario.
+- **Horas de finalizado y entrega**: cada una queda con la hora del momento
+  en que se picó. Al pasar la orden a finalizado se guarda la hora de la
+  finalización, y al pasarla a entregado, la de la entrega (no se copia la
+  anterior). En el tablero se ven las dos; desde la campanita se pueden
+  corregir a posteriori.
 
 ### Aseguradoras
 - Ficha con condiciones por compañía (franquicia, % IVA que asume, suplidos,

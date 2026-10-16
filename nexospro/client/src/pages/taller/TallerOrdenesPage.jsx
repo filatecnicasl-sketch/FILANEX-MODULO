@@ -15,17 +15,24 @@ const fechaHora = (iso) =>
     ? new Date(iso).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
     : "—";
 
-// Aviso de entrega en las tarjetas y la lista: hora de entrega y si el
-// cliente ya está avisado para la recogida.
+// Aviso de entrega en las tarjetas y la lista: hora de finalización y de
+// entrega (cada una con la del momento en que se picó) y si el cliente ya
+// está avisado para la recogida.
 function BadgeEntrega({ orden }) {
   if (!orden.entrega) return null;
-  const { fecha: f, clienteAvisado, avisoMedio, fotos, notas } = orden.entrega;
+  const { fecha: fFin, fechaEntrega: fEnt, clienteAvisado, avisoMedio, fotos, notas } = orden.entrega;
   const medios = { telefono: "teléfono", whatsapp: "WhatsApp", sms: "SMS", email: "email", en_persona: "en persona" };
+  const esEntregado = orden.estado === "entregado";
   return (
     <p className="mt-1 flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-[0.6875rem]">
-      {f && (
-        <span className="text-slate-500 num" title={orden.estado === "entregado" ? "Fecha y hora de entrega" : "Fecha y hora de finalización"}>
-          {orden.estado === "entregado" ? "Entregado" : "Finalizado"}: {fechaHora(f)}
+      {fFin && (
+        <span className="text-slate-500 num" title="Fecha y hora de finalización del trabajo">
+          Finalizado: {fechaHora(fFin)}
+        </span>
+      )}
+      {esEntregado && (fEnt || fFin) && (
+        <span className="text-slate-500 num" title="Fecha y hora de la entrega al cliente">
+          Entregado: {fechaHora(fEnt ?? fFin)}
         </span>
       )}
       {fotos?.length > 0 && (

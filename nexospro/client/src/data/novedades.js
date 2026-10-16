@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-16",
+    tipo: "correccion",
+    titulo: "Taller: horas reales de finalizado y entrega, y listado del día con fecha a elegir",
+    detalle:
+      "Al pasar una orden a entregado ya no se arrastra la hora de la finalización: cada hito queda con la hora del momento en que se picó (finalización por un lado, entrega por otro, y las dos se ven en el tablero; se siguen poder corregir a posteriori desde la campanita). Y el listado de citas del día («Imprimir día» en Taller → Citas) ahora permite elegir la fecha junto al botón: hoy por defecto, o el lunes que viene o el día que haga falta, con todas las citas de ese día en A4.",
+  },
+  {
+    fecha: "2026-10-16",
     tipo: "mejora",
     titulo: "Energía: 6 potencias P1–P6 en tarifas 3.0TD y trámite de renovación",
     detalle:

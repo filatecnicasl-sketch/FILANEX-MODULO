@@ -472,6 +472,9 @@ router.put("/ordenes/:id", async (req, res, next) => {
       const MEDIOS = ["telefono", "whatsapp", "sms", "email", "en_persona"];
       cambios.entrega = {
         ...(e.fecha ? { fecha: new Date(e.fecha) } : {}),
+        // Hora real de entrega al cliente (propuesta Montiel 16/10): se
+        // guarda aparte de la finalización para no perder ninguna de las dos.
+        ...(e.fechaEntrega ? { fechaEntrega: new Date(e.fechaEntrega) } : {}),
         clienteAvisado: !!e.clienteAvisado,
         ...(e.clienteAvisado
           ? {

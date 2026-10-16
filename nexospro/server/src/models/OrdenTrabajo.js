@@ -35,7 +35,8 @@ const ordenTrabajoSchema = new Schema(
     // Entrega del vehículo terminado: se rellena al pasar la orden a
     // finalizado (momento, fotos del trabajo hecho y aviso al cliente).
     entrega: {
-      fecha: Date, // día y hora de la entrega
+      fecha: Date, // día y hora de la FINALIZACIÓN del trabajo
+      fechaEntrega: Date, // día y hora real de la ENTREGA al cliente
       clienteAvisado: { type: Boolean, default: false },
       avisoFecha: Date, // cuándo se le avisó
       avisoMedio: { type: String, enum: ["telefono", "whatsapp", "sms", "email", "en_persona", undefined] },

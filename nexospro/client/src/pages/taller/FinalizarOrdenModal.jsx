@@ -24,9 +24,15 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
   // la entrega sin tocar el estado.
   const transicion = destino && destino !== orden.estado ? destino : null;
   const esEntrega = (transicion ?? orden.estado) === "entregado";
-  const [fecha, setFecha] = useState(() =>
-    orden.entrega?.fecha ? fechaLocalInput(new Date(orden.entrega.fecha)) : fechaLocalInput()
-  );
+  // La hora del momento manda: al picar "finalizado" queda la hora de la
+  // finalización y al picar "entregar", la de la entrega (propuesta Montiel
+  // 16/10). La guardada solo se muestra al corregir a posteriori (campanita).
+  const [fecha, setFecha] = useState(() => {
+    if (transicion) return fechaLocalInput();
+    if (esEntrega && orden.entrega?.fechaEntrega) return fechaLocalInput(new Date(orden.entrega.fechaEntrega));
+    if (orden.entrega?.fecha) return fechaLocalInput(new Date(orden.entrega.fecha));
+    return fechaLocalInput();
+  });
   const [fotos, setFotos] = useState(orden.entrega?.fotos ?? []);
   const [notas, setNotas] = useState(orden.entrega?.notas ?? "");
   const [clienteAvisado, setClienteAvisado] = useState(!!orden.entrega?.clienteAvisado);
@@ -69,13 +75,23 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
     setGuardando(true);
     setError(null);
     try {
+      // Cada hito con su hora: al finalizar se toca "fecha" (finalización)
+      // y al entregar "fechaEntrega"; la otra se conserva tal cual estaba.
+      const elegida = fecha ? new Date(fecha).toISOString() : undefined;
+      const conservaFinalizacion = esEntrega && orden.entrega?.fecha
+        ? new Date(orden.entrega.fecha).toISOString()
+        : undefined;
+      const conservaEntrega = !esEntrega && orden.entrega?.fechaEntrega
+        ? new Date(orden.entrega.fechaEntrega).toISOString()
+        : undefined;
       const r = await fetch(`/api/taller/ordenes/${orden._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(transicion ? { estado: transicion } : {}),
           entrega: {
-            fecha: fecha ? new Date(fecha).toISOString() : undefined,
+            fecha: esEntrega ? conservaFinalizacion : elegida,
+            fechaEntrega: esEntrega ? elegida : conservaEntrega,
             clienteAvisado,
             avisoMedio: clienteAvisado ? avisoMedio : undefined,
             fotos,

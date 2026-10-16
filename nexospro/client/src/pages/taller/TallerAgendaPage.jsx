@@ -51,6 +51,9 @@ export default function TallerAgendaPage() {
   const [q, setQ] = useState("");
   const [pestana, setPestana] = useState("citas"); // "citas" | "peritaje"
   const [vistaPeritaje, setVistaPeritaje] = useState("agenda"); // "agenda" | "lista"
+  // Día del listado imprimible: hoy por defecto, pero se puede elegir otro
+  // (p. ej. el lunes que viene) — propuesta de Montiel 16/10.
+  const [fechaImpresion, setFechaImpresion] = useState(() => aFechaInput(new Date()));
 
   // Búsqueda por cualquier campo visible de la cita; cada pestaña muestra
   // solo su tipo (las de peritaje van aparte).
@@ -113,19 +116,19 @@ export default function TallerAgendaPage() {
     cargar();
   }
 
-  // Listado de las citas del día en A4: el que se lleva el jefe de taller a
-  // primera hora para saber qué entra hoy (propuesta de Montiel).
-  async function imprimirDia() {
-    const hoy = aFechaInput(new Date());
+  // Listado de las citas de un día en A4: el que se lleva el jefe de taller a
+  // primera hora para saber qué entra (propuesta de Montiel). El día se
+  // elige junto al botón (hoy por defecto, el que sea si se quiere).
+  async function imprimirDia(dia) {
     try {
-      const [citasHoy, empresa] = await Promise.all([
-        fetch(`/api/taller/citas?desde=${hoy}&hasta=${hoy}`).then((r) => r.json()),
+      const [citasDia, empresa] = await Promise.all([
+        fetch(`/api/taller/citas?desde=${dia}&hasta=${dia}`).then((r) => r.json()),
         fetch("/api/empresa").then((r) => r.json()),
       ]);
-      const normales = citasHoy
+      const normales = citasDia
         .filter((c) => c.tipo !== "peritaje")
         .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
-      const peritajes = citasHoy
+      const peritajes = citasDia
         .filter((c) => c.tipo === "peritaje")
         .sort((a, b) => String(a.hora).localeCompare(String(b.hora)));
       const secciones = [];
@@ -176,12 +179,12 @@ export default function TallerAgendaPage() {
         });
       }
       if (!secciones.length) {
-        alert("No hay citas para hoy.");
+        alert(`No hay citas para el ${new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES")}.`);
         return;
       }
       imprimirInforme({
         titulo: "Citas del día",
-        subtitulo: new Date().toLocaleDateString("es-ES", {
+        subtitulo: new Date(`${dia}T12:00:00`).toLocaleDateString("es-ES", {
           weekday: "long",
           day: "numeric",
           month: "long",
@@ -200,9 +203,18 @@ export default function TallerAgendaPage() {
   return (
     <>
       <CabeceraPagina titulo="Citas del taller" descripcion="Citas de recepción y entrega de vehículos.">
-        <button type="button" onClick={imprimirDia} className="btn-ghost">
-          Imprimir día
-        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            className="input !py-1.5 text-sm"
+            value={fechaImpresion}
+            onChange={(e) => setFechaImpresion(e.target.value)}
+            title="Día del listado a imprimir"
+          />
+          <button type="button" onClick={() => imprimirDia(fechaImpresion)} className="btn-ghost whitespace-nowrap">
+            Imprimir día
+          </button>
+        </div>
         {pestana === "peritaje" && (
           <button
             onClick={() => setModal({ fecha: aFechaInput(new Date()), tipo: "peritaje" })}
