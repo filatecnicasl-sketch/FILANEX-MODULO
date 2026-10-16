@@ -16,7 +16,7 @@ const router = Router();
 
 const CAMPOS = [
   "cups", "tipo", "cliente", "comercializadora", "canalDistribucion", "direccion",
-  "tarifa", "potenciaPunta", "potenciaValle", "consumoAnual", "presupuestoAnual", "estado",
+  "tarifa", "potenciaPunta", "potenciaValle", "potencias", "consumoAnual", "presupuestoAnual", "estado",
   "fechaAlta", "fechaFin", "notas",
 ];
 
@@ -30,6 +30,12 @@ function limpiar(body) {
   }
   for (const n of ["potenciaPunta", "potenciaValle", "consumoAnual", "presupuestoAnual"]) {
     if (datos[n] !== undefined) datos[n] = Math.max(0, Number(datos[n]) || 0);
+  }
+  // Potencias por periodo (3.0TD/6.XTD): hasta 6 valores en kW (P1…P6).
+  if (datos.potencias !== undefined) {
+    datos.potencias = (Array.isArray(datos.potencias) ? datos.potencias : [])
+      .slice(0, 6)
+      .map((p) => Math.max(0, Number(p) || 0));
   }
   if (datos.fechaAlta === "") datos.fechaAlta = undefined;
   if (datos.fechaAlta) datos.fechaAlta = new Date(datos.fechaAlta);

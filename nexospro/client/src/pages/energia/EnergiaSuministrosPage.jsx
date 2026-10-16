@@ -12,7 +12,7 @@ import { urlApiConSesion } from "../../lib/sesion.js";
 const VACIO = {
   cups: "", tipo: "luz", clienteId: "", comercializadoraId: "", canalDistribucionId: "",
   calle: "", cp: "", ciudad: "", provincia: "",
-  tarifa: "", potenciaPunta: "", potenciaValle: "", consumoAnual: "", presupuestoAnual: "",
+  tarifa: "", potenciaPunta: "", potenciaValle: "", potencias: ["", "", "", "", "", ""], consumoAnual: "", presupuestoAnual: "",
   estado: "activo", fechaAlta: "", fechaFin: "", notas: "",
 };
 
@@ -141,6 +141,7 @@ export default function EnergiaSuministrosPage() {
       tarifa: s.tarifa ?? "",
       potenciaPunta: s.potenciaPunta || "",
       potenciaValle: s.potenciaValle || "",
+      potencias: s.potencias?.length ? s.potencias : ["", "", "", "", "", ""],
       consumoAnual: s.consumoAnual || "",
       presupuestoAnual: s.presupuestoAnual || "",
       estado: s.estado ?? "activo",
@@ -168,8 +169,12 @@ export default function EnergiaSuministrosPage() {
       canalDistribucion: form.canalDistribucionId || null,
       direccion: { calle: form.calle, cp: form.cp, ciudad: form.ciudad, provincia: form.provincia },
       tarifa: form.tarifa,
-      potenciaPunta: form.potenciaPunta,
-      potenciaValle: form.potenciaValle,
+      potenciaPunta: esAltaTension ? 0 : form.potenciaPunta,
+      potenciaValle: esAltaTension ? 0 : form.potenciaValle,
+      // 3.0TD/6.XTD: potencias por periodo (P1…P6); en 2.0TD no se envía.
+      potencias: esLuz && esAltaTension
+        ? (form.potencias ?? []).map((p) => Number(p) || 0)
+        : [],
       consumoAnual: form.consumoAnual,
       presupuestoAnual: form.presupuestoAnual,
       estado: form.estado,
@@ -243,6 +248,9 @@ export default function EnergiaSuministrosPage() {
 
   const poner = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const esLuz = form.tipo === "luz";
+  // Tarifas de alta tensión (3.0TD, 6.XTD): 6 potencias P1…P6 (propuesta
+  // ROLUSUR 16/10). En 2.0TD se siguen usando punta/valle.
+  const esAltaTension = /^(3\.|6\.)/.test((form.tarifa ?? "").trim());
 
   return (
     <CabeceraPagina titulo="Suministros" descripcion="Puntos de suministro (CUPS) de luz y gas de tus clientes.">
@@ -344,8 +352,13 @@ export default function EnergiaSuministrosPage() {
                     </td>
                     <td className="num text-slate-300 whitespace-nowrap">
                       {s.tipo === "luz"
-                        ? [s.potenciaPunta, s.potenciaValle].filter((p) => Number(p) > 0).map((p) => `${p} kW`).join(" / ") || "—"
+                        ? s.potencias?.length
+                          ? s.potencias.map((p) => `${p} kW`).join(" / ")
+                          : [s.potenciaPunta, s.potenciaValle].filter((p) => Number(p) > 0).map((p) => `${p} kW`).join(" / ") || "—"
                         : "—"}
+                      {s.potencias?.length > 0 && (
+                        <p className="text-xs text-slate-500">P1–P{s.potencias.length}</p>
+                      )}
                     </td>
                     <td className="num whitespace-nowrap">
                       {s.costeMedioKwh ? (
@@ -548,8 +561,13 @@ export default function EnergiaSuministrosPage() {
               <label className="text-sm text-slate-400">
                 Tarifa / peaje
                 <input value={form.tarifa} onChange={poner("tarifa")} className="input" placeholder={esLuz ? "2.0TD, 3.0TD…" : "3.1, 3.2, 3.4…"} />
+                {esLuz && (
+                  <span className="text-xs text-slate-500">
+                    {esAltaTension ? "Tarifa de alta tensión: 6 potencias (P1–P6)" : "Con 3.0TD o 6.XTD se piden las 6 potencias"}
+                  </span>
+                )}
               </label>
-              {esLuz && (
+              {esLuz && !esAltaTension && (
                 <>
                   <label className="text-sm text-slate-400">
                     Potencia punta (kW)
@@ -568,6 +586,35 @@ export default function EnergiaSuministrosPage() {
                 </label>
               )}
             </div>
+
+            {esLuz && esAltaTension && (
+              <div>
+                <p className="text-sm text-slate-400 mb-1.5">
+                  Potencias por periodo (kW) · {form.tarifa}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <label key={i} className="text-xs text-slate-500">
+                      P{i + 1}
+                      <input
+                        value={form.potencias?.[i] ?? ""}
+                        onChange={(e) =>
+                          setForm((f) => {
+                            const potencias = [...(f.potencias ?? ["", "", "", "", "", ""])];
+                            potencias[i] = e.target.value;
+                            return { ...f, potencias };
+                          })
+                        }
+                        className="input num"
+                        inputMode="decimal"
+                        placeholder="kW"
+                      />
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">Cada periodo puede tener una potencia distinta.</p>
+              </div>
+            )}
 
             {esLuz && (
               <label className="text-sm text-slate-400 block sm:w-1/3">

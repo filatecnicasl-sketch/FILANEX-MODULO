@@ -1,16 +1,16 @@
 import { Schema } from "mongoose";
 import { modeloTenant } from "./tenant.js";
 
-// Trámite de energía: alta, cambio de comercializadora, cambio de titular
-// o baja de un punto de suministro. Refleja el circuito real de la agencia
-// con la comercializadora: se abre con la documentación, se envía, queda en
-// trámite con la distribuidora y termina activado (con efecto sobre el
-// suministro), rechazado o cancelado.
+// Trámite de energía: alta, cambio de comercializadora, cambio de titular,
+// renovación (misma compañía) o baja de un punto de suministro. Refleja el
+// circuito real de la agencia con la comercializadora: se abre con la
+// documentación, se envía, queda en trámite con la distribuidora y termina
+// activado (con efecto sobre el suministro), rechazado o cancelado.
 const tramiteSchema = new Schema(
   {
     tipo: {
       type: String,
-      enum: ["alta", "cambio", "titular", "baja"],
+      enum: ["alta", "cambio", "titular", "renovacion", "baja"],
       required: true,
     },
     suministro: { type: Schema.Types.ObjectId, ref: "Suministro", required: true },
@@ -31,6 +31,21 @@ const tramiteSchema = new Schema(
     fechaEnvio: Date,
     fechaPrevista: Date, // activación prevista con la comercializadora
     fechaActivacion: Date, // real: cuando surte efecto
+    // Renovación (propuesta ROLUSUR 16/10): datos que pueden cambiar aunque
+    // se renueve con la misma compañía. Se aplican al suministro (y al
+    // cliente, en teléfono/correo) cuando el trámite se activa; lo que se
+    // deja en blanco no se toca.
+    cambios: {
+      telefono: String, // del cliente titular
+      email: String, // del cliente titular
+      calle: String, // dirección del suministro
+      cp: String,
+      ciudad: String,
+      provincia: String,
+      tarifa: String,
+      consumoAnual: Number, // kWh/año
+      fechaFin: Date, // nuevo fin de contrato
+    },
     notas: String,
     // Historial del circuito: cada cambio de estado queda apuntado.
     historia: [

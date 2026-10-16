@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-16",
+    tipo: "mejora",
+    titulo: "Energía: 6 potencias P1–P6 en tarifas 3.0TD y trámite de renovación",
+    detalle:
+      "En Suministros, al poner una tarifa de alta tensión (3.0TD, 6.XTD) el formulario pide las 6 potencias P1–P6, que pueden ser distintas; en 2.0TD siguen siendo punta y valle. Y en Trámites hay un nuevo tipo «Renovación (misma compañía)»: al activarla, la fecha de alta pasa a ser la de la activación —el aviso de renovación vuelve a saltar al año siguiente— y se aplican los datos que hayan cambiado (teléfono y correo del cliente, dirección, tarifa, consumo anual y nuevo fin de contrato). Lo que se deja en blanco no se toca.",
+  },
+  {
     fecha: "2026-10-15",
     tipo: "mejora",
     titulo: "Energía: nuevos estados del suministro (activo, en trámite, baja)",

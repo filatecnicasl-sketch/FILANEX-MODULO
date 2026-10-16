@@ -31,8 +31,14 @@ const suministroSchema = new Schema(
       provincia: String,
     },
     tarifa: String, // 2.0TD, 3.0TD, RL1… (luz) o peaje 3.1/3.2/3.3/3.4 (gas)
-    potenciaPunta: { type: Number, default: 0 }, // kW contratados (luz)
-    potenciaValle: { type: Number, default: 0 }, // kW contratados (luz)
+    potenciaPunta: { type: Number, default: 0 }, // kW contratados (luz 2.0TD: P1)
+    potenciaValle: { type: Number, default: 0 }, // kW contratados (luz 2.0TD: P2)
+    // Tarifas de alta tensión (3.0TD, 6.XTD): 6 periodos de potencia que
+    // pueden ser distintos (propuesta ROLUSUR 16/10). En 2.0TD se siguen
+    // usando punta/valle.
+    potencias: [
+      { type: Number, min: 0 }, // P1…P6 en kW
+    ],
     consumoAnual: { type: Number, default: 0 }, // kWh/año (dato del estudio)
     presupuestoAnual: { type: Number, default: 0 }, // €/año objetivo: alimenta la desviación
     // Ciclo del suministro (propuesta ROLUSUR 15/10): "en_tramite" mientras

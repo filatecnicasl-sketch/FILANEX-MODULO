@@ -11,6 +11,7 @@ const VACIO = {
   comercializadoraDestinoId: "",
   nuevoTitularId: "",
   fechaPrevista: "",
+  cambios: { telefono: "", email: "", calle: "", cp: "", ciudad: "", provincia: "", tarifa: "", consumoAnual: "", fechaFin: "" },
   notas: "",
 };
 
@@ -18,6 +19,7 @@ const TIPOS = {
   alta: { label: "Alta", tono: "bg-emerald-400/10 text-emerald-300 border-emerald-400/30" },
   cambio: { label: "Cambio comer.", tono: "bg-sky-400/10 text-sky-300 border-sky-400/30" },
   titular: { label: "Cambio titular", tono: "bg-violet-400/10 text-violet-300 border-violet-400/30" },
+  renovacion: { label: "Renovación", tono: "bg-orange-400/10 text-orange-300 border-orange-400/30" },
   baja: { label: "Baja", tono: "bg-rose-400/10 text-rose-300 border-rose-400/30" },
 };
 const ESTADOS = {
@@ -123,6 +125,17 @@ export default function EnergiaTramitesPage() {
       comercializadoraDestinoId: t.comercializadoraDestino?._id ?? "",
       nuevoTitularId: t.nuevoTitular?._id ?? "",
       fechaPrevista: t.fechaPrevista ? new Date(t.fechaPrevista).toISOString().slice(0, 10) : "",
+      cambios: {
+        telefono: t.cambios?.telefono ?? "",
+        email: t.cambios?.email ?? "",
+        calle: t.cambios?.calle ?? "",
+        cp: t.cambios?.cp ?? "",
+        ciudad: t.cambios?.ciudad ?? "",
+        provincia: t.cambios?.provincia ?? "",
+        tarifa: t.cambios?.tarifa ?? "",
+        consumoAnual: t.cambios?.consumoAnual ?? "",
+        fechaFin: t.cambios?.fechaFin ? new Date(t.cambios.fechaFin).toISOString().slice(0, 10) : "",
+      },
       notas: t.notas ?? "",
     });
     setModal(true);
@@ -132,9 +145,25 @@ export default function EnergiaTramitesPage() {
     e.preventDefault();
     const cuerpo = {
       tipo: form.tipo,
-      comercializadoraDestino: form.tipo === "baja" ? null : form.comercializadoraDestinoId || null,
+      comercializadoraDestino:
+        form.tipo === "baja" ? null : form.comercializadoraDestinoId || null,
       nuevoTitular: form.tipo === "titular" ? form.nuevoTitularId || null : null,
       fechaPrevista: form.fechaPrevista || null,
+      // Renovación: los datos rellenados se aplican al activar el trámite.
+      cambios:
+        form.tipo === "renovacion"
+          ? {
+              telefono: form.cambios.telefono || undefined,
+              email: form.cambios.email || undefined,
+              calle: form.cambios.calle || undefined,
+              cp: form.cambios.cp || undefined,
+              ciudad: form.cambios.ciudad || undefined,
+              provincia: form.cambios.provincia || undefined,
+              tarifa: form.cambios.tarifa || undefined,
+              consumoAnual: form.cambios.consumoAnual || undefined,
+              fechaFin: form.cambios.fechaFin || undefined,
+            }
+          : undefined,
       notas: form.notas,
     };
     if (!editando) cuerpo.suministro = form.suministroId;
@@ -156,6 +185,8 @@ export default function EnergiaTramitesPage() {
         alta: `Se marcará el suministro como activo con ${t.comercializadoraDestinoNombre ?? "la comercializadora elegida"}.`,
         cambio: `La comercializadora del suministro pasará a ser ${t.comercializadoraDestinoNombre ?? "la elegida"}.`,
         titular: `El titular del suministro pasará a ser ${t.nuevoTitularNombre ?? "el elegido"}.`,
+        renovacion:
+          "La fecha de alta del suministro pasará a ser la de activación (el aviso de renovación volverá a saltar al año siguiente) y se aplicarán los datos cambiados.",
         baja: "El suministro quedará marcado como baja.",
       };
       if (!window.confirm(`¿Activar este trámite? ${efectos[t.tipo]}`)) return;
@@ -255,6 +286,11 @@ export default function EnergiaTramitesPage() {
                         </>
                       ) : t.tipo === "baja" ? (
                         <span className="text-slate-400">Baja del suministro</span>
+                      ) : t.tipo === "renovacion" ? (
+                        <>
+                          {t.comercializadoraOrigen || "—"} →{" "}
+                          <b>{t.comercializadoraDestinoNombre ?? t.comercializadoraDestino?.nombre ?? "misma compañía"}</b>
+                        </>
                       ) : (
                         <>
                           {t.comercializadoraOrigen || "—"} → <b>{t.comercializadoraDestinoNombre ?? t.comercializadoraDestino?.nombre ?? "—"}</b>
@@ -307,6 +343,7 @@ export default function EnergiaTramitesPage() {
                   <option value="alta">Alta de suministro</option>
                   <option value="cambio">Cambio de comercializadora</option>
                   <option value="titular">Cambio de titular</option>
+                  <option value="renovacion">Renovación (misma compañía)</option>
                   <option value="baja">Baja</option>
                 </select>
               </label>
@@ -331,14 +368,121 @@ export default function EnergiaTramitesPage() {
 
             {form.tipo !== "baja" && form.tipo !== "titular" && (
               <label className="text-sm text-slate-400 block">
-                Comercializadora de destino *
-                <select value={form.comercializadoraDestinoId} onChange={poner("comercializadoraDestinoId")} className="input" required>
-                  <option value="">— Selecciona —</option>
+                Comercializadora de destino {form.tipo === "renovacion" ? "" : "*"}
+                <select
+                  value={form.comercializadoraDestinoId}
+                  onChange={poner("comercializadoraDestinoId")}
+                  className="input"
+                  required={form.tipo !== "renovacion"}
+                >
+                  {form.tipo === "renovacion" && <option value="">— Mantener la actual —</option>}
+                  {form.tipo !== "renovacion" && <option value="">— Selecciona —</option>}
                   {comercializadoras.map((c) => (
                     <option key={c._id} value={c._id}>{c.nombre}</option>
                   ))}
                 </select>
+                {form.tipo === "renovacion" && (
+                  <span className="text-xs text-slate-500">
+                    Solo si la renovación es con otra compañía; con la misma, déjalo en «Mantener la actual».
+                  </span>
+                )}
               </label>
+            )}
+
+            {form.tipo === "renovacion" && (
+              <div className="rounded-xl border border-slate-600/40 p-3 space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-300">Datos a actualizar con la renovación</p>
+                  <p className="text-xs text-slate-500">
+                    Rellena solo lo que cambie: teléfono y correo van a la ficha del cliente; el resto, al suministro.
+                    Al activar el trámite, la fecha de alta pasa a ser la de activación y el aviso de renovación
+                    volverá a saltar al año siguiente.
+                  </p>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <label className="text-sm text-slate-400">
+                    Teléfono del cliente
+                    <input
+                      value={form.cambios.telefono}
+                      onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, telefono: e.target.value } }))}
+                      className="input"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-400">
+                    Correo del cliente
+                    <input
+                      value={form.cambios.email}
+                      onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, email: e.target.value } }))}
+                      className="input"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-400">
+                    Nueva tarifa
+                    <input
+                      value={form.cambios.tarifa}
+                      onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, tarifa: e.target.value } }))}
+                      className="input"
+                      placeholder="2.0TD, 3.0TD…"
+                    />
+                  </label>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <label className="text-sm text-slate-400">
+                    Consumo anual (kWh)
+                    <input
+                      value={form.cambios.consumoAnual}
+                      onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, consumoAnual: e.target.value } }))}
+                      className="input num"
+                      inputMode="decimal"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-400">
+                    Nuevo fin de contrato
+                    <input
+                      type="date"
+                      value={form.cambios.fechaFin}
+                      onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, fechaFin: e.target.value } }))}
+                      className="input"
+                    />
+                  </label>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <label className="text-sm text-slate-400">
+                    Dirección del suministro (calle)
+                    <input
+                      value={form.cambios.calle}
+                      onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, calle: e.target.value } }))}
+                      className="input"
+                    />
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <label className="text-sm text-slate-400">
+                      CP
+                      <input
+                        value={form.cambios.cp}
+                        onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, cp: e.target.value } }))}
+                        className="input"
+                      />
+                    </label>
+                    <label className="text-sm text-slate-400">
+                      Ciudad
+                      <input
+                        value={form.cambios.ciudad}
+                        onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, ciudad: e.target.value } }))}
+                        className="input"
+                      />
+                    </label>
+                    <label className="text-sm text-slate-400">
+                      Provincia
+                      <input
+                        value={form.cambios.provincia}
+                        onChange={(e) => setForm((f) => ({ ...f, cambios: { ...f.cambios, provincia: e.target.value } }))}
+                        className="input"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
             )}
 
             {form.tipo === "titular" && (
@@ -411,6 +555,28 @@ export default function EnergiaTramitesPage() {
                 </div>
               )}
             </div>
+
+            {/* Renovación: datos que se aplican al activar */}
+            {detalle.tipo === "renovacion" && detalle.cambios && Object.keys(detalle.cambios).length > 0 && (
+              <div className="rounded-xl border border-orange-400/30 bg-orange-400/5 p-3 text-sm space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-orange-300 mb-1">
+                  Datos a actualizar al activar
+                </p>
+                {detalle.cambios.telefono && <p><span className="text-slate-500">Teléfono:</span> {detalle.cambios.telefono}</p>}
+                {detalle.cambios.email && <p><span className="text-slate-500">Correo:</span> {detalle.cambios.email}</p>}
+                {detalle.cambios.tarifa && <p><span className="text-slate-500">Nueva tarifa:</span> {detalle.cambios.tarifa}</p>}
+                {detalle.cambios.consumoAnual != null && (
+                  <p><span className="text-slate-500">Consumo anual:</span> {Number(detalle.cambios.consumoAnual).toLocaleString("es-ES")} kWh</p>
+                )}
+                {detalle.cambios.fechaFin && <p><span className="text-slate-500">Nuevo fin de contrato:</span> {fmtFecha(detalle.cambios.fechaFin)}</p>}
+                {detalle.cambios.calle && (
+                  <p>
+                    <span className="text-slate-500">Dirección:</span>{" "}
+                    {[detalle.cambios.calle, detalle.cambios.cp, detalle.cambios.ciudad, detalle.cambios.provincia].filter(Boolean).join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Historial del circuito */}
             <div className="rounded-xl border border-slate-600/40 p-4">

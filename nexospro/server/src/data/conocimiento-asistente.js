@@ -246,7 +246,10 @@ suministro queda actualizado solo y empieza a generar comisión cada mes.
 ### Suministros (Energía → Suministros)
 - Ficha por CUPS (22 caracteres, se normaliza solo): cliente, comercializadora
   actual, luz o gas, dirección del suministro (puede ser distinta a la
-  fiscal), tarifa (2.0TD, 3.0TD…), potencia en kW y consumo anual en kWh.
+  fiscal), tarifa (2.0TD, 3.0TD…), potencia y consumo anual en kWh.
+- **Potencias**: en tarifa 2.0TD se apuntan punta y valle; en 3.0TD y 6.XTD
+  (alta tensión) el formulario pide las 6 potencias P1–P6, que pueden ser
+  distintas entre sí.
 - **Estados del suministro**: Activo (ya está con la comercializadora, con su
   fecha de alta), En trámite (el alta o cambio está en marcha) y Baja. Al
   abrir un trámite de alta/cambio el suministro pasa solo a En trámite, y al
@@ -265,13 +268,20 @@ suministro queda actualizado solo y empieza a generar comisión cada mes.
   junta todas.
 
 ### Trámites (Energía → Trámites)
-- Se abren al aceptar un estudio o directamente desde un suministro. Cuatro
-  tipos: alta, cambio de comercializadora, cambio de titular, baja.
+- Se abren al aceptar un estudio o directamente desde un suministro. Cinco
+  tipos: alta, cambio de comercializadora, cambio de titular, renovación
+  (misma compañía) y baja.
 - Circuito de estados: Documentación → Enviado → En trámite → Activado (o
   rechazado/cancelado), con nota en cada cambio.
 - Al **Activar**, el trámite actualiza el suministro solo (cambia
   comercializadora, titular o lo da de baja); un trámite activado ya no se
   edita ni se borra.
+- **Renovación**: para contratos que se renuevan con la misma compañía. Al
+  activarla, la fecha de alta pasa a ser la de la activación (así el aviso de
+  renovación vuelve a saltar al año siguiente) y se aplican los datos que
+  se hayan cambiado: teléfono y correo (van a la ficha del cliente),
+  dirección, tarifa, consumo anual y nuevo fin de contrato (al suministro).
+  Lo que se deja en blanco no se toca.
 
 ### Comisiones (Energía → Comisiones)
 - La caja del canal: lo que debe cada comercializadora. Botón **Generar

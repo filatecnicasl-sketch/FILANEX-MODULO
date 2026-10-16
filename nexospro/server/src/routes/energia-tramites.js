@@ -10,8 +10,26 @@ import Comercializadora from "../models/Comercializadora.js";
 // aplica los cambios sobre el suministro.
 const router = Router();
 
-const TIPOS = ["alta", "cambio", "titular", "baja"];
+const TIPOS = ["alta", "cambio", "titular", "renovacion", "baja"];
 const ESTADOS = ["documentacion", "enviado", "en_tramite", "activado", "rechazado", "cancelado"];
+
+// Cambios de datos que acompañan a una renovación (propuesta ROLUSUR 16/10):
+// solo se guardan los campos rellenados; el resto no se toca.
+function limpiarCambios(body) {
+  const c = body?.cambios;
+  if (c === undefined) return undefined;
+  if (c === null || typeof c !== "object") return {};
+  const out = {};
+  for (const t of ["telefono", "email", "calle", "cp", "ciudad", "provincia", "tarifa"]) {
+    const v = String(c[t] ?? "").trim();
+    if (v) out[t] = v;
+  }
+  if (c.consumoAnual !== undefined && c.consumoAnual !== null && c.consumoAnual !== "") {
+    out.consumoAnual = Math.max(0, Number(c.consumoAnual) || 0);
+  }
+  if (c.fechaFin) out.fechaFin = new Date(c.fechaFin);
+  return out;
+}
 
 async function denormalizar(datos) {
   const { default: Cliente } = await import("../models/Cliente.js");
@@ -67,6 +85,38 @@ async function aplicarEnSuministro(tramite) {
       s.cliente = tramite.nuevoTitular;
       s.clienteNombre = cli?.nombre ?? s.clienteNombre;
     }
+  } else if (tramite.tipo === "renovacion") {
+    // Renovación con la misma compañía (propuesta ROLUSUR 16/10): la fecha
+    // de alta pasa a ser la de la activación, con lo que el aviso de
+    // renovación vuelve a saltar al año siguiente; y se aplican los datos
+    // que hayan cambiado (teléfono, correo, dirección, tarifa…).
+    s.fechaAlta = tramite.fechaActivacion ?? new Date();
+    const c = tramite.cambios ?? {};
+    if (c.fechaFin) s.fechaFin = c.fechaFin;
+    if (c.tarifa) s.tarifa = c.tarifa;
+    if (c.consumoAnual) s.consumoAnual = c.consumoAnual;
+    if (c.calle || c.cp || c.ciudad || c.provincia) {
+      s.direccion = {
+        ...(s.direccion?.toObject?.() ?? s.direccion ?? {}),
+        ...(c.calle ? { calle: c.calle } : {}),
+        ...(c.cp ? { cp: c.cp } : {}),
+        ...(c.ciudad ? { ciudad: c.ciudad } : {}),
+        ...(c.provincia ? { provincia: c.provincia } : {}),
+      };
+    }
+    if (tramite.comercializadoraDestino) {
+      const com = await Comercializadora.findById(tramite.comercializadoraDestino).lean();
+      s.comercializadora = tramite.comercializadoraDestino;
+      s.comercializadoraNombre = com?.nombre ?? s.comercializadoraNombre;
+    }
+    // Teléfono/correo viven en la ficha del cliente titular.
+    if (s.cliente && (c.telefono || c.email)) {
+      const { default: Cliente } = await import("../models/Cliente.js");
+      const set = {};
+      if (c.telefono) set.telefono = c.telefono;
+      if (c.email) set.email = c.email;
+      await Cliente.findByIdAndUpdate(s.cliente, { $set: set });
+    }
   } else if (tramite.tipo === "baja") {
     s.estado = "baja";
   }
@@ -116,7 +166,7 @@ router.post("/", async (req, res, next) => {
   try {
     const { tipo, suministro: suministroId } = req.body;
     if (!TIPOS.includes(tipo)) {
-      return res.status(400).json({ error: "El tipo debe ser alta, cambio, titular o baja" });
+      return res.status(400).json({ error: "El tipo debe ser alta, cambio, titular, renovación o baja" });
     }
     const suministro = await Suministro.findById(suministroId).lean();
     if (!suministro) return res.status(400).json({ error: "Selecciona un suministro (CUPS)" });
@@ -132,6 +182,8 @@ router.post("/", async (req, res, next) => {
       fechaPrevista: req.body.fechaPrevista ?? null,
       notas: req.body.notas ?? "",
     };
+    const cambios = limpiarCambios(req.body);
+    if (cambios !== undefined) datos.cambios = cambios;
     if (["alta", "cambio"].includes(tipo) && !datos.comercializadoraDestino) {
       return res.status(400).json({ error: "Selecciona la comercializadora de destino" });
     }
@@ -162,6 +214,8 @@ router.put("/:id", async (req, res, next) => {
     for (const c of ["comercializadoraDestino", "nuevoTitular", "fechaPrevista", "notas"]) {
       if (req.body[c] !== undefined) datos[c] = req.body[c];
     }
+    const cambios = limpiarCambios(req.body);
+    if (cambios !== undefined) datos.cambios = cambios;
     await denormalizar(datos);
     limpiarFechas(datos);
     Object.assign(tramite, datos);
