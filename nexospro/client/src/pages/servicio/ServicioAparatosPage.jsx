@@ -5,6 +5,7 @@ import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../compo
 import { TIPOS_APARATO, nombreTipoAparato } from "./datos.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 const campo = "input w-full";
 const TIPO_INICIAL = TIPOS_APARATO[0]?.clave ?? "otro";
@@ -227,7 +228,7 @@ export default function ServicioAparatosPage() {
       </div>
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(() => setModal(false))}>
           <div className="modal-panel w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-white mb-4">
               {editando ? `Aparato ${editando.codigo}` : "Nuevo aparato"}
@@ -330,7 +331,7 @@ function ModalHistorial({ aparato, onCerrar }) {
   }, [aparato._id]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div
         className="modal-panel w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}

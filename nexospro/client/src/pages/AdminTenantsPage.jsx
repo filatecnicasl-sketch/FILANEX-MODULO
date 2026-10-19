@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { esAdmin, esSuperAdmin, entrarComoSoporte } from "../lib/sesion.js";
 import { InputBusqueda, coincideBusqueda, Badge } from "../components/ui.jsx";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 const VACIO = {
   slug: "",
@@ -102,7 +103,7 @@ function ModalTenant({ inicial, editando, onCerrar, onGuardado, alerta }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 overflow-y-auto" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 p-4 overflow-y-auto" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-3xl p-6 my-8" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">
           {editando ? "Editar empresa" : "Nueva empresa"}
@@ -351,7 +352,7 @@ function ModalUsuarios({ tenant, onCerrar, onAviso }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-3xl p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white">Usuarios con acceso</h2>
         <p className="text-sm text-slate-400 mb-4">{tenant.nombre}</p>

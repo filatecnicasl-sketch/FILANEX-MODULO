@@ -1,4 +1,6 @@
 import { useState } from "react";
+import TextareaAuto from "../../components/TextareaAuto.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
 
 const MEDIOS = [
@@ -40,6 +42,7 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
   const [subiendo, setSubiendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  const cierre = useCierreProtegido(onCerrar);
 
   async function subirFotos(e) {
     const archivos = [...(e.target.files ?? [])];
@@ -109,8 +112,8 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
+      <div className="modal-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} {...cierre.panelProps}>
         <h2 className="text-lg font-bold text-white mb-4">
           {transicion ? (esEntrega ? "Entregar" : "Finalizar") : "Entrega y aviso"} · {orden.numero} · {orden.matricula}
         </h2>
@@ -173,7 +176,7 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
           <label className="text-xs text-slate-400 block mb-1">
             Notas de entrega · tareas pendientes
           </label>
-          <textarea
+          <TextareaAuto
             className="input w-full min-h-[70px] resize-y"
             placeholder="P. ej.: falta el retrovisor pedido, llamar al cliente cuando llegue la pieza…"
             value={notas}
@@ -209,7 +212,7 @@ export default function FinalizarOrdenModal({ orden, destino, onCerrar, onFinali
         </div>
 
         <div className="flex justify-end gap-2 pt-1">
-          <button type="button" className="btn-ghost" onClick={onCerrar} disabled={guardando}>
+          <button type="button" className="btn-ghost" onClick={cierre.cerrar} disabled={guardando}>
             Cancelar
           </button>
           <button type="button" className="btn-primary" onClick={finalizar} disabled={guardando || subiendo}>

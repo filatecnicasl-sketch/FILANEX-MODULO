@@ -89,12 +89,22 @@ function mapearFormData(p, emp, plantilla) {
   return formData;
 }
 
-export async function imprimirContratoCortesia(p) {
+export async function imprimirContratoCortesia(p, { copias = 1 } = {}) {
   const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   let plantilla = await cargarPlantilla();
   if (!plantilla) {
     plantilla = buildContratoCortesia();
   }
   const formData = mapearFormData(p, emp, plantilla);
-  imprimirFormato(plantilla, formData, {});
+  // El contrato de cortesía se firma por duplicado: una copia para el cliente
+  // y otra para el taller. Ambas salen en el mismo diálogo de impresión como
+  // páginas consecutivas (se pueden imprimir juntas o por separado).
+  for (let i = 0; i < copias; i += 1) {
+    const pagina = copias > 1 ? `${i + 1} de ${copias}` : "";
+    await imprimirFormato(
+      plantilla,
+      pagina ? { ...formData, "copia.indicador": `Copia ${pagina}` } : formData,
+      {},
+    );
+  }
 }

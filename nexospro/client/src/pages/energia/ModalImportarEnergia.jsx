@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { euros } from "../../components/ui.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 // Importar una factura de luz o gas con IA para dar de alta el suministro.
 // Flujo: subir PDF/foto → la IA lee CUPS, titular, comercializadora, tarifa,
@@ -110,7 +111,7 @@ export default function ModalImportarEnergia({ clientes, comercializadoras, onGu
   const nombreComNueva = e?.comercializadora?.nombre ?? "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div
         className="panel max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4"
         onClick={(ev) => ev.stopPropagation()}

@@ -11,6 +11,7 @@ import {
   tonoTipo,
 } from "./datos.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 const DOC_VACIO = {
   tipo: "recibida",
@@ -67,7 +68,7 @@ function ModalDocumento({ cliente, inicial, onCerrar, onGuardado }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">
           {inicial ? "Revisar documento" : "Nuevo documento manual"}

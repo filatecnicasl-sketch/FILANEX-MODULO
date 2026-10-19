@@ -61,18 +61,30 @@ function TextView({ el, fs, print }) {
   // con la fuente de reserva el texto ocupa menos y parecería que cabe.
   useLayoutEffect(() => {
     if (!print || !ref.current) return;
-    const node = ref.current;
     let cancelado = false;
 
     const ajustar = () => {
       if (cancelado || !ref.current) return;
+      const node = ref.current;
       let f = 1;
+      // Partimos siempre de la caja a su altura original para medir bien
+      // (también en la segunda pasada, cuando ya ha cargado la fuente).
+      node.style.height = "";
+      node.style.overflow = "hidden";
       node.style.fontSize = fs(el.fontSize);
       while (f > 0.5 && node.scrollHeight > node.clientHeight + 1) {
         f -= 0.05;
         node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
       }
       setFactor(f);
+      if (node.scrollHeight > node.clientHeight + 1) {
+        // Ya no se puede encoger más sin volverse ilegible: dejamos que la
+        // caja crezca hacia abajo para que el texto largo (descripciones de
+        // trabajos de 4-5 renglones) se imprima entero en vez de cortarse.
+        node.style.overflow = "visible";
+        node.parentElement?.style.setProperty("overflow", "visible");
+        node.style.height = "auto";
+      }
     };
 
     ajustar();
@@ -147,18 +159,29 @@ function TextareaView({ el, variant, formData, onFormValue, fs, mm }) {
   // Igual que TextView: re-mide cuando termina de cargar la fuente.
   useLayoutEffect(() => {
     if (!print || !ref.current) return;
-    const node = ref.current;
     let cancelado = false;
 
     const ajustar = () => {
       if (cancelado || !ref.current) return;
+      const node = ref.current;
       let f = 1;
+      // Partimos siempre de la caja a su altura original para medir bien
+      // (también en la segunda pasada, cuando ya ha cargado la fuente).
+      node.style.height = "";
+      node.style.overflow = "hidden";
       node.style.fontSize = fs(el.fontSize);
       while (f > 0.45 && node.scrollHeight > node.clientHeight + 1) {
         f -= 0.05;
         node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
       }
       setFactor(f);
+      if (node.scrollHeight > node.clientHeight + 1) {
+        // No cabe ni encogido (texto muy largo): la caja crece hacia abajo
+        // para que nada quede sin imprimir.
+        node.style.overflow = "visible";
+        node.parentElement?.style.setProperty("overflow", "visible");
+        node.style.height = "auto";
+      }
     };
 
     ajustar();

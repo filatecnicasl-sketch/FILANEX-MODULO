@@ -10,6 +10,7 @@ import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import EnviarCorreo from "../components/EnviarCorreo.jsx";
 import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
 import { urlApiConSesion } from "../lib/sesion.js";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 // Totales de un albarán a partir de sus líneas (con el descuento % aplicado).
 function totalesDe(a) {
@@ -112,7 +113,7 @@ function ModalFirma({ albaran, onCerrar, onFirmado }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4" {...fondoSeguro(onCerrar)}>
       <div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}

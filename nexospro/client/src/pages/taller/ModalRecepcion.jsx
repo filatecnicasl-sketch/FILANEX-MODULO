@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { SignatureField } from "../../editor/SignatureField.jsx";
 import { imprimirHojaEntrada } from "../../components/MenuImprimirOrden.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
 
 const campo = "input w-full";
@@ -10,6 +11,7 @@ const campo = "input w-full";
 // Con `recienCreada` se muestra el banner de alta y la opción de imprimir la
 // hoja de entrada al terminar (flujo de la Recepción rápida).
 export default function ModalRecepcion({ orden, recienCreada = false, onCerrar, onGuardada }) {
+  const cierre = useCierreProtegido(onCerrar);
   const [fotos, setFotos] = useState(orden.recepcionDigital?.fotos ?? []);
   const [firma, setFirma] = useState(orden.recepcionDigital?.firma ?? null);
   const [refirmando, setRefirmando] = useState(false);
@@ -81,17 +83,18 @@ export default function ModalRecepcion({ orden, recienCreada = false, onCerrar, 
   const mostrandoLienzo = !firma || refirmando;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
       <div
         className="modal-panel w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
+        {...cierre.panelProps}
       >
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-bold text-white">Recepción digital · {orden.numero}</h2>
             <p className="text-sm text-slate-400">{orden.matricula} · {orden.clienteNombre ?? "sin cliente"}</p>
           </div>
-          <button onClick={onCerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
+          <button onClick={cierre.cerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
 
         {recienCreada && (
@@ -231,7 +234,7 @@ export default function ModalRecepcion({ orden, recienCreada = false, onCerrar, 
 
           {recienCreada ? (
             <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={onCerrar} className="btn-ghost">
+              <button type="button" onClick={cierre.cerrar} className="btn-ghost">
                 Cerrar sin imprimir
               </button>
               <button
@@ -250,7 +253,7 @@ export default function ModalRecepcion({ orden, recienCreada = false, onCerrar, 
             </div>
           ) : (
             <div className="flex justify-end pt-1">
-              <button type="button" onClick={onCerrar} className="btn-ghost">Cerrar</button>
+              <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cerrar</button>
             </div>
           )}
         </div>

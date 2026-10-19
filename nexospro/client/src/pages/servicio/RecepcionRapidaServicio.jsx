@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { TIPOS_APARATO, nombreTipoAparato } from "./datos.js";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
+import TextareaAuto from "../../components/TextareaAuto.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 import { coincideBusqueda, euros } from "../../components/ui.jsx";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
@@ -21,6 +23,7 @@ const DIRECCION_VACIA = { calle: "", cp: "", ciudad: "", provincia: "" };
  * arriba y la recepción se rellena sola; al crearla, la cita queda realizada.
  */
 export default function RecepcionRapidaServicio({ onCerrar, onCreada }) {
+  const cierre = useCierreProtegido(onCerrar);
   const [clientes, setClientes] = useState([]);
   const [citas, setCitas] = useState([]);
   const [aparatos, setAparatos] = useState([]);
@@ -287,10 +290,11 @@ export default function RecepcionRapidaServicio({ onCerrar, onCreada }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
       <div
         className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
+        {...cierre.panelProps}
       >
         <h2 className="text-lg font-bold text-white mb-1">Recepción rápida</h2>
         <p className="text-sm text-slate-400 mb-5">
@@ -616,9 +620,8 @@ export default function RecepcionRapidaServicio({ onCerrar, onCreada }) {
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Avería / síntoma descrito por el cliente *</label>
-            <textarea
+            <TextareaAuto
               className={`${campo} resize-none`}
-              rows={2}
               value={form.averia}
               onChange={(e) => actualizar("averia", e.target.value)}
               required
@@ -669,7 +672,7 @@ export default function RecepcionRapidaServicio({ onCerrar, onCreada }) {
           {error && <p className="text-sm text-rose-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onCerrar} className="btn-ghost">
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">
               Cancelar
             </button>
             <button type="submit" disabled={guardando} className="btn-primary disabled:opacity-50">

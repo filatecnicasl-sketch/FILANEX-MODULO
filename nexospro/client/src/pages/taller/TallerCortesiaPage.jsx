@@ -4,6 +4,7 @@ import ModalPrestamoCortesia from "./ModalPrestamoCortesia.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
 import { IconImprimir, IconEditar } from "../../components/icons.jsx";
 import { imprimirContratoCortesia } from "../../utils/imprimir-cortesia.js";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 const campo = "input w-full";
 const fmtFecha = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "—");
@@ -122,8 +123,8 @@ export default function TallerCortesiaPage() {
                       <td><Badge tono={est.tono}>{est.nombre}</Badge></td>
                       <td className="text-right whitespace-nowrap">
                         <button
-                          onClick={() => imprimirContratoCortesia(p)}
-                          title="Imprimir contrato de préstamo para firmar"
+                          onClick={() => imprimirContratoCortesia(p, { copias: 2 })}
+                          title="Imprimir contrato por duplicado (cliente y taller)"
                           className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors align-middle mr-2"
                         >
                           <IconImprimir />
@@ -226,7 +227,7 @@ function ModalDevolver({ prestamo, onCerrar, onHecho }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">Devolución de {prestamo.matricula}</h2>
         <p className="text-sm text-slate-400 mb-4">

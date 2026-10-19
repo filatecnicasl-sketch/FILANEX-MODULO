@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 import { aFechaInput, dirTexto } from "./datos.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
@@ -37,6 +38,7 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
       vehiculoReparacionMarcaModelo: mm,
       vehiculoReparacionVIN: p?.vehiculoReparacionVIN ?? "",
       fechaPrevista: p?.fechaPrevista ? aFechaInput(new Date(p.fechaPrevista)) : (inicial?.fechaPrevista ?? ""),
+      numeroOrden: p?.numeroOrden ?? "",
       kmSalida: p?.kmSalida ?? "",
       combustibleSalida: p?.combustibleSalida ?? "",
       vinCortesia: p?.vinCortesia ?? "",
@@ -62,6 +64,7 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
   const [form, setForm] = useState(prestamoAForm(prestamo));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+  const cierre = useCierreProtegido(onCerrar);
 
   useEffect(() => {
     // Vehículos de cortesía libres (sin préstamo activo ahora mismo).
@@ -123,6 +126,7 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
     setForm((f) => ({
       ...f,
       ordenId: id,
+      numeroOrden: o?.numero ?? f.numeroOrden ?? "",
       clienteNombre: f.clienteNombre || o?.clienteNombre || "",
       clienteNIF: f.clienteNIF || o?.cliente?.nif || "",
       telefono: f.telefono || o?.telefono || "",
@@ -207,16 +211,16 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-      onClick={onCerrar}
+      {...cierre.fondoProps}
       // Escape aquí cierra solo este diálogo, no la cita que hay debajo.
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.stopPropagation();
-          onCerrar();
+          cierre.cerrar();
         }
       }}
     >
-      <div className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} {...cierre.panelProps}>
         <h2 className="text-lg font-bold text-white mb-4">{modoEdicion ? "Editar préstamo de cortesía" : "Nuevo préstamo de cortesía"}</h2>
         <form onSubmit={guardar} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
@@ -430,7 +434,7 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
           {error && <p className="text-sm text-rose-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
             <button type="submit" disabled={guardando || (!modoEdicion && cortesia.length === 0)} className="btn-primary disabled:opacity-50">
               {guardando ? "Guardando…" : (modoEdicion ? "Guardar cambios" : "Prestar")}
             </button>

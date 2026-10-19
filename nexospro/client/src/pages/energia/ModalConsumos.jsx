@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { IconBorrar } from "../../components/icons.jsx";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 const fmtEuro = (n) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n ?? 0);
@@ -68,7 +69,7 @@ export default function ModalConsumos({ suministro, onCerrar }) {
     kg >= 1000 ? `${(kg / 1000).toLocaleString("es-ES", { maximumFractionDigits: 1 })} t CO2e` : `${Number(kg ?? 0).toLocaleString("es-ES", { maximumFractionDigits: 0 })} kg CO2e`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="panel max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>

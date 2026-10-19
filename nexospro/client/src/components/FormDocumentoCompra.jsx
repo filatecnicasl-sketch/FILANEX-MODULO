@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import EditorLineas, { lineaVacia, totalesDeLineas } from "./EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import SelectorContacto from "./SelectorContacto.jsx";
+import { useCierreProtegido } from "../lib/cierreProtegido.js";
 import { euros } from "./ui.jsx";
 
 // Formulario genérico de documento de COMPRA: proveedor + fecha + líneas.
@@ -21,6 +22,7 @@ export default function FormDocumentoCompra({
   onGuardado,
   onCerrar,
 }) {
+  const cierre = useCierreProtegido(onCerrar);
   const [proveedores, setProveedores] = useState([]);
   const [divisa, setDivisa] = useState(inicial?.divisa ?? "EUR");
   const [tipoCambio, setTipoCambio] = useState(
@@ -116,10 +118,11 @@ export default function FormDocumentoCompra({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
       <div
         className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
+        {...cierre.panelProps}
       >
         <h2 className="text-lg font-bold text-white mb-4">{titulo}</h2>
         <form onSubmit={guardar} onKeyDown={enterComoTab} className="space-y-4">
@@ -280,7 +283,7 @@ export default function FormDocumentoCompra({
 
           {error && <p className="text-sm text-red-400">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onCerrar} className="btn-ghost">
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">
               Cancelar
             </button>
             <button type="submit" disabled={guardando || !proveedorId} className="btn-primary">

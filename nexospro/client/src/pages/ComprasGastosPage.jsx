@@ -3,6 +3,7 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import { urlApiConSesion } from "../lib/sesion.js";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 // Compras → Gastos (tickets). Gasto de bolsillo justificado con ticket:
 // se hace la foto, la IA lee los datos y el gasto queda pendiente de revisar.
@@ -335,7 +336,7 @@ function FormGasto({ gasto, avisos = [], categorias, onGuardado, onCerrar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">{gasto ? "Revisar gasto" : "Nuevo gasto"}</h2>
         <p className="text-sm text-slate-400 mb-4">

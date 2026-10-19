@@ -1,4 +1,5 @@
 import { euros } from "../../components/ui.jsx";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 const fmtFecha = (iso) => (iso ? new Date(iso).toLocaleDateString("es-ES") : "—");
 
@@ -15,7 +16,7 @@ export default function ModalResumenConciliacion({ resultados, onCerrar }) {
   const total = (resultados ?? []).reduce((s, r) => s + (r.importe ?? 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">Conciliación automática</h2>
         <p className="text-sm text-slate-400 mb-4">

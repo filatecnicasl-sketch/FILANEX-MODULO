@@ -3,6 +3,7 @@ import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Avatar, EstadoVacio } from "../components/ui.jsx";
 import { IconEditar, IconBorrar, IconImprimir } from "../components/icons.jsx";
 import { imprimirFicha } from "../utils/imprimir.js";
+import { useCierreProtegido } from "../lib/cierreProtegido.js";
 
 const VACIO = {
   codigo: "", fechaAlta: "", nombre: "", nif: "", telefono: "", email: "",
@@ -14,6 +15,7 @@ const aInputFecha = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "
 
 function FormProveedor({ inicial, onGuardado, onCerrar }) {
   const editando = Boolean(inicial?._id);
+  const cierre = useCierreProtegido(onCerrar);
   const [form, setForm] = useState(() => {
     if (!editando) return VACIO;
     return {
@@ -65,8 +67,8 @@ function FormProveedor({ inicial, onGuardado, onCerrar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
+      <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} {...cierre.panelProps}>
         <h2 className="text-lg font-bold text-white mb-4">{editando ? `Editar ${inicial.nombre}` : "Nuevo proveedor"}</h2>
         <form onSubmit={guardar} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
@@ -128,7 +130,7 @@ function FormProveedor({ inicial, onGuardado, onCerrar }) {
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
             <button type="submit" disabled={guardando} className="btn-primary">
               {guardando ? "Guardando…" : "Guardar"}
             </button>

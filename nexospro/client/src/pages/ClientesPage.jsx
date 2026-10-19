@@ -5,6 +5,7 @@ import { IconEditar, IconBorrar, IconImprimir } from "../components/icons.jsx";
 import { imprimirFicha } from "../utils/imprimir.js";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
+import { useCierreProtegido } from "../lib/cierreProtegido.js";
 import { urlApiConSesion } from "../lib/sesion.js";
 
 const VACIO = {
@@ -20,6 +21,7 @@ const aInputFecha = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "
 
 function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] }) {
   const editando = Boolean(inicial?._id);
+  const cierre = useCierreProtegido(onCerrar);
   const [form, setForm] = useState(() => {
     if (!editando) return VACIO;
     return {
@@ -184,8 +186,8 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
+      <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} {...cierre.panelProps}>
         <h2 className="text-lg font-bold text-white mb-4">{editando ? `Editar ${inicial.nombre}` : "Nuevo cliente"}</h2>
 
         {editando && (
@@ -534,7 +536,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
             <button type="submit" disabled={guardando || tab !== "ficha"} className="btn-primary">
               {guardando ? "Guardando…" : "Guardar"}
             </button>

@@ -4,6 +4,7 @@ import SelectorContacto from "./SelectorContacto.jsx";
 import { Badge, euros } from "./ui.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import { urlApiConSesion } from "../lib/sesion.js";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 // Verificación al terminar una importación OCR (factura o albarán de compra):
 // muestra lo que Gemini ha entendido — proveedor, nº, fecha, líneas y avisos —
@@ -152,7 +153,7 @@ export default function ModalVerificacionOCR({ resultado, onAceptado, onCerrar }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div
         className="modal-panel w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}

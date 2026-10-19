@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { TRABAJOS_TALLER, aFechaInput } from "./datos.js";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
+import TextareaAuto from "../../components/TextareaAuto.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 import { coincideBusqueda, euros } from "../../components/ui.jsx";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 
@@ -15,6 +17,7 @@ const normalizar = (s) => (s ?? "").toString().trim().toLowerCase();
  * Con `citaInicial` (desde la agenda de citas) nace ya enlazada a esa cita.
  */
 export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null }) {
+  const cierre = useCierreProtegido(onCerrar);
   const [clientes, setClientes] = useState([]);
   const [citas, setCitas] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
@@ -217,10 +220,11 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
       <div
         className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
+        {...cierre.panelProps}
       >
         <h2 className="text-lg font-bold text-white mb-1">Recepción rápida</h2>
         <p className="text-sm text-slate-400 mb-5">
@@ -472,18 +476,18 @@ export default function RecepcionRapida({ onCerrar, onCreada, citaInicial = null
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Motivo / trabajos solicitados</label>
-            <textarea
+            <TextareaAuto
               className={`${campo} resize-none`}
-              rows={2}
               value={form.motivo}
               onChange={(e) => actualizar("motivo", e.target.value)}
+              placeholder="Escribe todas las líneas que necesites: el campo crece solo"
             />
           </div>
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onCerrar} className="btn-ghost">
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">
               Cancelar
             </button>
             <button type="submit" disabled={guardando} className="btn-primary disabled:opacity-50">

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ESTADOS_CITA, aFechaInput } from "./datos.js";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
 import EnviarWhatsApp from "../../components/EnviarWhatsApp.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 
 import { cargarClientesLigeros, invalidarClientesLigeros } from "../../lib/clientesLigeros.js";
 import { PROVINCIAS_ES } from "../../lib/provincias.js";
@@ -78,6 +79,7 @@ function buscarDuplicadosClientes(clientes, { nombre, telefono, nif }) {
 
 /** Modal de alta/edición de cita del servicio técnico (SAT). */
 export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuardada }) {
+  const cierre = useCierreProtegido(onCerrar);
   const [clientes, setClientes] = useState([]);
   const [aparatos, setAparatos] = useState([]);
   const [form, setForm] = useState({
@@ -275,8 +277,12 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
+      <div
+        className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
+        onClick={(e) => e.stopPropagation()}
+        {...cierre.panelProps}
+      >
         <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {cita ? `Cita ${aFechaInput(cita.fecha)} ${cita.hora}` : "Nueva cita"}
           {cita && (
@@ -541,7 +547,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
               )}
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+              <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
               <button type="submit" disabled={guardando} className="btn-primary disabled:opacity-50">
                 {guardando ? "Guardando…" : "Guardar"}
               </button>

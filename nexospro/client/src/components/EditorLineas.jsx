@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { euros } from "./ui.jsx";
+import TextareaAuto from "./TextareaAuto.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 
 // Totales del documento con el mismo redondeo que el servidor
@@ -288,11 +289,12 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
                 {l.codigo}
               </span>
             )}
-            <textarea
+            <TextareaAuto
               data-editor="linea" data-editor-desc
               placeholder={conTipo ? "Código, descripción o artículo…" : "Descripción o artículo…"}
               value={l.descripcion}
-              rows={Math.min(6, Math.max(1, (l.descripcion ?? "").split("\n").length))}
+              minRows={1}
+              maxRows={10}
               onFocus={() => setSugerenciasEn(i)}
               onChange={(e) => {
                 cambiar(i, "descripcion", e.target.value);
@@ -380,9 +382,8 @@ export default function EditorLineas({ lineas, setLineas, precio = "venta", conT
             imprime bajo la descripción en el documento. Plegable para no
             ensuciar el editor cuando no se usa. */}
         {(l.detalle || detalleAbierto === i) ? (
-          <textarea
+          <TextareaAuto
             data-editor="linea"
-            rows={2}
             placeholder="Detalle del servicio (se imprime bajo la línea)…"
             value={l.detalle ?? ""}
             onChange={(e) => cambiar(i, "detalle", e.target.value)}

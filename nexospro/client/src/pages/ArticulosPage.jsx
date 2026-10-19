@@ -4,6 +4,7 @@ import SelectorContacto from "../components/SelectorContacto.jsx";
 import { Badge, EstadoVacio, euros } from "../components/ui.jsx";
 import { IconArticulos, IconEditar, IconBorrar, IconImprimir } from "../components/icons.jsx";
 import { imprimirFicha } from "../utils/imprimir.js";
+import { useCierreProtegido, fondoSeguro } from "../lib/cierreProtegido.js";
 import { urlApiConSesion } from "../lib/sesion.js";
 
 const VACIO = {
@@ -85,6 +86,7 @@ function SelectorImagen({ valor, onCambio }) {
 
 function FormArticulo({ inicial, proveedores, familias, onProveedorCreado, onGuardado, onCerrar }) {
   const editando = Boolean(inicial?._id);
+  const cierre = useCierreProtegido(onCerrar);
   const [form, setForm] = useState({
     ...VACIO,
     ...(inicial ?? {}),
@@ -125,8 +127,8 @@ function FormArticulo({ inicial, proveedores, familias, onProveedorCreado, onGua
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
-      <div className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
+      <div className="modal-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} {...cierre.panelProps}>
         <h2 className="text-lg font-bold text-white mb-4">
           {editando ? `Editar ${inicial.codigo ?? "artículo"}` : "Nuevo artículo"}
         </h2>
@@ -234,7 +236,7 @@ function FormArticulo({ inicial, proveedores, familias, onProveedorCreado, onGua
 
           {error && <p className="text-sm text-rose-400">{error}</p>}
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
             <button type="submit" disabled={guardando} className="btn-primary">
               {guardando ? "Guardando…" : "Guardar"}
             </button>
@@ -285,7 +287,7 @@ function ModalFamilias({ familias, nombresDeArticulos, onCambio, onCerrar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-white">Familias del TPV</h2>
@@ -511,7 +513,7 @@ function ModalInventario({ articulos, onAjustado, onCerrar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-4xl max-h-[90vh] flex flex-col p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div>

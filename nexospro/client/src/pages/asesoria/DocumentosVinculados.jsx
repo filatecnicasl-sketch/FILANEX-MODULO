@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { euros } from "../../components/ui.jsx";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 const TIPOS = [
   { clave: "todos", nombre: "Todos" },
@@ -109,7 +110,7 @@ export default function DocumentosVinculados({ vinculo, onCerrar }) {
   }, [docs]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div
         className="modal-panel w-full max-w-5xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}

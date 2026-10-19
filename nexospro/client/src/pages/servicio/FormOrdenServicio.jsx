@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import EditorLineas, { lineaVacia } from "../../components/EditorLineas.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
+import TextareaAuto from "../../components/TextareaAuto.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 import { enterComoTab } from "../../utils/enter-tab.js";
 import { ESTADOS_OS, aFechaInput } from "./datos.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
@@ -28,6 +30,7 @@ const etiquetaAparato = (a) =>
 // rápida sigue existiendo para el pase exprés.
 export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
   const editando = Boolean(orden?._id);
+  const cierre = useCierreProtegido(onCerrar);
   const [aparatos, setAparatos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [form, setForm] = useState(() => ({
@@ -214,10 +217,11 @@ export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
   const numeroPresupuesto = presupuestoElegido?.serieNumero ?? (form.presupuesto ? orden?.presupuestoNumero : null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
       <div
         className="modal-panel w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
+        {...cierre.panelProps}
       >
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -230,7 +234,7 @@ export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
                 : "Todos los datos de la reparación."}
             </p>
           </div>
-          <button onClick={onCerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
+          <button onClick={cierre.cerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
 
         <form onSubmit={guardar} onKeyDown={enterComoTab} className="space-y-4">
@@ -347,9 +351,8 @@ export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Avería</label>
-            <textarea
+            <TextareaAuto
               className={`${campo} resize-none`}
-              rows={2}
               value={form.averia}
               onChange={(e) => poner("averia", e.target.value)}
               placeholder="Síntoma descrito por el cliente"
@@ -358,9 +361,8 @@ export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Diagnóstico</label>
-            <textarea
+            <TextareaAuto
               className={`${campo} resize-none`}
-              rows={2}
               value={form.diagnostico}
               onChange={(e) => poner("diagnostico", e.target.value)}
               placeholder="Diagnóstico / trabajo realizado"
@@ -469,9 +471,8 @@ export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Notas internas</label>
-            <textarea
+            <TextareaAuto
               className={`${campo} resize-none`}
-              rows={2}
               value={form.notasInternas}
               onChange={(e) => poner("notasInternas", e.target.value)}
               placeholder="No salen en los impresos"
@@ -481,7 +482,7 @@ export default function FormOrdenServicio({ orden, onCerrar, onGuardada }) {
           {error && <p className="text-sm text-rose-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
             <button type="submit" disabled={guardando} className="btn-primary disabled:opacity-50">
               {guardando ? "Guardando…" : editando ? "Guardar cambios" : "Guardar orden"}
             </button>

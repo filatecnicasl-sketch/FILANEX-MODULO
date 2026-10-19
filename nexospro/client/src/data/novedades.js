@@ -5,6 +5,48 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-19",
+    tipo: "correccion",
+    titulo: "Escribir en cualquier campo de texto ya no se queda corto: los cuadros crecen solos",
+    detalle:
+      "Los cuadros de texto de varias líneas (descripción del trabajo en la orden, motivo de la recepción, avería y diagnóstico en servicio, detalle de las líneas de factura…) ya no tienen altura fija: crecen solos a medida que escribes, así una descripción de daños de 4, 5 o 10 renglones se ve entera mientras la escribes y no parece que el programa «no deje» escribir más. Antes solo se veían 2 líneas y el resto quedaba escondido.",
+  },
+  {
+    fecha: "2026-10-19",
+    tipo: "correccion",
+    titulo: "Seleccionar texto (marcar en azul) ya no cierra la ventana ni pierde lo escrito",
+    detalle:
+      "El gesto de arrastrar con el ratón para marcar una palabra o frase y soltarlo fuera del cuadro de texto cerraba la ventana entera y se perdía todo lo escrito. Ya no puede pasar: la ventana solo se cierra si el clic empieza Y termina en el fondo oscuro, nunca si el arrastre empezó dentro de un campo. Está arreglado en todas las ventanas del programa (taller, servicio, ventas, compras, clientes, artículos, tesorería…).",
+  },
+  {
+    fecha: "2026-10-19",
+    tipo: "nuevo",
+    titulo: "La orden de trabajo se guarda sola como borrador mientras escribes",
+    detalle:
+      "Al rellenar una orden de trabajo, todo lo que escribes se guarda automáticamente como borrador en el propio equipo. Si la ventana se cierra sin querer —o se va la luz— al volver a abrir la orden aparece un aviso y el borrador se recupera tal cual estaba. Al guardar la orden de verdad, el borrador se borra. Así no se vuelve a perder una recepción a medio hacer.",
+  },
+  {
+    fecha: "2026-10-19",
+    tipo: "correccion",
+    titulo: "Contrato de cortesía: sale por duplicado (cliente y taller) y con el nº de orden",
+    detalle:
+      "El contrato del vehículo de cortesía se imprime ahora dos veces seguidas en el mismo diálogo —una copia para el cliente y otra para el taller—. Además, el número de la orden de trabajo asociada ya no sale vacío al editar el préstamo: se recupera y se rellena al elegir la orden.",
+  },
+  {
+    fecha: "2026-10-19",
+    tipo: "correccion",
+    titulo: "Las descripciones largas salen completas en los impresos, aunque no quepan",
+    detalle:
+      "Los cuadros de texto de las plantillas impresas (trabajos solicitados, descripción de daños, observaciones…) primero reducen la letra para encajar, y si aun así el texto es más largo, el cuadro crece hacia abajo en vez de cortar lo que no cabe. Lo que se escribe en la orden es lo que sale en el papel, entero.",
+  },
+  {
+    fecha: "2026-10-19",
+    tipo: "mejora",
+    titulo: "Todas las ventanas del programa piden confirmación antes de perder datos",
+    detalle:
+      "La protección de cierre (aviso «Hay datos sin guardar» antes de cerrar con Escape o clic fuera) se ha extendido a todas las fichas con datos: orden de trabajo y recepción rápida del taller, orden de servicio y recepción del SAT, facturas de compra, clientes, proveedores y artículos. Si no has tocado nada, la ventana se cierra igual que antes, sin molestar.",
+  },
+  {
     fecha: "2026-10-16",
     tipo: "correccion",
     titulo: "Taller: horas reales de finalizado y entrega, y listado del día con fecha a elegir",

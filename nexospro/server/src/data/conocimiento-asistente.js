@@ -28,6 +28,20 @@ por secciones y, arriba, unas fichas con las pantallas de la sección activa.
   existe, se crea al guardar sin salir de la pantalla.
 - Las matrículas se guardan siempre sin espacios y en mayúsculas (el programa
   las normaliza solo).
+- **Protección de cierre en las ventanas**: en las fichas con datos (orden de
+  trabajo, recepciones, cortesía, citas, facturas de compra, clientes,
+  proveedores, artículos…) al pulsar Escape o hacer clic en el fondo oscuro
+  con cambios sin guardar, el programa pregunta "¿Cerrar y perder los
+  datos?" antes de cerrar. Si no se ha tocado nada, cierra directo. Y
+  arrastrar el ratón para seleccionar texto (marcar en azul) y soltarlo
+  fuera del campo NUNCA cierra la ventana: solo se cierra si el clic
+  empieza y termina en el fondo.
+- **Los cuadros de texto largos crecen solos**: descripción del trabajo,
+  motivo de recepción, avería, diagnóstico, notas y detalle de las líneas de
+  factura no tienen altura fija; se hacen más altos a medida que se escribe
+  para que el texto se vea entero mientras se teclea. En los impresos, el
+  texto largo se imprime completo: primero se reduce la letra para encajar
+  y, si no basta, el cuadro crece hacia abajo en el papel.
 - Ayuda → Novedades: registro de cambios del programa y buzón de propuestas
   (los usuarios pueden proponer mejoras con capturas de pantalla).
 
@@ -208,6 +222,10 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
   finalización, y al pasarla a entregado, la de la entrega (no se copia la
   anterior). En el tablero se ven las dos; desde la campanita se pueden
   corregir a posteriori.
+- **Borrador automático**: mientras se rellena la OT, todo lo escrito se
+  guarda solo como borrador en el equipo; si la ventana se cierra sin
+  querer, al abrirla de nuevo el borrador se recupera con un aviso (se
+  descarta al guardar la orden de verdad).
 
 ### Aseguradoras
 - Ficha con condiciones por compañía (franquicia, % IVA que asume, suplidos,
@@ -218,7 +236,8 @@ Aseguradoras, Cortesía, Operarios, Ayuda taller.
   cortesía") y quedan ocupados hasta la devolución.
 - Contrato de cesión: se imprime desde la ficha del vehículo de cortesía con
   el formato "parte de cesión" (editable en el editor de formatos, con las
-  fotos del coche si se suben).
+  fotos del coche si se suben) **y sale por duplicado**: dos copias seguidas
+  en el mismo diálogo, una para el cliente y otra para el taller.
 
 ### Operarios
 - Ficha de cada mecánico/chapista con su coste/hora para márgenes.

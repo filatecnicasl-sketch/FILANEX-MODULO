@@ -6,6 +6,7 @@ import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../c
 import { IconImprimir, IconBorrar, IconEditar } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
 import { urlApiConSesion } from "../lib/sesion.js";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 const TONO = { pendiente_revision: "amber", validada: "green", rechazada: "red" };
 const NOMBRE = { pendiente_revision: "Pendiente", validada: "Validada", rechazada: "Rechazada" };
@@ -66,7 +67,7 @@ function ModalConciliar({ factura, onGuardado, onCerrar }) {
     .reduce((s, a) => s + (a.total ?? 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-lg max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">Conciliar albaranes</h2>
         <p className="text-sm text-slate-400 mb-4">
@@ -190,7 +191,7 @@ function ModalCorreo({ onImportado, onCerrar }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">Importar del correo</h2>
         <p className="text-sm text-slate-400 mb-4">

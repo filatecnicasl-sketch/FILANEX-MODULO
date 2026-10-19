@@ -6,6 +6,7 @@ import { Badge, EstadoVacio, InputBusqueda, coincideBusqueda, euros } from "../c
 import { IconImprimir } from "../components/icons.jsx";
 import { imprimirDocumento } from "../utils/imprimir.js";
 import { urlApiConSesion } from "../lib/sesion.js";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 const TONO = { borrador: "slate", confirmado: "cyan", facturado: "green" };
 const NOMBRE = { borrador: "Borrador", confirmado: "Confirmado", facturado: "Facturado" };
@@ -402,7 +403,7 @@ function ModalEnviarAOrden({ albaran, onCerrar, onEnviado }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-1">
           Enviar a orden de reparación

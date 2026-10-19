@@ -6,6 +6,7 @@ import { IconImprimir } from "../../components/icons.jsx";
 import { imprimirFicha } from "../../utils/imprimir.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
+import { fondoSeguro } from "../../lib/cierreProtegido.js";
 
 const campo = "input w-full";
 const VACIO = { matricula: "", marca: "", modelo: "", bastidor: "", color: "", combustible: "", anio: "", km: "", tipo: "cliente", clienteId: "", clienteNombre: "", notas: "" };
@@ -279,7 +280,7 @@ export default function TallerVehiculosPage() {
       </div>
 
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(() => setModal(false))}>
           <div className="modal-panel w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-white mb-4">
               {editando ? `Vehículo ${editando.matricula}` : "Nuevo vehículo"}
@@ -404,7 +405,7 @@ function ModalHistorial({ vehiculo, onCerrar }) {
   const activa = PESTANAS.find((p) => p.clave === pestana);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div
         className="modal-panel w-full max-w-4xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
@@ -481,7 +482,7 @@ function ModalHistorial({ vehiculo, onCerrar }) {
         {fotoGrande && (
           <div
             className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-6"
-            onClick={() => setFotoGrande(null)}
+            {...fondoSeguro(() => setFotoGrande(null))}
           >
             <img src={urlApiConSesion(fotoGrande)} alt="Foto ampliada" className="max-w-full max-h-full rounded-xl" />
           </div>
@@ -662,7 +663,7 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
   const cliente = doc.clienteNombre ?? doc.cliente?.nombre;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" {...fondoSeguro(onCerrar)}>
       <div className="w-full max-w-3xl max-h-[88vh] overflow-y-auto rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5">
           <div>

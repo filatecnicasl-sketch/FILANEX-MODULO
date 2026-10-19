@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import { Avatar, Badge, EstadoVacio } from "../components/ui.jsx";
 import { IconEditar, IconBorrar } from "../components/icons.jsx";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 const VACIO = { nombre: "", email: "", password: "", rol: "usuario" };
 
@@ -33,7 +34,7 @@ function ModalUsuario({ inicial, editando, onCerrar, onGuardado }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4">
           {editando ? `Editar ${inicial.nombre}` : "Nuevo usuario"}

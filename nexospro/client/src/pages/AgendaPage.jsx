@@ -6,6 +6,7 @@ import BotonVoz from "../components/BotonVoz.jsx";
 import AltaRapidaCliente from "../components/AltaRapidaCliente.jsx";
 import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import { cargarClientesLigeros } from "../lib/clientesLigeros.js";
+import { fondoSeguro } from "../lib/cierreProtegido.js";
 
 const campo = "input w-full";
 
@@ -125,7 +126,7 @@ function EventoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
       <div className="modal-panel w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-white mb-4 flex flex-wrap items-center gap-3">
           {evento ? `Evento ${aFechaInput(evento.fecha)} ${evento.hora}` : "Nuevo evento"}

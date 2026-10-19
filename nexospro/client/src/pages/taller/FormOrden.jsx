@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EditorLineas, { lineaVacia } from "../../components/EditorLineas.jsx";
 import SelectorContacto from "../../components/SelectorContacto.jsx";
 import BuscadorEntidad from "../../components/BuscadorEntidad.jsx";
+import TextareaAuto from "../../components/TextareaAuto.jsx";
+import { useCierreProtegido } from "../../lib/cierreProtegido.js";
 import { enterComoTab } from "../../utils/enter-tab.js";
 import { ESTADOS_OT, TRABAJOS_TALLER, aFechaInput } from "./datos.js";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
@@ -126,14 +128,48 @@ function SeccionTiempos({ ordenId, tiempos, lineas, onCambio }) {
 // Orden de trabajo completa (alta y edición): vehículo, cliente, tipo de
 // trabajo, fechas, descripción, líneas (MO/material), compañía aseguradora
 // y notas internas. La recepción rápida sigue existiendo para el pase exprés.
+//
+// Autoguardado: mientras se escribe, la orden se guarda como borrador en el
+// navegador (localStorage). Si la ventana se cierra sin querer — o se va la
+// luz — al volver a abrirla el borrador se recupera solo. Al guardar de
+// verdad, el borrador se elimina. (Petición de Montiel: "seguimos perdiendo
+// datos recogidos sin motivo".)
+const CLAVE_BORRADOR = (id) => `filanex-borrador-orden-${id ?? "nueva"}`;
+
+function borradorInicial(orden) {
+  const id = orden?._id ?? null;
+  try {
+    const guardado = localStorage.getItem(CLAVE_BORRADOR(id));
+    if (!guardado) return null;
+    const datos = JSON.parse(guardado);
+    const ahora = Date.now();
+    // Los borradores caducan a los 7 días: después, mejor empezar limpio.
+    if (!datos?.fecha || ahora - datos.fecha > 7 * 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(CLAVE_BORRADOR(id));
+      return null;
+    }
+    const tieneAlgo =
+      (datos.form?.motivo ?? "").trim() ||
+      (datos.form?.notasInternas ?? "").trim() ||
+      (datos.lineas ?? []).some((l) => (l.descripcion ?? "").trim());
+    if (!tieneAlgo) return null;
+    return datos;
+  } catch {
+    return null;
+  }
+}
+
 export default function FormOrden({ orden, onCerrar, onGuardada }) {
   const editando = Boolean(orden?._id);
+  const cierre = useCierreProtegido(onCerrar);
+  const recuperado = useRef(false);
   const [vehiculos, setVehiculos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [aseguradoras, setAseguradoras] = useState([]);
   const [creandoVehiculo, setCreandoVehiculo] = useState(false);
   const [nuevoVehiculo, setNuevoVehiculo] = useState({ matricula: "", marca: "", modelo: "" });
-  const [form, setForm] = useState(() => ({
+  const [form, setForm] = useState(() => {
+    const inicial = {
     vehiculoId: orden?.vehiculo?._id ?? orden?.vehiculo ?? "",
     clienteId: orden?.cliente?._id ?? orden?.cliente ?? "",
     telefono: orden?.telefono ?? "",
@@ -152,16 +188,36 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
       ...(orden?.presupuestos ?? []).map((p) => String(p?._id ?? p)),
       orden?.presupuesto ? String(orden.presupuesto?._id ?? orden.presupuesto) : null,
     ].filter(Boolean))],
-  }));
+    };
+    const borrador = borradorInicial(orden);
+    if (borrador) {
+      recuperado.current = true;
+      return { ...inicial, ...borrador.form };
+    }
+    return inicial;
+  });
   const [presupuestos, setPresupuestos] = useState([]); // abiertos del cliente (vinculables)
-  const [lineas, setLineas] = useState(() =>
-    orden?.lineas?.length ? orden.lineas.map((l) => ({ ...l })) : [{ ...lineaVacia(), tipo: "mano_obra" }]
-  );
+  const [lineas, setLineas] = useState(() => {
+    const borrador = borradorInicial(orden);
+    if (borrador?.lineas?.length) return borrador.lineas.map((l) => ({ ...l }));
+    return orden?.lineas?.length ? orden.lineas.map((l) => ({ ...l })) : [{ ...lineaVacia(), tipo: "mano_obra" }];
+  });
   const [tiempos, setTiempos] = useState(() => orden?.tiempos ?? []);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
   const poner = (c, v) => setForm((f) => ({ ...f, [c]: v }));
+
+  // Autoguardado del borrador (localStorage): silencioso y barato.
+  useEffect(() => {
+    const id = orden?._id ?? null;
+    const datos = { fecha: Date.now(), form, lineas };
+    try {
+      localStorage.setItem(CLAVE_BORRADOR(id), JSON.stringify(datos));
+    } catch {
+      // localStorage lleno o no disponible: seguimos sin autoguardado.
+    }
+  }, [form, lineas, orden?._id]);
 
   useEffect(() => {
     fetch("/api/taller/vehiculos").then((r) => (r.ok ? r.json() : [])).then(setVehiculos).catch(() => setVehiculos([]));
@@ -282,6 +338,8 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo guardar la orden");
+      localStorage.removeItem(CLAVE_BORRADOR(orden?._id ?? null));
+      recuperado.current = false;
       onGuardada(datos);
     } catch (e2) {
       setError(e2.message);
@@ -290,10 +348,11 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onCerrar}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...cierre.fondoProps}>
       <div
         className="modal-panel w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
+        {...cierre.panelProps}
       >
         <div className="flex items-start justify-between mb-4">
           <div>
@@ -304,8 +363,18 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
               {editando ? `${orden.matricula} · ${orden.clienteNombre ?? "sin cliente"}` : "Todos los datos de la reparación."}
             </p>
           </div>
-          <button onClick={onCerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
+          <button onClick={cierre.cerrar} className="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
+
+        {recuperado.current && (
+          <p className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            Se ha recuperado el borrador que quedó sin guardar. Revisa los datos y guarda la orden.
+          </p>
+        )}
+        <p className="mb-3 text-[0.6875rem] text-slate-500">
+          Mientras escribes, la orden se guarda automáticamente como borrador en este equipo: si la ventana se
+          cierra sin querer, al abrirla de nuevo el borrador reaparece.
+        </p>
 
         <form onSubmit={guardar} onKeyDown={enterComoTab} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -433,11 +502,11 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Descripción del trabajo</label>
-            <textarea
+            <TextareaAuto
               className={`${campo} resize-none`}
-              rows={2}
               value={form.motivo}
               onChange={(e) => poner("motivo", e.target.value)}
+              placeholder="Escribe todas las líneas que necesites: el campo crece solo"
             />
           </div>
 
@@ -534,9 +603,8 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
 
           <div>
             <label className="text-sm text-slate-400 block mb-1">Notas internas</label>
-            <textarea
+            <TextareaAuto
               className={`${campo} resize-none`}
-              rows={2}
               value={form.notasInternas}
               onChange={(e) => poner("notasInternas", e.target.value)}
               placeholder="No salen en los impresos"
@@ -546,7 +614,7 @@ export default function FormOrden({ orden, onCerrar, onGuardada }) {
           {error && <p className="text-sm text-rose-400">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
+            <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
             <button type="submit" disabled={guardando} className="btn-primary disabled:opacity-50">
               {guardando ? "Guardando…" : editando ? "Guardar cambios" : "Guardar orden"}
             </button>
