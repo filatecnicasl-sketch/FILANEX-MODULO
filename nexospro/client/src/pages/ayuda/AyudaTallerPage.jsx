@@ -40,7 +40,7 @@ export default function AyudaTallerPage() {
           <p>
             <K>Hoy</K> abre directamente las citas de hoy; las flechas permiten avanzar o retroceder día a día.
             En <K>Próximos</K> aparecen primero los días cercanos con citas, ordenados por fecha y hora.
-            <K>Semana</K> y <K>Mes</K> muestran el calendario completo.
+            En <K>Semana</K> o <K>Mes</K>, pulsa un día para abrir sus citas.
           </p>
           <Nota titulo="La cita se guarda sola, aunque imprimas el justificante">
             Al pulsar <K>Imprimir hoja y finalizar</K> (o el justificante de cita) el programa guarda

@@ -317,11 +317,14 @@ export default function Calendario({
               return (
                 <div
                   key={txt}
-                  onClick={() => onNueva(txt)}
+                  onClick={() => {
+                    setRef(dia);
+                    setVista("dia");
+                  }}
                   className={`min-h-[74px] sm:min-h-[104px] p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-accent/5 ${
                     delMes ? "bg-white" : "bg-slate-50"
                   }`}
-                  title={`Nuevo ${nombreElementos === "eventos" ? "evento" : "cita"} este día`}
+                  title={`Ver ${nombreElementos} de este día`}
                 >
                   <p className="flex justify-end px-0.5">
                     <span
@@ -370,11 +373,14 @@ export default function Calendario({
               return (
                 <div key={txt} className="border-l border-slate-200 first:border-l-0 flex flex-col min-h-[420px]">
                   <button
-                    onClick={() => onNueva(txt)}
+                    onClick={() => {
+                      setRef(dia);
+                      setVista("dia");
+                    }}
                     className={`px-2 py-2.5 text-center border-b border-slate-200 transition-colors hover:bg-accent/5 ${
                       esHoy ? "bg-accent/10" : "bg-slate-50"
                     }`}
-                    title={`Nuevo ${nombreElementos === "eventos" ? "evento" : "cita"} este día`}
+                    title={`Ver ${nombreElementos} de este día`}
                   >
                     <span className="block text-[0.65625rem] font-bold uppercase tracking-widest text-slate-500">
                       {DIAS[i]}

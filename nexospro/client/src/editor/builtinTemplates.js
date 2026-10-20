@@ -655,7 +655,7 @@ export function buildContratoCortesia() {
   const yKm = 136;
   const yEstado = 162;
   const ySeguro = 196;
-  const yRep = 238;
+  const yRep = 235;
   const yFirmas = 264;
 
   return {
@@ -689,12 +689,7 @@ export function buildContratoCortesia() {
       fl("Permiso de conducir nº", "cliente.permisoNumero", x, yUsuario + 47, w),
       fl("Expedido el", "cliente.permisoExpedicion", x, yUsuario + 54, medio - 2),
       fl("en", "cliente.permisoLugar", x + medio, yUsuario + 54, medio - 2),
-      fl("Apellidos", "cliente2.apellidos", x, yUsuario + 61, medio - 2),
-      fl("Nombre", "cliente2.nombre", x + medio, yUsuario + 61, medio - 2),
-      fl("Permiso de conducir nº", "cliente2.permisoNumero", x, yUsuario + 68, w),
-      fl("Expedido el", "cliente2.permisoExpedicion", x, yUsuario + 75, medio - 2),
-      fl("en", "cliente2.permisoLugar", x + medio, yUsuario + 75, medio - 2),
-      fl("Eventualmente, otros conductores admitidos", "cliente.otrosConductores", x, yUsuario + 82, w),
+      fl("Eventualmente, otros conductores admitidos", "cliente.otrosConductores", x, yUsuario + 61, w),
 
       // VEHÍCULO PUESTO A DISPOSICIÓN
       ...seccion("VEHÍCULO PUESTO A DISPOSICIÓN", x, yVehDisp, w),
