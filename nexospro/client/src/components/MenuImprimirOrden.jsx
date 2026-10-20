@@ -6,6 +6,22 @@ import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
 const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
 const dirTexto = (d) => [d?.calle, d?.cp, d?.ciudad, d?.provincia].filter(Boolean).join(", ");
 
+// Los trabajos se apuntan en renglones sueltos; al imprimir se juntan los
+// del mismo párrafo con "·" para que el texto fluya en línea y no llene la
+// caja de arriba a abajo dejando media vacía. Los párrafos se respetan.
+const compactarRenglones = (texto) =>
+  String(texto ?? "")
+    .split(/\n\s*\n+/)
+    .map((p) =>
+      p
+        .split(/\n+/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .join(" · ")
+    )
+    .filter(Boolean)
+    .join("\n");
+
 async function cargarPlantillaEntrada() {
   try {
     const r = await fetch("/api/formatos/default/entrada-taller");
@@ -47,11 +63,11 @@ export async function imprimirHojaEntrada(o) {
     "vehiculo.seguroSi": Boolean(o.aseguradora),
     "vehiculo.seguroNo": !o.aseguradora,
     // Bloque grande de la hoja: la avería / trabajos que pide el cliente.
-    "vehiculo.descripcion": o.motivo ?? "",
+    "vehiculo.descripcion": compactarRenglones(o.motivo),
     "seguro.detalle": textoSeguro,
     // Compat con plantillas antiguas: allí el motivo y el seguro compartían
     // el cuadro pequeño de observaciones.
-    "vehiculo.observaciones": [o.motivo, textoSeguro].filter(Boolean).join(". "),
+    "vehiculo.observaciones": [compactarRenglones(o.motivo), textoSeguro].filter(Boolean).join(". "),
     "entrega.fechaPrevista": fechaEs(o.fechaEntregaPrevista),
   };
 

@@ -21,6 +21,25 @@ function netoLinea(l) {
 const ivaLinea = (l) => netoLinea(l) * ((Number(l.iva) || 0) / 100);
 const totalLineaConIva = (l) => netoLinea(l) + ivaLinea(l);
 
+// Los trabajos solicitados se apuntan en renglones sueltos (uno por trabajo);
+// al imprimir, los renglones del mismo párrafo se juntan con "·" para que el
+// texto fluya en línea y aproveche el ancho de la caja, en vez de llenarla
+// de arriba a abajo con media caja vacía. Los párrafos (línea en blanco) se
+// respetan como separación.
+export function compactarRenglones(texto) {
+  return String(texto ?? "")
+    .split(/\n\s*\n+/)
+    .map((parrafo) =>
+      parrafo
+        .split(/\n+/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .join(" · ")
+    )
+    .filter(Boolean)
+    .join("\n");
+}
+
 // Franquicia del seguro: viaja como línea negativa en la factura a la
 // aseguradora ("Franquicia a cargo del cliente…"). En el impreso de taller
 // se saca de las líneas y se muestra en los totales.
@@ -283,7 +302,7 @@ async function datosOrdenTrabajo(id) {
       ? `Compañía: ${aseg.nombre}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}${Number(o.franquicia) > 0 ? ` · Franquicia cliente: ${euros(o.franquicia)}` : ""}`
       : "Particular",
     "trabajos.tipo": (o.trabajos ?? []).join(", "),
-    "trabajos.motivo": o.motivo ?? "",
+    "trabajos.motivo": compactarRenglones(o.motivo),
     // La orden impresa va al taller: trabajos y cantidades, nunca precios.
     "totales.total": "",
   };
@@ -330,8 +349,8 @@ async function datosOrdenServicio(id) {
     "aparato.serie": ap.numeroSerie ?? "",
     "aparato.accesorios": o.accesorios ?? "",
     "aparato.estadoFisico": o.estadoFisico ?? "",
-    "aparato.averia": o.averia ?? "",
-    "aparato.diagnostico": o.diagnostico ?? "",
+    "aparato.averia": compactarRenglones(o.averia),
+    "aparato.diagnostico": compactarRenglones(o.diagnostico),
     "aparato.garantia": o.garantia === "en_garantia" ? "En garantía" : "Sin garantía",
     "totales.total": euros((o.lineas ?? []).reduce((s, l) => s + netoLinea(l) * (1 + (Number(l.iva) || 0) / 100), 0)),
   };
