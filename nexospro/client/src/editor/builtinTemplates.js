@@ -641,8 +641,10 @@ export function buildContratoCortesia() {
 
   const txc = (text, px, py, pw, ph, pfs = fs, bold = false, align = "left", color = "#000") =>
     tx2(text, px, py, pw, ph, pfs, bold, align, color);
-  const fl = (label, key, px, py, pw, ph = 6, pfs = fs) =>
-    fld2(label, key, px, py, pw, ph, pfs);
+  const fl = (label, key, px, py, pw, ph = 6, pfs = fs) => ({
+    ...fld2(label, key, px, py, pw, ph, pfs),
+    mostrarEtiquetaImpresion: true,
+  });
   const seccion = (text, px, py, pw) => [
     { id: id(), type: "rect", x: px, y: py, w: pw, h: 5.5, borderWidth: 0.8, borderColor: "#000", background: "#e6e6e6" },
     txc(text, px, py + 1, pw, 4, fsSec, true, "center", "#000"),
@@ -665,10 +667,9 @@ export function buildContratoCortesia() {
     page: { size: "A4", orientation: "portrait" },
     elements: [
       // Cabecera
-      img("{{empresa.logo}}", x, 6, 55, 14),
-      txc("{{empresa.nombre}}", x + 70, 8, 110, 6, 11, true, "right"),
-      txc("{{empresa.direccion}}", x + 70, 14, 110, 4, 8, false, "right", "#333"),
-      txc("{{empresa.telefono}}", x + 70, 18, 110, 4, 8, false, "right", "#333"),
+      txc("{{empresa.nombre}}", x, 8, w, 6, 11, true, "center"),
+      txc("{{empresa.direccion}}", x, 14, w, 4, 8, false, "center", "#333"),
+      txc("{{empresa.telefono}}", x, 18, w, 4, 8, false, "center", "#333"),
 
       txc("VEHÍCULOS DE SUSTITUCIÓN", x, 22, w, 7, fsTitle, true, "center"),
       txc("Contrato de prestación con participación forfait Nº", x, 29, 145, 5, 9, false, "center"),
@@ -697,13 +698,11 @@ export function buildContratoCortesia() {
 
       // VEHÍCULO PUESTO A DISPOSICIÓN
       ...seccion("VEHÍCULO PUESTO A DISPOSICIÓN", x, yVehDisp, w),
-      txc("Vehículo puesto a disposición Nº", x + 1, yVehDisp + 7, 56, 5, 7, true),
-      fl("Marca", "vehiculo.marca", x + 58, yVehDisp + 6, 38, 6),
-      fl("Modelo", "vehiculo.modelo", x + 98, yVehDisp + 6, 40, 6),
-      fl("Nº Matrícula", "vehiculo.matricula", x + 140, yVehDisp + 6, 46, 6),
+      fl("Marca", "vehiculo.marca", x, yVehDisp + 6, 60, 6),
+      fl("Modelo", "vehiculo.modelo", x + 64, yVehDisp + 6, 60, 6),
+      fl("Nº Matrícula", "vehiculo.matricula", x + 128, yVehDisp + 6, 58, 6),
       fl("V.I.N.", "vehiculo.vin", x, yVehDisp + 14, medio - 2),
-      fl("Participación forfait diaria", "vehiculo.forfaitDiario", x + medio, yVehDisp + 14, 52, 6),
-      txc("PTE €", x + medio + 54, yVehDisp + 15, 18, 5, 7, true),
+      fl("Participación forfait diaria (€)", "vehiculo.forfaitDiario", x + medio, yVehDisp + 14, medio - 2),
 
       // Tabla salida/retorno
       {
@@ -725,10 +724,6 @@ export function buildContratoCortesia() {
         groupTitle: "",
         estilo: "rejilla",
       },
-      txc("Fecha y hora:", x + 1, yKm + 8, 35, 5.5, 7, true),
-      txc("Km. En el contador:", x + 1, yKm + 15, 35, 5.5, 7, true),
-      txc("Nivel de carburante:", x + 1, yKm + 22, 35, 5.5, 7, true),
-
       // ESTADO DEL VEHÍCULO
       ...seccion("ESTADO DEL VEHÍCULO", x, yEstado, medio - 2),
       txc("[imagen lateral]", x + 5, yEstado + 7, 80, 5, 6, false, "center", "#999"),

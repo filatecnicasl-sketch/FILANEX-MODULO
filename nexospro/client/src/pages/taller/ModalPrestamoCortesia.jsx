@@ -161,7 +161,10 @@ export default function ModalPrestamoCortesia({ inicial, prestamo, onCerrar, onC
         vehiculoReparacionVIN: form.vehiculoReparacionVIN || undefined,
         fechaPrevista: form.fechaPrevista,
         kmSalida: form.kmSalida || undefined,
-        combustibleSalida: form.combustibleSalida || undefined,
+        combustibleSalida:
+          form.combustibleSalida !== "" && form.combustibleSalida != null
+            ? Number(form.combustibleSalida)
+            : undefined,
         vinCortesia: form.vinCortesia || undefined,
         aseguradora: form.aseguradora || undefined,
         numeroContratoSeguro: form.numeroContratoSeguro || undefined,

@@ -74,6 +74,12 @@ function renderElement(el, formData, signatures, opts) {
 
     case "field": {
       const val = formData[el.fieldKey] ?? "";
+      if (el.mostrarEtiquetaImpresion && el.label) {
+        return `<div style="${style}${efectos}display:flex;flex-direction:column;overflow:hidden;">
+          <div style="height:3mm;flex:none;font-size:5.5pt;font-weight:700;line-height:1.1;text-transform:uppercase;overflow:hidden;">${esc(el.label)}</div>
+          <div style="flex:1;min-height:0;${common}${box}display:flex;align-items:center;overflow:hidden;">${esc(val)}</div>
+        </div>`;
+      }
       return `<div style="${style}${common}${box}display:flex;align-items:center;">${esc(val)}</div>`;
     }
 

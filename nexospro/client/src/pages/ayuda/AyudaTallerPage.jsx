@@ -37,6 +37,11 @@ export default function AyudaTallerPage() {
             La caja de búsqueda de arriba encuentra citas por <b>cualquier dato</b>: matrícula, cliente,
             teléfono o motivo, estén en la fecha que estén.
           </p>
+          <p>
+            <K>Hoy</K> abre directamente las citas de hoy; las flechas permiten avanzar o retroceder día a día.
+            En <K>Próximos</K> aparecen primero los días cercanos con citas, ordenados por fecha y hora.
+            <K>Semana</K> y <K>Mes</K> muestran el calendario completo.
+          </p>
           <Nota titulo="La cita se guarda sola, aunque imprimas el justificante">
             Al pulsar <K>Imprimir hoja y finalizar</K> (o el justificante de cita) el programa guarda
             primero los datos y después imprime: aunque la ventana se cierre o algo falle justo al
@@ -150,7 +155,8 @@ export default function AyudaTallerPage() {
             «Coche de cortesía») o al recepcionar. El buscador solo ofrece los coches de cortesía libres.
           </Paso>
           <Paso n={3}>
-            Imprime el <b>contrato de préstamo</b> con el icono de impresora. Al volver el coche, pulsa
+            Antes de imprimir el contrato, indica el <b>nivel de combustible de salida</b> en octavos (0 a 8).
+            El contrato lo representa con un indicador visual de barras. Al volver el coche, pulsa
             <K> Devolver</K> y anota los KM de entrada: los vencidos se marcan en rojo solos.
           </Paso>
         </Seccion>

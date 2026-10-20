@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 // Calendario tradicional reutilizable (citas del taller y agenda general):
-// tres vistas — AGENDA (lista por días), SEMANA (7 columnas) y MES
-// (cuadrícula clásica) — con navegación, botón "Hoy" y alta tocando el día.
+// cuatro vistas — DÍA, PRÓXIMOS (lista por días), SEMANA (7 columnas) y MES
+// (cuadrícula clásica) — con navegación, botón "Hoy" y alta rápida.
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -108,12 +108,17 @@ export default function Calendario({
   etiquetaNueva = "Nueva cita",
   nombreElementos = "citas",
 }) {
-  const [vista, setVista] = useState("agenda"); // agenda | semana | mes
+  const [vista, setVista] = useState("agenda"); // agenda | dia | semana | mes
   const [ref, setRef] = useState(() => new Date());
   const hoyTxt = aFechaInput(new Date());
 
   // Rango visible y título según la vista activa.
   const { desde, hasta, titulo } = useMemo(() => {
+    if (vista === "dia") {
+      const dia = new Date(ref);
+      dia.setHours(0, 0, 0, 0);
+      return { desde: dia, hasta: dia, titulo: tituloDia(dia) };
+    }
     if (vista === "mes") {
       const primero = new Date(ref.getFullYear(), ref.getMonth(), 1);
       const inicio = lunesDe(primero);
@@ -157,8 +162,14 @@ export default function Calendario({
     const d = new Date(ref);
     if (vista === "mes") d.setMonth(d.getMonth() + dir);
     else if (vista === "semana") d.setDate(d.getDate() + dir * 7);
+    else if (vista === "dia") d.setDate(d.getDate() + dir);
     else d.setDate(d.getDate() + dir * 30);
     setRef(d);
+  }
+
+  function irHoy() {
+    setRef(new Date());
+    setVista("dia");
   }
 
   function irSemanaDe(dia) {
@@ -173,6 +184,10 @@ export default function Calendario({
 
   // Vista agenda: solo los días que tienen citas, en orden.
   const diasConCitas = useMemo(() => {
+    if (vista === "dia") {
+      const txt = aFechaInput(desde);
+      return porDia[txt]?.length ? [{ dia: desde, txt, lista: porDia[txt] }] : [];
+    }
     if (vista !== "agenda") return [];
     const dias = [];
     for (let i = 0; i <= 45; i++) {
@@ -189,23 +204,26 @@ export default function Calendario({
       <div className="no-print flex flex-wrap items-center gap-2 mb-4">
         <div className="inline-flex rounded-lg overflow-hidden border border-slate-300 bg-white text-[0.78125rem] font-semibold">
           <button onClick={() => mover(-1)} className="px-3 py-2 text-slate-500 hover:bg-slate-100" title="Anterior">←</button>
-          <button onClick={() => setRef(new Date())} className="px-3.5 py-2 text-slate-600 hover:bg-slate-100 border-x border-slate-300">Hoy</button>
+          <button onClick={irHoy} className="px-3.5 py-2 text-slate-600 hover:bg-slate-100 border-x border-slate-300">Hoy</button>
           <button onClick={() => mover(1)} className="px-3 py-2 text-slate-500 hover:bg-slate-100" title="Siguiente">→</button>
         </div>
         <h2 className="text-[1.0625rem] font-bold text-slate-800 mr-2">{titulo}</h2>
         <span className="flex-1" />
         <div className="inline-flex rounded-lg overflow-hidden border border-slate-300 bg-white text-[0.78125rem] font-semibold">
-          <button onClick={() => setVista("agenda")} className={claseToggle(vista === "agenda")}>Agenda</button>
+          <button onClick={() => setVista("dia")} className={claseToggle(vista === "dia")}>Día</button>
+          <button onClick={() => setVista("agenda")} className={claseToggle(vista === "agenda")}>Próximos</button>
           <button onClick={() => setVista("semana")} className={claseToggle(vista === "semana")}>Semana</button>
           <button onClick={() => setVista("mes")} className={claseToggle(vista === "mes")}>Mes</button>
         </div>
-        <button onClick={() => onNueva(hoyTxt)} className="btn-primary">+ {etiquetaNueva}</button>
+        <button onClick={() => onNueva(vista === "dia" ? aFechaInput(ref) : hoyTxt)} className="btn-primary">+ {etiquetaNueva}</button>
       </div>
 
-      {vista === "agenda" && (
+      {(vista === "agenda" || vista === "dia") && (
         diasConCitas.length === 0 ? (
           <div className="panel px-6 py-10 text-center text-sm text-slate-400">
-            No hay {nombreElementos} en este periodo. Toca un día del mes o pulsa «+ {etiquetaNueva}» para crear uno.
+            {vista === "dia"
+              ? `No hay ${nombreElementos} para este día. Pulsa «+ ${etiquetaNueva}» para crear uno.`
+              : `No hay ${nombreElementos} en los próximos 45 días. Toca un día del mes o pulsa «+ ${etiquetaNueva}» para crear uno.`}
           </div>
         ) : (
           <div className="space-y-5 max-w-4xl">

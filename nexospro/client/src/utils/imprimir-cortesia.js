@@ -74,10 +74,16 @@ function mapearFormData(p, emp, plantilla) {
   // Buscamos la tabla en la plantilla para rellenar con las claves correctas.
   const tabla = plantilla?.elements?.find((e) => e.type === "table");
   if (tabla) {
+    const nivelCombustible = Number(p.combustibleSalida);
+    const combustibleVisual =
+      p.combustibleSalida != null && p.combustibleSalida !== "" &&
+      Number.isInteger(nivelCombustible) && nivelCombustible >= 0 && nivelCombustible <= 8
+        ? `${"■".repeat(nivelCombustible)}${"□".repeat(8 - nivelCombustible)} ${nivelCombustible}/8`
+        : "No indicado";
     const celdas = [
       ["Fecha y hora:", `${fechaEs(p.fechaSalida)} ${horaEs(p.fechaSalida)}`, fechaEs(p.fechaPrevista), ""],
       ["Km. En el contador:", n(p.kmSalida), "", ""],
-      ["Nivel de carburante:", String(p.combustibleSalida || ""), "", ""],
+      ["Nivel de carburante:", combustibleVisual, "", ""],
     ];
     celdas.forEach((fila, r) => {
       fila.forEach((valor, c) => {
