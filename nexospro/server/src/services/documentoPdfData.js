@@ -22,7 +22,7 @@ const ivaLinea = (l) => netoLinea(l) * ((Number(l.iva) || 0) / 100);
 const totalLineaConIva = (l) => netoLinea(l) + ivaLinea(l);
 
 // Los trabajos solicitados se apuntan en renglones sueltos (uno por trabajo);
-// al imprimir, los renglones del mismo párrafo se juntan con "·" para que el
+// al imprimir se juntan los renglones del mismo párrafo con "·" para que el
 // texto fluya en línea y aproveche el ancho de la caja, en vez de llenarla
 // de arriba a abajo con media caja vacía. Los párrafos (línea en blanco) se
 // respetan como separación.
@@ -37,6 +37,17 @@ export function compactarRenglones(texto) {
         .join(" · ")
     )
     .filter(Boolean)
+    .join("\n");
+}
+
+// Lista de trabajos para el parte: un trabajo por renglón (de arriba a abajo,
+// como lo apuntan en el taller) y las cabeceras del tipo "POR CUENTA DEL
+// CLIENTE:" quedan marcadas con ⟦⟧ para que el motor de impresión las
+// subraye: así se ve de un vistazo qué trabajos va a pagar cada parte.
+export function listaTrabajos(texto) {
+  return String(texto ?? "")
+    .split("\n")
+    .map((l) => (/^\s*por cuenta de/i.test(l) ? `⟦${l.trim()}⟧` : l))
     .join("\n");
 }
 
@@ -302,7 +313,7 @@ async function datosOrdenTrabajo(id) {
       ? `Compañía: ${aseg.nombre}${o.numeroSiniestro ? ` · Siniestro: ${o.numeroSiniestro}` : ""}${Number(o.franquicia) > 0 ? ` · Franquicia cliente: ${euros(o.franquicia)}` : ""}`
       : "Particular",
     "trabajos.tipo": (o.trabajos ?? []).join(", "),
-    "trabajos.motivo": compactarRenglones(o.motivo),
+    "trabajos.motivo": listaTrabajos(o.motivo),
     // La orden impresa va al taller: trabajos y cantidades, nunca precios.
     "totales.total": "",
   };

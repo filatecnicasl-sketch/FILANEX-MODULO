@@ -50,6 +50,15 @@ function sustituir(texto, formData) {
   });
 }
 
+/**
+ * Las cabeceras del listado de trabajos ("POR CUENTA DEL CLIENTE:"...) llegan
+ * envueltas en ⟦⟧ desde los datos (listaTrabajos). Aquí se convierten en
+ * texto subrayado para que destaquen qué trabajos paga cada parte.
+ */
+function conSubrayados(html) {
+  return html.replace(/⟦([^⟧]*)⟧/g, "<u>$1</u>");
+}
+
 function renderElement(el, formData, signatures, opts) {
   const style = `position:absolute;left:${mm(el.x)};top:${mm(el.y)};width:${mm(el.w)};height:${mm(el.h)};`;
   const common = `font-size:${el.fontSize ?? 9}pt;color:${el.color || "#000000"};text-align:${el.align || "left"};`;
@@ -61,7 +70,7 @@ function renderElement(el, formData, signatures, opts) {
     case "text":
       // data-fit: un script de la página reduce la fuente si el texto no cabe
       // en su caja, para que no se solape con el elemento de debajo.
-      return `<div data-fit="1" style="${style}${common}${efectos}${el.bold ? "font-weight:700;" : ""}line-height:1.15;white-space:pre-wrap;overflow:hidden;">${esc(sustituir(el.text, formData))}</div>`;
+      return `<div data-fit="1" style="${style}${common}${efectos}${el.bold ? "font-weight:700;" : ""}line-height:1.15;white-space:pre-wrap;overflow:hidden;">${conSubrayados(esc(sustituir(el.text, formData)))}</div>`;
 
     case "field": {
       const val = formData[el.fieldKey] ?? "";
@@ -72,7 +81,7 @@ function renderElement(el, formData, signatures, opts) {
       const val = formData[el.fieldKey] ?? "";
       // data-fit: igual que los textos, encoge la letra si no cabe y, en
       // último caso, deja crecer la caja para no cortar el contenido.
-      return `<div data-fit="1" style="${style}${common}${box}overflow:hidden;line-height:1.3;white-space:pre-wrap;">${esc(val).replace(/\n/g, "<br>")}</div>`;
+      return `<div data-fit="1" style="${style}${common}${box}overflow:hidden;line-height:1.3;white-space:pre-wrap;">${conSubrayados(esc(val).replace(/\n/g, "<br>"))}</div>`;
     }
 
     case "checkbox": {

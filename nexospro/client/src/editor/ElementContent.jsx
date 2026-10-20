@@ -5,6 +5,14 @@ import { SignatureField } from "./SignatureField.jsx";
 
 const PT_TO_PX = 96 / 72;
 
+// Las cabeceras del listado de trabajos ("POR CUENTA DEL CLIENTE:"...) llegan
+// envueltas en ⟦⟧ desde el servidor (listaTrabajos). Aquí se convierten en
+// texto subrayado para que destaquen qué trabajos paga cada parte.
+function textoConSubrayado(texto) {
+  const partes = String(texto ?? "").split(/(⟦[^⟧]*⟧)/g);
+  return partes.map((p, i) => (p.startsWith("⟦") && p.endsWith("⟧") ? <u key={i}>{p.slice(1, -1)}</u> : p));
+}
+
 export function ElementContent(props) {
   const { el, variant, zoom } = props;
   const print = variant === "print";
@@ -110,7 +118,7 @@ function TextView({ el, fs, print }) {
         opacity: el.opacity ?? undefined,
       }}
     >
-      {el.text}
+      {textoConSubrayado(el.text)}
     </div>
   );
 }
@@ -216,7 +224,7 @@ function TextareaView({ el, variant, formData, onFormValue, fs, mm }) {
               whiteSpace: "pre-wrap",
             }}
           >
-            {value}
+            {textoConSubrayado(value)}
           </div>
         )}
       </div>

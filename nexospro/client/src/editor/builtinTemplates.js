@@ -259,7 +259,7 @@ export function buildParteTaller() {
     { title: "PRECIO", width: 0.12 },
     { title: "IMPORTE", width: 0.13 },
   ];
-  const t = tabla(20, 116, 170, 88, "TRABAJOS Y MATERIALES", cols, 12);
+  const t = tabla(20, 120, 170, 84, "TRABAJOS Y MATERIALES", cols, 12);
   return {
     id: id(),
     builtin: "parte-taller",
@@ -287,11 +287,12 @@ export function buildParteTaller() {
       tx("{{seguro.texto}}", 113, 64, 74, 5, 8, true, "left", "#1e40af"),
 
       tx("Trabajo solicitado", 20, 74, 170, 5, 8, true, "left", "#6b7280"),
-      box(20, 80, 170, 30, 0.4, "#e5e7eb"),
-      // El motivo va grande y en negrita: es lo que leen los operarios.
-      // La zona es alta (26 mm) para que quepan varios trabajos; si aun así
-      // no cabe, el visor de impresión reduce la letra en vez de cortarlo.
-      tx("{{trabajos.motivo}}", 23, 83, 164, 26, 12, true, "left", "#111827"),
+      box(20, 80, 170, 37, 0.4, "#e5e7eb"),
+      // El motivo va en negrita y un trabajo por renglón, como se apunta en
+      // el taller. La zona es alta (33 mm) para que quepan varios trabajos;
+      // si aun así no cabe, el visor reduce la letra y la caja crece: nunca
+      // se corta. Las cabeceras "POR CUENTA DE..." llegan subrayadas.
+      tx("{{trabajos.motivo}}", 23, 83, 164, 32, 12, true, "left", "#111827"),
 
       t,
 
@@ -301,6 +302,45 @@ export function buildParteTaller() {
 
       tx("Firma conforme cliente", 20, 215, 80, 5, 9, true, "left"),
       box(20, 222, 80, 20, 0.4, "#e5e7eb"),
+    ],
+  };
+}
+
+// Documento resumido para el operario: solo los trabajos a realizar, sin
+// precios ni tabla. La aseguradora queda como referencia y las cabeceras
+// "POR CUENTA DE..." van subrayadas (las marca listaTrabajos en el servidor).
+export function buildTrabajosRealizar() {
+  return {
+    id: id(),
+    builtin: "trabajos-realizar",
+    name: "Trabajos a realizar",
+    tipoDocumento: "parte-taller",
+    porDefecto: false,
+    page: { size: "A4", orientation: "portrait" },
+    elements: [
+      logo(20, 14, 40, 18),
+      tx("TRABAJOS A REALIZAR", 100, 16, 90, 10, 16, true, "right", "#111827"),
+      tx("{{documento.numero}}", 100, 27, 90, 6, 11, false, "right", "#4b5563"),
+      tx("Fecha entrada: {{vehiculo.entrada}}", 100, 34, 90, 5, 9, false, "right", "#6b7280"),
+
+      box(20, 38, 80, 26, 0.4, "#e5e7eb"),
+      tx("CLIENTE", 23, 41, 74, 5, 7, true, "left", "#6b7280"),
+      tx("{{cliente.nombre}}", 23, 47, 74, 6, 10, true),
+      tx("{{cliente.nif}}", 23, 54, 74, 5, 8, false, "left", "#374151"),
+      tx("{{cliente.telefono}}", 23, 59, 74, 5, 8, false, "left", "#374151"),
+
+      box(110, 38, 80, 30, 0.4, "#e5e7eb"),
+      tx("VEHÍCULO", 113, 41, 74, 5, 7, true, "left", "#6b7280"),
+      tx("{{vehiculo.matricula}}", 113, 47, 74, 6, 10, true),
+      tx("{{vehiculo.marca}} {{vehiculo.modelo}}", 113, 54, 74, 5, 8, false, "left", "#374151"),
+      tx("{{vehiculo.km}} km", 113, 59, 74, 5, 8, false, "left", "#374151"),
+      tx("{{seguro.texto}}", 113, 64, 74, 5, 8, true, "left", "#1e40af"),
+
+      // Lista que ocupa la página: un trabajo por renglón, letra grande.
+      // Si no cupiera, la letra se ajusta y la caja crece: nunca se corta.
+      tx("Trabajos a realizar", 20, 74, 170, 5, 8, true, "left", "#6b7280"),
+      box(20, 80, 170, 200, 0.4, "#e5e7eb"),
+      tx("{{trabajos.motivo}}", 23, 84, 164, 192, 12, true, "left", "#111827"),
     ],
   };
 }
@@ -821,6 +861,7 @@ export const BUILTIN_TEMPLATES = [
   buildAlbaranVenta,
   buildPedidoCliente,
   buildParteTaller,
+  buildTrabajosRealizar,
   buildParteSat,
   buildRecepcionVehiculo,
   buildRecepcionAparato,

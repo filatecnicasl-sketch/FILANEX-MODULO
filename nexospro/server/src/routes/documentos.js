@@ -23,7 +23,13 @@ const NOMBRE_FICHERO = {
   "parte-sat": "parte-sat",
 };
 
-async function plantillaPorTipo(tipo) {
+async function plantillaPorTipo(tipo, formatoId) {
+  // Formato elegido explícitamente (p. ej. el menú de imprimir ofrece varios
+  // diseños de parte de trabajo): se respeta sólo si es del tipo pedido.
+  if (formatoId) {
+    const f = await Formato.findById(formatoId).lean();
+    if (f && f.tipoDocumento === tipo) return f;
+  }
   return (
     (await Formato.findOne({ tipoDocumento: tipo, porDefecto: true }).lean()) ??
     (await Formato.findOne({ tipoDocumento: tipo }).sort({ createdAt: 1 }).lean())
@@ -128,7 +134,7 @@ function asegurarElementoFirma(plantilla, firma) {
 router.get("/:tipo/:id/pdf", async (req, res, next) => {
   try {
     const { tipo, id } = req.params;
-    const plantilla = await plantillaPorTipo(tipo);
+    const plantilla = await plantillaPorTipo(tipo, req.query.formato);
 
     // Sin plantilla editable, la factura cae al PDF clásico de PDFKit.
     if (!plantilla && tipo === "factura-venta") {
@@ -179,7 +185,7 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
 router.get("/:tipo/:id/formato", async (req, res, next) => {
   try {
     const { tipo, id } = req.params;
-    const plantilla = await plantillaPorTipo(tipo);
+    const plantilla = await plantillaPorTipo(tipo, req.query.formato);
     if (!plantilla) return res.status(404).json({ error: "No hay plantilla de impresión para este documento" });
 
     const { formData, logoUrl, firma, qrContenido } = await datosParaPdf(tipo, id);

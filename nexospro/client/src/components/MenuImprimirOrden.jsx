@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { IconImprimir } from "./icons.jsx";
 import { imprimirFormato } from "../utils/imprimir-formato.jsx";
 import { descargarPdf, imprimirDocumentoRapido } from "../utils/pdf.js";
@@ -103,7 +103,18 @@ export async function imprimirHojaEntrada(o) {
 
 export default function MenuImprimirOrden({ orden, pequeno = false }) {
   const [abierto, setAbierto] = useState(false);
+  const [formatos, setFormatos] = useState([]);
   const ref = useRef(null);
+
+  // Diseños de parte que tiene la empresa (p. ej. "Parte de trabajo" y
+  // "Trabajos a realizar"): se cargan la primera vez que se abre el menú.
+  useEffect(() => {
+    if (!abierto || formatos.length) return;
+    fetch("/api/formatos/por-tipo/parte-taller")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((docs) => Array.isArray(docs) && docs.length && setFormatos(docs))
+      .catch(() => {});
+  }, [abierto, formatos.length]);
 
   useEffect(() => {
     if (!abierto) return;
@@ -114,11 +125,18 @@ export default function MenuImprimirOrden({ orden, pequeno = false }) {
     return () => document.removeEventListener("mousedown", cerrar);
   }, [abierto]);
 
-  function elegir(variante) {
+  function elegir(variante, formatoId = "") {
     setAbierto(false);
-    if (variante === "orden-pdf") descargarPdf("parte-taller", orden._id, orden.numero);
-    else imprimirDocumentoRapido("parte-taller", orden._id);
+    if (variante === "orden-pdf") descargarPdf("parte-taller", orden._id, orden.numero, formatoId);
+    else imprimirDocumentoRapido("parte-taller", orden._id, formatoId);
   }
+
+  // El formato por defecto mantiene el nombre de siempre; los diseños
+  // adicionales de la empresa se muestran con su nombre ("Trabajos a realizar").
+  const lista = formatos.length
+    ? formatos
+    : [{ _id: "", nombre: "Orden de trabajo", porDefecto: true }];
+  const etiqueta = (f) => (f.porDefecto ? "Orden de trabajo" : f.nombre);
 
   return (
     <span ref={ref} className="relative inline-block align-middle">
@@ -138,21 +156,25 @@ export default function MenuImprimirOrden({ orden, pequeno = false }) {
         </svg>
       </button>
       {abierto && (
-        <span className="absolute right-0 top-full z-40 mt-1 w-44 rounded-lg border border-slate-200 bg-white shadow-xl py-1 text-left">
-          <button
-            type="button"
-            onClick={() => elegir("orden")}
-            className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
-          >
-            Orden de trabajo
-          </button>
-          <button
-            type="button"
-            onClick={() => elegir("orden-pdf")}
-            className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
-          >
-            Orden de trabajo PDF
-          </button>
+        <span className="absolute right-0 top-full z-40 mt-1 w-52 rounded-lg border border-slate-200 bg-white shadow-xl py-1 text-left">
+          {lista.map((f) => (
+            <Fragment key={f._id || "defecto"}>
+              <button
+                type="button"
+                onClick={() => elegir("orden", f._id)}
+                className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
+              >
+                {etiqueta(f)}
+              </button>
+              <button
+                type="button"
+                onClick={() => elegir("orden-pdf", f._id)}
+                className="block w-full px-3.5 py-2 text-xs text-slate-700 hover:bg-accent/10 hover:text-accent"
+              >
+                {etiqueta(f)} PDF
+              </button>
+            </Fragment>
+          ))}
         </span>
       )}
     </span>

@@ -7,8 +7,9 @@
  * respondería 401 y Chrome mostraría "El archivo no estaba disponible en el
  * sitio". El envoltorio global de fetch sí añade el token.
  */
-export async function descargarPdf(tipo, id, numero = "") {
-  const r = await fetch(`/api/documentos/${tipo}/${id}/pdf`);
+export async function descargarPdf(tipo, id, numero = "", formatoId = "") {
+  const qs = formatoId ? `?formato=${encodeURIComponent(formatoId)}` : "";
+  const r = await fetch(`/api/documentos/${tipo}/${id}/pdf${qs}`);
   if (!r.ok) {
     let mensaje = `No se pudo generar el PDF (${r.status})`;
     try {
@@ -49,8 +50,9 @@ export async function verPdf(tipo, id) {
  * lo dibuja directamente en el navegador (window.print), igual que la hoja de
  * entrada de taller. Sin generar PDF, así sale al instante.
  */
-export async function imprimirDocumentoRapido(tipo, id) {
-  const r = await fetch(`/api/documentos/${tipo}/${id}/formato`);
+export async function imprimirDocumentoRapido(tipo, id, formatoId = "") {
+  const qs = formatoId ? `?formato=${encodeURIComponent(formatoId)}` : "";
+  const r = await fetch(`/api/documentos/${tipo}/${id}/formato${qs}`);
   if (!r.ok) {
     let mensaje = `No se pudo preparar la impresión (${r.status})`;
     try {
