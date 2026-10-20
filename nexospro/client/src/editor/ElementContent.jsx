@@ -72,7 +72,7 @@ function TextView({ el, fs, print }) {
       node.style.height = "";
       node.style.overflow = "hidden";
       node.style.fontSize = fs(el.fontSize);
-      while (f > 0.5 && node.scrollHeight > node.clientHeight + 1) {
+      while (f > 0.42 && node.scrollHeight > node.clientHeight + 1) {
         f -= 0.05;
         node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
       }
@@ -170,7 +170,7 @@ function TextareaView({ el, variant, formData, onFormValue, fs, mm }) {
       node.style.height = "";
       node.style.overflow = "hidden";
       node.style.fontSize = fs(el.fontSize);
-      while (f > 0.45 && node.scrollHeight > node.clientHeight + 1) {
+      while (f > 0.42 && node.scrollHeight > node.clientHeight + 1) {
         f -= 0.05;
         node.style.fontSize = `${(el.fontSize * f).toFixed(2)}pt`;
       }

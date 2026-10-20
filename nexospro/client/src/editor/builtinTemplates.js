@@ -259,7 +259,7 @@ export function buildParteTaller() {
     { title: "PRECIO", width: 0.12 },
     { title: "IMPORTE", width: 0.13 },
   ];
-  const t = tabla(20, 110, 170, 90, "TRABAJOS Y MATERIALES", cols, 12);
+  const t = tabla(20, 116, 170, 88, "TRABAJOS Y MATERIALES", cols, 12);
   return {
     id: id(),
     builtin: "parte-taller",
@@ -287,9 +287,11 @@ export function buildParteTaller() {
       tx("{{seguro.texto}}", 113, 64, 74, 5, 8, true, "left", "#1e40af"),
 
       tx("Trabajo solicitado", 20, 74, 170, 5, 8, true, "left", "#6b7280"),
-      box(20, 80, 170, 22, 0.4, "#e5e7eb"),
+      box(20, 80, 170, 30, 0.4, "#e5e7eb"),
       // El motivo va grande y en negrita: es lo que leen los operarios.
-      tx("{{trabajos.motivo}}", 23, 84, 164, 15, 14, true, "left", "#111827"),
+      // La zona es alta (26 mm) para que quepan varios trabajos; si aun así
+      // no cabe, el visor de impresión reduce la letra en vez de cortarlo.
+      tx("{{trabajos.motivo}}", 23, 83, 164, 26, 12, true, "left", "#111827"),
 
       t,
 

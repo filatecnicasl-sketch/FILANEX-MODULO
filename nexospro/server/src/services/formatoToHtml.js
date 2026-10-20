@@ -70,7 +70,9 @@ function renderElement(el, formData, signatures, opts) {
 
     case "textarea": {
       const val = formData[el.fieldKey] ?? "";
-      return `<div style="${style}${common}${box}overflow:hidden;">${esc(val).replace(/\n/g, "<br>")}</div>`;
+      // data-fit: igual que los textos, encoge la letra si no cabe y, en
+      // último caso, deja crecer la caja para no cortar el contenido.
+      return `<div data-fit="1" style="${style}${common}${box}overflow:hidden;line-height:1.3;white-space:pre-wrap;">${esc(val).replace(/\n/g, "<br>")}</div>`;
     }
 
     case "checkbox": {

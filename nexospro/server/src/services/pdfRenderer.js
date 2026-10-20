@@ -58,9 +58,15 @@ export async function renderPdf({ html, css = "", pageSize = "A4", pageOrientati
     const base = parseFloat(n.style.fontSize);
     if (!base) return;
     let f = 1;
-    while (f > 0.55 && n.scrollHeight > n.clientHeight + 1) {
+    while (f > 0.42 && n.scrollHeight > n.clientHeight + 1) {
       f -= 0.05;
       n.style.fontSize = (base * f).toFixed(2) + "pt";
+    }
+    if (n.scrollHeight > n.clientHeight + 1) {
+      // Ni encogido al mínimo cabe (texto muy largo): la caja crece hacia
+      // abajo para que el contenido se imprima entero en vez de cortarse.
+      n.style.overflow = "visible";
+      n.style.height = "auto";
     }
   });
 </script>
