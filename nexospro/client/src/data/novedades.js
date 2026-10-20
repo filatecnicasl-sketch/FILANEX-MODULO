@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-20",
+    tipo: "nuevo",
+    titulo: "Taller Montiel: dos impresiones para el parte de trabajo",
+    detalle:
+      "Al imprimir una orden de trabajo, Raquel puede elegir entre el parte completo (con los datos de la aseguradora y la tabla de trabajos/materiales) y el documento 'Trabajos a realizar' (lista grande en vertical, con los datos del vehículo y de la aseguradora como referencia, sin tabla ni importes). En ambos, cada trabajo sale en su propio renglón, el texto no se corta y las líneas 'POR CUENTA DEL CLIENTE' quedan subrayadas.",
+  },
+  {
+    fecha: "2026-10-20",
     tipo: "mejora",
     titulo: "Energía: botones de suministros siempre a la vista (columna fija)",
     detalle:

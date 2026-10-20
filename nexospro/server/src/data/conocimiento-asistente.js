@@ -443,6 +443,15 @@ editor en Ajustes → Formatos. Cada formato es una plantilla visual:
   formato asignado: revisar Ajustes → Formatos.
 - Consejo: para el contrato de cortesía y documentos especiales se crea un
   formato propio tipo "parte" y se maqueta ahí (no en Word).
+- En Taller, el menú de imprimir de una orden permite elegir el formato
+  disponible para ese parte. Si hay dos (por ejemplo, "Parte de trabajo" y
+  "Trabajos a realizar"), se elige el que haga falta en cada ocasión; el
+  segundo puede servir como hoja para el operario, con los trabajos en lista
+  vertical, los datos del vehículo y la aseguradora como referencia, pero sin
+  tabla ni importes.
+- En los partes de taller, cada trabajo se imprime en su propio renglón. Si
+  aparece "POR CUENTA DEL CLIENTE" o similar, esa cabecera sale subrayada para
+  distinguir el grupo. El texto largo se ajusta/expande en lugar de cortarse.
 
 ## 13. Ayudas y soporte dentro del programa
 
