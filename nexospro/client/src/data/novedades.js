@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-20",
+    tipo: "mejora",
+    titulo: "Taller Montiel: contrato de cortesía más claro y citas por día",
+    detalle:
+      "El contrato de cortesía ya no deja un marco vacío de logo; los campos salen identificados y ordenados para que no se monten unos sobre otros, y el nivel de combustible se muestra con barras de 0/8 a 8/8. En Citas, Hoy abre directamente las citas de hoy, las flechas avanzan día a día y al pulsar una fecha en Semana o Mes se ven sus citas; Próximos destaca primero las fechas cercanas.",
+  },
+  {
+    fecha: "2026-10-20",
     tipo: "nuevo",
     titulo: "Taller Montiel: dos impresiones para el parte de trabajo",
     detalle:
