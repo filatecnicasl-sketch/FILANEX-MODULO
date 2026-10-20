@@ -301,6 +301,25 @@ body {
 
 /* Las cabeceras de página son blancas (componente CabeceraPagina). */
 
+/* Columna de acciones fija a la derecha: en tablas anchas con scroll
+   horizontal (p. ej. Energía → Suministros), los botones de editar quedan
+   siempre visibles sin arrastrar hasta el final (petición ROLUSUR 20/10). */
+.tabla .col-fija {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: #0a111e;
+  box-shadow: -10px 0 12px -10px rgba(0, 0, 0, 0.7);
+}
+.tema-claro .tabla .col-fija {
+  background: #ffffff;
+  box-shadow: -10px 0 12px -10px rgba(15, 23, 42, 0.25);
+}
+/* Al pasar por una fila, la celda fija acompaña el resaltado. */
+.tabla tbody tr:hover .col-fija { background: #0c1526; }
+.tema-claro .tabla tbody tr:hover .col-fija { background: #f1f6fb; }
+
+
 /* Iconos del menú lateral más grandes (los SVG traen tamaño fijo de 18px).
    En rem para que escalen con la base en monitores grandes. */
 .menu-ico svg {

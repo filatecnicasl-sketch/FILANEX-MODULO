@@ -314,7 +314,7 @@ export default function EnergiaSuministrosPage() {
                   <th>Alta</th>
                   <th>Creado</th>
                   <th>Estado</th>
-                  <th className="text-right">Acciones</th>
+                  <th className="text-right col-fija">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -398,7 +398,7 @@ export default function EnergiaSuministrosPage() {
                         ) : null;
                       })()}
                     </td>
-                    <td className="text-right whitespace-nowrap">
+                    <td className="text-right whitespace-nowrap col-fija">
                       <button
                         onClick={() => setConsumosDe(s)}
                         className="p-1.5 text-slate-400 hover:text-amber-400"

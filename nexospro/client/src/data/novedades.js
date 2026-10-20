@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-20",
+    tipo: "mejora",
+    titulo: "Energía: botones de suministros siempre a la vista (columna fija)",
+    detalle:
+      "En Energía → Suministros, la tabla tiene muchas columnas y para llegar a los botones de editar había que arrastrar la barra horizontal hasta el final. La columna de Acciones ahora queda fija a la derecha: se queda pegada al borde mientras te desplazas por la tabla, con lo que editar, borrar, ver consumos o iniciar un trámite está siempre a un clic, sin scroll.",
+  },
+  {
     fecha: "2026-10-19",
     tipo: "correccion",
     titulo: "Escribir en cualquier campo de texto ya no se queda corto: los cuadros crecen solos",

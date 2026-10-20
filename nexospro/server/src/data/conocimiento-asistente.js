@@ -292,6 +292,10 @@ suministro queda actualizado solo y empieza a generar comisión cada mes.
   contra lo facturado real.
 - Consumos: botón de la gráfica de cada fila, histórico mensual de kWh e
   importe, con media, total del año y gráfica de evolución.
+- **Columna de acciones fija**: la tabla es ancha y se desplaza en
+  horizontal, pero la columna de botones (consumos, estudio, trámite,
+  editar, borrar) queda fija en el borde derecho, siempre visible sin
+  llegar con el scroll hasta el final.
 - Grupos de empresas: en la ficha del cliente hay un campo "Grupo"; poniendo
   el mismo nombre en varias sociedades, el filtro "Grupo" de Suministros las
   junta todas.
