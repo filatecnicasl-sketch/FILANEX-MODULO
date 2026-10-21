@@ -35,6 +35,28 @@ export default function ConfigPage() {
     setEmpresa((e) => ({ ...e, taller: { ...(e.taller ?? {}), [campoNombre]: valor } }));
   }
 
+  function actualizarFestivo(indice, campoNombre, valor) {
+    setEmpresa((e) => {
+      const lista = [...(e.taller?.festivos ?? [])];
+      lista[indice] = { ...lista[indice], [campoNombre]: valor };
+      return { ...e, taller: { ...(e.taller ?? {}), festivos: lista } };
+    });
+  }
+
+  function anadirFestivo() {
+    setEmpresa((e) => ({
+      ...e,
+      taller: { ...(e.taller ?? {}), festivos: [...(e.taller?.festivos ?? []), { fecha: "", nombre: "" }] },
+    }));
+  }
+
+  function quitarFestivo(indice) {
+    setEmpresa((e) => ({
+      ...e,
+      taller: { ...(e.taller ?? {}), festivos: (e.taller?.festivos ?? []).filter((_, i) => i !== indice) },
+    }));
+  }
+
   function actualizarCompras(campoNombre, valor) {
     setEmpresa((e) => ({ ...e, compras: { ...(e.compras ?? {}), [campoNombre]: valor } }));
   }
@@ -259,6 +281,46 @@ export default function ConfigPage() {
             />
           </div>
         </div>
+      </div>
+
+      <div className="panel p-6 mb-6 space-y-3">
+        <h2 className="text-white font-semibold">Taller — días festivos</h2>
+        <p className="text-xs text-slate-500">
+          Los festivos nacionales (Año Nuevo, Reyes, Semana Santa, 1 de mayo, Asunción, Todos los
+          Santos, Constitución, Inmaculada y Navidad) se marcan solos en el calendario. Añade aquí
+          los festivos de tu comunidad o de tu zona (día de Andalucía, ferias locales…) para que
+          también se distingan en rojo.
+        </p>
+        <div className="space-y-2">
+          {(empresa.taller?.festivos ?? []).map((f, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="date"
+                className={`${campo} max-w-[180px]`}
+                value={f.fecha ?? ""}
+                onChange={(e) => actualizarFestivo(i, "fecha", e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Nombre (p. ej. Día de Andalucía)"
+                className={campo}
+                value={f.nombre ?? ""}
+                onChange={(e) => actualizarFestivo(i, "nombre", e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => quitarFestivo(i)}
+                className="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300 transition-colors"
+                title="Quitar festivo"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <button type="button" onClick={anadirFestivo} className="btn-ghost">
+          + Añadir festivo
+        </button>
       </div>
 
       <div className="panel p-6 mb-6 space-y-3">

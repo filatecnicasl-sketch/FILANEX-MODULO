@@ -206,6 +206,9 @@ router.put("/", requiereRol("admin"), async (req, res, next) => {
         precioHoraChapa: numero(taller.precioHoraChapa),
         precioHoraPintura: numero(taller.precioHoraPintura),
         precioHoraMecanica: numero(taller.precioHoraMecanica),
+        festivos: (taller.festivos ?? [])
+          .filter((f) => /^\d{4}-\d{2}-\d{2}$/.test(String(f?.fecha ?? "")))
+          .map((f) => ({ fecha: f.fecha, nombre: String(f.nombre ?? "").trim().slice(0, 60) })),
       };
     }
     if (compras !== undefined) {

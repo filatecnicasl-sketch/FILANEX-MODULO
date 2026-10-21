@@ -42,6 +42,11 @@ export default function AyudaTallerPage() {
             En <K>Próximos</K> aparecen primero los días cercanos con citas, ordenados por fecha y hora.
             En <K>Semana</K> o <K>Mes</K>, pulsa un día para abrir sus citas.
           </p>
+          <p>
+            Los <b>días festivos</b> se marcan en <b>rojo</b> para distinguirlos del resto: los
+            nacionales (Reyes, Semana Santa, 1 de mayo…) salen solos y los de tu zona (día de tu
+            comunidad, ferias locales…) se añaden en <K>Ajustes → Configuración → Días festivos</K>.
+          </p>
           <Nota titulo="La cita se guarda sola, aunque imprimas el justificante">
             Al pulsar <K>Imprimir hoja y finalizar</K> (o el justificante de cita) el programa guarda
             primero los datos y después imprime: aunque la ventana se cierre o algo falle justo al
@@ -122,6 +127,12 @@ export default function AyudaTallerPage() {
             En <K>Taller → Vehículos</K> está el parque: matrícula, modelo, cliente y KM. El botón
             <K> Historial</K> de cada uno muestra todas sus recepciones con la fecha, el motivo, los KM y
             <b> las fotos del estado</b> que se hicieron en cada entrada (clic para ampliarlas).
+          </p>
+          <p>
+            El historial está organizado en pestañas: órdenes, presupuestos, albaranes, facturas,
+            citas, valoraciones y cortesías. Las <b>notas</b> que se escriban en cualquier sitio
+            (por ejemplo, las notas de una cita) aparecen en la ficha de cada documento, en el
+            recuadro azul <b>«Nota»</b>, para que nada se pierda.
           </p>
         </Seccion>
 

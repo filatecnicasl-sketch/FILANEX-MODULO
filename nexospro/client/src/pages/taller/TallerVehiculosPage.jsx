@@ -558,6 +558,15 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
       </div>
       {cliente && <p className="text-xs text-slate-500 mt-1">{cliente}</p>}
       {doc.motivo && <p className="text-sm text-slate-600 mt-1">{doc.motivo}</p>}
+      {doc.notas && (
+        <p
+          className="mt-1.5 rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-800"
+          title={doc.notas}
+        >
+          <span className="font-semibold">Nota:</span>{" "}
+          {doc.notas.length > 140 ? `${doc.notas.slice(0, 140)}…` : doc.notas}
+        </p>
+      )}
       {doc.trabajos?.length > 0 && (
         <p className="text-xs text-slate-400 mt-1">{doc.trabajos.join(", ")}</p>
       )}
@@ -692,12 +701,19 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
             {doc.fechaHasta && <DatoDocumento etiqueta="Hasta" valor={new Date(doc.fechaHasta).toLocaleDateString("es-ES")} />}
           </div>
 
-          {(doc.motivo || doc.descripcion || doc.notas || doc.observaciones) && (
+          {(doc.motivo || doc.descripcion || doc.observaciones) && (
             <div className="rounded-xl bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</p>
               <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
-                {doc.motivo || doc.descripcion || doc.notas || doc.observaciones}
+                {doc.motivo || doc.descripcion || doc.observaciones}
               </p>
+            </div>
+          )}
+
+          {doc.notas && (
+            <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">Notas</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-sky-800">{doc.notas}</p>
             </div>
           )}
 

@@ -5,6 +5,20 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-21",
+    tipo: "nuevo",
+    titulo: "Calendario: días festivos marcados en rojo",
+    detalle:
+      "En el calendario de citas (y en la agenda) los días festivos se distinguen en rojo del resto de días. Los festivos nacionales (Año Nuevo, Reyes, Jueves y Viernes Santo, 1 de mayo, Asunción, Todos los Santos, Constitución, Inmaculada y Navidad) se calculan solos cada año; los festivos de cada zona (día de la comunidad, ferias locales) se añaden en Ajustes → Configuración → Taller — días festivos, con su fecha y nombre.",
+  },
+  {
+    fecha: "2026-10-21",
+    tipo: "mejora",
+    titulo: "Historial del vehículo: las notas de las citas ya se ven",
+    detalle:
+      "Las notas que se escriben en una cita (por ejemplo, «no se ha quedado en taller») no aparecían en el historial del vehículo. Ahora salen en el recuadro azul «Nota» de cada documento del historial, tanto en la lista como al abrir la ficha, y también en la línea de la cita en la agenda.",
+  },
+  {
     fecha: "2026-10-20",
     tipo: "mejora",
     titulo: "Taller Montiel: contrato de cortesía más claro y citas por día",

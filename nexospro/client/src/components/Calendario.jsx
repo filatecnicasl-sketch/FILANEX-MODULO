@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { nombreFestivo } from "../utils/festivos.js";
 
 // Calendario tradicional reutilizable (citas del taller y agenda general):
 // cuatro vistas — DÍA, PRÓXIMOS (lista por días), SEMANA (7 columnas) y MES
-// (cuadrícula clásica) — con navegación, botón "Hoy" y alta rápida.
+// (cuadrícula clásica) — con navegación, botón "Hoy" y alta rápida. Los días
+// festivos (nacionales + los locales de Ajustes → Configuración) se marcan
+// en rojo para distinguirlos del resto.
 const DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = [
   "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -110,7 +113,23 @@ export default function Calendario({
 }) {
   const [vista, setVista] = useState("agenda"); // agenda | dia | semana | mes
   const [ref, setRef] = useState(() => new Date());
+  const [festivosExtra, setFestivosExtra] = useState([]);
   const hoyTxt = aFechaInput(new Date());
+
+  // Festivos locales/regionales configurados por la empresa (los nacionales
+  // se calculan solos). Una sola petición al montar el calendario.
+  useEffect(() => {
+    fetch("/api/empresa")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((e) => setFestivosExtra(e?.taller?.festivos ?? []))
+      .catch(() => {});
+  }, []);
+
+  // "Navidad" / "Festivo local" / null para un día del calendario.
+  const festivoDe = useMemo(
+    () => (dia) => nombreFestivo(aFechaInput(dia), festivosExtra),
+    [festivosExtra]
+  );
 
   // Rango visible y título según la vista activa.
   const { desde, hasta, titulo } = useMemo(() => {
@@ -207,7 +226,17 @@ export default function Calendario({
           <button onClick={irHoy} className="px-3.5 py-2 text-slate-600 hover:bg-slate-100 border-x border-slate-300">Hoy</button>
           <button onClick={() => mover(1)} className="px-3 py-2 text-slate-500 hover:bg-slate-100" title="Siguiente">→</button>
         </div>
-        <h2 className="text-[1.0625rem] font-bold text-slate-800 mr-2">{titulo}</h2>
+        <h2 className="text-[1.0625rem] font-bold text-slate-800 mr-2">
+          {titulo}
+          {vista === "dia" && festivoDe(ref) && (
+            <span
+              title={festivoDe(ref)}
+              className="ml-2 rounded-full bg-rose-100 text-rose-700 border border-rose-300 text-[0.65625rem] font-bold px-2 py-0.5 align-middle"
+            >
+              FESTIVO · {festivoDe(ref)}
+            </span>
+          )}
+        </h2>
         <span className="flex-1" />
         <div className="inline-flex rounded-lg overflow-hidden border border-slate-300 bg-white text-[0.78125rem] font-semibold">
           <button onClick={() => setVista("dia")} className={claseToggle(vista === "dia")}>Día</button>
@@ -227,18 +256,28 @@ export default function Calendario({
           </div>
         ) : (
           <div className="space-y-5 max-w-4xl">
-            {diasConCitas.map(({ dia, txt, lista }) => (
-              <section key={txt}>
-                <h3 className="flex items-center gap-2 text-[0.84375rem] font-bold text-slate-700 mb-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent" aria-hidden="true">
-                    <rect x="3" y="4" width="18" height="18" rx="2" />
-                    <path d="M16 2v4M8 2v4M3 10h18" />
-                  </svg>
-                  {tituloDia(dia)}
-                  {txt === hoyTxt && (
-                    <span className="rounded-full bg-accent/10 text-accent text-[0.65625rem] font-bold px-2 py-0.5">HOY</span>
-                  )}
-                </h3>
+            {diasConCitas.map(({ dia, txt, lista }) => {
+              const festivo = festivoDe(dia);
+              return (
+                <section key={txt}>
+                  <h3 className="flex items-center gap-2 text-[0.84375rem] font-bold text-slate-700 mb-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-accent" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="18" rx="2" />
+                      <path d="M16 2v4M8 2v4M3 10h18" />
+                    </svg>
+                    {tituloDia(dia)}
+                    {txt === hoyTxt && (
+                      <span className="rounded-full bg-accent/10 text-accent text-[0.65625rem] font-bold px-2 py-0.5">HOY</span>
+                    )}
+                    {festivo && (
+                      <span
+                        title={festivo}
+                        className="rounded-full bg-rose-100 text-rose-700 border border-rose-300 text-[0.65625rem] font-bold px-2 py-0.5"
+                      >
+                        FESTIVO · {festivo}
+                      </span>
+                    )}
+                  </h3>
                 <div className="space-y-2">
                   {lista.map((c) => (
                     <button
@@ -289,7 +328,8 @@ export default function Calendario({
                   ))}
                 </div>
               </section>
-            ))}
+              );
+            })}
           </div>
         )
       )}
@@ -312,6 +352,7 @@ export default function Calendario({
               const txt = aFechaInput(dia);
               const delMes = dia.getMonth() === ref.getMonth();
               const esHoy = txt === hoyTxt;
+              const festivo = festivoDe(dia);
               const lista = porDia[txt] ?? [];
               const visibles = lista.slice(0, 3);
               return (
@@ -322,18 +363,24 @@ export default function Calendario({
                     setVista("dia");
                   }}
                   className={`min-h-[74px] sm:min-h-[104px] p-1 sm:p-1.5 cursor-pointer transition-colors hover:bg-accent/5 ${
-                    delMes ? "bg-white" : "bg-slate-50"
+                    festivo
+                      ? "bg-rose-50"
+                      : delMes
+                        ? "bg-white"
+                        : "bg-slate-50"
                   }`}
-                  title={`Ver ${nombreElementos} de este día`}
+                  title={`Ver ${nombreElementos} de este día${festivo ? ` · Festivo: ${festivo}` : ""}`}
                 >
                   <p className="flex justify-end px-0.5">
                     <span
                       className={`num text-[0.75rem] leading-6 w-6 text-center rounded-full font-semibold ${
                         esHoy
                           ? "bg-accent text-white"
-                          : delMes
-                            ? "text-slate-700"
-                            : "text-slate-400"
+                          : festivo
+                            ? "text-rose-600"
+                            : delMes
+                              ? "text-slate-700"
+                              : "text-slate-400"
                       }`}
                     >
                       {dia.getDate()}
@@ -369,6 +416,7 @@ export default function Calendario({
               const dia = sumarDias(desde, i);
               const txt = aFechaInput(dia);
               const esHoy = txt === hoyTxt;
+              const festivo = festivoDe(dia);
               const lista = porDia[txt] ?? [];
               return (
                 <div key={txt} className="border-l border-slate-200 first:border-l-0 flex flex-col min-h-[420px]">
@@ -378,20 +426,25 @@ export default function Calendario({
                       setVista("dia");
                     }}
                     className={`px-2 py-2.5 text-center border-b border-slate-200 transition-colors hover:bg-accent/5 ${
-                      esHoy ? "bg-accent/10" : "bg-slate-50"
+                      festivo ? "bg-rose-50" : esHoy ? "bg-accent/10" : "bg-slate-50"
                     }`}
-                    title={`Ver ${nombreElementos} de este día`}
+                    title={`Ver ${nombreElementos} de este día${festivo ? ` · Festivo: ${festivo}` : ""}`}
                   >
                     <span className="block text-[0.65625rem] font-bold uppercase tracking-widest text-slate-500">
                       {DIAS[i]}
                     </span>
                     <span
                       className={`num inline-block mt-0.5 text-[1.0625rem] leading-8 w-8 rounded-full font-bold ${
-                        esHoy ? "bg-accent text-white" : "text-slate-800"
+                        esHoy ? "bg-accent text-white" : festivo ? "text-rose-600" : "text-slate-800"
                       }`}
                     >
                       {dia.getDate()}
                     </span>
+                    {festivo && (
+                      <span className="block text-[0.5625rem] font-bold uppercase tracking-wide text-rose-500 truncate px-1">
+                        {festivo}
+                      </span>
+                    )}
                   </button>
                   <div className="p-1.5 space-y-1 flex-1">
                     {lista.map((c) => (

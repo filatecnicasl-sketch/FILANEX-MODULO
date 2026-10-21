@@ -96,11 +96,16 @@ const empresaSchema = new Schema(
       mostrarMetodoPago: { type: Boolean, default: true },
     },
     // Precios por hora del taller (se usan en las valoraciones: horas ×
-    // precio según el tipo de trabajo). Se editan en Ajustes → Configuración.
+    // precio según el tipo de trabajo) y festivos locales/regionales que se
+    // suman a los nacionales en el calendario. Se edita en Ajustes → Config.
     taller: {
       precioHoraChapa: { type: Number, default: 0 },
       precioHoraPintura: { type: Number, default: 0 },
       precioHoraMecanica: { type: Number, default: 0 },
+      festivos: {
+        type: [{ fecha: String, nombre: String, _id: false }],
+        default: [],
+      },
     },
     // Compras: margen sobre el precio de coste para calcular el precio de
     // venta de los artículos que se dan de alta al validar una factura.
