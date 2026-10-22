@@ -258,13 +258,15 @@ export default function EnergiaPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Consumos anómalos (+25 % sobre su media)</p>
                 <ul className="space-y-1.5">
                   {alertas.anomalias.slice(0, 5).map((a) => (
-                    <li key={`${a._id}-${a.periodo}`} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-slate-700 truncate">
-                        <b>{a.clienteNombre ?? "Sin cliente"}</b> · <span className="num text-xs">{a.cups}</span>
-                      </span>
-                      <span className="text-xs font-medium text-rose-600 whitespace-nowrap">
-                        {a.periodo}: +{a.desviacionPct} %
-                      </span>
+                    <li key={`${a._id}-${a.periodo}`}>
+                      <Link to={`/energia/suministros?abrir=${a._id}`} title="Abrir la ficha de este suministro" className="flex items-center justify-between gap-2 text-sm rounded-lg -mx-1 px-1 py-0.5 hover:bg-amber-100/60 transition-colors">
+                        <span className="text-slate-700 truncate">
+                          <b>{a.clienteNombre ?? "Sin cliente"}</b> · <span className="num text-xs">{a.cups}</span>
+                        </span>
+                        <span className="text-xs font-medium text-rose-600 whitespace-nowrap">
+                          {a.periodo}: +{a.desviacionPct} %
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -275,13 +277,15 @@ export default function EnergiaPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Llamar para renovar (7-10 meses del alta)</p>
                 <ul className="space-y-1.5">
                   {alertas.porAntiguedad.slice(0, 5).map((r) => (
-                    <li key={r._id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-slate-700 truncate">
-                        <b>{r.clienteNombre ?? "Sin cliente"}</b> · <span className="num text-xs">{r.cups}</span>
-                      </span>
-                      <span className={`text-xs font-medium whitespace-nowrap ${r.meses >= 10 ? "text-rose-600" : "text-amber-700"}`}>
-                        {r.meses} meses{r.telefono ? ` · ${r.telefono}` : ""}
-                      </span>
+                    <li key={r._id}>
+                      <Link to={`/energia/suministros?abrir=${r._id}`} title="Abrir la ficha de este suministro" className="flex items-center justify-between gap-2 text-sm rounded-lg -mx-1 px-1 py-0.5 hover:bg-amber-100/60 transition-colors">
+                        <span className="text-slate-700 truncate">
+                          <b>{r.clienteNombre ?? "Sin cliente"}</b> · <span className="num text-xs">{r.cups}</span>
+                        </span>
+                        <span className={`text-xs font-medium whitespace-nowrap ${r.meses >= 10 ? "text-rose-600" : "text-amber-700"}`}>
+                          {r.meses} meses{r.telefono ? ` · ${r.telefono}` : ""}
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -292,14 +296,16 @@ export default function EnergiaPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Contratos por renovar</p>
                 <ul className="space-y-1.5">
                   {alertas.renovaciones.slice(0, 5).map((r) => (
-                    <li key={r._id} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-slate-700 truncate">
-                        <b>{r.clienteNombre ?? "Sin cliente"}</b> · {r.tipo} · <span className="num text-xs">{r.cups}</span>
-                      </span>
-                      <span className={`text-xs font-medium whitespace-nowrap ${r.dias < 0 ? "text-rose-600" : "text-amber-700"}`}>
-                        {r.dias < 0 ? "vencido" : `${r.dias} días`}
-                        {r.telefono ? ` · ${r.telefono}` : ""}
-                      </span>
+                    <li key={r._id}>
+                      <Link to={`/energia/suministros?abrir=${r._id}`} title="Abrir la ficha de este suministro" className="flex items-center justify-between gap-2 text-sm rounded-lg -mx-1 px-1 py-0.5 hover:bg-amber-100/60 transition-colors">
+                        <span className="text-slate-700 truncate">
+                          <b>{r.clienteNombre ?? "Sin cliente"}</b> · {r.tipo} · <span className="num text-xs">{r.cups}</span>
+                        </span>
+                        <span className={`text-xs font-medium whitespace-nowrap ${r.dias < 0 ? "text-rose-600" : "text-amber-700"}`}>
+                          {r.dias < 0 ? "vencido" : `${r.dias} días`}
+                          {r.telefono ? ` · ${r.telefono}` : ""}
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>

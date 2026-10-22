@@ -226,6 +226,12 @@ export default function AyudaEnergiaPage() {
             tienes que llamar. Al pie verás la <b>huella de CO2 estimada</b> de la cartera (factores
             orientativos: luz 0,19 y gas 0,202 kg CO2e/kWh).
           </p>
+          <p>
+            <b>Pulsa cualquier suministro</b> de las columnas «Llamar para renovar», «Contratos por
+            renovar» o «Consumos anómalos» (y también los del panel de alertas de la portada) y se
+            abre directamente <b>su ficha</b> en Suministros para gestionarlo: cambiar la fecha de
+            fin, apuntar consumos, ver sus documentos…
+          </p>
         </Seccion>
 
         <Seccion titulo="Análisis de cartera (€/kWh, presupuesto, CO2 e informe)">

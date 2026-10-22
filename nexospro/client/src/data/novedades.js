@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-22",
+    tipo: "nuevo",
+    titulo: "Energía: los avisos de renovación llevan al suministro",
+    detalle:
+      "En la agenda del módulo de Energía (y en el panel de alertas de la portada), ahora se puede pulsar cualquier suministro de los avisos — llamar para renovar, contratos por renovar y consumos anómalos — y se abre directamente su ficha en Suministros para gestionarlo: cambiar la fecha de fin, apuntar consumos o revisar sus documentos, sin buscarlo en la lista.",
+  },
+  {
     fecha: "2026-10-21",
     tipo: "nuevo",
     titulo: "Calendario: días festivos marcados en rojo",

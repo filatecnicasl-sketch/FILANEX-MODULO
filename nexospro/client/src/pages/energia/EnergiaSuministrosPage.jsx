@@ -91,29 +91,42 @@ export default function EnergiaSuministrosPage() {
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al cargar");
       setLista(datos);
+      return datos;
     } catch (e) {
       setError(e.message);
       setLista([]);
+      return [];
     }
   }
 
   useEffect(() => {
-    cargar();
     cargarClientesLigeros().then((d) => setClientes(Array.isArray(d) ? d : []));
     fetch("/api/energia/comercializadoras")
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setComercializadoras(Array.isArray(d) ? d : []))
       .catch(() => setComercializadoras([]));
-    fetch("/api/energia/canales")
+    const promesaCanales = fetch("/api/energia/canales")
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => {
         setCanales(Array.isArray(d) ? d : []);
         setCanalesFiltrados(Array.isArray(d) ? d : []);
+        return Array.isArray(d) ? d : [];
       })
       .catch(() => {
         setCanales([]);
         setCanalesFiltrados([]);
+        return [];
       });
+
+    // Enlace desde los avisos de la agenda: /energia/suministros?abrir=<id>
+    // abre directamente la ficha de ese suministro para gestionarlo.
+    Promise.all([cargar(), promesaCanales]).then(([datos, canalesCargados]) => {
+      const id = new URLSearchParams(window.location.search).get("abrir");
+      if (!id) return;
+      window.history.replaceState(null, "", "/energia/suministros");
+      const s = (datos ?? []).find((x) => x._id === id);
+      if (s) prepararApertura(s, canalesCargados);
+    });
   }, []);
 
   function abrirNuevo() {
@@ -124,7 +137,10 @@ export default function EnergiaSuministrosPage() {
     setModal(true);
   }
 
-  function abrirEdicion(s) {
+  // Rellena el formulario de edición con un suministro y abre el modal.
+  // listaCanales son los canales disponibles (pasados explícitamente al venir
+  // de un enlace directo, porque el estado aún no se ha refrescado).
+  function prepararApertura(s, listaCanales) {
     setEditando(s);
     setDocumentos(s.documentos ?? []);
     const comercializadoraId = s.comercializadora?._id ?? "";
@@ -151,12 +167,16 @@ export default function EnergiaSuministrosPage() {
     });
     setCanalesFiltrados(
       comercializadoraId
-        ? canales.filter((c) =>
+        ? listaCanales.filter((c) =>
             (c.comercializadoras ?? []).some((x) => (x._id ?? x) === comercializadoraId)
           )
-        : canales
+        : listaCanales
     );
     setModal(true);
+  }
+
+  function abrirEdicion(s) {
+    prepararApertura(s, canales);
   }
 
   async function guardar(e) {

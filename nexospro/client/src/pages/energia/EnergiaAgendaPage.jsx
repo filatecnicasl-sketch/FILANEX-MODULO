@@ -20,9 +20,11 @@ function tonoAviso(aviso) {
   return "bg-rose-100 text-rose-700 border-rose-200";
 }
 
-function Fila({ izquierda, chapas, derecha, telefono }) {
-  return (
-    <li className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+// Fila de un aviso. Si recibe `to` (ruta al suministro), toda la fila es un
+// enlace que abre su ficha para gestionarlo; si no, es una fila normal.
+function Fila({ izquierda, chapas, derecha, telefono, to }) {
+  const cuerpo = (
+    <>
       <div className="min-w-0">
         <p className="font-medium text-slate-800 truncate">{izquierda}</p>
         <p className="text-xs text-slate-500 num truncate">{derecha}</p>
@@ -31,6 +33,24 @@ function Fila({ izquierda, chapas, derecha, telefono }) {
         {telefono && <span className="text-xs text-slate-500 num whitespace-nowrap">{telefono}</span>}
         {chapas}
       </div>
+    </>
+  );
+  if (to) {
+    return (
+      <li className="border-b border-slate-100 last:border-0">
+        <Link
+          to={to}
+          title="Abrir la ficha de este suministro"
+          className="flex items-center justify-between gap-3 py-2 -mx-2 px-2 rounded-lg hover:bg-sky-50 hover:text-sky-800 transition-colors"
+        >
+          {cuerpo}
+        </Link>
+      </li>
+    );
+  }
+  return (
+    <li className="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+      {cuerpo}
     </li>
   );
 }
@@ -94,7 +114,7 @@ export default function EnergiaAgendaPage() {
             </div>
             <p className="text-xs text-slate-500 mb-3">
               Suministros con 7 a 10 meses desde el alta: la ventana para renovar el contrato antes
-              de que cumpla el año.
+              de que cumpla el año. Pulsa un suministro para abrir su ficha.
             </p>
             {datos.porAntiguedad.length === 0 ? (
               <p className="text-sm text-slate-500 py-4 text-center">
@@ -106,6 +126,7 @@ export default function EnergiaAgendaPage() {
                 {datos.porAntiguedad.map((s) => (
                   <Fila
                     key={s._id}
+                    to={`/energia/suministros?abrir=${s._id}`}
                     izquierda={s.clienteNombre ?? "Sin cliente"}
                     derecha={`${s.cups} · ${s.comercializadoraNombre ?? "—"} · aniversario ${fmtFecha(s.aniversario)}`}
                     telefono={s.telefono}
@@ -134,7 +155,7 @@ export default function EnergiaAgendaPage() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mb-3">
-              Contratos con fecha de fin en los próximos 2 meses. Se generan 3 avisos automáticos: a 2 meses, a 1 mes y a 15 días.
+              Contratos con fecha de fin en los próximos 2 meses. Se generan 3 avisos automáticos: a 2 meses, a 1 mes y a 15 días. Pulsa un suministro para abrir su ficha.
             </p>
             {datos.renovaciones.length === 0 ? (
               <p className="text-sm text-slate-500 py-4 text-center">
@@ -146,6 +167,7 @@ export default function EnergiaAgendaPage() {
                 {datos.renovaciones.map((s) => (
                   <Fila
                     key={s._id}
+                    to={`/energia/suministros?abrir=${s._id}`}
                     izquierda={s.clienteNombre ?? "Sin cliente"}
                     derecha={`${s.cups} · ${s.comercializadoraNombre ?? "—"} · fin ${fmtFecha(s.fechaFin)}`}
                     telefono={s.telefono}
@@ -224,6 +246,7 @@ export default function EnergiaAgendaPage() {
                 {datos.anomalias.map((a) => (
                   <Fila
                     key={`${a._id}-${a.periodo}`}
+                    to={`/energia/suministros?abrir=${a._id}`}
                     izquierda={a.clienteNombre ?? "Sin cliente"}
                     derecha={`${a.cups} · ${a.periodo}: ${a.kwh.toLocaleString("es-ES")} kWh frente a una media de ${a.mediaKwh.toLocaleString("es-ES")}`}
                     telefono={a.telefono}
