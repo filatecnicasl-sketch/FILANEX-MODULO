@@ -15,6 +15,7 @@ import {
 import LlamadaEntrante from "./LlamadaEntrante.jsx";
 import AsistenteChat from "./AsistenteChat.jsx";
 import AvisoRespuestaPropuestas from "./AvisoRespuestaPropuestas.jsx";
+import AvisoMantenimiento from "./AvisoMantenimiento.jsx";
 import PendientesSubida from "./PendientesSubida.jsx";
 import BotonActualizar from "./BotonActualizar.jsx";
 import { cerrarSesion, enModoSoporte, empresaSoporte, esSuperAdmin, payloadToken, rolUsuario, salirDeSoporte } from "../lib/sesion.js";
@@ -558,6 +559,9 @@ export default function Layout() {
             </button>
           </div>
         )}
+        {/* Mantenimiento programado: banner superior hasta la fecha de fin
+            (se auto-oculta pasado el día; no se muestra al soporte) */}
+        <AvisoMantenimiento />
         {!amplia && (
           <header className="no-print sticky top-0 z-20 flex items-center flex-wrap content-center gap-x-3 sm:gap-x-6 gap-y-2 px-3 sm:px-6 py-3 min-h-[64px] lg:min-h-[104px] shrink-0 bg-[#0B1220] border-b border-white/[0.07]">
             {/* Abrir menú (solo móvil) */}
