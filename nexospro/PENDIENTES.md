@@ -2,6 +2,38 @@
 
 Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
+## Sábado 24/10 (ventana de mantenimiento 8:00–15:00)
+
+- [ ] **Aplanar el repo: eliminar el directorio `nexospro/`** (plan ya escrito
+      en la conversación): rama `refactor/aplanar-repo` con `git mv` a la raíz
+      (preparar ANTES: hoy falló por carpetas locales bloqueadas — backups,
+      uploads, src — averiguar qué proceso las bloquea), backup en servidor de
+      `.env`/uploads/certificados/backups, pull, mover datos en vivo, recrear
+      pm2 con cwd `/opt/filanex/server` (crítico: storage.js usa
+      `process.cwd()`), actualizar cron y helpers. Sin tocar identificadores
+      internos (package.json, health, localStorage `nexospro-formatos-v1`,
+      nombres de BD).
+- [ ] **Desplegar el agente Nexo (AGENE IA) en este mismo servidor**
+      (194.62.96.102): resuelto el acceso — yo entro como root por SSH con
+      la clave `filanex_prod`; no existe usuario `ubuntu` (la máquina se
+      administra como root, por eso no aparecía ese login). El agente aún no
+      está subido. Recursos libres: ~2,5 GB RAM, 20 GB disco. Habría que
+      crearle su carpeta (p. ej. `/opt/agene`), su proceso pm2 aparte y un
+      puerto que no choque con el 4700 de FILANEX.
+- [ ] **Dar de alta las facturas 1T y 2T de Filatecnica** (carpeta
+      `D:\Users\Francis\Desktop\ENVIO 2026`). Comprobado 22/10: las 20 ventas
+      de las series 3/xxxx YA están en el programa (coinciden con los
+      informes de FacturaSOL); NO tocar el 3T (ya completo). Falta:
+      (a) compras 1T: ~42 PDFs en `1º TRIMESTRE\compra` (FilaSur, Hispamicro,
+      Ionos, Enea, ASTRD LLC, etc.); (b) compras 2T: ~39 PDFs en
+      `2º TRIMESTRE\RECIBIDAS` (incluidas Emergent/Verdent abril-junio);
+      (c) 6 ingresos por comisiones de altas: 1T `FS-26-1-01` 484,00 €,
+      `FS-26-2-01` 254,10 €, `FS-26-3-01` 1.081,16 € (AT Enterprise, en
+      `1º TRIMESTRE\venta`) y 2T `5569-26-00001` 145,20 € (GANA, facturación
+      por el destinatario), `ACI/0001` 268,62 € (Ahorreluz) y
+      `autofactura informa.pdf` (imagen sin texto, OCR pendiente). Adjuntar
+      siempre el PDF, dedupe por proveedor+número y conciliar contra extracto.
+
 ## URGENTE / Revisar con detenimiento
 
 - [ ] **Importación de facturas del buzón filatecnicasl@gmail.com — PDFs
