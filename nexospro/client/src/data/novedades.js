@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-22",
+    tipo: "correccion",
+    titulo: "Ya no se pierde un cliente nuevo escrito dentro de un documento",
+    detalle:
+      "Al dar de alta un cliente o proveedor nuevo desde un suministro, presupuesto, albarán o factura de compra, si se pulsaba «Guardar» del documento sin haber pulsado antes «Crear y seleccionar», la ventana se cerraba y los datos escritos se perdían. Ahora el programa avisa antes: ofrece volver atrás para terminar de crear el cliente (o proveedor) o guardar sin él a sabiendas.",
+  },
+  {
+    fecha: "2026-10-22",
     tipo: "mejora",
     titulo: "Energía: aviso al guardar fechas sospechosas en un suministro",
     detalle:

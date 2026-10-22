@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EditorLineas, { lineaVacia, totalesDeLineas } from "./EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import SelectorContacto from "./SelectorContacto.jsx";
@@ -29,6 +29,9 @@ export default function FormDocumentoCompra({
     inicial?.tipoCambio != null ? String(inicial.tipoCambio) : "1"
   );
   const [proveedorId, setProveedorId] = useState(inicial?.proveedor ?? "");
+  // Alta de proveedor a medias (+ Nuevo sin pulsar «Crear y seleccionar»):
+  // guardar el documento sin más la perdería.
+  const proveedorPendiente = useRef(false);
   const [fecha, setFecha] = useState(inicial?.fecha ?? new Date().toISOString().slice(0, 10));
   // Vencimiento del pago (opcional): si no se pone, Pagos lo estima a 30 días.
   const [vencimiento, setVencimiento] = useState(
@@ -72,6 +75,16 @@ export default function FormDocumentoCompra({
 
   async function guardar(e) {
     e.preventDefault();
+    // Proveedor nuevo a medias: avisar antes de perderlo (como en Suministros).
+    if (proveedorPendiente.current) {
+      const seguir = window.confirm(
+        "Estás dando de alta un proveedor nuevo pero no has pulsado «Crear y seleccionar».\n\n" +
+          "Si guardas ahora, el documento se guardará sin el proveedor nuevo y se perderán los datos que has escrito.\n" +
+          "Pulsa Cancelar para volver, terminar de crearlo con el botón «Crear y seleccionar» y volver a guardar, o Aceptar para guardar sin él."
+      );
+      if (!seguir) return;
+      proveedorPendiente.current = false;
+    }
     setGuardando(true);
     setError(null);
     try {
@@ -135,6 +148,7 @@ export default function FormDocumentoCompra({
                 valor={proveedorId}
                 onChange={setProveedorId}
                 onCreado={(p) => setProveedores((ps) => [...ps, p])}
+                onPendiente={(pend) => { proveedorPendiente.current = pend; }}
               />
             </div>
             <div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import CabeceraPagina from "../../components/CabeceraPagina.jsx";
 import { InputBusqueda, coincideBusqueda } from "../../components/ui.jsx";
@@ -48,6 +48,9 @@ export default function EnergiaSuministrosPage() {
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(false);
   const [editando, setEditando] = useState(null);
+  // Alta de cliente a medias dentro del modal (sin pulsar «Crear y
+  // seleccionar»): guardar el suministro sin más la perdería.
+  const clientePendiente = useRef(false);
   const [form, setForm] = useState(VACIO);
   const [q, setQ] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -204,6 +207,16 @@ export default function EnergiaSuministrosPage() {
           `Si es un error (por ejemplo, al renovar), pulsa Cancelar y corrígela, para que el programa siga avisando de las renovaciones.`
       );
       if (!seguir) return;
+    }
+    // Cliente nuevo a medias (propuesta Rolusur): avisar antes de perderlo.
+    if (clientePendiente.current) {
+      const seguir = window.confirm(
+        "Estás dando de alta un cliente nuevo pero no has pulsado «Crear y seleccionar».\n\n" +
+          "Si guardas ahora, el suministro se guardará sin cliente y se perderán los datos que has escrito.\n" +
+          "Pulsa Cancelar para volver, terminar de crear el cliente con el botón «Crear y seleccionar» y volver a guardar, o Aceptar para guardar el suministro sin él."
+      );
+      if (!seguir) return;
+      clientePendiente.current = false;
     }
     const cuerpo = {
       cups: form.cups,
@@ -536,6 +549,7 @@ export default function EnergiaSuministrosPage() {
                   contactos={clientes}
                   valor={form.clienteId}
                   onChange={(id) => setForm((f) => ({ ...f, clienteId: id ?? "" }))}
+                  onPendiente={(p) => { clientePendiente.current = p; }}
                 />
               </div>
               <div className="text-sm text-slate-400">

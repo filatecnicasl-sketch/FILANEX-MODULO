@@ -6,13 +6,17 @@ import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
 // alta rápida completa sin salir del documento (nombre, NIF, contacto,
 // dirección y datos bancarios — igual que en la ficha).
 // tipo="cliente" (NIF obligatorio) | tipo="proveedor".
+// onPendiente(true|false): avisa al formulario padre de que hay un alta
+// a medias con datos escritos, para que no se guarden y cierren sin más
+// (pasó en Rolusur: guardaron el suministro sin pulsar «Crear y
+// seleccionar» y se perdieron los datos del cliente).
 const VACIO = {
   nombre: "", nif: "", telefono: "", email: "",
   calle: "", ciudad: "", cp: "",
   iban: "", banco: "", bic: "", notas: "",
 };
 
-export default function SelectorContacto({ tipo = "cliente", contactos, valor, onChange, onCreado }) {
+export default function SelectorContacto({ tipo = "cliente", contactos, valor, onChange, onCreado, onPendiente }) {
   const [creando, setCreando] = useState(false);
   const [nuevo, setNuevo] = useState(VACIO);
   const [guardando, setGuardando] = useState(false);
@@ -22,7 +26,23 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
   const url = esCliente ? "/api/clientes" : "/api/proveedores";
   const etiqueta = esCliente ? "cliente" : "proveedor";
 
-  const poner = (campo, v) => setNuevo((n) => ({ ...n, [campo]: v }));
+  const poner = (campo, v) => {
+    setNuevo((n) => ({ ...n, [campo]: v }));
+    // Los campos solo se ven con el panel de alta abierto: escribir en
+    // cualquiera significa que hay datos que pueden perderse.
+    onPendiente?.(true);
+  };
+
+  function abrirCreacion() {
+    setCreando(true);
+    onPendiente?.(false);
+  }
+
+  function cerrarCreacion() {
+    setCreando(false);
+    setError(null);
+    onPendiente?.(false);
+  }
 
   async function crear() {
     setGuardando(true);
@@ -52,6 +72,7 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
       if (esCliente) invalidarClientesLigeros();
       onCreado?.(datos);
       onChange(datos._id);
+      onPendiente?.(false);
       setCreando(false);
       setNuevo(VACIO);
     } catch (e) {
@@ -157,7 +178,7 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
           </button>
           <button
             type="button"
-            onClick={() => { setCreando(false); setError(null); }}
+            onClick={cerrarCreacion}
             className="text-xs text-slate-500 hover:text-white"
           >
             Cancelar
@@ -177,7 +198,7 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
       />
       <button
         type="button"
-        onClick={() => setCreando(true)}
+        onClick={abrirCreacion}
         title={`Crear ${etiqueta} nuevo sin salir del documento`}
         className="shrink-0 rounded-lg border border-accent/50 text-accent text-xs font-semibold px-3 hover:bg-accent/10 transition-colors"
       >

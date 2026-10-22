@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EditorLineas, { lineaVacia } from "./EditorLineas.jsx";
 import { enterComoTab } from "../utils/enter-tab.js";
 import { useCierreProtegido } from "../lib/cierreProtegido.js";
@@ -12,6 +12,9 @@ import SelectorContacto from "./SelectorContacto.jsx";
 export default function FormDocumento({ titulo, clientes: clientesProp, url, onCreado, onCerrar, extra = {}, inicial = null }) {
   const [clientes, setClientes] = useState(clientesProp);
   const [clienteId, setClienteId] = useState(inicial?.cliente?._id ?? inicial?.cliente ?? clientesProp[0]?._id ?? "");
+  // Alta de cliente a medias (+ Nuevo sin pulsar «Crear y seleccionar»):
+  // guardar el documento sin más la perdería.
+  const clientePendiente = useRef(false);
   const [lineas, setLineas] = useState(
     inicial?.lineas?.length
       ? inicial.lineas.map((l) => ({
@@ -76,6 +79,16 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
   }
 
   async function guardar() {
+    // Cliente nuevo a medias: avisar antes de perderlo (como en Suministros).
+    if (clientePendiente.current) {
+      const seguir = window.confirm(
+        "Estás dando de alta un cliente nuevo pero no has pulsado «Crear y seleccionar».\n\n" +
+          "Si guardas ahora, el documento se guardará sin el cliente nuevo y se perderán los datos que has escrito.\n" +
+          "Pulsa Cancelar para volver, terminar de crear el cliente con el botón «Crear y seleccionar» y volver a guardar, o Aceptar para guardar sin él."
+      );
+      if (!seguir) return;
+      clientePendiente.current = false;
+    }
     setGuardando(true);
     setError(null);
     try {
@@ -144,6 +157,7 @@ export default function FormDocumento({ titulo, clientes: clientesProp, url, onC
                 valor={clienteId}
                 onChange={elegirCliente}
                 onCreado={(c) => setClientes((cs) => [...cs, c])}
+                onPendiente={(p) => { clientePendiente.current = p; }}
               />
             </div>
             <div>
