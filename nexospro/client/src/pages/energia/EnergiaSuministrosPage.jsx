@@ -51,6 +51,10 @@ export default function EnergiaSuministrosPage() {
   // Alta de cliente a medias dentro del modal (sin pulsar «Crear y
   // seleccionar»): guardar el suministro sin más la perdería.
   const clientePendiente = useRef(false);
+  // Documentos elegidos durante el alta de un suministro nuevo: se suben
+  // justo después de guardarlo (propuesta Rolusur — antes había que volver
+  // a editar el suministro para adjuntarlos).
+  const [docsPend, setDocsPend] = useState([]);
   const [form, setForm] = useState(VACIO);
   const [q, setQ] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -137,6 +141,7 @@ export default function EnergiaSuministrosPage() {
     setForm(VACIO);
     setCanalesFiltrados(canales);
     setDocumentos([]);
+    setDocsPend([]);
     setModal(true);
   }
 
@@ -146,6 +151,7 @@ export default function EnergiaSuministrosPage() {
   function prepararApertura(s, listaCanales) {
     setEditando(s);
     setDocumentos(s.documentos ?? []);
+    setDocsPend([]);
     const comercializadoraId = s.comercializadora?._id ?? "";
     setForm({
       cups: s.cups ?? "",
@@ -246,6 +252,24 @@ export default function EnergiaSuministrosPage() {
     });
     const datos = await r.json();
     if (r.ok) {
+      // Suministro recién creado: subir la documentación elegida en el alta.
+      if (!editando && datos._id && docsPend.length) {
+        const cuerpoDocs = new FormData();
+        docsPend.forEach((f) => cuerpoDocs.append("archivos", f));
+        try {
+          const rd = await fetch(`/api/energia/suministros/${datos._id}/documentos`, {
+            method: "POST",
+            body: cuerpoDocs,
+          });
+          if (!rd.ok) throw new Error();
+        } catch {
+          window.alert(
+            "El suministro se ha guardado correctamente, pero su documentación no se ha podido subir.\n\n" +
+              "Puedes adjuntarla después abriendo el suministro (sección Documentación)."
+          );
+        }
+      }
+      setDocsPend([]);
       setModal(false);
       cargar();
     } else alert(datos.error || "Error al guardar");
@@ -261,7 +285,13 @@ export default function EnergiaSuministrosPage() {
   async function subirDocumentos(e) {
     const archivos = [...(e.target.files ?? [])];
     e.target.value = "";
-    if (!archivos.length || !editando?._id) return;
+    if (!archivos.length) return;
+    // Alta de un suministro nuevo: aún no hay id, se guardan como pendientes
+    // y se suben justo después de guardar el suministro.
+    if (!editando?._id) {
+      setDocsPend((d) => [...d, ...archivos]);
+      return;
+    }
     const datos = new FormData();
     archivos.forEach((a) => datos.append("archivos", a));
     setSubiendoDocs(true);
@@ -283,7 +313,11 @@ export default function EnergiaSuministrosPage() {
   }
 
   async function quitarDocumento(d) {
-    if (!editando?._id) return;
+    // Pendiente del alta: quitarlo de la lista local sin llamar a la API.
+    if (!editando?._id) {
+      setDocsPend((lista) => lista.filter((x) => x !== d));
+      return;
+    }
     setSubiendoDocs(true);
     try {
       const r = await fetch(`/api/energia/suministros/${editando._id}/documentos`, {
@@ -728,56 +762,72 @@ export default function EnergiaSuministrosPage() {
               <textarea value={form.notas} onChange={poner("notas")} className="input" rows={2} />
             </label>
 
-            {editando && (
-              <div className="rounded-xl border border-slate-600/40 p-4">
-                <p className="text-sm font-semibold text-slate-300 mb-1">Documentación</p>
-                <p className="text-xs text-slate-500 mb-3">
-                  Contrato, factura de la comercializadora, burofax de la distribuidora… PDF o imágenes.
-                </p>
-                {documentos.length > 0 && (
-                  <ul className="space-y-1.5 mb-3">
-                    {documentos.map((d) => (
-                      <li key={d.url} className="flex items-center gap-2 text-sm">
-                        <a
-                          href={urlApiConSesion(d.url)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sky-300 hover:text-sky-200 hover:underline truncate"
-                          title={d.nombre}
-                        >
-                          {d.nombre}
-                        </a>
-                        {d.fecha && (
-                          <span className="text-xs text-slate-500 whitespace-nowrap">
-                            {new Date(d.fecha).toLocaleDateString("es-ES")}
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => quitarDocumento(d)}
-                          disabled={subiendoDocs}
-                          className="ms-auto p-1 text-slate-400 hover:text-rose-400 disabled:opacity-50"
-                          title="Quitar documento"
-                        >
-                          <IconBorrar />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer">
-                  {subiendoDocs ? "Subiendo…" : "Añadir documentos"}
-                  <input
-                    type="file"
-                    multiple
-                    accept="application/pdf,image/png,image/jpeg,image/webp"
-                    onChange={subirDocumentos}
-                    disabled={subiendoDocs}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            )}
+            <div className="rounded-xl border border-slate-600/40 p-4">
+              <p className="text-sm font-semibold text-slate-300 mb-1">Documentación</p>
+              <p className="text-xs text-slate-500 mb-3">
+                Contrato, factura de la comercializadora, burofax de la distribuidora… PDF o imágenes.
+                {editando ? "" : " Se adjuntan al guardar el suministro."}
+              </p>
+              {editando && documentos.length > 0 && (
+                <ul className="space-y-1.5 mb-3">
+                  {documentos.map((d) => (
+                    <li key={d.url} className="flex items-center gap-2 text-sm">
+                      <a
+                        href={urlApiConSesion(d.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sky-300 hover:text-sky-200 hover:underline truncate"
+                        title={d.nombre}
+                      >
+                        {d.nombre}
+                      </a>
+                      {d.fecha && (
+                        <span className="text-xs text-slate-500 whitespace-nowrap">
+                          {new Date(d.fecha).toLocaleDateString("es-ES")}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => quitarDocumento(d)}
+                        disabled={subiendoDocs}
+                        className="ms-auto p-1 text-slate-400 hover:text-rose-400 disabled:opacity-50"
+                        title="Quitar documento"
+                      >
+                        <IconBorrar />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!editando && docsPend.length > 0 && (
+                <ul className="space-y-1.5 mb-3">
+                  {docsPend.map((f, i) => (
+                    <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-300 truncate" title={f.name}>{f.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => quitarDocumento(f)}
+                        className="ms-auto p-1 text-slate-400 hover:text-rose-400"
+                        title="Quitar documento"
+                      >
+                        <IconBorrar />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer">
+                {subiendoDocs ? "Subiendo…" : "Añadir documentos"}
+                <input
+                  type="file"
+                  multiple
+                  accept="application/pdf,image/png,image/jpeg,image/webp"
+                  onChange={subirDocumentos}
+                  disabled={subiendoDocs}
+                  className="hidden"
+                />
+              </label>
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setModal(false)} className="btn-ghost">Cancelar</button>

@@ -72,6 +72,12 @@ export default function AyudaEnergiaPage() {
             (o el fin es anterior al alta), el programa te lo avisa para confirmar que no es un error
             de tecleo — si es un contrato que ya estaba en vigor, simplemente acepta.
           </p>
+          <p>
+            En la sección <b>Documentación</b> del mismo formulario puedes adjuntar desde el primer
+            momento el contrato, la factura o el DNI del titular: los archivos elegidos se suben solos
+            al guardar el suministro. Lo mismo vale al crear un cliente nuevo (pestaña
+            <b> Documentos</b> de su ficha) o desde el botón <b>+ Nuevo</b> del selector de cliente.
+          </p>
         </Seccion>
 
         <Seccion titulo="Trámites (Energía → Trámites)">

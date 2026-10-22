@@ -59,6 +59,10 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
   // Documentación adjunta del cliente (NIF/CIF, escrituras, poderes…).
   const [documentos, setDocumentos] = useState(inicial?.documentos ?? []);
   const [subiendoDocs, setSubiendoDocs] = useState(false);
+  // Documentos elegidos durante el alta de un cliente nuevo: se suben justo
+  // después de guardarlo (propuesta Rolusur — antes había que volver a su
+  // ficha para adjuntarlos).
+  const [docsPend, setDocsPend] = useState([]);
 
   const tallerActivo = modulos.includes("taller");
 
@@ -138,6 +142,23 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo guardar");
+      // Cliente recién creado: subir la documentación elegida en el alta.
+      if (!editando && datos._id && docsPend.length) {
+        const cuerpoDocs = new FormData();
+        docsPend.forEach((f) => cuerpoDocs.append("archivos", f));
+        try {
+          const rd = await fetch(`/api/clientes/${datos._id}/documentos`, {
+            method: "POST",
+            body: cuerpoDocs,
+          });
+          if (!rd.ok) throw new Error();
+        } catch {
+          window.alert(
+            "El cliente se ha guardado correctamente, pero su documentación no se ha podido subir.\n\n" +
+              "Puedes adjuntarla después abriendo su ficha (pestaña Documentos)."
+          );
+        }
+      }
       onGuardado();
     } catch (err) {
       setError(err.message);
@@ -149,6 +170,13 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
   async function subirDocumentos(e) {
     const archivos = e.target.files;
     if (!archivos?.length) return;
+    e.target.value = "";
+    // Alta de un cliente nuevo: aún no hay id, se guardan como pendientes y
+    // se suben justo después de guardar el cliente.
+    if (!editando) {
+      setDocsPend((d) => [...d, ...archivos]);
+      return;
+    }
     setSubiendoDocs(true);
     setError(null);
     try {
@@ -162,11 +190,15 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
       setError(err.message);
     } finally {
       setSubiendoDocs(false);
-      e.target.value = "";
     }
   }
 
   async function quitarDocumento(doc) {
+    // Pendiente del alta: quitarlo de la lista local sin llamar a la API.
+    if (!editando) {
+      setDocsPend((lista) => lista.filter((x) => x !== doc));
+      return;
+    }
     setSubiendoDocs(true);
     setError(null);
     try {
@@ -190,45 +222,43 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
       <div className="modal-panel w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()} {...cierre.panelProps}>
         <h2 className="text-lg font-bold text-white mb-4">{editando ? `Editar ${inicial.nombre}` : "Nuevo cliente"}</h2>
 
-        {editando && (
-          <div className="flex gap-1 mb-4 border-b border-white/10 pb-1">
+        <div className="flex gap-1 mb-4 border-b border-white/10 pb-1">
+          <button
+            type="button"
+            onClick={() => setTab("ficha")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
+              tab === "ficha"
+                ? "bg-accent text-white"
+                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+            }`}
+          >
+            Ficha
+          </button>
+          {editando && tallerActivo && (
             <button
               type="button"
-              onClick={() => setTab("ficha")}
+              onClick={() => setTab("vehiculos")}
               className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
-                tab === "ficha"
+                tab === "vehiculos"
                   ? "bg-accent text-white"
                   : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
-              Ficha
+              Vehículos
             </button>
-            {tallerActivo && (
-              <button
-                type="button"
-                onClick={() => setTab("vehiculos")}
-                className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
-                  tab === "vehiculos"
-                    ? "bg-accent text-white"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                }`}
-              >
-                Vehículos
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setTab("documentos")}
-              className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
-                tab === "documentos"
-                  ? "bg-accent text-white"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-              }`}
-            >
-              Documentos
-            </button>
-          </div>
-        )}
+          )}
+          <button
+            type="button"
+            onClick={() => setTab("documentos")}
+            className={`px-3 py-1.5 text-sm font-medium rounded-t-lg transition-colors ${
+              tab === "documentos"
+                ? "bg-accent text-white"
+                : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+            }`}
+          >
+            Documentos{!editando && docsPend.length > 0 ? ` (${docsPend.length})` : ""}
+          </button>
+        </div>
 
         <form onSubmit={guardar} className="space-y-5">
           {tab === "ficha" && (
@@ -487,9 +517,10 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
                 <h3 className="text-sm font-semibold text-slate-300">Documentación del cliente</h3>
                 <p className="text-xs text-slate-500 mt-1">
                   NIF/CIF, escrituras, poderes, contratos… PDF o imágenes.
+                  {editando ? "" : " Se adjuntarán al guardar el cliente."}
                 </p>
               </div>
-              {documentos.length > 0 && (
+              {editando && documentos.length > 0 && (
                 <ul className="space-y-1.5">
                   {documentos.map((d) => (
                     <li key={d.url} className="flex items-center gap-2 text-sm">
@@ -520,6 +551,23 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
                   ))}
                 </ul>
               )}
+              {!editando && docsPend.length > 0 && (
+                <ul className="space-y-1.5">
+                  {docsPend.map((f, i) => (
+                    <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-300 truncate" title={f.name}>{f.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => quitarDocumento(f)}
+                        className="ms-auto p-1 text-slate-400 hover:text-rose-400"
+                        title="Quitar documento"
+                      >
+                        <IconBorrar />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer">
                 {subiendoDocs ? "Subiendo…" : "Añadir documentos"}
                 <input
@@ -537,7 +585,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
           {error && <p className="text-sm text-rose-400">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
-            <button type="submit" disabled={guardando || tab !== "ficha"} className="btn-primary">
+            <button type="submit" disabled={guardando || (editando && tab !== "ficha")} className="btn-primary">
               {guardando ? "Guardando…" : "Guardar"}
             </button>
           </div>

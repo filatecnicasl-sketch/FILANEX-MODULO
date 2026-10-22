@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-22",
+    tipo: "nuevo",
+    titulo: "Adjuntar documentación en el momento del alta",
+    detalle:
+      "Al dar de alta un suministro nuevo, su sección Documentación permite elegir contrato, factura de la comercializadora o cualquier PDF/imagen desde el primer momento: los archivos se suben solos al guardar. Lo mismo al crear un cliente nuevo: la pestaña Documentos está disponible durante el alta (también en el botón + Nuevo del selector de cliente dentro de cualquier documento), así ya no hace falta volver después a la ficha para adjuntar el DNI o la factura.",
+  },
+  {
+    fecha: "2026-10-22",
     tipo: "correccion",
     titulo: "Ya no se pierde un cliente nuevo escrito dentro de un documento",
     detalle:

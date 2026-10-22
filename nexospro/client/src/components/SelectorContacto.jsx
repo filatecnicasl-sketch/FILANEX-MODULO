@@ -20,6 +20,7 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
   const [creando, setCreando] = useState(false);
   const [nuevo, setNuevo] = useState(VACIO);
   const [guardando, setGuardando] = useState(false);
+  const [docsPend, setDocsPend] = useState([]);
   const [error, setError] = useState(null);
 
   const esCliente = tipo === "cliente";
@@ -41,7 +42,26 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
   function cerrarCreacion() {
     setCreando(false);
     setError(null);
+    setDocsPend([]);
     onPendiente?.(false);
+  }
+
+  // Adjuntar documentación al alta del cliente (DNI, factura…): los archivos
+  // se eligen ahora y se suben justo después de crearlo (propuesta Rolusur —
+  // antes había que volver a la ficha del cliente para adjuntarlos).
+  function elegirDocs(e) {
+    const archivos = [...(e.target.files ?? [])].filter(
+      (f) => f.type === "application/pdf" || f.type.startsWith("image/")
+    );
+    e.target.value = "";
+    if (archivos.length) setDocsPend((d) => [...d, ...archivos]);
+  }
+
+  async function subirDocsCliente(idCliente) {
+    const cuerpo = new FormData();
+    docsPend.forEach((f) => cuerpo.append("archivos", f));
+    const r = await fetch(`/api/clientes/${idCliente}/documentos`, { method: "POST", body: cuerpo });
+    if (!r.ok) throw new Error("No se pudo subir la documentación");
   }
 
   async function crear() {
@@ -69,12 +89,25 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al crear");
+      // El cliente ya existe: subir la documentación elegida. Si falla, el
+      // cliente no se pierde — solo avisamos para adjuntarla luego.
+      if (esCliente && docsPend.length) {
+        try {
+          await subirDocsCliente(datos._id);
+        } catch {
+          window.alert(
+            "El cliente se ha creado correctamente, pero su documentación no se ha podido subir.\n\n" +
+              "Puedes adjuntarla después abriendo su ficha (pestaña Documentos)."
+          );
+        }
+      }
       if (esCliente) invalidarClientesLigeros();
       onCreado?.(datos);
       onChange(datos._id);
       onPendiente?.(false);
       setCreando(false);
       setNuevo(VACIO);
+      setDocsPend([]);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -166,6 +199,40 @@ export default function SelectorContacto({ tipo = "cliente", contactos, valor, o
           onChange={(e) => poner("notas", e.target.value)}
           className="input w-full resize-none"
         />
+        {esCliente && (
+          <div className="pt-1">
+            <p className="text-[0.65625rem] font-semibold uppercase tracking-wider text-slate-500">
+              Documentación (DNI, factura…)
+            </p>
+            {docsPend.length > 0 && (
+              <ul className="mt-1.5 space-y-1">
+                {docsPend.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-xs text-slate-300">
+                    <span className="truncate" title={f.name}>{f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDocsPend((d) => d.filter((_, j) => j !== i))}
+                      className="ms-auto p-0.5 text-slate-400 hover:text-rose-400"
+                      title="Quitar documento"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <label className="btn-ghost inline-flex items-center gap-1.5 cursor-pointer !py-1 !px-2.5 text-xs mt-1.5">
+              + Adjuntar documentos
+              <input
+                type="file"
+                multiple
+                accept="application/pdf,image/png,image/jpeg,image/webp"
+                onChange={elegirDocs}
+                className="hidden"
+              />
+            </label>
+          </div>
+        )}
         {error && <p className="text-xs text-red-400">{error}</p>}
         <div className="flex items-center gap-2 pt-1">
           <button
