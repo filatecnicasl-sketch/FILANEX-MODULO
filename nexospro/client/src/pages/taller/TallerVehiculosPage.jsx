@@ -510,12 +510,30 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
   // Órdenes de trabajo: fotos de la recepción y de la entrega, datos
   // completos y tareas pendientes (propuesta 15/10 — historial completo).
   const esOrden = tipo === "ordenes";
+  const esCortesia = tipo === "cortesias";
   const fotosRecepcion = esOrden ? doc.recepcionDigital?.fotos ?? [] : [];
   const fotosEntrega = esOrden ? doc.entrega?.fotos ?? [] : [];
   const fotosSueltas = !esOrden ? doc.fotos ?? [] : [];
   const notasPendientes = esOrden ? doc.entrega?.notas ?? "" : "";
   const compania = esOrden ? doc.aseguradora?.nombre ?? "" : doc.compania ?? "";
   const danios = esOrden ? doc.recepcionDigital?.danos ?? "" : "";
+  // Cortesías: el préstamo guarda la matrícula del coche de cortesía en
+  // "matricula" y (si se apuntó) el coche en reparación en
+  // "vehiculoReparacionMatricula". Mostramos qué cortesía se prestó y las
+  // fechas del préstamo, venga el historial del coche de cortesía o del
+  // coche del cliente que la recibió.
+  const cortesiaTexto = esCortesia
+    ? [
+        doc.vehiculo?.matricula ?? doc.matricula,
+        [doc.vehiculo?.marca, doc.vehiculo?.modelo].filter(Boolean).join(" ") || undefined,
+      ].filter(Boolean).join(" · ")
+    : "";
+  const cortesiaPeriodo = esCortesia
+    ? [
+        doc.fechaSalida ? `salida ${new Date(doc.fechaSalida).toLocaleDateString("es-ES")}` : null,
+        doc.fechaDevolucion ? `devolución ${new Date(doc.fechaDevolucion).toLocaleDateString("es-ES")}` : null,
+      ].filter(Boolean).join(" — ")
+    : "";
 
   const tonosEstado = {
     recepcion: "bg-sky-100 text-sky-700",
@@ -557,6 +575,12 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
         </div>
       </div>
       {cliente && <p className="text-xs text-slate-500 mt-1">{cliente}</p>}
+      {esCortesia && cortesiaTexto && (
+        <p className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+          <span className="font-semibold">Cortesía prestada:</span> {cortesiaTexto}
+          {cortesiaPeriodo && <span className="text-amber-600"> · {cortesiaPeriodo}</span>}
+        </p>
+      )}
       {doc.motivo && <p className="text-sm text-slate-600 mt-1">{doc.motivo}</p>}
       {doc.notas && (
         <p
@@ -699,6 +723,12 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
             )}
             {doc.fechaDesde && <DatoDocumento etiqueta="Desde" valor={new Date(doc.fechaDesde).toLocaleDateString("es-ES")} />}
             {doc.fechaHasta && <DatoDocumento etiqueta="Hasta" valor={new Date(doc.fechaHasta).toLocaleDateString("es-ES")} />}
+            {doc.vehiculoReparacionMatricula && (
+              <DatoDocumento etiqueta="Coche en taller" valor={doc.vehiculoReparacionMatricula} />
+            )}
+            {doc.fechaSalida && <DatoDocumento etiqueta="Salida cortesía" valor={new Date(doc.fechaSalida).toLocaleDateString("es-ES")} />}
+            {doc.fechaDevolucion && <DatoDocumento etiqueta="Devolución" valor={new Date(doc.fechaDevolucion).toLocaleDateString("es-ES")} />}
+            {doc.kmSalida != null && <DatoDocumento etiqueta="KM salida" valor={String(doc.kmSalida)} />}
           </div>
 
           {(doc.motivo || doc.descripcion || doc.observaciones) && (

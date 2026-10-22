@@ -229,8 +229,14 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Préstamos de cortesía de esta matrícula
-    const cortesias = await PrestamoCortesia.find({ matricula })
+    // Préstamos de cortesía relacionados con esta matrícula: los de este
+    // coche como vehículo de cortesía (matricula) y los que se prestaron
+    // mientras este coche estaba en reparación (vehiculoReparacionMatricula).
+    // Se pobla el vehículo para ver qué cortesía se prestó en cada caso.
+    const cortesias = await PrestamoCortesia.find({
+      $or: [{ matricula }, { vehiculoReparacionMatricula: matricula }],
+    })
+      .populate("vehiculo", "matricula marca modelo")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -282,6 +288,14 @@ router.delete("/vehiculos/:id", async (req, res, next) => {
     const enUso = await OrdenTrabajo.countDocuments({ vehiculo: req.params.id });
     if (enUso > 0) {
       return res.status(409).json({ error: `No se puede borrar: tiene ${enUso} orden(es) de trabajo` });
+    }
+    // Un vehículo de cortesía con préstamos registrados tampoco se borra:
+    // el historial de la flota quedaría colgando de un vehículo inexistente.
+    const conPrestamos = await PrestamoCortesia.countDocuments({ vehiculo: req.params.id });
+    if (conPrestamos > 0) {
+      return res.status(409).json({
+        error: `No se puede borrar: tiene ${conPrestamos} préstamo(s) de cortesía registrados`,
+      });
     }
     const vehiculo = await Vehiculo.findByIdAndDelete(req.params.id);
     if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });

@@ -71,6 +71,7 @@ const gruposBase = [
       { to: "/informes/ventas", etiqueta: "Ventas", Icono: IconVentas, tono: "violet", fin: true },
       { to: "/informes/compras", etiqueta: "Compras", Icono: IconFacturaRecibida, tono: "orange" },
       { to: "/informes/iva", etiqueta: "Resumen de IVA", Icono: IconTesoreria, tono: "teal" },
+      { to: "/informes/347", etiqueta: "Modelo 347", Icono: IconLibro, tono: "amber" },
       { to: "/informes/tesoreria", etiqueta: "Tesorería", Icono: IconDocumentos, tono: "sky" },
     ],
   },

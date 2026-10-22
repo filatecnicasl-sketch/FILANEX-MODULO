@@ -7,6 +7,27 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-22",
     tipo: "nuevo",
+    titulo: "Informe del modelo 347",
+    detalle:
+      "En Informes → Modelo 347 se lista, año por año, la relación de clientes y proveedores con los que has hecho operaciones por más de 3.005,06 € (base imponible sin IVA), con desglose trimestral, exportación a CSV e impresión. Una casilla permite ver también los que no llegan al umbral, por si alguno se queda cerca y quieres revisarlo.",
+  },
+  {
+    fecha: "2026-10-22",
+    tipo: "nuevo",
+    titulo: "Gestión de la flota de cortesía en la propia página de Cortesía",
+    detalle:
+      "La página de Cortesía tiene dos pestañas: «Préstamos» (la de siempre) y «Flota», donde se ven todos los coches de sustitución, quién tiene cada uno prestado y hasta cuándo, y desde donde se añaden o se quitan coches sin ir a Vehículos. Un coche con préstamos o con órdenes de trabajo registradas no se puede borrar, para no perder el historial.",
+  },
+  {
+    fecha: "2026-10-22",
+    tipo: "mejora",
+    titulo: "Historial del vehículo: también se ven las cortesías que recibió el cliente",
+    detalle:
+      "Antes, la pestaña «Cortesías» del historial solo mostraba los préstamos en la ficha del coche de cortesía. Ahora, en la ficha del vehículo del cliente también aparece qué coche de sustitución le prestaron y entre qué fechas, con el coche en taller y los KM si se anotaron.",
+  },
+  {
+    fecha: "2026-10-22",
+    tipo: "nuevo",
     titulo: "Adjuntar documentación en el momento del alta",
     detalle:
       "Al dar de alta un suministro nuevo, su sección Documentación permite elegir contrato, factura de la comercializadora o cualquier PDF/imagen desde el primer momento: los archivos se suben solos al guardar. Lo mismo al crear un cliente nuevo: la pestaña Documentos está disponible durante el alta (también en el botón + Nuevo del selector de cliente dentro de cualquier documento), así ya no hace falta volver después a la ficha para adjuntar el DNI o la factura.",

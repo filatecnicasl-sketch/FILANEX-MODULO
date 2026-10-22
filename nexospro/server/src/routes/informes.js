@@ -411,4 +411,75 @@ router.get("/iva", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Modelo 347: relación de clientes y proveedores con los que se han hecho
+// operaciones por más de 3.005,06 € en el año natural (art. 32-33 RD 1065/2007).
+// El importe de referencia es la base imponible (sin IVA) de las facturas,
+// con desglose trimestral para poder rellenar la declaración.
+router.get("/347", async (req, res, next) => {
+  try {
+    const anyo = Number(req.query.anyo) || new Date().getFullYear();
+    const desde = `${anyo}-01-01`;
+    const hasta = `${anyo}-12-31`;
+    const query = { ...req.query, desde, hasta };
+
+    const [ventas, compras] = await Promise.all([
+      buscarVentas(query).populate("cliente", "nombre nif"),
+      buscarCompras(query).populate("proveedor", "nombre nif"),
+    ]);
+
+    const UMBRAL = 3005.06;
+    const agrupar = (facturas, campoContacto) => {
+      const grupos = new Map();
+      for (const f of facturas) {
+        const c = f[campoContacto];
+        if (!c) continue;
+        const nif = (c.nif ?? "").trim().toUpperCase();
+        const clave = nif || `SIN NIF · ${c.nombre ?? "?"}`;
+        const g = grupos.get(clave) ?? {
+          nombre: c.nombre ?? "—",
+          nif: nif || "—",
+          documentos: 0,
+          base: 0,
+          total: 0,
+          trimestres: [0, 0, 0, 0],
+        };
+        const fecha = f.fechaExpedicion ?? f.fechaRecepcion ?? f.createdAt;
+        const t = Math.min(3, Math.max(0, Math.floor(new Date(fecha).getMonth() / 3)));
+        g.documentos += 1;
+        g.base += f.baseImponible ?? 0;
+        g.total += f.total ?? 0;
+        g.trimestres[t] += f.baseImponible ?? 0;
+        grupos.set(clave, g);
+      }
+      const filas = [...grupos.values()].map((g) => ({
+        ...g,
+        base: redondear(g.base),
+        total: redondear(g.total),
+        trimestres: g.trimestres.map(redondear),
+        superaUmbral: g.base >= UMBRAL,
+      }));
+      // Por defecto solo se listan los que superan el umbral; con ?todos=1
+      // se ven también los que se quedan cerca (útil para revisar).
+      return (req.query.todos === "1" ? filas : filas.filter((f) => f.superaUmbral))
+        .sort((a, b) => b.base - a.base);
+    };
+
+    const clientes = agrupar(ventas, "cliente");
+    const proveedores = agrupar(compras, "proveedor");
+
+    res.json({
+      anyo,
+      umbral: UMBRAL,
+      clientes: {
+        filas: clientes,
+        totalBase: redondear(clientes.reduce((s, f) => s + f.base, 0)),
+      },
+      proveedores: {
+        filas: proveedores,
+        totalBase: redondear(proveedores.reduce((s, f) => s + f.base, 0)),
+      },
+    });
+  } catch (err) { next(err); }
+});
+
 export default router;

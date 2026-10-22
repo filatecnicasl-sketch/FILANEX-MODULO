@@ -106,6 +106,12 @@ export default function AyudaGeneralPage() {
           <Paso n={5}>
             <K>Informes → Tesorería</K> es el informe de conciliaciones: lista cada movimiento del extracto bancario, con qué factura(s) quedó enlazado y permite filtrar solo lo pendiente de conciliar.
           </Paso>
+          <Paso n={6}>
+            <K>Informes → Modelo 347</K> lista, año por año, los clientes y proveedores con los que has
+            hecho operaciones por más de 3.005,06 € (base imponible sin IVA), con desglose trimestral,
+            exportación a CSV e impresión. Marcando la casilla también se ven los que no llegan al
+            umbral, por si quieres revisar los que se quedan cerca.
+          </Paso>
         </Seccion>
 
         <Seccion titulo="Extractos bancarios y conciliación">

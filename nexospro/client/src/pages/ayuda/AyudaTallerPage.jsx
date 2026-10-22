@@ -158,17 +158,25 @@ export default function AyudaTallerPage() {
 
         <Seccion titulo="Coches de cortesía">
           <Paso n={1}>
-            Los vehículos de sustitución se dan de alta en <K>Vehículos</K> marcando el tipo
-            <b> «Cortesía»</b>.
+            La flota de cortesía se gestiona en <K>Cortesía → pestaña «Flota»</K>: ahí añades
+            («Añadir a la flota») o quitas los coches de sustitución. También siguen disponibles en
+            <K>Vehículos</K> con el tipo <b>«Cortesía»</b>. Un coche con préstamos o con órdenes
+            registradas no se puede borrar, para no perder el historial.
           </Paso>
           <Paso n={2}>
             El préstamo se crea desde <K>Cortesía → Nuevo préstamo</K>, desde la <b>cita</b> (botón
-            «Coche de cortesía») o al recepcionar. El buscador solo ofrece los coches de cortesía libres.
+            «Coche de cortesía») o al recepcionar. El buscador solo ofrece los coches de cortesía libres;
+            en la pestaña «Flota» se ve quién tiene cada coche prestado.
           </Paso>
           <Paso n={3}>
             Antes de imprimir el contrato, indica el <b>nivel de combustible de salida</b> en octavos (0 a 8).
             El contrato lo representa con un indicador visual de barras. Al volver el coche, pulsa
             <K> Devolver</K> y anota los KM de entrada: los vencidos se marcan en rojo solos.
+          </Paso>
+          <Paso n={4}>
+            En la ficha del <b>vehículo del cliente</b>, la pestaña «Cortesías» del historial muestra
+            qué coche de cortesía le prestaron y entre qué fechas (no solo en la ficha del coche de
+            cortesía).
           </Paso>
         </Seccion>
 

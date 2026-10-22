@@ -21,6 +21,7 @@ import TesoreriaExtractosPage from "./pages/TesoreriaExtractosPage.jsx";
 import InformesVentasPage from "./pages/informes/InformesVentasPage.jsx";
 import InformesComprasPage from "./pages/informes/InformesComprasPage.jsx";
 import InformesIvaPage from "./pages/informes/InformesIvaPage.jsx";
+import Informes347Page from "./pages/informes/Informes347Page.jsx";
 import InformesTesoreriaPage from "./pages/informes/InformesTesoreriaPage.jsx";
 import RecurrenciasPage from "./pages/RecurrenciasPage.jsx";
 import ClientesPage from "./pages/ClientesPage.jsx";
@@ -201,6 +202,7 @@ export default function App() {
           <Route path="informes/ventas" element={<InformesVentasPage />} />
           <Route path="informes/compras" element={<InformesComprasPage />} />
           <Route path="informes/iva" element={<InformesIvaPage />} />
+          <Route path="informes/347" element={<Informes347Page />} />
           <Route path="informes/tesoreria" element={<InformesTesoreriaPage />} />
           <Route path="recurrencias" element={<RecurrenciasPage />} />
           <Route path="clientes" element={<ClientesPage />} />
