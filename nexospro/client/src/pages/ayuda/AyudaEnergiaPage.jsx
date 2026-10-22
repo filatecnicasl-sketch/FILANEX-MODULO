@@ -66,6 +66,12 @@ export default function AyudaEnergiaPage() {
             la <b>tarifa</b> (2.0TD, 3.0TD… o el peaje de gas), la <b>potencia</b> en kW y el
             <b> consumo anual</b> en kWh: son los datos con los que se hace el estudio de ahorro.
           </Paso>
+          <p>
+            Rellena también la <b>fecha de alta</b> en la comercializadora y el <b>fin del contrato</b>:
+            de ahí salen los avisos de la agenda. Si al guardar la fecha de alta es anterior a hoy
+            (o el fin es anterior al alta), el programa te lo avisa para confirmar que no es un error
+            de tecleo — si es un contrato que ya estaba en vigor, simplemente acepta.
+          </p>
         </Seccion>
 
         <Seccion titulo="Trámites (Energía → Trámites)">

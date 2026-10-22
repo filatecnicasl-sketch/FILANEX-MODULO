@@ -181,6 +181,30 @@ export default function EnergiaSuministrosPage() {
 
   async function guardar(e) {
     e.preventDefault();
+    // Aviso de fechas sospechosas (propuesta Rolusur): una fecha de alta
+    // anterior a hoy suele ser un error de tecleo al dar de alta o renovar
+    // (p. ej. el año anterior), y hace que el suministro deje de aparecer
+    // en los avisos de renovación. Se confirma antes de guardar; si el
+    // contrato ya estaba en vigor, el usuario simplemente acepta.
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fa = form.fechaAlta ? new Date(`${form.fechaAlta}T00:00:00`) : null;
+    const ff = form.fechaFin ? new Date(`${form.fechaFin}T00:00:00`) : null;
+    const fmt = (d) => d.toLocaleDateString("es-ES");
+    if (fa && ff && ff < fa) {
+      const seguir = window.confirm(
+        `La fecha de fin del contrato (${fmt(ff)}) es anterior a la fecha de alta (${fmt(fa)}).\n\nPulsa Aceptar para guardar igualmente o Cancelar para corregirla.`
+      );
+      if (!seguir) return;
+    }
+    if (fa && fa < hoy) {
+      const seguir = window.confirm(
+        `La fecha de alta en la comercializadora (${fmt(fa)}) es anterior a hoy.\n\n` +
+          `Si estás registrando un contrato que ya estaba en vigor, es correcto: pulsa Aceptar.\n` +
+          `Si es un error (por ejemplo, al renovar), pulsa Cancelar y corrígela, para que el programa siga avisando de las renovaciones.`
+      );
+      if (!seguir) return;
+    }
     const cuerpo = {
       cups: form.cups,
       tipo: form.tipo,

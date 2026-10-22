@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-22",
+    tipo: "mejora",
+    titulo: "Energía: aviso al guardar fechas sospechosas en un suministro",
+    detalle:
+      "Al dar de alta o renovar un suministro, si la fecha de alta en la comercializadora es anterior a hoy, o la fecha de fin es anterior a la de alta, el programa avisa antes de guardar para confirmar que no es un error de tecleo. Así un contrato con la fecha mal puesta no pasa desapercibido y sigue apareciendo en los avisos de renovación de la agenda. Si es un contrato que ya estaba en vigor, basta con aceptar el aviso.",
+  },
+  {
+    fecha: "2026-10-22",
     tipo: "nuevo",
     titulo: "Energía: los avisos de renovación llevan al suministro",
     detalle:
