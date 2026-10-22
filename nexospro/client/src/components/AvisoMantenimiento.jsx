@@ -45,7 +45,7 @@ export default function AvisoMantenimiento() {
           <b>Mantenimiento programado:</b> el próximo <b>sábado 24 de octubre, de 8:00 a 15:00</b>,
           realizaremos mejoras en el programa y puede que no esté disponible o funcione de forma
           intermitente durante esa franja. <b>No se perderá ningún dato.</b> Te recomendamos evitar
-          tareas importantes (facturar, imprimir…) en esas horas. Gracias por tu paciencia.
+          tareas importantes (facturar, imprimir…) en esas horas. Seguimos mejorando.
         </p>
         <button
           type="button"
