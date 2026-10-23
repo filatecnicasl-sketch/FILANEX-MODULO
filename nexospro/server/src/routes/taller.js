@@ -270,10 +270,10 @@ router.post("/vehiculos", async (req, res, next) => {
 
 router.put("/vehiculos/:id", async (req, res, next) => {
   try {
-    const { matricula, marca, modelo, bastidor, color, combustible, anio, km, tipo, cliente, clienteNombre, notas } = req.body;
+    const { matricula, marca, modelo, bastidor, color, combustible, anio, km, tipo, cliente, clienteNombre, notas, fechaLlegada, fechaEntrega, renting } = req.body;
     const vehiculo = await Vehiculo.findByIdAndUpdate(
       req.params.id,
-      { matricula: normalizarMatricula(matricula), marca, modelo, bastidor, color, combustible, anio, km, tipo, cliente, clienteNombre, notas },
+      { matricula: normalizarMatricula(matricula), marca, modelo, bastidor, color, combustible, anio, km, tipo, cliente, clienteNombre, notas, fechaLlegada, fechaEntrega, renting },
       { new: true, omitUndefined: true }
     );
     if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });

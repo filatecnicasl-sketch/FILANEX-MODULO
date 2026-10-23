@@ -19,6 +19,12 @@ const vehiculoSchema = new Schema(
     anio: Number,
     km: Number,
     tipo: { type: String, enum: ["cliente", "cortesia"], default: "cliente" },
+    // Datos de gestión de la flota de cortesía (propuesta 23/10): cuándo se
+    // incorporó el coche a la flota, cuándo se devuelve (fin de renting o
+    // préstamo) y de qué empresa de renting es (vacío = propiedad).
+    fechaLlegada: Date,
+    fechaEntrega: Date,
+    renting: String,
     cliente: { type: Schema.Types.ObjectId, ref: "Cliente" },
     clienteNombre: String, // desnormalizado para listados rápidos
     notas: String,

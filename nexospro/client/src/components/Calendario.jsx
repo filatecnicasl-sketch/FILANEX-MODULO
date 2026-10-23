@@ -66,7 +66,7 @@ function Chip({ cita, compacto, onClick }) {
         e.stopPropagation();
         onClick(cita);
       }}
-      title={`${cita.hora} · ${textoCita(cita)}${cita.motivo ? ` · ${cita.motivo}` : ""}${cita.aseguradoraNombre ? ` · ${cita.aseguradoraNombre}` : ""}${cita.cortesia || cita.prestamoCortesia ? " · cortesía" : ""}`}
+      title={`${cita.hora} · ${textoCita(cita)}${[cita.vehiculoMarca, cita.vehiculoModelo].filter(Boolean).join(" ") ? ` · ${[cita.vehiculoMarca, cita.vehiculoModelo].filter(Boolean).join(" ")}` : ""}${cita.clienteNombre ? ` · ${cita.clienteNombre}` : ""}${cita.telefono ? ` · ${cita.telefono}` : ""}${cita.motivo ? ` · ${cita.motivo}` : ""}${cita.aseguradoraNombre ? ` · ${cita.aseguradoraNombre}` : ""}${cita.cortesia || cita.prestamoCortesia ? " · cortesía" : ""}`}
       className={`block w-full text-left rounded-md border px-1.5 py-0.5 truncate transition-opacity hover:opacity-75 ${
         cita.estado === "cancelada" ? "opacity-50" : ""
       } ${tono} ${compacto ? "text-[0.65625rem]" : "text-[0.71875rem]"}`}
@@ -317,9 +317,15 @@ export default function Calendario({
                             </span>
                           )}
                         </span>
-                        {(c.matricula && c.clienteNombre) || c.notas ? (
+                        {(c.matricula && c.clienteNombre) || c.notas || c.telefono || c.vehiculoMarca || c.vehiculoModelo ? (
                           <span className="block text-xs text-slate-500 truncate mt-0.5">
-                            {[c.titulo ? c.clienteNombre : c.matricula ? c.clienteNombre : null, c.lugar, c.notas].filter(Boolean).join(" · ")}
+                            {[
+                              c.clienteNombre,
+                              [c.vehiculoMarca, c.vehiculoModelo].filter(Boolean).join(" ") || null,
+                              c.telefono,
+                              c.lugar,
+                              c.notas,
+                            ].filter(Boolean).join(" · ")}
                           </span>
                         ) : null}
                       </span>

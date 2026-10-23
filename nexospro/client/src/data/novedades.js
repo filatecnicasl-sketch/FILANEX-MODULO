@@ -5,6 +5,20 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-23",
+    tipo: "mejora",
+    titulo: "Flota de cortesía: datos de gestión de cada vehículo",
+    detalle:
+      "Al añadir o editar (lápiz) un coche de la flota se registran ahora su fecha de llegada, fecha de entrega (fin de renting o préstamo; se marca en rojo si ya pasó), empresa de renting (vacío = propiedad), kilómetros, año y combustible. Todo se ve en la tabla de la pestaña «Flota».",
+  },
+  {
+    fecha: "2026-10-23",
+    tipo: "correccion",
+    titulo: "El teléfono y el modelo vuelven al tablón de peritajes",
+    detalle:
+      "En la vista Agenda de las citas de peritaje (Próximos, Día, Semana y Mes) cada cita vuelve a mostrar el teléfono del cliente y añade el modelo del vehículo debajo del nombre, para llamar sin abrir la cita. En Semana y Mes también aparecen al dejar el ratón sobre la cita.",
+  },
+  {
     fecha: "2026-10-22",
     tipo: "nuevo",
     titulo: "Informe del modelo 347",

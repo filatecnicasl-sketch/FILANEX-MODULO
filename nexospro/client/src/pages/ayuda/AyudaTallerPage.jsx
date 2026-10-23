@@ -65,6 +65,11 @@ export default function AyudaTallerPage() {
             todos los vehículos citados de un vistazo con su <b>marca y modelo</b>, matrícula, cliente,
             teléfono, compañía, nº de siniestro y si ya tiene la peritación adjunta.
           </p>
+          <p>
+            En la vista <b>Agenda</b> (Próximos, Día, Semana y Mes) cada cita muestra también el
+            <b> modelo del vehículo</b> y el <b>teléfono del cliente</b> debajo del nombre, para llamar
+            sin abrir la cita. En Semana y Mes, deja el ratón sobre una cita para verlos en el globo.
+          </p>
         </Seccion>
 
         <Seccion titulo="Recepción rápida (Panel u Órdenes → Recepción rápida)">
@@ -164,16 +169,22 @@ export default function AyudaTallerPage() {
             registradas no se puede borrar, para no perder el historial.
           </Paso>
           <Paso n={2}>
+            De cada coche de la flota se pueden registrar sus <b>datos de gestión</b>: fecha de
+            <b> llegada</b> a la flota, fecha de <b>entrega</b> (fin de renting o préstamo; se marca en
+            rojo si ya pasó), <b>empresa de renting</b> (vacío = propiedad), <b>kilómetros</b>, año y
+            combustible. Se rellenan al añadir el coche o después con el lápiz de «Editar».
+          </Paso>
+          <Paso n={3}>
             El préstamo se crea desde <K>Cortesía → Nuevo préstamo</K>, desde la <b>cita</b> (botón
             «Coche de cortesía») o al recepcionar. El buscador solo ofrece los coches de cortesía libres;
             en la pestaña «Flota» se ve quién tiene cada coche prestado.
           </Paso>
-          <Paso n={3}>
+          <Paso n={4}>
             Antes de imprimir el contrato, indica el <b>nivel de combustible de salida</b> en octavos (0 a 8).
             El contrato lo representa con un indicador visual de barras. Al volver el coche, pulsa
             <K> Devolver</K> y anota los KM de entrada: los vencidos se marcan en rojo solos.
           </Paso>
-          <Paso n={4}>
+          <Paso n={5}>
             En la ficha del <b>vehículo del cliente</b>, la pestaña «Cortesías» del historial muestra
             qué coche de cortesía le prestaron y entre qué fechas (no solo en la ficha del coche de
             cortesía).

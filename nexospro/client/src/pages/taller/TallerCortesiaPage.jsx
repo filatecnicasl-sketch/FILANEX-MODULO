@@ -15,7 +15,7 @@ export default function TallerCortesiaPage() {
   const [vista, setVista] = useState("prestamos"); // prestamos | flota
   const [error, setError] = useState(null);
   const [modalNuevo, setModalNuevo] = useState(false);
-  const [modalFlota, setModalFlota] = useState(false);
+  const [modalFlota, setModalFlota] = useState(null); // null cerrado | "nuevo" | vehículo a editar
   const [editando, setEditando] = useState(null);
   const [devolviendo, setDevolviendo] = useState(null);
   const [q, setQ] = useState("");
@@ -101,7 +101,7 @@ export default function TallerCortesiaPage() {
             Nuevo préstamo
           </button>
         ) : (
-          <button onClick={() => setModalFlota(true)} className="btn-primary">
+          <button onClick={() => setModalFlota("nuevo")} className="btn-primary">
             Añadir a la flota
           </button>
         )}
@@ -148,6 +148,10 @@ export default function TallerCortesiaPage() {
                     <th>Matrícula</th>
                     <th>Marca / modelo</th>
                     <th>Color</th>
+                    <th>Renting</th>
+                    <th>Llegada</th>
+                    <th>Entrega</th>
+                    <th className="text-right">KM</th>
                     <th>Situación</th>
                     <th className="text-right">Acciones</th>
                   </tr>
@@ -155,11 +159,22 @@ export default function TallerCortesiaPage() {
                 <tbody>
                   {flota.map((v) => {
                     const prestado = prestamoActivoPorVehiculo[String(v._id)];
+                    // Aviso si la fecha de entrega del renting/préstamo ya pasó.
+                    const entregaVencida =
+                      v.fechaEntrega && new Date(v.fechaEntrega) < new Date(new Date().toDateString());
                     return (
                       <tr key={v._id}>
                         <td className="font-bold text-white whitespace-nowrap num">{v.matricula}</td>
                         <td className="text-slate-300">{[v.marca, v.modelo].filter(Boolean).join(" ") || "—"}</td>
                         <td className="text-slate-300">{v.color || "—"}</td>
+                        <td className="text-slate-300">{v.renting || <span className="text-slate-500">Propiedad</span>}</td>
+                        <td className="text-slate-300 whitespace-nowrap num">{fmtFecha(v.fechaLlegada)}</td>
+                        <td className={`whitespace-nowrap num ${entregaVencida ? "text-red-300 font-semibold" : "text-slate-300"}`}>
+                          {fmtFecha(v.fechaEntrega)}
+                        </td>
+                        <td className="text-right text-slate-300 whitespace-nowrap num">
+                          {v.km != null ? v.km.toLocaleString("es-ES") : "—"}
+                        </td>
                         <td>
                           {prestado ? (
                             <span className="text-xs text-amber-300" title={`Devolución prevista ${fmtFecha(prestado.fechaPrevista)}`}>
@@ -170,9 +185,16 @@ export default function TallerCortesiaPage() {
                           )}
                         </td>
                         <td className="text-right whitespace-nowrap">
+                          <button
+                            onClick={() => setModalFlota(v)}
+                            title="Editar datos del vehículo"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-accent hover:bg-accent/10 transition-colors align-middle mr-2"
+                          >
+                            <IconEditar />
+                          </button>
                           {!prestado && (
                             <button onClick={() => bajaFlota(v)} className="text-xs text-rose-400 hover:underline">
-                              Quitar de la flota
+                              Quitar
                             </button>
                           )}
                         </td>
@@ -282,9 +304,10 @@ export default function TallerCortesiaPage() {
 
       {modalFlota && (
         <ModalFlotaCortesia
-          onCerrar={() => setModalFlota(false)}
-          onCreado={() => {
-            setModalFlota(false);
+          vehiculo={modalFlota === "nuevo" ? null : modalFlota}
+          onCerrar={() => setModalFlota(null)}
+          onGuardado={() => {
+            setModalFlota(null);
             cargar();
           }}
         />
@@ -390,14 +413,33 @@ function ModalDevolver({ prestamo, onCerrar, onHecho }) {
   );
 }
 
-// Alta de un vehículo a la flota de cortesía (propuesta Montiel): matrícula
-// y descripción básicos; se crea con tipo "cortesia" para que aparezca en el
-// desplegable de préstamos.
-function ModalFlotaCortesia({ onCerrar, onCreado }) {
+// Alta y edición de un vehículo de la flota de cortesía: además de los datos
+// básicos, se registran los datos de gestión (propuesta Montiel 23/10):
+// fecha de llegada a la flota, fecha de entrega (fin de renting/préstamo),
+// empresa de renting y kilómetros.
+function ModalFlotaCortesia({ vehiculo, onCerrar, onGuardado }) {
   const campo = "w-full rounded-xl bg-white/5 border border-line/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-accent/50";
-  const [form, setForm] = useState({ matricula: "", marca: "", modelo: "", color: "" });
+  const aFecha = (d) => {
+    if (!d) return "";
+    const f = new Date(d);
+    return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, "0")}-${String(f.getDate()).padStart(2, "0")}`;
+  };
+  const [form, setForm] = useState(() => ({
+    matricula: vehiculo?.matricula ?? "",
+    marca: vehiculo?.marca ?? "",
+    modelo: vehiculo?.modelo ?? "",
+    color: vehiculo?.color ?? "",
+    combustible: vehiculo?.combustible ?? "",
+    anio: vehiculo?.anio ?? "",
+    km: vehiculo?.km ?? "",
+    fechaLlegada: aFecha(vehiculo?.fechaLlegada),
+    fechaEntrega: aFecha(vehiculo?.fechaEntrega),
+    renting: vehiculo?.renting ?? "",
+  }));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
+
+  const editar = Boolean(vehiculo?._id);
 
   async function guardar(e) {
     e.preventDefault();
@@ -407,14 +449,25 @@ function ModalFlotaCortesia({ onCerrar, onCreado }) {
     }
     setGuardando(true);
     try {
-      const r = await fetch("/api/taller/vehiculos", {
-        method: "POST",
+      // Números y fechas vacíos van como null (limpia el campo), no como ""
+      // (rompería el tipo del modelo).
+      const cuerpo = {
+        ...form,
+        matricula: form.matricula.trim().toUpperCase(),
+        tipo: "cortesia",
+        anio: form.anio === "" ? null : Number(form.anio),
+        km: form.km === "" ? null : Number(form.km),
+        fechaLlegada: form.fechaLlegada || null,
+        fechaEntrega: form.fechaEntrega || null,
+      };
+      const r = await fetch(editar ? `/api/taller/vehiculos/${vehiculo._id}` : "/api/taller/vehiculos", {
+        method: editar ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, matricula: form.matricula.trim().toUpperCase(), tipo: "cortesia" }),
+        body: JSON.stringify(cuerpo),
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo guardar");
-      onCreado();
+      onGuardado();
     } catch (err) {
       setError(err.message);
       setGuardando(false);
@@ -426,9 +479,9 @@ function ModalFlotaCortesia({ onCerrar, onCreado }) {
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={guardar}
-        className="w-full max-w-lg rounded-2xl bg-[#0f172a] border border-line/60 p-6 space-y-4"
+        className="w-full max-w-lg rounded-2xl bg-[#0f172a] border border-line/60 p-6 space-y-4 max-h-[90vh] overflow-y-auto"
       >
-        <h3 className="text-lg font-bold text-white">Añadir vehículo a la flota</h3>
+        <h3 className="text-lg font-bold text-white">{editar ? "Editar vehículo de la flota" : "Añadir vehículo a la flota"}</h3>
 
         <div>
           <label className="text-sm text-slate-400 block mb-1">Matrícula *</label>
@@ -449,10 +502,76 @@ function ModalFlotaCortesia({ onCerrar, onCreado }) {
             <label className="text-sm text-slate-400 block mb-1">Modelo</label>
             <input className={campo} value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} />
           </div>
+          <div>
+            <label className="text-sm text-slate-400 block mb-1">Color</label>
+            <input className={campo} value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+          </div>
+          <div>
+            <label className="text-sm text-slate-400 block mb-1">Combustible</label>
+            <select className={campo} value={form.combustible} onChange={(e) => setForm({ ...form, combustible: e.target.value })}>
+              <option value="">—</option>
+              {["Gasolina", "Diesel", "Híbrido", "Híbrido enchufable", "Eléctrico", "GLP", "GNC"].map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="text-sm text-slate-400 block mb-1">Color</label>
-          <input className={campo} value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+
+        {/* Datos de gestión de la flota: fechas, renting y KM (propuesta 23/10) */}
+        <div className="rounded-xl border border-line/50 bg-white/5 p-4 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-accent">Gestión de la flota</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Fecha de llegada</label>
+              <input
+                type="date"
+                className={`${campo} num`}
+                value={form.fechaLlegada}
+                onChange={(e) => setForm({ ...form, fechaLlegada: e.target.value })}
+                title="Cuándo se incorporó el coche a la flota"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Fecha de entrega</label>
+              <input
+                type="date"
+                className={`${campo} num`}
+                value={form.fechaEntrega}
+                onChange={(e) => setForm({ ...form, fechaEntrega: e.target.value })}
+                title="Cuándo se devuelve (fin de renting o préstamo)"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Renting (empresa)</label>
+              <input
+                className={campo}
+                value={form.renting}
+                onChange={(e) => setForm({ ...form, renting: e.target.value })}
+                placeholder="Vacío si es propiedad"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Kilómetros</label>
+              <input
+                type="number"
+                min="0"
+                className={`${campo} num`}
+                value={form.km}
+                onChange={(e) => setForm({ ...form, km: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-400 block mb-1">Año</label>
+              <input
+                type="number"
+                min="1900"
+                max="2100"
+                className={`${campo} num`}
+                value={form.anio}
+                onChange={(e) => setForm({ ...form, anio: e.target.value })}
+              />
+            </div>
+          </div>
         </div>
 
         {error && <p className="text-sm text-rose-400">{error}</p>}
@@ -460,7 +579,7 @@ function ModalFlotaCortesia({ onCerrar, onCreado }) {
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onCerrar} className="btn-ghost">Cancelar</button>
           <button type="submit" disabled={guardando} className="btn-primary disabled:opacity-50">
-            {guardando ? "Guardando…" : "Añadir a la flota"}
+            {guardando ? "Guardando…" : editar ? "Guardar cambios" : "Añadir a la flota"}
           </button>
         </div>
       </form>
