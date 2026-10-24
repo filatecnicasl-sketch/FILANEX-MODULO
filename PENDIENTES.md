@@ -4,15 +4,15 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
 ## Sábado 24/10 (ventana de mantenimiento 8:00–15:00)
 
-- [ ] **Aplanar el repo: eliminar el directorio `nexospro/`** (plan ya escrito
-      en la conversación): rama `refactor/aplanar-repo` con `git mv` a la raíz
-      (preparar ANTES: hoy falló por carpetas locales bloqueadas — backups,
-      uploads, src — averiguar qué proceso las bloquea), backup en servidor de
-      `.env`/uploads/certificados/backups, pull, mover datos en vivo, recrear
-      pm2 con cwd `/opt/filanex/server` (crítico: storage.js usa
-      `process.cwd()`), actualizar cron y helpers. Sin tocar identificadores
-      internos (package.json, health, localStorage `nexospro-formatos-v1`,
-      nombres de BD).
+- [x] **Aplanar el repo: eliminar el directorio `nexospro/`** — HECHO 24/10.
+      Rama `refactor/aplanar-repo` fusionada a main (515 renombres, historial
+      intacto). Servidor migrado: backup previo en
+      `/root/backup-pre-aplanado-2026-10-24.tar.gz`, datos en vivo movidos
+      (.env, uploads, node_modules, client/dist), pm2 recreado con cwd
+      `/opt/filanex/server`, cron actualizado, `/opt/filanex/nexospro`
+      eliminado. Identificadores internos intactos (package.json, health,
+      localStorage `nexospro-formatos-v1`, nombres de BD). Verificado: health
+      ok, index 200, logo Montiel 401 (no 404).
 - [ ] **Desplegar el agente Nexo (AGENE IA) en este mismo servidor**
       (194.62.96.102): resuelto el acceso — yo entro como root por SSH con
       la clave `filanex_prod`; no existe usuario `ubuntu` (la máquina se
