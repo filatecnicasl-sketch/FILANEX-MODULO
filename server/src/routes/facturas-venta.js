@@ -21,6 +21,7 @@ import { envioPermitido } from "../services/verifactu-envio.js";
 import { serializarRegistro } from "../services/registro-cola.js";
 import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 import { moverStock } from "../services/stock.js";
+import { leerArchivo } from "../services/storage.js";
 
 const router = Router();
 
@@ -361,6 +362,9 @@ router.post("/:id/rectificativa", serializarRegistro, async (req, res, next) => 
     if (original.estado !== "emitida") {
       return res.status(409).json({ error: "Solo se pueden rectificar facturas emitidas" });
     }
+    if (original.verifactu?.estadoEnvio === "historica") {
+      return res.status(409).json({ error: "La factura es histórica y no se puede rectificar desde FILANEX. Corrígela según el procedimiento fiscal aplicable." });
+    }
     if (original.rectifica) {
       return res.status(409).json({ error: "No se puede rectificar una rectificativa" });
     }
@@ -620,6 +624,16 @@ router.get("/:id/pdf", async (req, res, next) => {
   try {
     const factura = await FacturaVenta.findById(req.params.id).populate("cliente", "nombre nif direccion");
     if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
+    if (factura.documentoOriginal) {
+      const ruta = factura.documentoOriginal.startsWith("/")
+        ? factura.documentoOriginal.slice(1)
+        : factura.documentoOriginal;
+      const pdf = await leerArchivo(ruta);
+      const nombre = (factura.serieNumero ?? factura._id).replace(/[^a-zA-Z0-9_.-]/g, "_");
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `inline; filename="factura-${nombre}.pdf"`);
+      return res.send(pdf);
+    }
     const empresa = await Empresa.findById(factura.empresa) ?? (await Empresa.findOne());
     const pdf = await generarPdfFactura({ empresa, factura, cliente: factura.cliente });
     const nombre = factura.serieNumero ?? factura._id;

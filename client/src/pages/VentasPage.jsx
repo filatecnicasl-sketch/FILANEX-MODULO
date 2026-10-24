@@ -446,6 +446,13 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar, onQuit
           </div>
         </div>
 
+        {f.verifactu?.estadoEnvio === "historica" && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <p>Documento histórico importado con su PDF original. No fue emitido por FILANEX ni genera un registro VeriFactu en este programa.</p>
+            {f.notaImportacion && <p className="mt-2">{f.notaImportacion}</p>}
+          </div>
+        )}
+
         {vf.huella && (
           <div className="rounded-xl border border-white/5 p-4 space-y-1.5">
             <p className="text-xs uppercase tracking-wider text-slate-500">Registro VeriFactu</p>
@@ -496,15 +503,15 @@ function DetalleFactura({ f, onCerrar, onEditar, onRectificar, onValidar, onQuit
         )}
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
-          {f.estado !== "borrador" && (
+          {f.estado !== "borrador" && vf.estadoEnvio !== "historica" && (
             <button onClick={() => descargarXmlFactura(f)} className="btn-ghost">
               XML VeriFactu
             </button>
           )}
           <button onClick={() => abrirPdfFactura(f._id)} className="btn-ghost">
-            Imprimir / PDF
+            {f.documentoOriginal ? "Ver PDF original" : "Imprimir / PDF"}
           </button>
-          {f.estado === "emitida" && !f.rectifica && (
+          {f.estado === "emitida" && !f.rectifica && f.verifactu?.estadoEnvio !== "historica" && (
             <button
               onClick={() => { onRectificar(); onCerrar(); }}
               className="inline-flex items-center gap-2 border border-amber-300 text-amber-600 font-semibold text-sm px-4 py-2 rounded-lg transition-colors hover:bg-amber-50"
@@ -855,7 +862,7 @@ export default function VentasPage() {
                       >
                         <IconPdf />
                       </button>
-                      {f.estado !== "borrador" && (
+                      {f.estado !== "borrador" && f.verifactu?.estadoEnvio !== "historica" && (
                         <button
                           onClick={() => descargarXmlFactura(f)}
                           title="Descargar XML VeriFactu"
@@ -891,7 +898,7 @@ export default function VentasPage() {
                           <IconBorrar />
                         </button>
                       )}
-                      {f.estado === "emitida" && !f.rectifica && (
+                      {f.estado === "emitida" && !f.rectifica && f.verifactu?.estadoEnvio !== "historica" && (
                         <button
                           onClick={() => accion(f._id, "rectificativa")}
                           title="Crear factura rectificativa (en negativo)"

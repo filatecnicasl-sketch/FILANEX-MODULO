@@ -134,6 +134,8 @@ const facturaVentaSchema = new Schema(
       estadoEnvio: String,
       fechaRegistro: Date,
     },
+    documentoOriginal: String,
+    notaImportacion: String,
   },
   { timestamps: true }
 );

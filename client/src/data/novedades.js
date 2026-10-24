@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-24",
+    tipo: "mejora",
+    titulo: "Ventas: importar facturas históricas conservando el PDF original",
+    detalle:
+      "Las facturas ya emitidas en otro sistema (por ejemplo, autofacturas por destinatario) pueden incorporarse a Ventas con su número, fecha e importes originales y conservar el PDF fuente. Se identifican como históricas: no se vuelven a emitir, no generan otro registro VeriFactu ni permiten crear una rectificativa desde FILANEX. El cobro queda pendiente hasta cotejar el extracto.",
+  },
+  {
     fecha: "2026-10-23",
     tipo: "mejora",
     titulo: "Flota de cortesía: datos de gestión de cada vehículo",
