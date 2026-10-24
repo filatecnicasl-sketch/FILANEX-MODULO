@@ -11,7 +11,7 @@ This file provides guidance to Verdent when working with code in this repository
 
 ## Commands
 
-Backend (`nexospro/server/`):
+Backend (`server/`):
 
 - `npm install` — install dependencies (also installs Playwright Chromium via postinstall).
 - `npm run dev` — start API with `--watch` on `PORT` (default `4700`).
@@ -19,7 +19,7 @@ Backend (`nexospro/server/`):
 - `node scripts/limpiar-pruebas.mjs` — clean temporary stress-test data/users.
 - `server\scripts\backup-mongo.cmd` — run `mongodump` to `server\backups\...`.
 
-Frontend (`nexospro/client/`):
+Frontend (`client/`):
 
 - `npm install` — install dependencies.
 - `npm run dev` — Vite dev server (default `5173`).
@@ -41,8 +41,8 @@ Production (single port):
 
 FILANEX / NEXOSPRO is a multi-tenant SaaS for invoicing, workshop management, and telephony, with an optional local/on-premise deployment.
 
-- **Backend**: Node.js + Express + Mongoose. Entry point: `nexospro/server/src/index.js`.
-- **Frontend**: React + Vite + Tailwind CSS. Entry point: `nexospro/client/src/main.jsx`.
+- **Backend**: Node.js + Express + Mongoose. Entry point: `server/src/index.js`.
+- **Frontend**: React + Vite + Tailwind CSS. Entry point: `client/src/main.jsx`.
 - **Database**: MongoDB. One platform database (`filanex_plataforma`) holds accounts and tenants; each company gets its own business database (`filanex_<slug>`).
 - **Files**: abstracted through `server/src/services/storage.js`. Local filesystem by default; switches to S3/R2-compatible storage when `R2_ENDPOINT`/`R2_ACCESS_KEY`/`R2_SECRET_KEY`/`R2_BUCKET` are set.
 - **VeriFactu**: invoice registrations are created synchronously and sent to AEAT asynchronously; a retry job (`server/src/services/verifactu-reintento.js`) handles failures in the background.
@@ -91,7 +91,7 @@ flowchart TB
 
 ## Recordatorio permanente en cada sesión
 
-Al empezar cada conversación, leer `nexospro/PENDIENTES.md` y recordarle al
+Al empezar cada conversación, leer `PENDIENTES.md` y recordarle al
 usuario en una o dos líneas los puntos que sigan sin hacer, destacando los que
 tengan plazo cercano (los marcados "antes de enero"). Hacerlo sin interrumpir
 lo que esté pidiendo en ese momento. Cuando un punto se complete, quitarlo del
@@ -102,7 +102,7 @@ archivo; cuando se acuerde algo nuevo que quede para más adelante, añadirlo.
 - **Adding a new API endpoint**: add the route file under `server/src/routes/`, import it in `server/src/routes/index.js`, and mount it after `requiereAuth`/`middlewareEmpresa` unless it must be public. Use tenant models via `modeloTenant` if you add a new collection.
 - **Adding a new frontend page**: create the component in `client/src/pages/` (or an existing submodule folder), add the route in `client/src/App.jsx`, and add the navigation link in `client/src/components/Layout.jsx`.
 - **Modifying CI/CD or deploy config**: update `render.yaml` (backend), `netlify.toml` / `client/public/_redirects` (frontend), and environment variables in `.env.example`.
-- **Running database scripts**: most scripts use `process.env.MONGODB_URI_BASE || "mongodb://localhost:27017"` and accept the database name as a CLI argument. Run them from `nexospro/server/`.
+- **Running database scripts**: most scripts use `process.env.MONGODB_URI_BASE || "mongodb://localhost:27017"` and accept the database name as a CLI argument. Run them from `server/`.
 - **Resetting atomic counters**: `node scripts/reset-contadores.mjs [dbName]` deletes the `contadors` collection; the next numbered document will re-initialize from `max + 1`.
 - **Testing PWA offline**: build the client, start the server in production mode, register the service worker, then enable airplane mode and retry queued writes.
 - **Avoid `fs` directly in routes that handle uploads**: use the storage adapter so the same code works on local disk and S3/R2.

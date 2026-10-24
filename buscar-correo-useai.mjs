@@ -2,7 +2,7 @@
 // (o cualquier correo de ellos) en el buzón IMAP configurado.
 import mongoose from "mongoose";
 import { ImapFlow } from "imapflow";
-import { descifrar } from "/opt/filanex/nexospro/server/src/services/cifrado.js";
+import { descifrar } from "/opt/filanex/server/src/services/cifrado.js";
 
 await mongoose.connect("mongodb://127.0.0.1:27017/filanex_local");
 const empresa = await mongoose.connection.db.collection("empresas").findOne({});

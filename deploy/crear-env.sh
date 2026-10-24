@@ -1,7 +1,7 @@
 #!/bin/bash
 JWT=$(openssl rand -hex 48)
 CERTS=$(openssl rand -hex 48)
-cat > /opt/filanex/nexospro/server/.env <<EOF
+cat > /opt/filanex/server/.env <<EOF
 PORT=4700
 MONGODB_URI_BASE=mongodb://localhost:27017
 BD_PLATAFORMA=filanex_plataforma
@@ -20,5 +20,5 @@ AEAT_ENTORNO=pruebas
 AEAT_CERT_PFX=
 AEAT_CERT_PASS=
 EOF
-chmod 600 /opt/filanex/nexospro/server/.env
+chmod 600 /opt/filanex/server/.env
 echo "ENV creado"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # backup-mongo.sh — Copia diaria de todas las bases de datos.
-# Se programa con cron: 0 3 * * * bash /opt/filanex/nexospro/deploy/backup-mongo.sh
+# Se programa con cron: 0 3 * * * bash /opt/filanex/deploy/backup-mongo.sh
 set -euo pipefail
 
 DEST=/opt/backups/mongo

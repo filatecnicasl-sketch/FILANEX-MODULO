@@ -6,7 +6,7 @@ import path from "path";
 
 const env = Object.fromEntries(
   fs
-    .readFileSync("/opt/filanex/nexospro/server/.env", "utf8")
+    .readFileSync("/opt/filanex/server/.env", "utf8")
     .split(/\r?\n/)
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)])
@@ -17,7 +17,7 @@ await c.connect();
 const db = c.db("filanex_local");
 
 const ORIGEN = "/tmp/verdent-pdfs";
-const DESTINO = "/opt/filanex/nexospro/server/uploads/local/documentos";
+const DESTINO = "/opt/filanex/server/uploads/local/documentos";
 fs.mkdirSync(DESTINO, { recursive: true });
 
 const archivos = fs.readdirSync(ORIGEN).filter((f) => f.endsWith(".pdf"));

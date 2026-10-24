@@ -7,7 +7,7 @@
 #
 # Uso:  ./backup-servidor.sh
 # Cron recomendado (crontab -e):
-#   15 3 * * * /opt/filanex/nexospro/server/scripts/backup-servidor.sh >> /var/log/filanex-backup.log 2>&1
+#   15 3 * * * /opt/filanex/server/scripts/backup-servidor.sh >> /var/log/filanex-backup.log 2>&1
 set -euo pipefail
 
 DESTINO=${BACKUP_SERVIDOR_DIR:-/opt/filanex/backups/mongo}

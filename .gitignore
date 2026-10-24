@@ -29,6 +29,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-secrets/  
-tmp-docgen/  
-nexospro/client/factura-taller.json  
+secrets/
+tmp-docgen/
+client/factura-taller.json

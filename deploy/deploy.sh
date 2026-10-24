@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # deploy.sh — Actualiza la app en el servidor desde GitHub.
-# Uso: bash /opt/filanex/nexospro/deploy/deploy.sh
+# Uso: bash /opt/filanex/deploy/deploy.sh
 set -euo pipefail
 
 APP_DIR=/opt/filanex
@@ -10,11 +10,11 @@ echo "==> Descargando últimos cambios"
 git pull origin main
 
 echo "==> Backend: dependencias"
-cd "$APP_DIR/nexospro/server"
+cd "$APP_DIR/server"
 npm install --omit=dev
 
 echo "==> Frontend: build"
-cd "$APP_DIR/nexospro/client"
+cd "$APP_DIR/client"
 npm install
 npm run build
 

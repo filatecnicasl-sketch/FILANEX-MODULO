@@ -8,10 +8,9 @@ Programa de facturación conectado a VeriFactu con registro automático de compr
 ## Estructura
 
 ```
-nexospro/
-  docs/     Documentación de producto
-  server/   API REST (Express + Mongoose)
-  client/   Aplicación web (React + Vite + Tailwind)
+docs/     Documentación de producto
+server/   API REST (Express + Mongoose)
+client/   Aplicación web (React + Vite + Tailwind)
 ```
 
 ## Requisito fiscal (no olvidar)

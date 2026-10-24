@@ -25,7 +25,7 @@ Crea dos registros **A** apuntando a la IP del Droplet:
 
 ```bash
 ssh root@IP_DEL_DROPLET
-curl -O https://raw.githubusercontent.com/filatecnicasl-sketch/FILANEX-MODULO/main/nexospro/deploy/setup-servidor.sh
+curl -O https://raw.githubusercontent.com/filatecnicasl-sketch/FILANEX-MODULO/main/deploy/setup-servidor.sh
 bash setup-servidor.sh
 ```
 
@@ -34,7 +34,7 @@ bash setup-servidor.sh
 ```bash
 cd /opt
 git clone https://github.com/filatecnicasl-sketch/FILANEX-MODULO.git filanex
-cd filanex/nexospro/server
+cd filanex/server
 cp .env.example .env
 nano .env
 ```
@@ -56,14 +56,14 @@ Genera claves con: `openssl rand -hex 48`
 ## 5. Dependencias y build
 
 ```bash
-cd /opt/filanex/nexospro/server && npm install --omit=dev
-cd /opt/filanex/nexospro/client && npm install && npm run build
+cd /opt/filanex/server && npm install --omit=dev
+cd /opt/filanex/client && npm install && npm run build
 ```
 
 ## 6. Nginx + HTTPS
 
 ```bash
-cp /opt/filanex/nexospro/deploy/nginx-filanex.conf /etc/nginx/sites-available/filanex
+cp /opt/filanex/deploy/nginx-filanex.conf /etc/nginx/sites-available/filanex
 ln -s /etc/nginx/sites-available/filanex /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
@@ -75,7 +75,7 @@ certbot --nginx -d app.filanex.es -d api.filanex.es
 ## 7. Arrancar con PM2
 
 ```bash
-cd /opt/filanex/nexospro/server
+cd /opt/filanex/server
 pm2 start ecosystem.config.cjs
 pm2 save
 ```
@@ -83,16 +83,16 @@ pm2 save
 ## 8. Backups automáticos
 
 ```bash
-chmod +x /opt/filanex/nexospro/deploy/*.sh
+chmod +x /opt/filanex/deploy/*.sh
 crontab -e
 # Añade:
-# 0 3 * * * bash /opt/filanex/nexospro/deploy/backup-mongo.sh >> /var/log/filanex/backup.log 2>&1
+# 0 3 * * * bash /opt/filanex/deploy/backup-mongo.sh >> /var/log/filanex/backup.log 2>&1
 ```
 
 ## 9. Crear el primer superadmin
 
 ```bash
-cd /opt/filanex/nexospro/server
+cd /opt/filanex/server
 # Opción A: registro inicial (solo funciona si no hay ninguna cuenta)
 curl -X POST https://app.filanex.es/api/auth/registro-inicial \
   -H "Content-Type: application/json" \
@@ -102,7 +102,7 @@ curl -X POST https://app.filanex.es/api/auth/registro-inicial \
 ## 10. Actualizaciones futuras
 
 ```bash
-bash /opt/filanex/nexospro/deploy/deploy.sh
+bash /opt/filanex/deploy/deploy.sh
 ```
 
 ## Escalado según crecimiento
