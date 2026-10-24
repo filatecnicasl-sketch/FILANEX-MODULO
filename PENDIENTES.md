@@ -23,16 +23,34 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
 - [ ] **Dar de alta las facturas 1T y 2T de Filatecnica** (carpeta
       `D:\Users\Francis\Desktop\ENVIO 2026`). Comprobado 22/10: las 20 ventas
       de las series 3/xxxx YA están en el programa (coinciden con los
-      informes de FacturaSOL); NO tocar el 3T (ya completo). Falta:
-      (a) compras 1T: ~42 PDFs en `1º TRIMESTRE\compra` (FilaSur, Hispamicro,
-      Ionos, Enea, ASTRD LLC, etc.); (b) compras 2T: ~39 PDFs en
-      `2º TRIMESTRE\RECIBIDAS` (incluidas Emergent/Verdent abril-junio);
-      (c) 6 ingresos por comisiones de altas: 1T `FS-26-1-01` 484,00 €,
-      `FS-26-2-01` 254,10 €, `FS-26-3-01` 1.081,16 € (AT Enterprise, en
-      `1º TRIMESTRE\venta`) y 2T `5569-26-00001` 145,20 € (GANA, facturación
-      por el destinatario), `ACI/0001` 268,62 € (Ahorreluz) y
-      `autofactura informa.pdf` (imagen sin texto, OCR pendiente). Adjuntar
-      siempre el PDF, dedupe por proveedor+número y conciliar contra extracto.
+      informes de FacturaSOL); NO tocar el 3T (ya completo).
+      **1T compras: HECHO 24/10** — 37 facturas registradas con PDF,
+      deduplicadas contra producción; creados proveedores ASTRD, ENEA DIGITAL,
+      SENDA, Talleres Chico y Borax. 3 tickets de restauración quedaron en
+      revisión (sin deducir IVA ni marcar finalidad/pago sin comprobar). Las
+      dos facturas Orange de enero y febrero ya existían y no se duplicaron.
+      El ordenador HP de Borax (factura 1-000066, 229 €) se registró como
+      compra; pago indicado «CONTADO», pendiente de conciliación bancaria.
+      **2T compras: HECHO 24/10** — Revisados 44 PDFs: 3 eran copias exactas
+      de IONOS y 5 facturas ya existían en producción. Se añadieron 36 facturas
+      con sus PDF (8 Emergent, 6 Link/Verdent, 3 Filasur, 3 Hispamicro, 12
+      IONOS, Orange abril, 2 Sangar y alojamiento Enladrillada). Todas quedan en
+      `pendiente_revision`, sin pagos ni conciliación. Las facturas USD guardan
+      su importe original y cambio BCE del día; las tres de Filasur conservan
+      retención IRPF del 15 %.
+      **Comisiones de altas: HECHO 24/10** — las seis autofacturas/liquidaciones
+      se importaron en Ventas como facturas históricas con número, fecha,
+      importes y PDF originales: AT Enterprise `FS-26-1-01` (30/01, 484,00 €),
+      `FS-26-2-01` (20/02, 254,10 €), `FS-26-3-01` (06/03, 1.081,16 €);
+      GANA `5569-26-00001` (01/06, 145,20 €); Ahorreluz `ACI/0001` (268,62 €);
+      Informa Energía `INFA202606090100864` (09/06, 135,44 €). Están marcadas
+      como históricas, sin nuevo registro VeriFactu, cobros ni conciliaciones.
+      **Pendiente cotejar cobros:** la búsqueda por importe exacto y fecha
+      aproximada en los movimientos bancarios disponibles no encontró ninguna
+      coincidencia; importar el extracto correcto de enero-junio y cotejar antes
+      de marcar como cobradas. La factura `ACI/0001` no imprime fecha de emisión:
+      se usó provisionalmente 06/05/2026 (metadato de creación del PDF), y hay
+      que confirmarla antes del cierre fiscal.
 
 ## URGENTE / Revisar con detenimiento
 
