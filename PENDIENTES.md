@@ -45,6 +45,13 @@ Lista de cosas acordadas que aún no están hechas, para retomarlas.
       GANA `5569-26-00001` (01/06, 145,20 €); Ahorreluz `ACI/0001` (268,62 €);
       Informa Energía `INFA202606090100864` (09/06, 135,44 €). Están marcadas
       como históricas, sin nuevo registro VeriFactu, cobros ni conciliaciones.
+      **Sección propia: HECHO 25/10** — las seis se reclasificaron como
+      `tipoDocumento: autofactura` con serie interna `AUTO-2026-1..6` (nueva
+      sección Ventas → Autofacturas, apartada del listado general). La mayoría
+      de las comisiones de energía y de las compañías de móvil se liquidan así
+      (facturación por el destinatario): las próximas deben registrarse en esa
+      sección, no en Facturas. La Tesorería las sigue viendo como cobros
+      pendientes.
       **Pendiente cotejar cobros:** la búsqueda por importe exacto y fecha
       aproximada en los movimientos bancarios disponibles no encontró ninguna
       coincidencia; importar el extracto correcto de enero-junio y cotejar antes
