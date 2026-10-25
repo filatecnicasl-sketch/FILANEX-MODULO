@@ -85,6 +85,17 @@ const facturaVentaSchema = new Schema(
       default: "borrador",
       index: true,
     },
+    // Tipo de documento de venta: "venta" es la factura normal; "autofactura"
+    // es la facturación por el destinatario. Es la forma habitual de liquidar
+    // las comisiones de altas de comercializadoras de energía y de compañías
+    // de telefonía/móvil: se contabilizan como ventas pero se listan y numeran
+    // aparte (serie interna AUTO-<año>).
+    tipoDocumento: {
+      type: String,
+      enum: ["venta", "autofactura"],
+      default: "venta",
+      index: true,
+    },
     // Reserva temporal de emisión: la pone /emitir antes de numerar y firmar
     // para que un doble clic o un reintento no emitan dos veces el mismo
     // borrador. Caduca sola a los 2 minutos si el proceso muere a mitad.

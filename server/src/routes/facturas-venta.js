@@ -44,6 +44,14 @@ router.get("/", async (req, res, next) => {
     if (req.query.pendientesCobro === "1") {
       filtro.estado = "emitida";
     }
+    // Las autofacturas (facturación por el destinatario) tienen su propia
+    // sección. El listado general de Ventas no las mezcla; la tesorería sí
+    // las ve (pendientesCobro) porque son cobros como cualquier otro.
+    if (req.query.tipoDocumento === "autofactura") {
+      filtro.tipoDocumento = "autofactura";
+    } else if (req.query.pendientesCobro !== "1") {
+      filtro.tipoDocumento = { $ne: "autofactura" };
+    }
     const lista = await FacturaVenta.find(filtro)
       .populate("cliente", "nombre nif iban telefono comunicaciones")
       .populate("rectifica", "serieNumero")

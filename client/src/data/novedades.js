@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-25",
+    tipo: "nuevo",
+    titulo: "Ventas: sección propia de Autofacturas con serie interna AUTO",
+    detalle:
+      "La mayoría de las comisiones de energía y de las compañías de móvil se liquidan por facturación por el destinatario. Esas autofacturas tienen ahora su propia sección en Ventas → Autofacturas, separada del listado general de facturas. Se siguen contabilizando como ventas en informes e IVA, se numeran con la serie interna AUTO-<año> conservando el número del documento original, y desde su ficha se puede ver el PDF original y registrar o quitar cobros. El listado general de Facturas ya no las mezcla; la Tesorería sigue mostrándolas como cobros pendientes.",
+  },
+  {
     fecha: "2026-10-24",
     tipo: "mejora",
     titulo: "Ventas: importar facturas históricas conservando el PDF original",

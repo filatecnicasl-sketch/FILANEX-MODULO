@@ -48,6 +48,16 @@ export default function AyudaFacturacionPage() {
             indicador «Compatible VeriFactu»). Desde la lista puedes imprimir, descargar el XML, ver el
             estado del envío y anularla si procede (la anulación genera registro de anulación, no borra).
           </p>
+          <Sub>Autofacturas (Ventas → Autofacturas)</Sub>
+          <p>
+            La mayoría de las <b>comisiones de energía y de las compañías de móvil</b> se liquidan
+            por <b>facturación por el destinatario</b>: el documento lo registra FILANEX, no lo
+            emite la compañía. Tienen su propia sección, apartada del listado general de facturas:
+            se contabilizan como ventas en informes e IVA, se numeran con la serie interna{" "}
+            <b>AUTO</b> conservando el número del documento original y no generan registro
+            VeriFactu. Desde su ficha puedes ver el PDF original y registrar los cobros cuando
+            lleguen al banco.
+          </p>
           <Nota titulo="Descuento por línea">
             Cada línea admite su propio <b>% de descuento</b>: el total del documento, la impresión y el
             PDF lo aplican automáticamente.

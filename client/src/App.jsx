@@ -6,6 +6,7 @@ import LegalPage from "./pages/LegalPage.jsx";
 import SetupWizard from "./pages/SetupWizard.jsx";
 import { obtenerToken } from "./lib/sesion.js";
 import VentasPage from "./pages/VentasPage.jsx";
+import AutofacturasPage from "./pages/AutofacturasPage.jsx";
 import PresupuestosPage from "./pages/PresupuestosPage.jsx";
 import AlbaranesPage from "./pages/AlbaranesPage.jsx";
 import ComprasPage from "./pages/ComprasPage.jsx";
@@ -185,6 +186,7 @@ export default function App() {
           <Route path="energia/autofacturas" element={<EnergiaAutofacturasPage />} />
           <Route path="energia/agenda" element={<EnergiaAgendaPage />} />
           <Route path="ventas" element={<VentasPage />} />
+          <Route path="ventas/autofacturas" element={<AutofacturasPage />} />
           <Route path="presupuestos" element={<PresupuestosPage />} />
           <Route path="albaranes" element={<AlbaranesPage />} />
           <Route path="compras" element={<Navigate to="/compras/facturas" replace />} />
