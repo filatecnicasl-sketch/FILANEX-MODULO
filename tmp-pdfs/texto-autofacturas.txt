@@ -1,0 +1,233 @@
+
+##### 1º TRIMESTRE\venta\atenterprise_autofactura_1071_FS-26-2-01.pdf
+                                                                                LIQUIDACION 3ª SEMANA FEBRERO
+Factura FS-26-2-01
+Emisión Factura: 20/02/2026
+
+
+  Datos del emisor                                                 Datos del cliente
+FILATECNICA SL                                                    AT ENTERPRISE ZOOM S.L.
+B75418350                                                         B13809793
+ESCRITOR LUIS BERENGUER 4 LOC 5                                   C/JUAN DE ORTEGA Nº9-BLQ4-12B
+(11100) SAN FERNANDO                                              (29190) MALAGA
+CADIZ ESPAÑA                                                      MALAGA
+ES2100492388172514801871                                          656607761
+
+
+
+                          DESCRIPCIÓN                        UNIDADES           IVA           PRECIO        IMPORTE
+
+GANA ENERGIA
+RESIDENCIAL TARIFA 24 HORAS DE 0 A 5000 KW                              1              21 %       70,00 €         84,70 €
+NIBA
+2.0 TD NIBA ZEN DE 0 A 15 KW                                            2              21 %      140,00 €        169,40 €
+
+   BASE IMPONIBLE              % IVA     IMPORTE IVA     % IRPF       IMPORTE IRPF              TOTAL FACTURA
+               210,00 €          21,00         44,10 €       0,00              0,00 €                           254,10 €
+
+
+
+
+                                                                                                                 Página 1/2
+                                                                                                  LIQUIDACION 3ª SEMANA FEBRERO
+                                   Factura FS-26-2-01
+                                   Emisión Factura: 20/02/2026
+
+
+                                                CONCEPTO             NIF                    NOMBRE                    CUPS
+
+                                   RESIDENCIAL TARIFA 24 HORAS    49071747M   GEMA CASTAÑEDA CARRILLO         ES0031105367424002BX0F
+                                   DE 0 A 5000 KW
+                                   2.0 TD NIBA ZEN DE 0 A 15 KW   G11239712   HERMANDAD NUESTRO PADRE JEUS    ES0031102074257001RB0F
+                                                                              NAZARENO
+                                   2.0 TD NIBA ZEN DE 0 A 15 KW   G11239712   HERMANDAD NUESTRO PADRE JEUS    ES0031102074257003RJ0F
+                                                                              NAZARENO
+
+
+
+
+                                                                                                                             Página 2/2
+Powered by TCPDF (www.tcpdf.org)
+
+##### 1º TRIMESTRE\venta\atenterprise_autofactura_1209_FS-26-3-01.pdf
+                                                                                    LIQUIDACION 1ª SEMANA MARZO
+Factura FS-26-3-01
+Emisión Factura: 06/03/2026
+
+
+  Datos del emisor                                               Datos del cliente
+FILATECNICA SL                                                  AT ENTERPRISE ZOOM S.L.
+B75418350                                                       B13809793
+ESCRITOR LUIS BERENGUER 4 LOC 5                                 C/JUAN DE ORTEGA Nº9-BLQ4-12B
+(11100) SAN FERNANDO                                            (29190) MALAGA
+CADIZ ESPAÑA                                                    MALAGA
+ES2100492388172514801871                                        656607761
+
+
+
+                         DESCRIPCIÓN                       UNIDADES           IVA           PRECIO        IMPORTE
+
+YALUZ
+3.0 FIJO PERSONALIZADO                                                1              21 %      893,52 €       1.081,16 €
+
+   BASE IMPONIBLE           % IVA      IMPORTE IVA     % IRPF       IMPORTE IRPF              TOTAL FACTURA
+             893,52 €         21,00         187,64 €       0,00              0,00 €                        1.081,16 €
+
+
+
+
+                                                                                                                Página 1/2
+                                                                                                     LIQUIDACION 1ª SEMANA MARZO
+                                   Factura FS-26-3-01
+                                   Emisión Factura: 06/03/2026
+
+
+                                              CONCEPTO              NIF                     NOMBRE                     CUPS
+
+                                   3.0 FIJO PERSONALIZADO        32859909Q   JUAN ANTONIO SIRVIENTE PRIUS      ES0031102077773002JW0F
+
+
+
+
+                                                                                                                              Página 2/2
+Powered by TCPDF (www.tcpdf.org)
+
+##### 1º TRIMESTRE\venta\atenterprise_autofactura_934_FS-26-1-01.pdf
+                                                                                                LIQUIDACION ULTIMA ENERO
+Factura FS-26-1-01
+Emisión Factura: 30/01/2026
+
+
+  Datos del emisor                                                   Datos del cliente
+FILATECNICA SL                                                      AT ENTERPRISE ZOOM S.L.
+B75418350                                                           B13809793
+ESCRITOR LUIS BERENGUER 4 LOC 5                                     C/JUAN DE ORTEGA Nº9-BLQ4-12B
+(11100) SAN FERNANDO                                                (29190) MALAGA
+CADIZ ESPAÑA                                                        MALAGA
+ES2100492388172514801871                                            656607761
+
+
+
+                          DESCRIPCIÓN                          UNIDADES           IVA              PRECIO        IMPORTE
+
+ENDESA PYMES
+3.0TD 15,01 KW A 30 KW MOBILE DE 15,01 A 30 KW                            1              21 %         175,00 €        211,75 €
+GANA ENERGIA
+RESIDENCIAL TARIFA TRAMOS DE 0 A 5000 KW                                  2              21 %         140,00 €        169,40 €
+RESIDENCIAL TARIFA TRAMOS DE 5001 A 10000 KW                              1              21 %          85,00 €        102,85 €
+
+   BASE IMPONIBLE            % IVA      IMPORTE IVA        % IRPF       IMPORTE IRPF                 TOTAL FACTURA
+               400,00 €        21,00             84,00 €       0,00              0,00 €                              484,00 €
+
+
+
+
+                                                                                                                      Página 1/2
+                                                                                                           LIQUIDACION ULTIMA ENERO
+                                   Factura FS-26-1-01
+                                   Emisión Factura: 30/01/2026
+
+
+                                               CONCEPTO               NIF                     NOMBRE                      CUPS
+
+                                   3.0TD 15,01 KW A 30 KW MOBILE   32852086J   JOSE MARIA MONTIEL MOLINA          ES0031104362356001EQ0F
+                                   DE 15,01 A 30 KW
+                                   RESIDENCIAL TARIFA TRAMOS DE    75797587Y   NATALIA GONZALEZ MEJIAS              ES0264121302388001AL
+                                   0 A 5000 KW
+                                   RESIDENCIAL TARIFA TRAMOS DE    32852191A   MARIA DEL CARMEN CASTRO MORALES    ES0031102075194004FV0F
+                                   0 A 5000 KW
+                                   RESIDENCIAL TARIFA TRAMOS DE    32852086J   JOSE MARIA MONTIEL MOLINA          ES0031101980067006AF0F
+                                   5001 A 10000 KW
+
+
+
+
+                                                                                                                                 Página 2/2
+Powered by TCPDF (www.tcpdf.org)
+
+##### 2º TRIMESTRE\autofactura\auto facura gana.pdf
+FILA TECNICA SL
+ESCRITOR LUIS BERENGUER 4 LOCL5 SAN FERNANDO
+11100 CÁDIZ
+TELÉFONO 689348148
+                                                                                                                               X S U r s p S
+C.I.F/N.I.F. B75418350
+
+
+
+
+                                                                          Y S g d S f a S q W p t a U a g q 2 q 4d
+Nº Factura: 5569-26-00001                                                  U S d d W U g d ‰ f 2 B 6 A
+Fecha 01-06-2026                                                            @ B 6 6 @ 3 t S d W f U a S t S d W f U a S
+                                                                             U a X F T E D C 7C @ A C
+
+
+
+
+                                           V W q U p a h U a ‰ f                                                         U S f r a V S V                     a e h g p r W
+
+
+                                         DESCRIPCIÓN                                                                      CANTIDAD                           IMPORTE
+Altas LUZ - 01/06/2026                                                                                            1.00                              120.00 €
+                               BASE IMPONIBLE                                                                     21 %                              120.00 €
+                               % I.V.A                                                                            21 %                              25.20 €
+                               TOTAL FACTURA                                                                      ...........................       145.20 €
+                               % I.R.P.F                                                                          0.0 %                             0.00 €
+                               LÍQUIDO A PERCIBIR                                                                 ...........................       145.20 €
+
+
+El pago se hará por transferencia a la cuenta indicada en la firma del contrato
+
+
+Facturación por el destinatario. Cláusula 5 del contrato de colaboración.
+
+
+
+
+                                                                          T S q W a e h g f a T d W                 44444444444444444444444444444
+                                                                                               %     a 4t 4S 4
+                                                                           r g r S d X S U r s p S                  44444444444444444444444444444
+                                                                                           %       a 4p 4h 4X 4
+                                                                   d ‘ i s a V g     S h W p U a T a p              44444444444444444444444444444
+
+ W Ġ Ħ ą ē ģ ı đ Ė ą İ − Ħ ģ İ Ĳ İ ą Ģ ı Ē đ İ đ Ģ ć ėą ą Ġą ć ĳ đ Ģ Ĳ ą ėĢ Đ ėć ą Đ ą đ Ģ Ġą Ē ėİ ġ ą Đ đ Ġ ć ģ Ģ Ĳ İ ą Ĳ ģ
+
+##### 2º TRIMESTRE\autofactura\autofactura informa.pdf
+
+##### 2º TRIMESTRE\autofactura\CC002056_8036_ACI0001_ALTAS.pdf
+ FILATECNICA, S.L.
+ C/ ESCRITOR LUIS BERENGUER,4,PUERTA 5
+ 11100 - SAN FERNANDO
+ CADIZ
+ B75418350
+ (8036)
+
+
+
+
+                           Cliente:       AHORRELUZ SERVICIOS ONLINE, S.L.
+                           Dirección:     Plaza Urquinaona, Nº7, Planta 3, Puerta 1
+                           Población:     08010 - Barcelona
+                           Provincia:     Barcelona
+                           CIF:           B66868902
+
+
+    NUMERO DE FACTURA                   FECHA DE FACTURA                   TIPO DE FACTURA
+             ACI/0001                                                             ALTAS
+
+                        DESCRIPCION                                              IMPORTE
+
+COMISIONES POR ALTAS (04/26)                                                                222,00 €
+
+
+
+
+                                      BASE                    I.V.A.                  TOTAL
+
+                                        222,00 €      21,00 %          46,62 €             268,62 €
+
+
+
+
+Forma de pago: transferencia bancaria a la cuenta ES21 0049/2388/17/2514801871
+

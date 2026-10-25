@@ -200,17 +200,19 @@ export default function AyudaEnergiaPage() {
           </p>
         </Seccion>
 
-        <Seccion titulo="Autofacturas (Energía → Autofacturas)">
+        <Seccion titulo="Autofacturas (Ventas → Autofacturas)">
           <p>
             Cada mes, cada comercializadora te manda su <b>autofactura</b>: la liquidación de las
-            comisiones del canal. Regístrala con su número, el mes que liquida y la base imponible; el
-            IVA y el total se calculan solos.
+            comisiones del canal. Se registra en <b>Ventas → Autofacturas</b> (la sección general
+            de facturación por el destinatario, junto al resto de facturas de venta), con su
+            número, la contraparte y la base imponible; el IVA y el total se calculan solos y se
+            conservan como ventas a efectos de informes e IVA.
           </p>
           <p>
-            Lo importante es la <b>conciliación</b>: al lado de la base verás lo que el programa calculó
-            para esa comercializadora y ese mes (apartado Comisiones) y la <b>diferencia</b>. Si no
-            cuadra, revisa si falta alguna comisión o si la comercializadora ha liquidado de menos.
-            Cuando te la pagan, márcala como cobrada.
+            Para saber si una liquidación cuadra, compárala con lo que el programa calculó para
+            esa comercializadora y ese mes en el apartado <b>Comisiones</b>. Si no cuadra,
+            revisa si falta alguna comisión o si la comercializadora ha liquidado de menos.
+            Cuando te la pagan, registra el cobro desde la propia ficha de la autofactura.
           </p>
         </Seccion>
 

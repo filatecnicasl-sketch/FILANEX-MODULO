@@ -190,7 +190,6 @@ const gruposModulos = {
       { to: "/energia/comercializadoras", etiqueta: "Comercializadoras", fin: true, Icono: IconAseguradora, tono: "teal" },
       { to: "/energia/canales", etiqueta: "Canales", fin: true, Icono: IconAseguradora, tono: "cyan" },
       { to: "/energia/comisiones", etiqueta: "Comisiones", fin: true, Icono: IconCobros, tono: "emerald" },
-      { to: "/energia/autofacturas", etiqueta: "Autofacturas", fin: true, Icono: IconDocumentos, tono: "violet" },
       { to: "/ayuda/energia", etiqueta: "Ayuda energía", fin: true, Icono: IconAyuda, tono: "slate" },
     ],
   },

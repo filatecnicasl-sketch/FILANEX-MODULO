@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-25",
+    tipo: "mejora",
+    titulo: "Autofacturas: una sola sección, en Ventas",
+    detalle:
+      "Se elimina la sección Autofacturas del módulo de Energía para evitar duplicidad: las autofacturas (comisiones de energía, móvil y demás facturación por el destinatario) se registran únicamente en Ventas → Autofacturas, con serie interna AUTO-<año>. El panel de Energía mantiene una ficha que enlaza a la nueva sección y la URL antigua /energia/autofacturas redirige automáticamente.",
+  },
+  {
+    fecha: "2026-10-25",
     tipo: "nuevo",
     titulo: "Ventas: sección propia de Autofacturas con serie interna AUTO",
     detalle:

@@ -207,7 +207,7 @@ export default function EnergiaPage() {
       to: "/energia/suministros",
       Icono: IconEnergia,
     },
-    { titulo: "Autofacturas", valor: "Liquidación", detalle: "conciliación mensual de comisiones", tono: "violet", to: "/energia/autofacturas", Icono: IconDocumentos },
+    { titulo: "Autofacturas", valor: "Liquidación", detalle: "en Ventas → Autofacturas", tono: "violet", to: "/ventas/autofacturas", Icono: IconDocumentos },
     { titulo: "Comercializadoras", valor: comercializadoras.length, detalle: "con condiciones de comisión", tono: "violet", to: "/energia/comercializadoras", Icono: IconAseguradora },
   ];
 
