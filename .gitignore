@@ -32,3 +32,9 @@ Thumbs.db
 secrets/
 tmp-docgen/
 client/factura-taller.json
+
+# Archivos temporales de trabajo (importaciones, verificaciones, deploys)
+/tmp-*
+tmp-autofacturas-historicas/
+tmp-pdfs/
+server/tmp-*.mjs
