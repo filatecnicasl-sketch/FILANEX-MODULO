@@ -214,3 +214,28 @@ export function revisarCampanaPrecios(d) {
   }
   return { ok: problemas.length === 0, problemas };
 }
+
+// Una autofactura (facturación por el destinatario) debe traer la
+// contraparte que la emitió, su número de documento e importes que cuadren:
+// de aquí salen ventas que van al modelo 303, como cualquier otra factura.
+export function revisarAutofactura(d) {
+  const problemas = [];
+  if (!d) return { ok: false, problemas: ["sin respuesta"] };
+  if (!String(d.contraparte?.nombre ?? "").trim()) problemas.push("no se ha leído la contraparte");
+  if (!String(d.numeroDocumento ?? "").trim()) problemas.push("no se ha leído el número de documento");
+  if (d.contraparte?.nif && !nifValido(d.contraparte.nif)) problemas.push("el NIF de la contraparte no es correcto");
+  if (d.fecha && !fechaRazonable(d.fecha)) problemas.push("la fecha no es válida");
+  const base = num(d.baseImponible);
+  const cuota = num(d.cuotaIva);
+  const total = num(d.total);
+  if (!(total > 0)) problemas.push("no se ha leído el importe total");
+  if (base > 0 && total > 0 && !cerca(base + cuota, total, 0.05)) {
+    problemas.push("base + IVA no cuadra con el total");
+  }
+  if (d.ivaPorcentaje != null && !TIPOS_IVA.includes(num(d.ivaPorcentaje))) {
+    problemas.push(`el tipo de IVA leído (${d.ivaPorcentaje} %) no existe en España`);
+  }
+  if (d.divisa && d.divisa !== "EUR") problemas.push("la divisa del documento no es el euro");
+  if (num(d.confianza) > 0 && num(d.confianza) < 0.55) problemas.push("lectura poco segura");
+  return { ok: problemas.length === 0, problemas };
+}

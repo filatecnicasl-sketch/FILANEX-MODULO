@@ -147,6 +147,13 @@ const facturaVentaSchema = new Schema(
     },
     documentoOriginal: String,
     notaImportacion: String,
+    // Autofacturas subidas por OCR: confianza de la lectura, PDF guardado y
+    // datos crudos extraídos, para revisarlos antes de validar el borrador.
+    ocr: {
+      confianza: Number,
+      ficheroUrl: String,
+      datosExtraidos: { type: Schema.Types.Mixed },
+    },
   },
   { timestamps: true }
 );

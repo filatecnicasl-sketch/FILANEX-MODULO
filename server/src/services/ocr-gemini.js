@@ -1,6 +1,6 @@
 import { generarJsonGemini, MODELOS_CALIDAD, MODELOS_RAPIDOS } from "./gemini.js";
 import { prepararParaOcr } from "./imagen-ocr.js";
-import { revisarTicket, revisarDocumentoCompra, revisarValoracion, revisarFacturaEnergia, revisarCampanaPrecios } from "./validar-ocr.js";
+import { revisarTicket, revisarDocumentoCompra, revisarValoracion, revisarFacturaEnergia, revisarCampanaPrecios, revisarAutofactura } from "./validar-ocr.js";
 
 // Extracción OCR de documentos con Gemini (visión).
 // Salida garantizada en JSON mediante responseSchema.
@@ -450,4 +450,60 @@ Reglas:
 // nada se publica sin que el usuario lo confirme.
 export async function extraerCampanaPrecios(fichero) {
   return generarJson(fichero, PROMPT_CAMPANA, esquemaCampanaPrecios, revisarCampanaPrecios);
+}
+
+// --- Autofacturas (facturación por el destinatario) ---
+
+const esquemaAutofactura = {
+  type: "OBJECT",
+  properties: {
+    contraparte: {
+      type: "OBJECT",
+      description: "Empresa que emitió el documento (comercializadora de energía, operador de móvil...) y a cuya cuenta va la liquidación",
+      properties: {
+        nombre: { type: "STRING" },
+        nif: { type: "STRING" },
+      },
+      required: ["nombre"],
+    },
+    numeroDocumento: { type: "STRING" },
+    fecha: { type: "STRING", description: "Fecha de emisión del documento, formato YYYY-MM-DD" },
+    fechaVencimiento: {
+      type: "STRING",
+      description:
+        "Fecha de vencimiento del pago impresa en el documento ('vencimiento', 'páguese antes del'...), formato YYYY-MM-DD. Si no la indica, omítela",
+    },
+    concepto: {
+      type: "STRING",
+      description: "Resumen corto de lo que liquidan: comisiones de altas de luz de marzo, comisiones de móvil del 2T...",
+    },
+    baseImponible: { type: "NUMBER" },
+    cuotaIva: { type: "NUMBER" },
+    ivaPorcentaje: { type: "NUMBER", description: "Porcentaje de IVA aplicado: 21, 10, 4 o 0" },
+    total: { type: "NUMBER" },
+    divisa: { type: "STRING", enum: ["EUR", "USD", "OTRA"] },
+    confianza: { type: "NUMBER", description: "De 0 (ilegible) a 1 (perfecta)" },
+  },
+  required: ["contraparte", "total", "confianza"],
+};
+
+const PROMPT_AUTOFACTURA = `Analiza el documento adjunto: es una AUTOFACTURA o LIQUIDACIÓN de comisiones que una empresa española recibe de una comercializadora de energía o de un operador de telefonía (facturación por el destinatario: el destinatario se factura a sí mismo las comisiones que la otra empresa le liquida).
+Reglas:
+- contraparte: la empresa QUE EMITE el documento y paga las comisiones (membrete, pie con registro mercantil). NO la confundas con el destinatario (la empresa que recibe la liquidación y a cuyo nombre suele ir el documento).
+- numeroDocumento: el número de factura/liquidación impreso. Cópialo EXACTAMENTE, carácter a carácter. Los números mezclan cifras y letras (p. ej. FS-26-1-01 o 5569-26-00001): distingue con mucho cuidado el cero (0) de la letra O mayúscula, y el uno (1) de las letras I, l y L. Si el PDF tiene texto seleccionable, copia el número del TEXTO REAL del documento.
+- fecha: la fecha de emisión del documento. fechaVencimiento: SOLO si el documento imprime una fecha límite de pago; nunca la inventes.
+- concepto: resume en una frase corta qué liquidan (mes y tipo de comisión si se indica).
+- Importes numéricos con punto decimal, sin símbolo de moneda ni separador de miles. baseImponible, cuotaIva y total deben cuadrar entre sí (total = base + IVA).
+- ivaPorcentaje como número (21, 10, 4 o 0).
+- divisa: la moneda de TODOS los importes (en autofacturas españolas es EUR).
+- confianza: tu seguridad global en la extracción (0 = ilegible, 1 = perfecta).
+- No inventes datos: si un campo no aparece en el documento, omítelo.`;
+
+// Lee una autofactura y devuelve los datos listos para el borrador de
+// revisión. La autofactura nace en borrador: nada se contabiliza hasta que
+// el usuario la valida.
+export async function extraerAutofactura(fichero) {
+  const extraccion = await generarJson(fichero, PROMPT_AUTOFACTURA, esquemaAutofactura, revisarAutofactura);
+  await afinarNumeroConTextoPdf(fichero, extraccion);
+  return extraccion;
 }

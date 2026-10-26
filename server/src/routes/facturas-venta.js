@@ -5,6 +5,8 @@ import Empresa from "../models/Empresa.js";
 import RegistroFacturacion from "../models/RegistroFacturacion.js";
 import { generarPdfFactura } from "../services/factura-pdf.js";
 import { calcularTotales, limpiarLineas } from "../services/totales.js";
+import { extraerAutofactura } from "../services/ocr-gemini.js";
+import { validarNIF, normalizarNIF } from "../services/validacion.js";
 import { buscarMetodoPago } from "../services/metodos-pago.js";
 import { tomarNumero, tomarNumeroFacturaVentaAtomico } from "../services/numeracion.js";
 import {
@@ -21,7 +23,12 @@ import { envioPermitido } from "../services/verifactu-envio.js";
 import { serializarRegistro } from "../services/registro-cola.js";
 import { ejercicioCerrado, errorEjercicioCerrado } from "./cierres.js";
 import { moverStock } from "../services/stock.js";
-import { leerArchivo } from "../services/storage.js";
+import { leerArchivo, guardarArchivo, urlPublica } from "../services/storage.js";
+import Cliente from "../models/Cliente.js";
+import Contador from "../models/Contador.js";
+import { contextoActual, conContexto, slugActual } from "../models/tenant.js";
+import { contextoTrasSubida } from "../middleware/empresa.js";
+import { uploadMemoria } from "../middleware/upload.js";
 
 const router = Router();
 
@@ -63,6 +70,208 @@ router.get("/", async (req, res, next) => {
     }
     res.json(resultado);
   } catch (err) {
+    next(err);
+  }
+});
+
+// --- Autofacturas (facturación por el destinatario) ---
+
+const subidaAutofactura = uploadMemoria;
+
+// Normaliza números de documento para compararlos entre sí: ignora
+// mayúsculas, espacios y separadores, y las confusiones clásicas O↔0 e I↔1.
+function claveNumeroAutofactura(numero) {
+  return String(numero ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s./_-]/g, "")
+    .replace(/O/g, "0")
+    .replace(/I/g, "1");
+}
+
+// Busca una autofactura ya registrada con el mismo número de documento
+// (el número original de la contraparte: es único por empresa emisora).
+async function autofacturaDuplicada(numero, excluirId) {
+  const n = String(numero ?? "").trim();
+  if (!n) return null;
+  const clave = claveNumeroAutofactura(n);
+  const candidatas = await FacturaVenta.find({ tipoDocumento: "autofactura" })
+    .select("serieNumero cliente estado")
+    .populate("cliente", "nombre")
+    .lean();
+  return (
+    candidatas.find(
+      (f) => String(f._id) !== String(excluirId ?? "") && claveNumeroAutofactura(f.serieNumero) === clave
+    ) ?? null
+  );
+}
+
+// Siguiente número de la serie interna AUTO-<año>, con contador atómico
+// inicializado al máximo ya usado en esa serie. Las autofacturas guardan en
+// `serieNumero` el número ORIGINAL de la contraparte, así que el máximo se
+// calcula por los campos `serie` + `numero` (no por serieNumero).
+async function siguienteNumeroAutofactura(ano) {
+  const clave = `autofactura:AUTO-${ano}`;
+  const existe = await Contador.findOne({ clave }).lean();
+  if (!existe) {
+    const usados = await FacturaVenta.find({ serie: `AUTO-${ano}` }).select("numero").lean();
+    const maximo = usados.reduce((max, d) => Math.max(max, Number(d.numero) || 0), 0);
+    await Contador.findOneAndUpdate({ clave }, { $setOnInsert: { valor: maximo } }, { upsert: true });
+  }
+  const contador = await Contador.findOneAndUpdate({ clave }, { $inc: { valor: 1 } }, { new: true });
+  return contador.valor;
+}
+
+// Sube el PDF (o foto) de una autofactura recibida, la lee con OCR y crea
+// un BORRADOR con lo extraído para revisión humana: nada se contabiliza ni
+// aparece en tesorería hasta que se valida (POST /:id/validar-autofactura).
+router.post("/autofacturas/ocr", subidaAutofactura.single("documento"), contextoTrasSubida, async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ error: "Falta el fichero (campo 'documento') o el tipo no es PDF/PNG/JPG/WEBP" });
+    }
+    const tiposValidos = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+    if (!tiposValidos.includes(req.file.mimetype)) {
+      return res
+        .status(400)
+        .json({ error: "Falta el fichero (campo 'documento') o el tipo no es PDF/PNG/JPG/WEBP" });
+    }
+    // El contexto de empresa se guarda antes de esperar al OCR: esa espera
+    // puede volver con el contexto de otra petición y las escrituras
+    // acabarían en otra base.
+    const empresaCtx = contextoActual();
+    const extraccion = await extraerAutofactura(req.file);
+
+    return await conContexto(empresaCtx, async () => {
+      const avisos = [...(extraccion._ocr?.avisos ?? [])];
+      const nombreContraparte = String(extraccion.contraparte?.nombre ?? "").trim();
+      const nifOcr = String(extraccion.contraparte?.nif ?? "").trim();
+      const numero = String(extraccion.numeroDocumento ?? "").trim();
+      const confianza = extraccion.confianza ?? 0;
+      if (confianza < 0.75) avisos.push(`Confianza OCR baja (${Math.round(confianza * 100)} %)`);
+      if (extraccion.divisa && extraccion.divisa !== "EUR") {
+        avisos.push(
+          "El documento parece no estar en euros: revísalo antes de validar (una autofactura española debe estar en EUR)."
+        );
+      }
+
+      // Mismo documento subido dos veces: no se crea un duplicado.
+      if (numero) {
+        const dup = await autofacturaDuplicada(numero);
+        if (dup) {
+          return res.status(409).json({
+            error: `Ya existe una autofactura con el número ${dup.serieNumero}${dup.cliente?.nombre ? ` (${dup.cliente.nombre})` : ""}. Si es este mismo documento, no lo subas de nuevo; si es otro distinto, revisa el número.`,
+          });
+        }
+      }
+
+      // Contraparte → cliente: se identifica por NIF (y si no, por nombre
+      // exacto, avisando). Si no existe, se da de alta con los datos leídos,
+      // igual que en la importación histórica.
+      let cliente = null;
+      if (nifOcr) {
+        cliente = await Cliente.findOne({ nif: normalizarNIF(nifOcr) });
+      }
+      if (!cliente && nombreContraparte) {
+        const objetivo = nombreContraparte.toLowerCase();
+        const candidatos = await Cliente.find({}).select("nombre").limit(2000).lean();
+        const porNombre = candidatos.find((c) => String(c.nombre ?? "").trim().toLowerCase() === objetivo);
+        if (porNombre) {
+          cliente = porNombre;
+          avisos.push(
+            "La contraparte se ha identificado por el nombre: el NIF leído no coincide con el de su ficha. Revísalo antes de validar."
+          );
+        }
+      }
+      if (!cliente) {
+        if (!nifOcr || !validarNIF(nifOcr)) {
+          return res.status(422).json({
+            error: `No se ha podido identificar a la contraparte (${nombreContraparte || "sin nombre"}, NIF "${nifOcr || "no leído"}"). Crea primero su ficha en Clientes y vuelve a subir el documento.`,
+          });
+        }
+        cliente = await Cliente.create({
+          nombre: nombreContraparte,
+          nif: normalizarNIF(nifOcr),
+          notas: "Alta automática al subir una autofactura por OCR.",
+        });
+      }
+
+      // Importes: se completan los que falten a partir de los otros y, si no
+      // cuadran, manda el total (es el dato que mejor se lee).
+      const ivaPorc = [21, 10, 4, 0].includes(Number(extraccion.ivaPorcentaje))
+        ? Number(extraccion.ivaPorcentaje)
+        : 21;
+      let base = Number(extraccion.baseImponible) || 0;
+      let cuota = Number(extraccion.cuotaIva) || 0;
+      let total = Number(extraccion.total) || 0;
+      if (!base && total && cuota) base = Math.round((total - cuota) * 100) / 100;
+      if (!cuota && base) cuota = Math.round(base * ivaPorc) / 100;
+      if (!total && base) total = Math.round((base + cuota) * 100) / 100;
+      if (!(base > 0) || !(total > 0)) {
+        return res.status(422).json({
+          error: "No se han podido leer los importes del documento. Prueba con un PDF o una foto más nítidos.",
+        });
+      }
+      if (Math.abs(base + cuota - total) > 0.05) {
+        base = Math.round((total / (1 + ivaPorc / 100)) * 100) / 100;
+        cuota = Math.round((total - base) * 100) / 100;
+        avisos.push("La base y el IVA leídos no cuadraban con el total: se han recalculado a partir del total. Revísalos.");
+      }
+
+      const fechaExpedicion =
+        extraccion.fecha && /^\d{4}-\d{2}-\d{2}$/.test(extraccion.fecha)
+          ? new Date(`${extraccion.fecha}T12:00:00`)
+          : new Date();
+      if (!extraccion.fecha) {
+        avisos.push("No se ha leído la fecha del documento: se ha puesto la de hoy. Corrígela si no es correcta.");
+      }
+      const anoDoc = fechaExpedicion.getFullYear();
+      if (await ejercicioCerrado(anoDoc)) {
+        return res.status(409).json({ error: errorEjercicioCerrado(anoDoc) });
+      }
+
+      const slug = slugActual();
+      const nombreFichero = `${Date.now()}-${req.file.originalname.replace(/[^\w.\-]+/g, "_")}`;
+      const remoto = `uploads/${slug}/documentos/${nombreFichero}`;
+      await guardarArchivo(remoto, req.file.buffer, req.file.mimetype || "application/octet-stream");
+      const ficheroUrl = urlPublica(remoto);
+
+      const empresaDoc = await Empresa.findOne();
+      const concepto =
+        String(extraccion.concepto ?? "").trim() || `Liquidación de comisiones: ${nombreContraparte}`;
+      const factura = await FacturaVenta.create({
+        empresa: empresaDoc?._id,
+        tipoDocumento: "autofactura",
+        estado: "borrador",
+        serieNumero: numero || null,
+        fechaExpedicion,
+        vencimiento: extraccion.fechaVencimiento
+          ? new Date(`${extraccion.fechaVencimiento}T12:00:00`)
+          : undefined,
+        cliente: cliente._id,
+        descripcion: concepto,
+        lineas: [{ descripcion: concepto, cantidad: 1, precioUnitario: base, iva: ivaPorc }],
+        baseImponible: base,
+        cuotaIva: cuota,
+        total,
+        metodoPago: "Transferencia",
+        documentoOriginal: ficheroUrl,
+        notaImportacion:
+          "Creada desde OCR al subir el documento. Revisa los datos y valídala: hasta entonces no cuenta en informes ni en tesorería.",
+        ocr: { confianza, ficheroUrl, datosExtraidos: { ...extraccion, avisos } },
+      });
+
+      res.status(201).json({
+        documento: conTesoreria(await factura.populate("cliente", "nombre nif")),
+        avisos,
+      });
+    });
+  } catch (err) {
+    if (err.message?.includes("GEMINI_API_KEY") || err.message?.includes("servicio de OCR")) {
+      return res.status(503).json({ error: err.message });
+    }
     next(err);
   }
 });
@@ -150,7 +359,7 @@ router.put("/:id", async (req, res, next) => {
       return res.status(422).json({ error: "El total de la factura no es válido. Revisa las líneas." });
     }
     const vencimientoNuevo = req.body.vencimiento ? inicioDelDia(req.body.vencimiento) : inicioDelDia(factura.vencimiento);
-    const fechaExpedicion = inicioDelDia(factura.fechaExpedicion);
+    const fechaExpedicion = inicioDelDia(req.body.fechaExpedicion ?? factura.fechaExpedicion);
     if (vencimientoNuevo && fechaExpedicion && vencimientoNuevo < fechaExpedicion) {
       return res.status(400).json({ error: "El vencimiento no puede ser anterior a la fecha de expedición" });
     }
@@ -166,6 +375,27 @@ router.put("/:id", async (req, res, next) => {
       vencimiento: req.body.vencimiento ? new Date(req.body.vencimiento) : factura.vencimiento,
       plazos: [],
     };
+    // Autofacturas en borrador (revisión del OCR): además de lo normal, se
+    // puede corregir el número del documento original, la fecha y el
+    // concepto leídos.
+    if (factura.tipoDocumento === "autofactura") {
+      const nuevoNumero = String(req.body.serieNumero ?? "").trim();
+      if (nuevoNumero) {
+        const dup = await autofacturaDuplicada(nuevoNumero, factura._id);
+        if (dup) {
+          return res.status(409).json({
+            error: `Ya existe una autofactura con el número ${dup.serieNumero}${dup.cliente?.nombre ? ` (${dup.cliente.nombre})` : ""}`,
+          });
+        }
+        cambios.serieNumero = nuevoNumero;
+      }
+      if (req.body.fechaExpedicion) {
+        cambios.fechaExpedicion = inicioDelDia(req.body.fechaExpedicion);
+      }
+      if (req.body.descripcion != null) {
+        cambios.descripcion = req.body.descripcion;
+      }
+    }
     if (metodo?.plazos?.length > 0) {
       const n = metodo.plazos.length;
       const parte = Math.floor((totales.total / n) * 100) / 100;
@@ -538,6 +768,36 @@ router.delete("/:id", async (req, res, next) => {
       );
     }
     res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Valida una autofactura en borrador: le asigna la serie interna AUTO-<año>
+// con su número secuencial y la activa como venta histórica (no genera
+// registro VeriFactu: el documento lo emitió la contraparte, no FILANEX).
+// Hasta aquí era solo un borrador de revisión del OCR.
+router.post("/:id/validar-autofactura", async (req, res, next) => {
+  try {
+    const factura = await FacturaVenta.findById(req.params.id);
+    if (!factura) return res.status(404).json({ error: "Factura no encontrada" });
+    if (factura.tipoDocumento !== "autofactura") {
+      return res.status(400).json({ error: "No es una autofactura" });
+    }
+    if (factura.estado !== "borrador") {
+      return res.status(409).json({ error: `La autofactura ya está ${factura.estado}` });
+    }
+    const ano = new Date(factura.fechaExpedicion ?? Date.now()).getFullYear();
+    if (await ejercicioCerrado(ano)) {
+      return res.status(409).json({ error: errorEjercicioCerrado(ano) });
+    }
+    factura.serie = `AUTO-${ano}`;
+    factura.numero = await siguienteNumeroAutofactura(ano);
+    factura.estado = "emitida";
+    factura.verifactu = { enviada: false, estadoEnvio: "historica" };
+    await factura.save();
+    const validada = await FacturaVenta.findById(factura._id).populate("cliente", "nombre nif");
+    res.json(conTesoreria(validada));
   } catch (err) {
     next(err);
   }

@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-26",
+    tipo: "nuevo",
+    titulo: "Autofacturas: alta por OCR desde el PDF",
+    detalle:
+      "En Ventas → Autofacturas, el botón «Subir autofactura (OCR)» lee el PDF que manda la comercializadora y crea un borrador con la contraparte, el número, la fecha y los importes ya rellenados. El documento queda marcado «por revisar»: en el borrador se pueden corregir todos los datos (incluso cambiar la contraparte) y, al dar a «Validar», recibe su número de la serie interna AUTO y pasa a contar en informes, IVA y tesorería. Si el mismo documento se sube dos veces, el programa avisa de que ya existe y no crea duplicados.",
+  },
+  {
     fecha: "2026-10-25",
     tipo: "mejora",
     titulo: "Autofacturas: una sola sección, en Ventas",

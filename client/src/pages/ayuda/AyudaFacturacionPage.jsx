@@ -58,6 +58,15 @@ export default function AyudaFacturacionPage() {
             VeriFactu. Desde su ficha puedes ver el PDF original y registrar los cobros cuando
             lleguen al banco.
           </p>
+          <Nota titulo="Subir autofacturas con OCR">
+            Con el botón <b>«Subir autofactura (OCR)»</b> subes el PDF que te manda la
+            comercializadora y el programa lo lee solo: crea un <b>borrador «por revisar»</b> con
+            la contraparte, el número, la fecha y los importes. Comprueba los datos en la pantalla
+            de revisión (puedes corregirlo todo, incluida la contraparte) y pulsa{" "}
+            <b>«Validar autofactura»</b>: recibirá su número de la serie AUTO y empezará a contar
+            en informes, IVA y tesorería. Si subes dos veces el mismo documento, el programa te
+            avisa de que ya existe y no lo duplica.
+          </Nota>
           <Nota titulo="Descuento por línea">
             Cada línea admite su propio <b>% de descuento</b>: el total del documento, la impresión y el
             PDF lo aplican automáticamente.
