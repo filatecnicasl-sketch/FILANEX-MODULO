@@ -136,8 +136,9 @@ router.post("/facturar", async (req, res, next) => {
       lineas,
       ...calcularTotales(lineas),
       metodoPago: metodoPagoDefecto(empresa),
-      // Vencimiento por defecto: 30 días desde la creación de la factura.
-      vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      // Vencimiento al contado (mismo día), igual que el formulario de
+      // ventas: si se quiere aplazado, se cambia en la factura borrador.
+      vencimiento: new Date(),
       origen: {
         albaranes: albaranes.map((a) => a._id),
         presupuesto: idsPresupuestos[0],

@@ -80,7 +80,8 @@ router.post("/generar", async (req, res, next) => {
           cliente: rec.cliente,
           lineas: rec.lineas,
           ...calcularTotales(rec.lineas),
-          vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          // Vencimiento al contado: igual que el resto de facturas.
+          vencimiento: new Date(),
           origen: { recurrencia: rec._id },
         });
       }

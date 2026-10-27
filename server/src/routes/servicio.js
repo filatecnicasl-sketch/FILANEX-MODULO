@@ -357,7 +357,8 @@ router.post("/ordenes/:id/facturar", async (req, res, next) => {
       lineas,
       ...totales,
       descripcion: `Orden de servicio ${orden.numero} · ${orden.aparatoDescripcion ?? ""}`.trim(),
-      vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      // Vencimiento al contado: igual que el resto de facturas.
+      vencimiento: new Date(),
       origen: { ordenServicio: orden._id, presupuesto: orden.presupuesto || undefined },
     });
 

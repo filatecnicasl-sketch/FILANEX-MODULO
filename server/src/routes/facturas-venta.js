@@ -323,10 +323,11 @@ router.post("/", async (req, res, next) => {
         ? new Date(req.body.vencimiento)
         : datos.plazos[n - 1].fecha;
     } else {
-      // Vencimiento por defecto: 30 días desde hoy si no se indica otro.
+      // Vencimiento por defecto: al contado (mismo día) si no se indica
+      // otro. Nunca 30 días automáticamente.
       datos.vencimiento = req.body.vencimiento
         ? new Date(req.body.vencimiento)
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        : new Date();
     }
     const factura = await FacturaVenta.create(datos);
     res.status(201).json(factura);
