@@ -40,7 +40,9 @@ const textoAeat = (e) => ETIQUETA_AEAT[e] ?? e ?? "pendiente de envío";
 
 function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, onCerrar }) {
   const [clientes, setClientes] = useState(clientesProp);
-  const [clienteId, setClienteId] = useState(inicial?.cliente?._id ?? inicial?.cliente ?? clientesProp[0]?._id ?? "");
+  // Al crear, el cliente empieza VACÍO: se escribe y se busca directamente,
+  // sin tener que limpiar el campo primero (propuesta de Francis).
+  const [clienteId, setClienteId] = useState(inicial?.cliente?._id ?? inicial?.cliente ?? "");
   const [lineas, setLineas] = useState(inicial?.lineas?.length ? inicial.lineas.map((linea) => ({ ...linea })) : [lineaVacia()]);
   // Vencimiento por defecto: 30 días (como RO App).
   const [vencimiento, setVencimiento] = useState(() => {

@@ -11,7 +11,9 @@ import SelectorContacto from "./SelectorContacto.jsx";
 // opcional (distinta de la fiscal).
 export default function FormDocumento({ titulo, clientes: clientesProp, url, onCreado, onCerrar, extra = {}, inicial = null }) {
   const [clientes, setClientes] = useState(clientesProp);
-  const [clienteId, setClienteId] = useState(inicial?.cliente?._id ?? inicial?.cliente ?? clientesProp[0]?._id ?? "");
+  // Al crear, el cliente empieza VACÍO: se escribe y se busca directamente,
+  // sin tener que limpiar el campo primero (propuesta de Francis).
+  const [clienteId, setClienteId] = useState(inicial?.cliente?._id ?? inicial?.cliente ?? "");
   // Alta de cliente a medias (+ Nuevo sin pulsar «Crear y seleccionar»):
   // guardar el documento sin más la perdería.
   const clientePendiente = useRef(false);

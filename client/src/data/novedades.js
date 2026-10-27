@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-27",
+    tipo: "mejora",
+    titulo: "Formularios más rápidos: cliente vacío y Enter para avanzar",
+    detalle:
+      "En albaranes, facturas, presupuestos y demás documentos, el buscador de cliente empieza ahora vacío: se escribe el nombre o NIF y se busca directamente, sin limpiar el campo antes. Y en las líneas del documento, la tecla Enter pasa al siguiente campo (cantidad, precio…), como en la entrada de datos clásica; para meter un salto de línea dentro de la descripción, Shift+Enter.",
+  },
+  {
     fecha: "2026-10-26",
     tipo: "nuevo",
     titulo: "Autofacturas: alta por OCR desde el PDF",

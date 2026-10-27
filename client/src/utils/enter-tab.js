@@ -13,13 +13,19 @@ export function enterComoTab(e, contenedor, alFinal) {
   if (e.__enterTab) return; // ya gestionado por un contenedor interior
   const el = e.target;
   if (!(el instanceof HTMLElement)) return;
-  if (!["INPUT", "SELECT"].includes(el.tagName)) return;
+  // Los campos de línea del editor de documentos son textareas (la
+  // descripción crece a varias líneas): Enter avanza igual que en los
+  // INPUT, y Shift+Enter deja el salto de línea. El resto de textareas
+  // (notas, mensajes…) conservan el comportamiento normal de Enter.
+  const esCampoLinea = el.tagName === "TEXTAREA" && el.dataset.editor === "linea";
+  if (!["INPUT", "SELECT"].includes(el.tagName) && !esCampoLinea) return;
+  if (e.shiftKey) return; // Shift+Enter = salto de línea manual
   if (["submit", "button", "checkbox", "radio", "file"].includes(el.type)) return;
 
   e.preventDefault();
   e.__enterTab = true;
   const raiz = contenedor?.current ?? el.closest("form, .panel") ?? document;
-  const campos = [...raiz.querySelectorAll("input, select")].filter(
+  const campos = [...raiz.querySelectorAll("input, select, textarea")].filter(
     (c) =>
       !c.disabled &&
       !["checkbox", "radio", "file", "submit", "button"].includes(c.type) &&
