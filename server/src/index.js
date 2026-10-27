@@ -180,6 +180,17 @@ app.use((err, req, res, next) => {
   if (err?.name === "CastError" && err?.kind === "ObjectId") {
     return res.status(400).json({ error: "Identificador no válido" });
   }
+  // Subidas demasiado grandes (documentos de clientes, facturas por OCR…):
+  // el mensaje genérico de multer es en inglés y poco claro para el usuario.
+  if (err?.name === "MulterError") {
+    const mensaje =
+      err.code === "LIMIT_FILE_SIZE"
+        ? "El archivo es demasiado grande: el máximo por archivo es de 15 MB. Escanea el documento a menor calidad o súbelo en partes."
+        : err.code === "LIMIT_FILE_COUNT"
+          ? "Demasiados archivos en una sola subida: el máximo es de 6."
+          : "No se pudo recibir el archivo. Vuelve a intentarlo.";
+    return res.status(413).json({ error: mensaje });
+  }
   if (err?.status === 403) {
     return res.status(403).json({ error: err.message });
   }

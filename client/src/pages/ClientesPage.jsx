@@ -59,6 +59,9 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
   // Documentación adjunta del cliente (NIF/CIF, escrituras, poderes…).
   const [documentos, setDocumentos] = useState(inicial?.documentos ?? []);
   const [subiendoDocs, setSubiendoDocs] = useState(false);
+  // Confirmación breve de que los documentos ya están guardados (suben al
+  // momento: no hace falta pulsar Guardar para adjuntarlos).
+  const [avisoDocs, setAvisoDocs] = useState(null);
   // Documentos elegidos durante el alta de un cliente nuevo: se suben justo
   // después de guardarlo (propuesta Rolusur — antes había que volver a su
   // ficha para adjuntarlos).
@@ -186,6 +189,10 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al subir");
       setDocumentos(datos);
+      setAvisoDocs(
+        `${datos.length === 1 ? "Documento subido y guardado" : `${datos.length} documentos subidos y guardados`}: puedes cerrar la ficha o seguir añadiendo.`
+      );
+      setTimeout(() => setAvisoDocs(null), 6000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -516,8 +523,10 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
               <div>
                 <h3 className="text-sm font-semibold text-slate-300">Documentación del cliente</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  NIF/CIF, escrituras, poderes, contratos… PDF o imágenes.
-                  {editando ? "" : " Se adjuntarán al guardar el cliente."}
+                  NIF/CIF, escrituras, poderes, contratos… PDF o imágenes (máx. 15 MB por archivo).
+                  {editando
+                    ? " Se guardan en el momento de subirlos: no hace falta pulsar Guardar."
+                    : " Se adjuntarán al guardar el cliente."}
                 </p>
               </div>
               {editando && documentos.length > 0 && (
@@ -568,6 +577,11 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
                   ))}
                 </ul>
               )}
+              {avisoDocs && (
+                <p className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                  {avisoDocs}
+                </p>
+              )}
               <label className="btn-ghost inline-flex items-center gap-2 cursor-pointer">
                 {subiendoDocs ? "Subiendo…" : "Añadir documentos"}
                 <input
@@ -585,7 +599,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
           {error && <p className="text-sm text-rose-400">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={cierre.cerrar} className="btn-ghost">Cancelar</button>
-            <button type="submit" disabled={guardando || (editando && tab !== "ficha")} className="btn-primary">
+            <button type="submit" disabled={guardando} className="btn-primary">
               {guardando ? "Guardando…" : "Guardar"}
             </button>
           </div>
