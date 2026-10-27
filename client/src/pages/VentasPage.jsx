@@ -602,6 +602,20 @@ export default function VentasPage() {
     }
   }, [facturas, params, setParams]);
 
+  // Abre el borrador en edición cuando llega ?editar=<id> (p. ej. al venir
+  // de facturar albaranes: para revisar el vencimiento antes de emitir).
+  useEffect(() => {
+    const id = params.get("editar");
+    if (!id || facturas.length === 0) return;
+    const f = facturas.find((x) => x._id === id);
+    if (f) {
+      if (f.estado === "borrador") setFacturaEditar(f);
+      else setDetalle(f);
+      params.delete("editar");
+      setParams(params, { replace: true });
+    }
+  }, [facturas, params, setParams]);
+
   const esVencida = (f) =>
     f.estado === "emitida" &&
     f.estadoCobro !== "cobrada" &&

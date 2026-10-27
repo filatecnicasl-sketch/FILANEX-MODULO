@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import CabeceraPagina from "../components/CabeceraPagina.jsx";
 import FormDocumento from "../components/FormDocumento.jsx";
 import { Badge, InputBusqueda, coincideBusqueda, euros } from "../components/ui.jsx";
@@ -179,6 +179,7 @@ function ModalFirma({ albaran, onCerrar, onFirmado }) {
 }
 
 export default function AlbaranesPage() {
+  const navegar = useNavigate();
   const [albaranes, setAlbaranes] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [seleccion, setSeleccion] = useState([]);
@@ -186,6 +187,9 @@ export default function AlbaranesPage() {
   const [editando, setEditando] = useState(null); // albarán que se edita
   const [firmando, setFirmando] = useState(null); // albarán que se está firmando
   const [error, setError] = useState(null);
+  // Factura borrador recién creada al facturar albaranes: se ofrece el
+  // enlace para revisarla (vencimiento, datos) antes de emitirla.
+  const [facturada, setFacturada] = useState(null);
   const [q, setQ] = useState("");
   const [params, setParams] = useSearchParams();
 
@@ -266,25 +270,33 @@ export default function AlbaranesPage() {
 
   async function facturarSeleccionados() {
     setError(null);
+    setFacturada(null);
     const r = await fetch("/api/albaranes-venta/facturar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: seleccion }),
     });
-    if (r.ok) await cargar();
-    else setError((await r.json()).error);
+    if (r.ok) {
+      const factura = await r.json().catch(() => null);
+      if (factura?._id) setFacturada(factura);
+      await cargar();
+    } else setError((await r.json()).error);
   }
 
   // Convierte un albarán suelto en factura BORRADOR (se valida en Ventas → Facturas).
   async function facturarUno(a) {
     setError(null);
+    setFacturada(null);
     const r = await fetch("/api/albaranes-venta/facturar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: [a._id] }),
     });
-    if (r.ok) await cargar();
-    else setError((await r.json()).error);
+    if (r.ok) {
+      const factura = await r.json().catch(() => null);
+      if (factura?._id) setFacturada(factura);
+      await cargar();
+    } else setError((await r.json()).error);
   }
 
   async function borrar(a) {
@@ -337,6 +349,30 @@ export default function AlbaranesPage() {
       </CabeceraPagina>
 
       {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+
+      {facturada && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-sm text-emerald-800">
+            <span className="font-semibold">Factura creada como borrador</span> con vencimiento al
+            contado. Puedes cambiar el vencimiento (7, 15, 30, 60 días o la fecha que quieras)
+            antes de emitirla.
+          </p>
+          <span className="flex items-center gap-2">
+            <button
+              onClick={() => navegar(`/ventas?editar=${facturada._id}`)}
+              className="btn-primary"
+            >
+              Revisar vencimiento y emitir
+            </button>
+            <button
+              onClick={() => setFacturada(null)}
+              className="text-sm text-emerald-700 hover:underline"
+            >
+              Más tarde
+            </button>
+          </span>
+        </div>
+      )}
 
       {mostrarForm && (
         <FormDocumento
