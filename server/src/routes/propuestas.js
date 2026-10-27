@@ -69,7 +69,9 @@ router.patch("/todas/:slug/:id/estado", requiereSuperAdmin, async (req, res, nex
     if (estado !== "pendiente" && respuesta) {
       cambio.respuesta = respuesta;
       cambio.respuestaFecha = new Date();
-      cambio.respondidaPor = req.usuario?.nombre || req.usuario?.email || "Soporte FILANEX";
+      // El remitente visible siempre es el soporte, sea quien sea quien
+      // conteste por dentro (regla acordada con Francis).
+      cambio.respondidaPor = "Soporte FILANEX";
     }
     const doc = await conexionTenant(tenant.dbName)
       .model("Propuesta")
