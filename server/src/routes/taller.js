@@ -678,7 +678,10 @@ router.post("/ordenes/:id/facturar", async (req, res, next) => {
         km: orden.km ?? undefined,
         fechaEntrada: orden.fechaEntrada ?? undefined,
       },
-      vencimiento: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      // Vencimiento al contado (mismo día): si se quiere aplazado, se
+      // cambia en la factura. Nunca 30 días por defecto (misma regla que
+      // el formulario de ventas).
+      vencimiento: new Date(),
       origen: {
         ordenTrabajo: orden._id,
         presupuesto: orden.presupuesto || orden.presupuestos?.[0] || undefined,

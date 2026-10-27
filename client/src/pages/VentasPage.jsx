@@ -44,13 +44,14 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
   // sin tener que limpiar el campo primero (propuesta de Francis).
   const [clienteId, setClienteId] = useState(inicial?.cliente?._id ?? inicial?.cliente ?? "");
   const [lineas, setLineas] = useState(inicial?.lineas?.length ? inicial.lineas.map((linea) => ({ ...linea })) : [lineaVacia()]);
-  // Vencimiento por defecto: 30 días (como RO App).
-  const [vencimiento, setVencimiento] = useState(() => {
-    const d = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    return inicial?.vencimiento
+  // Vencimiento por defecto: AL CONTADO (mismo día que la factura). Si se
+  // quiere aplazado, se elige en las opciones rápidas o se pone la fecha a
+  // mano (propuesta de Francis: nunca 30 días por defecto).
+  const [vencimiento, setVencimiento] = useState(() =>
+    inicial?.vencimiento
       ? new Date(inicial.vencimiento).toISOString().slice(0, 10)
-      : d.toISOString().slice(0, 10);
-  });
+      : new Date().toISOString().slice(0, 10)
+  );
   // Métodos de pago del catálogo de la empresa (Sistema → Series).
   const [metodosPago, setMetodosPago] = useState([]);
   const [metodoPago, setMetodoPago] = useState(inicial?.metodoPago ?? "");
@@ -178,6 +179,35 @@ function FormNuevaFactura({ clientes: clientesProp, inicial = null, onCreada, on
                   onChange={(e) => setVencimiento(e.target.value)}
                   className="mt-1 w-full input"
                 />
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {[
+                    { etiqueta: "Al contado", dias: 0 },
+                    { etiqueta: "7 días", dias: 7 },
+                    { etiqueta: "15 días", dias: 15 },
+                    { etiqueta: "30 días", dias: 30 },
+                    { etiqueta: "60 días", dias: 60 },
+                  ].map((o) => (
+                    <button
+                      key={o.etiqueta}
+                      type="button"
+                      onClick={() =>
+                        setVencimiento(
+                          new Date(Date.now() + o.dias * 24 * 60 * 60 * 1000)
+                            .toISOString()
+                            .slice(0, 10)
+                        )
+                      }
+                      className={`rounded-md border px-2 py-0.5 text-[0.6875rem] transition-colors ${
+                        vencimiento ===
+                        new Date(Date.now() + o.dias * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+                          ? "border-accent/60 bg-accent/10 text-accent font-semibold"
+                          : "border-slate-600/60 text-slate-400 hover:text-white hover:border-slate-500"
+                      }`}
+                    >
+                      {o.etiqueta}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="text-sm text-slate-300">Método de pago</label>

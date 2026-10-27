@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-27",
+    tipo: "correccion",
+    titulo: "Vencimiento por defecto: al contado, nunca a 30 días",
+    detalle:
+      "Las facturas nacen ahora con el vencimiento el mismo día de su expedición (al contado), en vez de los 30 días que se ponía antes. Bajo la fecha hay botones rápidos: Al contado, 7, 15, 30 y 60 días; o se escribe la fecha a mano. Vale igual al facturar una orden de taller. La factura 3-2026-39, creada con el defecto antiguo, se ha corregido a contado.",
+  },
+  {
+    fecha: "2026-10-27",
     tipo: "mejora",
     titulo: "Formularios más rápidos: cliente vacío y Enter para avanzar",
     detalle:
