@@ -2,6 +2,24 @@
 
 Lista de cosas acordadas que aún no están hechas, para retomarlas.
 
+## Retomar (28/10/2026)
+
+- [ ] **Modelo de contrato de cortesía nuevo** (pedido con imagen de ejemplo,
+      28/10): replicar el modelo de la imagen en el contrato de cortesía y
+      mantener los **datos de cabecera del taller fijos** (que no se muevan al
+      rellenar). APARCADO por el usuario ("para esto ahora y sigue luego").
+      Ya revisado el contexto: plantilla en
+      `client/src/editor/builtinTemplates.js` (buildContratoCortesia),
+      formato guardado de Montiel `_id 6aa9008e176473a9f25fc6dc` y datos
+      disponibles en `PrestamoCortesia` (cliente, permisos, franquicias,
+      km/combustible, seguros...). Prometido: **enseñárselo antes de subirlo**.
+- [ ] **Nota interna de la orden OT-000070 (7926KCX) no visible en el
+      historial** (28/10, "no lo veo bien, luego lo vemos"): el dato SÍ está
+      en la base y la versión desplegada la pinta (recuadro "Notas internas
+      de la orden"); sospecha de caché del navegador (F5 pendiente de probar
+      con el usuario). Ver con calma qué ve exactamente y dónde esperaba la
+      nota. Relacionado: idea del aviso "hay actualización, refresca".
+
 ## Sábado 24/10 (ventana de mantenimiento 8:00–15:00)
 
 - [x] **Aplanar el repo: eliminar el directorio `nexospro/`** — HECHO 24/10.
