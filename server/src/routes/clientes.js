@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import Cliente from "../models/Cliente.js";
+import Vehiculo from "../models/Vehiculo.js";
 import { siguienteCodigoFicha } from "../services/codigoFicha.js";
 import { buscarPorNif, errorNifDuplicado } from "../services/nifDuplicado.js";
 import { normalizarNIF } from "../services/validacion.js";
@@ -193,8 +194,22 @@ router.put("/:id", async (req, res, next) => {
 
 router.delete("/:id", async (req, res, next) => {
   try {
-    const cliente = await Cliente.findByIdAndDelete(req.params.id);
+    const cliente = await Cliente.findById(req.params.id);
     if (!cliente) return res.status(404).json({ error: "Cliente no encontrado" });
+    // Sus vehículos no pueden quedar huérfanos (caso del 4555LKD: al borrar
+    // al titular, el coche quedaba sin dueño pero con el nombre en texto
+    // libre, y al buscarlo por matrícula "el cliente no existe"). Si tienen
+    // historial de taller, se bloquea el borrado; si están vacíos, se
+    // borran con él.
+    const vehiculos = await Vehiculo.find({ cliente: cliente._id }).select("matricula historial");
+    const conHistorial = vehiculos.filter((v) => (v.historial ?? []).length > 0);
+    if (conHistorial.length > 0) {
+      return res.status(409).json({
+        error: `No se puede borrar: ${cliente.nombre} tiene ${conHistorial.length} vehículo(s) con historial de taller (${conHistorial.map((v) => v.matricula).join(", ")}). Borra primero ese historial o deja el cliente archivado.`,
+      });
+    }
+    await Vehiculo.deleteMany({ cliente: cliente._id });
+    await cliente.deleteOne();
     // Los documentos adjuntos también se borran del almacenamiento.
     for (const d of cliente.documentos ?? []) {
       await borrarSubida(d.url).catch(() => {});
