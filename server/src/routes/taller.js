@@ -183,6 +183,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
         { cliente: clienteId, "lineas.descripcion": { $regex: matriculaEscapada, $options: "i" } },
       ],
     })
+      .populate("cliente", "nombre")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -196,6 +197,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
         { cliente: clienteId, "lineas.descripcion": { $regex: matriculaEscapada, $options: "i" } },
       ],
     })
+      .populate("cliente", "nombre")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -216,6 +218,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
         { cliente: clienteId, "lineas.descripcion": { $regex: matriculaEscapada, $options: "i" } },
       ],
     })
+      .populate("cliente", "nombre")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -226,6 +229,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
 
     // Valoraciones de esta matrícula
     const valoraciones = await Valoracion.find({ matricula })
+      .populate("aseguradora", "nombre")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -249,6 +253,7 @@ router.get("/vehiculos/:id/documentos", async (req, res, next) => {
       citas,
       valoraciones,
       cortesias,
+      notasInternas: vehiculo.notasInternas ?? [],
     });
   } catch (err) {
     next(err);
@@ -278,6 +283,64 @@ router.put("/vehiculos/:id", async (req, res, next) => {
     );
     if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });
     res.json(vehiculo);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------- Notas internas del vehículo ----------
+// Notas que no salen en impresos. Las marcadas como aviso saltan al abrir el
+// historial del vehículo y al crear una cita con él.
+
+router.post("/vehiculos/:id/notas-internas", async (req, res, next) => {
+  try {
+    const { texto, aviso } = req.body;
+    if (!texto || !String(texto).trim()) {
+      return res.status(400).json({ error: "El texto de la nota es obligatorio" });
+    }
+    const autor = req.usuario?.nombre || req.usuario?.email || "";
+    const vehiculo = await Vehiculo.findByIdAndUpdate(
+      req.params.id,
+      { $push: { notasInternas: { texto: String(texto).trim(), aviso: Boolean(aviso), fecha: new Date(), autor } } },
+      { new: true }
+    );
+    if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });
+    res.status(201).json(vehiculo.notasInternas);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put("/vehiculos/:id/notas-internas/:notaId", async (req, res, next) => {
+  try {
+    const { texto, aviso } = req.body;
+    const cambios = {};
+    if (texto !== undefined) {
+      if (!String(texto).trim()) return res.status(400).json({ error: "El texto de la nota no puede quedar vacío" });
+      cambios["notasInternas.$.texto"] = String(texto).trim();
+    }
+    if (aviso !== undefined) cambios["notasInternas.$.aviso"] = Boolean(aviso);
+    const vehiculo = await Vehiculo.findOneAndUpdate(
+      { _id: req.params.id, "notasInternas._id": req.params.notaId },
+      { $set: cambios },
+      { new: true }
+    );
+    if (!vehiculo) return res.status(404).json({ error: "Nota no encontrada" });
+    res.json(vehiculo.notasInternas);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/vehiculos/:id/notas-internas/:notaId", async (req, res, next) => {
+  try {
+    const vehiculo = await Vehiculo.findByIdAndUpdate(
+      req.params.id,
+      { $pull: { notasInternas: { _id: req.params.notaId } } },
+      { new: true }
+    );
+    if (!vehiculo) return res.status(404).json({ error: "Vehículo no encontrado" });
+    res.json(vehiculo.notasInternas);
   } catch (err) {
     next(err);
   }

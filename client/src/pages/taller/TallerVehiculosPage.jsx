@@ -384,8 +384,11 @@ function ModalHistorial({ vehiculo, onCerrar }) {
   const [fotoGrande, setFotoGrande] = useState(null);
   const [documentoAbierto, setDocumentoAbierto] = useState(null);
   const [pestana, setPestana] = useState("ordenes");
+  const [avisoCerrado, setAvisoCerrado] = useState(false);
 
   useEffect(() => {
+    setDatos(null);
+    setAvisoCerrado(false);
     fetch(`/api/taller/vehiculos/${vehiculo._id}/documentos`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setDatos)
@@ -400,9 +403,13 @@ function ModalHistorial({ vehiculo, onCerrar }) {
     { clave: "citas", nombre: "Citas", datos: datos?.citas ?? [] },
     { clave: "valoraciones", nombre: "Valoraciones", datos: datos?.valoraciones ?? [] },
     { clave: "cortesias", nombre: "Cortesías", datos: datos?.cortesias ?? [] },
+    { clave: "notas", nombre: "Notas internas", datos: datos?.notasInternas ?? [] },
   ];
 
   const activa = PESTANAS.find((p) => p.clave === pestana);
+  // Avisos activos del vehículo: notas internas marcadas como aviso. Saltan
+  // al abrir el historial y quedan visibles mientras no se quiten.
+  const avisos = (datos?.notasInternas ?? []).filter((n) => n.aviso);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" {...fondoSeguro(onCerrar)}>
@@ -437,6 +444,23 @@ function ModalHistorial({ vehiculo, onCerrar }) {
           <p className="text-sm text-slate-500 text-center py-8">Cargando…</p>
         ) : (
           <>
+            {/* Avisos activos: banner persistente */}
+            {avisos.length > 0 && (
+              <div className="mb-3 rounded-xl border border-rose-300 bg-rose-50 px-4 py-2.5">
+                <p className="text-sm font-bold text-rose-800">
+                  {avisos.length === 1 ? "Aviso activo en este vehículo" : `${avisos.length} avisos activos en este vehículo`}
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {avisos.map((a) => (
+                    <li key={a._id} className="text-sm text-rose-700">— {a.texto}</li>
+                  ))}
+                </ul>
+                <button onClick={() => setPestana("notas")} className="mt-1 text-xs font-semibold text-rose-700 hover:underline">
+                  Gestionar en Notas internas
+                </button>
+              </div>
+            )}
+
             {/* Pestañas */}
             <div className="flex flex-wrap gap-1 mb-4 border-b border-slate-200 pb-2">
               {PESTANAS.map((p) => (
@@ -455,7 +479,13 @@ function ModalHistorial({ vehiculo, onCerrar }) {
             </div>
 
             {/* Contenido de la pestaña activa */}
-            {activa.datos.length === 0 ? (
+            {pestana === "notas" ? (
+              <NotasInternasTab
+                vehiculoId={vehiculo._id}
+                notas={datos?.notasInternas ?? []}
+                onCambio={(notas) => setDatos((d) => ({ ...(d ?? {}), notasInternas: notas }))}
+              />
+            ) : activa.datos.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-8">
                 Sin {activa.nombre.toLowerCase()} para este vehículo.
               </p>
@@ -493,9 +523,203 @@ function ModalHistorial({ vehiculo, onCerrar }) {
             doc={documentoAbierto.doc}
             tipo={documentoAbierto.tipo}
             onCerrar={() => setDocumentoAbierto(null)}
+            onFoto={setFotoGrande}
           />
         )}
+
+        {/* Aviso que salta al abrir el historial si el vehículo tiene notas
+            internas marcadas como aviso. */}
+        {datos && avisos.length > 0 && !avisoCerrado && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4" {...fondoSeguro(() => setAvisoCerrado(true))}>
+            <div
+              className="w-full max-w-md rounded-2xl border-2 border-rose-400 bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="border-b border-rose-200 bg-rose-50 px-5 py-3">
+                <p className="text-sm font-bold uppercase tracking-wide text-rose-700">
+                  Aviso de este vehículo
+                </p>
+              </div>
+              <div className="space-y-3 p-5">
+                <p className="text-sm text-slate-600">
+                  <span className="font-bold text-slate-800">{vehiculo.matricula}</span>
+                  {vehiculo.clienteNombre ? ` · ${vehiculo.clienteNombre}` : ""} tiene
+                  {avisos.length === 1 ? " un aviso activo:" : ` ${avisos.length} avisos activos:`}
+                </p>
+                <ul className="space-y-2">
+                  {avisos.map((a) => (
+                    <li key={a._id} className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                      {a.texto}
+                      <p className="mt-0.5 text-[0.6875rem] text-rose-500">
+                        {a.fecha ? new Date(a.fecha).toLocaleDateString("es-ES") : ""}
+                        {a.autor ? ` · ${a.autor}` : ""}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" onClick={() => setAvisoCerrado(true)} className="btn-primary w-full">
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+// Pestaña de notas internas del vehículo: alta, edición, borrado y
+// conversión en aviso (salta al abrir el historial y al crear una cita).
+function NotasInternasTab({ vehiculoId, notas, onCambio }) {
+  const [texto, setTexto] = useState("");
+  const [aviso, setAviso] = useState(false);
+  const [editando, setEditando] = useState(null); // { _id, texto, aviso }
+  const [error, setError] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+
+  async function llamar(metodo, ruta, cuerpo) {
+    setEnviando(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/taller/vehiculos/${vehiculoId}/notas-internas${ruta}`, {
+        method: metodo,
+        headers: { "Content-Type": "application/json" },
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+      });
+      const datos = await r.json();
+      if (!r.ok) throw new Error(datos.error || "Error al guardar");
+      onCambio(Array.isArray(datos) ? datos : []);
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function anadir(e) {
+    e.preventDefault();
+    if (!texto.trim()) return;
+    if (await llamar("POST", "", { texto, aviso })) {
+      setTexto("");
+      setAviso(false);
+    }
+  }
+
+  async function guardarEdicion() {
+    if (!editando?.texto.trim()) return;
+    if (await llamar("PUT", `/${editando._id}`, { texto: editando.texto, aviso: editando.aviso })) {
+      setEditando(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={anadir} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 block mb-2">
+          Nueva nota interna (no sale en impresos)
+        </label>
+        <textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          rows={3}
+          placeholder="P. ej.: cliente moroso con la última factura, pieza pedida y pendiente de recibir, incidencia con el turbo…"
+          className="input w-full"
+        />
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+          <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={aviso}
+              onChange={(e) => setAviso(e.target.checked)}
+              className="mt-0.5 accent-rose-600"
+            />
+            <span>
+              Convertir en aviso
+              <span className="block text-xs text-slate-500">
+                Saltará al abrir el historial y al crear una cita con este vehículo.
+              </span>
+            </span>
+          </label>
+          <button type="submit" disabled={enviando || !texto.trim()} className="btn-primary">
+            Añadir nota
+          </button>
+        </div>
+        {error && <p className="mt-2 text-sm text-rose-600">{error}</p>}
+      </form>
+
+      {notas.length === 0 ? (
+        <p className="text-sm text-slate-500 text-center py-6">
+          Sin notas internas para este vehículo.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {notas.map((n) => (
+            <li
+              key={n._id}
+              className={`rounded-xl border p-4 ${n.aviso ? "border-rose-300 bg-rose-50" : "border-slate-200 bg-white"}`}
+            >
+              {editando?._id === n._id ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editando.texto}
+                    onChange={(e) => setEditando({ ...editando, texto: e.target.value })}
+                    rows={3}
+                    className="input w-full"
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editando.aviso}
+                        onChange={(e) => setEditando({ ...editando, aviso: e.target.checked })}
+                        className="accent-rose-600"
+                      />
+                      Es un aviso
+                    </label>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setEditando(null)} className="btn-ghost">Cancelar</button>
+                      <button type="button" onClick={guardarEdicion} disabled={enviando} className="btn-primary">Guardar</button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className={`text-sm whitespace-pre-wrap ${n.aviso ? "text-rose-800" : "text-slate-700"}`}>{n.texto}</p>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[0.6875rem] text-slate-500">
+                      {n.fecha ? new Date(n.fecha).toLocaleDateString("es-ES") : ""}
+                      {n.autor ? ` · ${n.autor}` : ""}
+                      {n.aviso && <span className="ml-2 font-bold text-rose-600">AVISO ACTIVO</span>}
+                    </p>
+                    <div className="flex gap-3 text-xs">
+                      <button type="button" onClick={() => setEditando({ _id: n._id, texto: n.texto, aviso: Boolean(n.aviso) })} className="text-accent hover:underline">
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => llamar("PUT", `/${n._id}`, { aviso: !n.aviso })}
+                        className={n.aviso ? "text-slate-500 hover:underline" : "text-rose-600 hover:underline"}
+                      >
+                        {n.aviso ? "Quitar aviso" : "Hacer aviso"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.confirm("¿Borrar esta nota?") && llamar("DELETE", `/${n._id}`)}
+                        className="text-rose-400 hover:underline"
+                      >
+                        Borrar
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -680,7 +904,14 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
   );
 }
 
-function VisualizadorDocumento({ doc, tipo, onCerrar }) {
+// Visor de documento del historial: muestra el documento COMPLETO (todos sus
+// datos, líneas, fotos y firmas), no un resumen.
+function VisualizadorDocumento({ doc, tipo, onCerrar, onFoto }) {
+  const eur = (v) =>
+    v != null && v !== "" ? new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(v) : null;
+  const fCorta = (v) => (v ? new Date(v).toLocaleDateString("es-ES") : null);
+  const fHora = (v) => (v ? new Date(v).toLocaleString("es-ES") : null);
+
   const titulos = {
     ordenes: "Orden de trabajo",
     presupuestos: "Presupuesto",
@@ -691,9 +922,91 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
     cortesias: "Vehículo de cortesía",
   };
   const numero = doc.serieNumero ?? doc.numero ?? doc.numeroOrden ?? "Sin número";
-  const fecha = doc.fecha ?? doc.createdAt;
-  const lineas = doc.lineas ?? doc.trabajos ?? [];
+  const fecha = doc.fechaExpedicion ?? doc.fecha ?? doc.createdAt;
   const cliente = doc.clienteNombre ?? doc.cliente?.nombre;
+
+  // Datos propios de cada tipo de documento.
+  const campos = [];
+  const push = (etiqueta, valor) => {
+    if (valor !== null && valor !== undefined && valor !== "") campos.push([etiqueta, String(valor)]);
+  };
+
+  if (tipo === "ordenes") {
+    push("Matrícula", doc.matricula);
+    push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
+    push("KM", doc.km != null ? doc.km.toLocaleString("es-ES") : null);
+    push("Fecha entrada", fCorta(doc.fechaEntrada));
+    push("Entrega prevista", fCorta(doc.fechaEntregaPrevista));
+    push("Compañía", doc.aseguradora?.nombre);
+    push("Nº siniestro", doc.numeroSiniestro);
+    push("Franquicia", doc.franquicia ? eur(doc.franquicia) : null);
+    push("Facturar a", doc.facturarA);
+    push("Presupuesto", doc.presupuestoNumero || (doc.presupuestosNumeros ?? []).join(", "));
+    push("Factura", doc.numeroFactura);
+    push("Trabajos", (doc.trabajos ?? []).join(", "));
+  } else if (tipo === "presupuestos") {
+    push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
+    push("Validez", doc.validezDias ? `${doc.validezDias} días` : null);
+    push("Válido hasta", doc.fecha && doc.validezDias
+      ? fCorta(new Date(new Date(doc.fecha).getTime() + doc.validezDias * 86400000))
+      : null);
+  } else if (tipo === "albaranes") {
+    push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
+  } else if (tipo === "facturas") {
+    const cobrado = (doc.cobros ?? []).reduce((s, c) => s + (c.importe ?? 0), 0);
+    let estadoCobro = "pendiente";
+    if (doc.estado === "anulada") estadoCobro = "anulada";
+    else if ((doc.total ?? 0) <= 0) estadoCobro = "cobrada";
+    else if (cobrado <= 0) estadoCobro = "pendiente";
+    else if (cobrado + 0.005 < (doc.total ?? 0)) estadoCobro = `parcial (${eur(cobrado)} de ${eur(doc.total)})`;
+    else estadoCobro = "cobrada";
+    push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
+    push("Cobro", estadoCobro);
+    push("Vencimiento", fCorta(doc.vencimiento));
+    push("Método de pago", doc.metodoPago);
+    push("Matrícula", doc.matricula);
+    push("Orden", doc.taller?.orden);
+    push("Compañía", doc.taller?.aseguradora);
+    push("Siniestro", doc.taller?.siniestro);
+  } else if (tipo === "citas") {
+    push("Fecha", fCorta(doc.fecha));
+    push("Hora", doc.hora);
+    push("Duración", doc.duracion ? `${doc.duracion} min` : null);
+    push("Tipo", doc.tipo === "peritaje" ? "Peritaje" : "Recepción / entrega");
+    push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
+    push("Entrega prevista", fCorta(doc.entregaPrevista));
+    push("Teléfono", doc.telefono);
+    push("Aseguradora", doc.aseguradoraNombre);
+    push("Nº siniestro", doc.numeroSiniestro);
+    push("Franquicia", doc.franquicia ? eur(doc.franquicia) : null);
+    push("Cortesía reservada", doc.cortesiaMatricula);
+  } else if (tipo === "valoraciones") {
+    push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
+    push("Aseguradora", doc.aseguradora?.nombre);
+    push("Compromiso de reparación", doc.compromiso ? "Sí" : "No");
+    push("Total valoración", eur(doc.total));
+  } else if (tipo === "cortesias") {
+    push("Cortesía prestada", [doc.vehiculo?.matricula ?? doc.matricula, [doc.vehiculo?.marca, doc.vehiculo?.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" · "));
+    push("Coche en taller", doc.vehiculoReparacionMatricula);
+    push("Orden", doc.numeroOrden);
+    push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
+    push("Salida", fHora(doc.fechaSalida));
+    push("Devolución", fHora(doc.fechaDevolucion) ?? (doc.fechaPrevista ? `${fCorta(doc.fechaPrevista)} (prevista)` : null));
+    push("KM salida", doc.kmSalida != null ? doc.kmSalida.toLocaleString("es-ES") : null);
+  }
+
+  // Líneas comerciales (presupuestos, albaranes, facturas y órdenes): detalle
+  // completo con cantidades, precios, descuentos e importes.
+  const conLineasComerciales = ["ordenes", "presupuestos", "albaranes", "facturas"].includes(tipo);
+  const lineas = conLineasComerciales ? doc.lineas ?? [] : [];
+  const importeLinea = (l) =>
+    Number(l.cantidad || 0) * Number(l.precioUnitario || 0) * (1 - (l.descuento || 0) / 100);
+
+  const fotosRecepcion = tipo === "ordenes" ? doc.recepcionDigital?.fotos ?? [] : [];
+  const fotosEntrega = tipo === "ordenes" ? doc.entrega?.fotos ?? [] : [];
+  const fotosSueltas = tipo !== "ordenes" ? doc.fotos ?? [] : [];
+  const firmaRecepcion = tipo === "ordenes" ? doc.recepcionDigital?.firma : null;
+  const firmaAlbaran = tipo === "albaranes" ? doc.firmaEntrega : null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4" {...fondoSeguro(onCerrar)}>
@@ -711,25 +1024,13 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
         </div>
 
         <div className="space-y-5 p-6">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {doc.matricula && <DatoDocumento etiqueta="Matrícula" valor={doc.matricula} />}
-            {doc.estado && <DatoDocumento etiqueta="Estado" valor={String(doc.estado).replace(/_/g, " ")} />}
-            {doc.total != null && <DatoDocumento etiqueta="Total" valor={new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(doc.total)} />}
-            {doc.hora && <DatoDocumento etiqueta="Hora" valor={doc.hora} />}
-            {doc.km != null && <DatoDocumento etiqueta="Kilómetros" valor={doc.km} />}
-            {doc.numeroSiniestro && <DatoDocumento etiqueta="Nº siniestro" valor={doc.numeroSiniestro} />}
-            {(doc.compania || doc.aseguradora?.nombre) && (
-              <DatoDocumento etiqueta="Compañía" valor={doc.compania ?? doc.aseguradora?.nombre} />
-            )}
-            {doc.fechaDesde && <DatoDocumento etiqueta="Desde" valor={new Date(doc.fechaDesde).toLocaleDateString("es-ES")} />}
-            {doc.fechaHasta && <DatoDocumento etiqueta="Hasta" valor={new Date(doc.fechaHasta).toLocaleDateString("es-ES")} />}
-            {doc.vehiculoReparacionMatricula && (
-              <DatoDocumento etiqueta="Coche en taller" valor={doc.vehiculoReparacionMatricula} />
-            )}
-            {doc.fechaSalida && <DatoDocumento etiqueta="Salida cortesía" valor={new Date(doc.fechaSalida).toLocaleDateString("es-ES")} />}
-            {doc.fechaDevolucion && <DatoDocumento etiqueta="Devolución" valor={new Date(doc.fechaDevolucion).toLocaleDateString("es-ES")} />}
-            {doc.kmSalida != null && <DatoDocumento etiqueta="KM salida" valor={String(doc.kmSalida)} />}
-          </div>
+          {campos.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {campos.map(([etiqueta, valor]) => (
+                <DatoDocumento key={etiqueta} etiqueta={etiqueta} valor={valor} />
+              ))}
+            </div>
+          )}
 
           {(doc.motivo || doc.descripcion || doc.observaciones) && (
             <div className="rounded-xl bg-slate-50 p-4">
@@ -747,38 +1048,277 @@ function VisualizadorDocumento({ doc, tipo, onCerrar }) {
             </div>
           )}
 
-          {doc.entrega?.notas && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">Tareas pendientes</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-amber-800">{doc.entrega.notas}</p>
+          {/* Orden: notas internas (no salen en impresos) */}
+          {tipo === "ordenes" && doc.notasInternas && (
+            <div className="rounded-xl border border-slate-300 bg-slate-100 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">Notas internas de la orden</p>
+              <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{doc.notasInternas}</p>
             </div>
           )}
 
+          {/* Orden: datos de la entrega */}
+          {tipo === "ordenes" && doc.entrega && (doc.entrega.fecha || doc.entrega.fechaEntrega || doc.entrega.clienteAvisado || doc.entrega.notas) && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Entrega</p>
+              <div className="grid gap-2 sm:grid-cols-2 text-sm text-emerald-900">
+                {doc.entrega.fecha && <p><span className="font-semibold">Trabajo terminado:</span> {fHora(doc.entrega.fecha)}</p>}
+                {doc.entrega.fechaEntrega && <p><span className="font-semibold">Entregado al cliente:</span> {fHora(doc.entrega.fechaEntrega)}</p>}
+                {doc.entrega.clienteAvisado && (
+                  <p><span className="font-semibold">Cliente avisado:</span> {fHora(doc.entrega.avisoFecha) ?? "sí"}
+                    {doc.entrega.avisoMedio ? ` (${doc.entrega.avisoMedio.replace(/_/g, " ")})` : ""}</p>
+                )}
+              </div>
+              {doc.entrega.notas && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">Tareas pendientes</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-amber-800">{doc.entrega.notas}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Órdenes: horas invertidas por operario */}
+          {tipo === "ordenes" && doc.tiempos?.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Horas invertidas</div>
+              <div className="divide-y divide-slate-100">
+                {doc.tiempos.map((t, i) => (
+                  <div key={i} className="flex items-start justify-between gap-4 px-4 py-2.5">
+                    <div>
+                      <p className="text-sm text-slate-700">{t.operarioNombre || "Operario"}</p>
+                      <p className="text-xs text-slate-500">
+                        {fCorta(t.fecha)}{t.nota ? ` · ${t.nota}` : ""}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-slate-900">{t.horas} h</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Órdenes: materiales cargados de albaranes de compra */}
+          {tipo === "ordenes" && doc.albaranesCompra?.length > 0 && (
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Materiales (albaranes de compra)</p>
+              <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                {doc.albaranesCompra.map((m, i) => (
+                  <li key={i}>
+                    {m.numero || "Albarán"}{m.fecha ? ` · ${fCorta(m.fecha)}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Líneas comerciales completas */}
           {lineas.length > 0 && (
             <div className="overflow-hidden rounded-xl border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Detalle</div>
-              <div className="divide-y divide-slate-100">
-                {lineas.map((linea, indice) => {
-                  const descripcion = typeof linea === "string" ? linea : linea.descripcion ?? linea.nombre ?? "Trabajo";
-                  const importe = typeof linea === "object" ? linea.total ?? (Number(linea.cantidad || 0) * Number(linea.precio || 0)) : null;
-                  return (
-                    <div key={linea._id ?? indice} className="flex items-start justify-between gap-4 px-4 py-3">
-                      <span className="text-sm text-slate-700">{descripcion}</span>
-                      {importe != null && importe !== 0 && (
-                        <span className="shrink-0 text-sm font-semibold text-slate-900">
-                          {new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(importe)}
-                        </span>
-                      )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400">
+                      <th className="px-4 py-2">Descripción</th>
+                      <th className="px-2 py-2 text-right">Cant.</th>
+                      <th className="px-2 py-2 text-right">Precio</th>
+                      <th className="px-2 py-2 text-right">Dto %</th>
+                      <th className="px-2 py-2 text-right">IVA %</th>
+                      <th className="px-4 py-2 text-right">Importe</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {lineas.map((l, i) => (
+                      <tr key={i}>
+                        <td className="px-4 py-2.5 text-slate-700">
+                          {l.descripcion}
+                          {l.detalle && <p className="mt-0.5 whitespace-pre-wrap text-xs text-slate-500">{l.detalle}</p>}
+                          {l.grupo && <p className="mt-0.5 text-[0.6875rem] text-slate-400">{l.grupo}</p>}
+                        </td>
+                        <td className="px-2 py-2.5 text-right text-slate-600 tabular-nums">{l.cantidad ?? 1}</td>
+                        <td className="px-2 py-2.5 text-right text-slate-600 tabular-nums">{eur(l.precioUnitario)}</td>
+                        <td className="px-2 py-2.5 text-right text-slate-600 tabular-nums">{l.descuento ? l.descuento : ""}</td>
+                        <td className="px-2 py-2.5 text-right text-slate-600 tabular-nums">{l.iva ?? ""}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-slate-900 tabular-nums">{eur(importeLinea(l))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {(doc.baseImponible != null || doc.total != null) && (
+                <div className="space-y-1 border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                  {doc.baseImponible != null && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>Base imponible</span>
+                      <span className="tabular-nums">{eur(doc.baseImponible)}</span>
                     </div>
-                  );
-                })}
+                  )}
+                  {doc.cuotaIva != null && (
+                    <div className="flex justify-between text-slate-600">
+                      <span>IVA</span>
+                      <span className="tabular-nums">{eur(doc.cuotaIva)}</span>
+                    </div>
+                  )}
+                  {doc.total != null && (
+                    <div className="flex justify-between text-base font-bold text-slate-900">
+                      <span>Total</span>
+                      <span className="tabular-nums">{eur(doc.total)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Citas: reparaciones a realizar (hoja de entrada) */}
+          {tipo === "citas" && doc.lineas?.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Reparaciones a realizar</div>
+              <div className="divide-y divide-slate-100">
+                {doc.lineas.map((l, i) => (
+                  <div key={i} className="px-4 py-2.5">
+                    <p className="text-sm text-slate-700">{l.descripcion}</p>
+                    {(l.manoObra || l.materiales) && (
+                      <p className="text-xs text-slate-500">
+                        {l.manoObra ? `Mano de obra: ${l.manoObra}` : ""}
+                        {l.manoObra && l.materiales ? " · " : ""}
+                        {l.materiales ? `Materiales: ${l.materiales}` : ""}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
+          )}
+
+          {/* Citas: documentos adjuntos */}
+          {tipo === "citas" && doc.adjuntos?.length > 0 && (
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Adjuntos</p>
+              <ul className="mt-2 space-y-1 text-sm">
+                {doc.adjuntos.map((a, i) => (
+                  <li key={i}>
+                    <a href={urlApiConSesion(a.url)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                      {a.nombre || "Documento"}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Valoraciones: líneas con tipo e importe */}
+          {tipo === "valoraciones" && doc.lineas?.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Líneas de la valoración</div>
+              <div className="divide-y divide-slate-100">
+                {doc.lineas.map((l, i) => (
+                  <div key={i} className="flex items-start justify-between gap-4 px-4 py-2.5">
+                    <div>
+                      <p className="text-sm text-slate-700">{l.descripcion}</p>
+                      {l.tipo && l.tipo !== "otro" && <p className="text-xs capitalize text-slate-500">{l.tipo}</p>}
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-slate-900 tabular-nums">{eur(l.importe)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Facturas: vencimientos a plazos y cobros registrados */}
+          {tipo === "facturas" && doc.plazos?.length > 0 && (
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Vencimientos a plazos</p>
+              <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                {doc.plazos.map((p, i) => (
+                  <li key={i} className="flex justify-between">
+                    <span>{fCorta(p.fecha)}</span>
+                    <span className="tabular-nums">{eur(p.importe)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {tipo === "facturas" && doc.cobros?.length > 0 && (
+            <div className="overflow-hidden rounded-xl border border-slate-200">
+              <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Cobros registrados</div>
+              <div className="divide-y divide-slate-100">
+                {doc.cobros.map((c, i) => (
+                  <div key={i} className="flex items-start justify-between gap-4 px-4 py-2.5">
+                    <div>
+                      <p className="text-sm capitalize text-slate-700">{c.metodo}</p>
+                      <p className="text-xs text-slate-500">{fCorta(c.fecha)}{c.notas ? ` · ${c.notas}` : ""}</p>
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-emerald-700 tabular-nums">{eur(c.importe)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Fotos y firmas */}
+          {fotosRecepcion.length > 0 && (
+            <MiniFotos titulo={`Fotos de la recepción (${fotosRecepcion.length})`} fotos={fotosRecepcion} onFoto={onFoto} />
+          )}
+          {fotosEntrega.length > 0 && (
+            <MiniFotos titulo={`Fotos del trabajo terminado (${fotosEntrega.length})`} fotos={fotosEntrega} onFoto={onFoto} />
+          )}
+          {fotosSueltas.length > 0 && (
+            <MiniFotos titulo={`Fotos (${fotosSueltas.length})`} fotos={fotosSueltas} onFoto={onFoto} />
+          )}
+
+          {firmaRecepcion?.imagen && (
+            <FirmaBox titulo="Firma de la recepción" firma={firmaRecepcion} onFoto={onFoto} />
+          )}
+          {firmaAlbaran?.imagen && (
+            <FirmaBox titulo="Firma de la entrega" firma={firmaAlbaran} onFoto={onFoto} />
           )}
         </div>
 
         <div className="sticky bottom-0 flex justify-end border-t border-slate-200 bg-white px-6 py-4">
           <button type="button" onClick={onCerrar} className="btn-primary">Cerrar documento</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniFotos({ titulo, fotos, onFoto }) {
+  return (
+    <div>
+      <p className="text-[0.625rem] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">{titulo}</p>
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        {fotos.map((f) => (
+          <button key={f} type="button" onClick={() => onFoto?.(f)} className="group">
+            <img
+              src={urlApiConSesion(f)}
+              alt="Foto"
+              className="w-full h-16 object-cover rounded-lg border border-slate-200 group-hover:opacity-80 transition-opacity"
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FirmaBox({ titulo, firma, onFoto }) {
+  return (
+    <div className="rounded-xl border border-slate-200 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{titulo}</p>
+      <div className="mt-2 flex items-start gap-4">
+        <button type="button" onClick={() => onFoto?.(firma.imagen)} className="shrink-0">
+          <img
+            src={urlApiConSesion(firma.imagen)}
+            alt="Firma"
+            className="h-20 rounded-lg border border-slate-200 bg-white"
+          />
+        </button>
+        <div className="text-sm text-slate-600">
+          {firma.nombre && <p className="font-semibold text-slate-800">{firma.nombre}</p>}
+          {firma.dni && <p>DNI: {firma.dni}</p>}
+          {firma.fecha && <p className="text-xs text-slate-500">{new Date(firma.fecha).toLocaleString("es-ES")}</p>}
         </div>
       </div>
     </div>

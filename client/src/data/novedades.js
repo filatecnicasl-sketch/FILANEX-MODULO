@@ -6,6 +6,20 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-28",
+    tipo: "nuevo",
+    titulo: "Notas internas con avisos en el historial del vehículo",
+    detalle:
+      "En Taller → Vehículos, al abrir la ficha hay una nueva pestaña «Notas internas»: anotaciones del coche o del cliente que no salen en ningún impreso. Cualquier nota se puede marcar como aviso: entonces salta una ventana al abrir el historial del vehículo y se muestra en rojo también al crear una cita con esa matrícula, para que nadie se lo pierda (impagos, incidencias, piezas pendientes…).",
+  },
+  {
+    fecha: "2026-10-28",
+    tipo: "mejora",
+    titulo: "El historial del vehículo muestra los documentos completos",
+    detalle:
+      "Al pulsar una orden, presupuesto, albarán, factura, cita, valoración o cortesía del historial, antes salía un resumen. Ahora se abre el documento completo: todos sus datos, el detalle de líneas con cantidades, precios, descuentos e importes, los totales, las horas invertidas por operario, las tareas pendientes de entrega, los cobros de las facturas y las fotos y firmas de recepción y entrega (pulsando una foto o firma se amplía).",
+  },
+  {
+    fecha: "2026-10-28",
     tipo: "correccion",
     titulo: "El logotipo de la empresa ya sale siempre al imprimir",
     detalle:

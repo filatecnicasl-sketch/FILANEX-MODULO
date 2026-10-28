@@ -135,9 +135,18 @@ export default function AyudaTallerPage() {
           </p>
           <p>
             El historial está organizado en pestañas: órdenes, presupuestos, albaranes, facturas,
-            citas, valoraciones y cortesías. Las <b>notas</b> que se escriban en cualquier sitio
-            (por ejemplo, las notas de una cita) aparecen en la ficha de cada documento, en el
+            citas, valoraciones, cortesías y <b>notas internas</b>. Al pulsar cualquier documento se
+            abre <b>completo</b>: todos sus datos, el detalle de líneas (cantidades, precios,
+            descuentos e importes), los totales, las horas invertidas, los cobros de las facturas y
+            las fotos y firmas de recepción y entrega. Las <b>notas</b> que se escriban en cualquier
+            sitio (por ejemplo, las notas de una cita) aparecen en la ficha de cada documento, en el
             recuadro azul <b>«Nota»</b>, para que nada se pierda.
+          </p>
+          <p>
+            Las <b>notas internas</b> son anotaciones del vehículo o su dueño que <b>no salen en
+            ningún impreso</b>: impagos, incidencias, piezas pendientes… Cualquier nota se puede
+            marcar como <b>aviso</b>: entonces salta una ventana al abrir el historial y se ve en
+            rojo también al crear una cita con esa matrícula, para que nadie se olvide.
           </p>
         </Seccion>
 

@@ -229,6 +229,7 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
   const [conflictoVehiculo, setConflictoVehiculo] = useState(null);
+  const [avisosVehiculo, setAvisosVehiculo] = useState([]);
   const [reasignarCliente, setReasignarCliente] = useState(false);
   // Peritación adjunta: documentos ya guardados (cita existente) y el
   // archivo elegido cuando la cita aún es nueva (se sube tras guardar).
@@ -300,14 +301,17 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
     setForm((f) => ({ ...f, [nombre]: valor }));
   }
 
-  // Detectar si la matrícula introducida ya pertenece a otro cliente.
+  // Detectar si la matrícula introducida ya pertenece a otro cliente, y
+  // mostrar los avisos internos activos del vehículo si los tiene.
   useEffect(() => {
     const mat = (form.matricula ?? "").toString().trim().toUpperCase();
     if (!mat) {
       setConflictoVehiculo(null);
+      setAvisosVehiculo([]);
       return;
     }
     const v = vehiculos.find((x) => x.matricula?.toUpperCase() === mat && x.tipo !== "cortesia");
+    setAvisosVehiculo((v?.notasInternas ?? []).filter((n) => n.aviso));
     if (v && v.cliente && String(v.cliente) !== String(form.cliente)) {
       setConflictoVehiculo(v);
     } else {
@@ -1049,6 +1053,20 @@ export default function CitaModal({ cita, fechaInicial, tipoInicial, onCerrar, o
                   </span>
                 </span>
               </label>
+            </div>
+          )}
+
+          {/* Avisos internos del vehículo: saltan al escribir su matrícula */}
+          {avisosVehiculo.length > 0 && (
+            <div className="rounded-xl border border-rose-300 bg-rose-50 p-3">
+              <p className="text-sm font-bold text-rose-800">
+                Aviso{avisosVehiculo.length === 1 ? "" : "s"} de este vehículo
+              </p>
+              <ul className="mt-1 space-y-1 text-sm text-rose-700">
+                {avisosVehiculo.map((a) => (
+                  <li key={a._id}>— {a.texto}</li>
+                ))}
+              </ul>
             </div>
           )}
 
