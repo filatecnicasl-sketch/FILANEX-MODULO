@@ -54,14 +54,36 @@ export async function imprimirFormato(template, formData, signatures = {}) {
   };
   window.addEventListener("afterprint", limpiar);
 
+  // Espera a que todas las imágenes de la hoja (logo de la empresa, siluetas,
+  // fotos, rúbricas) terminen de cargar. Sin esto, el diálogo de impresión se
+  // abre con el logo todavía descargándose y sale en blanco.
+  const esperarImagenes = () =>
+    new Promise((resolver) => {
+      const pendientes = Array.from(cont.querySelectorAll("img")).filter((i) => !i.complete);
+      if (pendientes.length === 0) return resolver();
+      let restantes = pendientes.length;
+      const listo = () => {
+        restantes -= 1;
+        if (restantes <= 0) resolver();
+      };
+      pendientes.forEach((i) => {
+        i.addEventListener("load", listo, { once: true });
+        i.addEventListener("error", listo, { once: true });
+      });
+      // Tope de seguridad: no retener la impresión más de 5 segundos.
+      setTimeout(resolver, 5000);
+    });
+
   // Da tiempo a React a pintar la hoja antes de abrir la vista de impresión.
-  // Se espera además a que la fuente esté cargada: si no, los textos se miden
-  // con la fuente de reserva y el auto-ajuste no reduce lo que hace falta.
+  // Se espera además a la fuente y a las imágenes: si no, los textos se miden
+  // con la fuente de reserva y el auto-ajuste no reduce lo que hace falta,
+  // y el logo puede aparecer sin cargar.
   const abrirImpresion = () => setTimeout(() => window.print(), 120);
+  const todoListo = new Promise((r) => setTimeout(r, 80)).then(esperarImagenes);
   if (document.fonts?.ready) {
-    document.fonts.ready.then(abrirImpresion).catch(abrirImpresion);
+    Promise.all([document.fonts.ready, todoListo]).then(abrirImpresion).catch(abrirImpresion);
   } else {
-    abrirImpresion();
+    todoListo.then(abrirImpresion).catch(abrirImpresion);
   }
   // Red de seguridad por si afterprint no dispara (cierres raros del diálogo).
   setTimeout(limpiar, 120000);

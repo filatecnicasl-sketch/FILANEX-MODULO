@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-28",
+    tipo: "correccion",
+    titulo: "El logotipo de la empresa ya sale siempre al imprimir",
+    detalle:
+      "Al imprimir cualquier formato (contrato de cortesía, facturas, albaranes…), el programa esperaba a las fuentes del texto pero no a que la imagen del logo terminara de descargarse: según la conexión, el diálogo de impresión se abría antes y el logo salía en blanco. Ahora se espera a que el logo (y cualquier imagen del formato) esté cargado antes de abrir la impresión. Además, el contrato de cortesía incorpora el hueco del logotipo arriba a la izquierda, sin tocar el resto del documento.",
+  },
+  {
     fecha: "2026-10-27",
     tipo: "correccion",
     titulo: "Vencimiento por defecto: al contado, nunca a 30 días",

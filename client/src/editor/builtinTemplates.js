@@ -666,6 +666,11 @@ export function buildContratoCortesia() {
     porDefecto: true,
     page: { size: "A4", orientation: "portrait" },
     elements: [
+      // Logotipo de la empresa arriba a la izquierda (la cabecera es texto
+      // centrado, así que no molesta). Se resuelve al imprimir con el logo
+      // subido en Ajustes → Configuración.
+      logo(12, 6, 36, 18),
+
       // Cabecera
       txc("{{empresa.nombre}}", x, 8, w, 6, 11, true, "center"),
       txc("{{empresa.direccion}}", x, 14, w, 4, 8, false, "center", "#333"),
