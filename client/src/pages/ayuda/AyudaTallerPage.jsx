@@ -26,7 +26,8 @@ export default function AyudaTallerPage() {
           </Paso>
           <Paso n={2}>
             Escribe la matrícula: si el vehículo ya existe se rellenan solos el cliente y el teléfono.
-            Si es nuevo, escribe el nombre a mano.
+            Si es nuevo, escribe el nombre a mano; puedes anotar también su <b>dirección</b> y{" "}
+            <b>provincia</b> y quedan guardadas en la ficha del cliente que se crea al guardar la cita.
           </Paso>
           <Paso n={3}>
             Si la cita viene de un presupuesto, deja marcada la casilla <b>«Viene de presupuesto»</b>
@@ -46,6 +47,11 @@ export default function AyudaTallerPage() {
             Los <b>días festivos</b> se marcan en <b>rojo</b> para distinguirlos del resto: los
             nacionales (Reyes, Semana Santa, 1 de mayo…) salen solos y los de tu zona (día de tu
             comunidad, ferias locales…) se añaden en <K>Ajustes → Configuración → Días festivos</K>.
+          </p>
+          <p>
+            Las citas con <b>coche de cortesía</b> se señalan en el calendario con el fondo{" "}
+            <b>azul intenso</b> (en todas las vistas, incluida la de Mes), para localizarlas de un
+            vistazo.
           </p>
           <Nota titulo="La cita se guarda sola, aunque imprimas el justificante">
             Al pulsar <K>Imprimir hoja y finalizar</K> (o el justificante de cita) el programa guarda
@@ -205,6 +211,14 @@ export default function AyudaTallerPage() {
             El <K>Planning</K> reparte las órdenes por días y operarios. En <K>Operarios</K> das de alta
             al equipo; los tiempos que registran en las órdenes (imputaciones) se consultan en la ficha
             de cada orden, apartado «Tiempos de taller».
+          </p>
+          <p>
+            La ficha de cada operario guarda además su <b>teléfono</b> y <b>email</b>, la{" "}
+            <b>situación laboral</b> (alta, periodo de prueba o baja) con sus <b>fechas de alta y baja</b>,
+            <b> notas importantes</b> y el <b>curriculum</b> en PDF o foto: se sube desde el botón
+            «Subir curriculum» de la ficha (sustituye al anterior si ya había uno) y se consulta con el
+            enlace «CV» del listado. La derecha de la página muestra el informe del mes: horas
+            invertidas por operario frente a las horas de mano de obra facturadas.
           </p>
         </Seccion>
       </div>

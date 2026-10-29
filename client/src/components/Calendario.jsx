@@ -59,7 +59,13 @@ function tituloDia(d) {
 }
 
 function Chip({ cita, compacto, onClick }) {
-  const tono = CHIP_ESTADO[cita.estado] ?? CHIP_ESTADO.pendiente;
+  // Las citas con coche de cortesía se señalan en azul (más intenso que el
+  // tono de "confirmada") para localizarlas de un vistazo en el calendario,
+  // sobre todo en la vista MES (propuesta de Montiel 27/10).
+  const esCortesia = cita.cortesia || cita.prestamoCortesia;
+  const tono = esCortesia
+    ? "bg-blue-600 text-white border-blue-700"
+    : CHIP_ESTADO[cita.estado] ?? CHIP_ESTADO.pendiente;
   return (
     <button
       onClick={(e) => {

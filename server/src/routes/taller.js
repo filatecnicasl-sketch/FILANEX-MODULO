@@ -1143,6 +1143,12 @@ router.post("/operarios", async (req, res, next) => {
       nombre: nombre.trim(),
       especialidad: req.body.especialidad?.trim() || undefined,
       costeHora: Number(req.body.costeHora) || 0,
+      telefono: req.body.telefono?.trim() || undefined,
+      email: req.body.email?.trim() || undefined,
+      situacion: ["alta", "prueba", "baja"].includes(req.body.situacion) ? req.body.situacion : undefined,
+      fechaAlta: req.body.fechaAlta || undefined,
+      fechaBaja: req.body.fechaBaja || undefined,
+      notas: req.body.notas?.trim() || undefined,
     });
     res.status(201).json(operario);
   } catch (err) {
@@ -1155,11 +1161,76 @@ router.put("/operarios/:id", async (req, res, next) => {
     const { nombre, especialidad, costeHora, activo } = req.body;
     const operario = await Operario.findByIdAndUpdate(
       req.params.id,
-      { nombre: nombre?.trim(), especialidad, costeHora: costeHora !== undefined ? Number(costeHora) : undefined, activo },
+      {
+        nombre: nombre?.trim(),
+        especialidad,
+        costeHora: costeHora !== undefined ? Number(costeHora) : undefined,
+        activo,
+        telefono: req.body.telefono !== undefined ? (req.body.telefono?.trim() || null) : undefined,
+        email: req.body.email !== undefined ? (req.body.email?.trim() || null) : undefined,
+        situacion: ["alta", "prueba", "baja"].includes(req.body.situacion) ? req.body.situacion : undefined,
+        fechaAlta: req.body.fechaAlta !== undefined ? (req.body.fechaAlta || null) : undefined,
+        fechaBaja: req.body.fechaBaja !== undefined ? (req.body.fechaBaja || null) : undefined,
+        notas: req.body.notas !== undefined ? (req.body.notas?.trim() || null) : undefined,
+      },
       { new: true, omitUndefined: true }
     );
     if (!operario) return res.status(404).json({ error: "Operario no encontrado" });
     res.json(operario);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Curriculum del operario: el impreso que traen en mano. PDF o imagen,
+// máximo 15 MB; se guarda en la carpeta del tenant y sustituye al anterior.
+const subidaCurriculum = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024, files: 1 },
+});
+
+router.post(
+  "/operarios/:id/curriculum",
+  [subidaCurriculum.single("archivo"), contextoTrasSubida],
+  async (req, res, next) => {
+    try {
+      const operario = await Operario.findById(req.params.id);
+      if (!operario) return res.status(404).json({ error: "Operario no encontrado" });
+      if (!req.file) return res.status(400).json({ error: "No llegó ningún archivo" });
+      const esPdf = req.file.mimetype === "application/pdf";
+      if (!esPdf && !req.file.mimetype.startsWith("image/")) {
+        return res.status(400).json({ error: "Solo se admite PDF o una imagen" });
+      }
+      const ext = esPdf ? ".pdf" : req.file.mimetype === "image/png" ? ".png" : ".jpg";
+      const slug = slugActual();
+      const archivo = `ope-${operario._id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+      const remoto = `uploads/${slug}/taller/operarios/${archivo}`;
+      await guardarArchivo(remoto, req.file.buffer, req.file.mimetype);
+      // El curriculum anterior (si había) se borra del almacenamiento.
+      if (operario.curriculum?.url) await borrarSubida(operario.curriculum.url).catch(() => {});
+      operario.curriculum = {
+        url: urlPublica(remoto),
+        nombre: req.file.originalname || archivo,
+        fecha: new Date(),
+      };
+      await operario.save();
+      res.status(201).json(operario.curriculum);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Quita el curriculum del operario y borra el archivo.
+router.delete("/operarios/:id/curriculum", async (req, res, next) => {
+  try {
+    const operario = await Operario.findById(req.params.id);
+    if (!operario) return res.status(404).json({ error: "Operario no encontrado" });
+    if (!operario.curriculum?.url) return res.status(404).json({ error: "Sin curriculum" });
+    await borrarSubida(operario.curriculum.url).catch(() => {});
+    operario.curriculum = undefined;
+    await operario.save();
+    res.json({ ok: true });
   } catch (err) {
     next(err);
   }
@@ -1173,6 +1244,8 @@ router.delete("/operarios/:id", async (req, res, next) => {
     }
     const operario = await Operario.findByIdAndDelete(req.params.id);
     if (!operario) return res.status(404).json({ error: "Operario no encontrado" });
+    // Su curriculum (si había) también se borra del almacenamiento.
+    if (operario.curriculum?.url) await borrarSubida(operario.curriculum.url).catch(() => {});
     res.json({ ok: true });
   } catch (err) {
     next(err);

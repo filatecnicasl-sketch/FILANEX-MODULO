@@ -5,6 +5,20 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-30",
+    tipo: "mejora",
+    titulo: "Buscar clientes por matrícula y fichas de operarios completas",
+    detalle:
+      "En Clientes, el buscador encuentra ahora también al cliente por la matrícula de cualquiera de sus vehículos (se puede escribir con espacios o guiones). Y en Taller → Operarios, la ficha de cada operario incorpora teléfono, email, situación laboral (alta, periodo de prueba o baja), fecha de alta y de baja, notas importantes y el curriculum en PDF o foto (el impreso que traen en mano), que se sube y se consulta desde la propia ficha.",
+  },
+  {
+    fecha: "2026-10-30",
+    tipo: "mejora",
+    titulo: "Citas: la dirección del cliente y las cortesías, a la vista",
+    detalle:
+      "Al crear una cita con cliente nuevo, se puede escribir su dirección junto al teléfono y queda guardada en la ficha del cliente (sin salir de la cita). Y en el calendario, las citas con coche de cortesía se señalan ahora en azul intenso —también en la vista MES— para localizarlas de un vistazo, igual que las insignias de compañía y «V. cortesía» de la lista.",
+  },
+  {
     fecha: "2026-10-29",
     tipo: "correccion",
     titulo: "Documentación de clientes y suministros: adiós al bloqueo por peso",

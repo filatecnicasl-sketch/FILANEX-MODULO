@@ -91,9 +91,11 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
     telefono: cita?.telefono ?? "",
     email: cita?.email ?? "",
     nif: cita?.nif ?? "",
-    // Solo se usa al dar de alta un cliente nuevo desde la cita: viaja a la
-    // dirección de su ficha (no se guarda en la cita).
+    // Solo se usan al dar de alta un cliente nuevo desde la cita: viajan a la
+    // dirección de su ficha (no se guardan en la cita). Ojo: "direccion" es
+    // otra cosa aquí (el domicilio donde se atiende el aparato).
     provincia: "",
+    direccionCliente: "",
     whatsappAutorizado: cita?.whatsappAutorizado ?? false,
     aparato: cita?.aparato?._id ?? cita?.aparato ?? "",
     aparatoDescripcion: cita?.aparatoDescripcion ?? "",
@@ -226,6 +228,7 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
               email: form.email?.trim() || undefined,
               nif: form.nif?.trim() || undefined,
               provincia: form.provincia?.trim() || undefined,
+              calle: form.direccionCliente?.trim() || undefined,
               exigirTelefono: true,
             }),
           });
@@ -249,8 +252,10 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
           cliente: clienteId || null,
           clienteNombre,
           telefono,
-          // La provincia solo viaja al alta del cliente, no a la cita.
+          // La provincia y la dirección del cliente solo viajan al alta del
+          // cliente, no a la cita.
           provincia: undefined,
+          direccionCliente: undefined,
           duracion,
           horaFin: undefined,
           aparato: form.aparato || null,
@@ -385,6 +390,20 @@ export default function CitaModalServicio({ cita, fechaInicial, onCerrar, onGuar
                 placeholder="Evita duplicados si ya existe"
               />
             </div>
+            {!form.cliente && (
+              <div>
+                <label className="text-sm text-slate-400 block mb-1">
+                  Dirección
+                  <span className="ml-1 text-xs font-normal text-slate-500">(se guarda en la ficha del cliente nuevo)</span>
+                </label>
+                <input
+                  className={campo}
+                  value={form.direccionCliente ?? ""}
+                  onChange={(e) => actualizar("direccionCliente", e.target.value)}
+                  placeholder="Calle, número, piso…"
+                />
+              </div>
+            )}
             {!form.cliente && (
               <div>
                 <label className="text-sm text-slate-400 block mb-1">

@@ -12,6 +12,7 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
   const [telefono, setTelefono] = useState(telefonoInicial);
   const [nif, setNif] = useState("");
   const [provincia, setProvincia] = useState("");
+  const [direccion, setDireccion] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -28,6 +29,7 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
     setTelefono(telefonoInicial);
     setNif("");
     setProvincia("");
+    setDireccion("");
     setError(null);
     setAbierto((a) => !a);
   }
@@ -52,6 +54,7 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
           telefono: telefono.trim(),
           nif: nif.trim(),
           provincia: provincia.trim() || undefined,
+          calle: direccion.trim() || undefined,
           exigirTelefono: true,
         }),
       });
@@ -100,6 +103,12 @@ export default function AltaRapidaCliente({ nombreInicial = "", telefonoInicial 
             value={nif}
             onChange={(e) => setNif(e.target.value.toUpperCase())}
             placeholder="CIF / NIF"
+          />
+          <input
+            className="input w-full"
+            value={direccion}
+            onChange={(e) => setDireccion(e.target.value)}
+            placeholder="Dirección (calle, número, piso…)"
           />
           <input
             className="input w-full"

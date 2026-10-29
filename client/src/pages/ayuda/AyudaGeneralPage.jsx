@@ -38,7 +38,7 @@ export default function AyudaGeneralPage() {
 
         <Seccion titulo="Facturación (Ventas)">
           <Paso n={1}>
-            En <K>Ventas → Clientes</K> das de alta clientes con sus datos fiscales. En <K>Ventas → Presupuestos</K> creas ofertas; si se aceptan, se convierten en albarán o factura sin volver a teclear.
+            En <K>Ventas → Clientes</K> das de alta clientes con sus datos fiscales. En <K>Ventas → Presupuestos</K> creas ofertas; si se aceptan, se convierten en albarán o factura sin volver a teclear. El buscador de Clientes encuentra también al cliente por la <b>matrícula</b> de cualquiera de sus vehículos (da igual si se escribe con espacios o guiones).
           </Paso>
           <Paso n={2}>
             <K>Ventas → Albaranes</K> registra entregas pendientes de facturar. <K>Ventas → Facturas</K> emite documentos VeriFactu con serie, número y QR.
