@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Suministro from "../models/Suministro.js";
+import Suministro, { normalizarCups } from "../models/Suministro.js";
 import Comercializadora from "../models/Comercializadora.js";
 import CanalDistribucion from "../models/CanalDistribucion.js";
 import ConsumoEnergia from "../models/ConsumoEnergia.js";
@@ -142,7 +142,12 @@ router.post("/", async (req, res, next) => {
 router.put("/:id", async (req, res, next) => {
   try {
     const datos = limpiar(req.body);
-    if (datos.cups !== undefined) {
+    const actual = await Suministro.findById(req.params.id);
+    if (!actual) return res.status(404).json({ error: "Suministro no encontrado" });
+    // El CUPS solo se valida si cambia: hay suministros antiguos (importados
+    // de Excel) con CUPS que no cumplen el formato actual, y no pueden quedar
+    // bloqueados al editar cualquier otro dato. Se corrige cuando se toca.
+    if (datos.cups !== undefined && normalizarCups(datos.cups) !== actual.cups) {
       if (!RE_CUPS.test(datos.cups)) {
         return res.status(400).json({ error: "El CUPS debe tener 22 caracteres (ES + 20)" });
       }
@@ -157,7 +162,6 @@ router.put("/:id", async (req, res, next) => {
       new: true,
       omitUndefined: true,
     });
-    if (!suministro) return res.status(404).json({ error: "Suministro no encontrado" });
     res.json(suministro);
   } catch (err) {
     next(err);
