@@ -5,6 +5,20 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-10-29",
+    tipo: "correccion",
+    titulo: "Documentación de clientes y suministros: adiós al bloqueo por peso",
+    detalle:
+      "Al subir la documentación de un cliente o de un suministro, las fotos y escaneos muy pesados se comprimen ahora solos en el navegador antes de enviarse (se reducen a un tamaño legible que pesa alrededor de 1-2 MB), y el máximo por archivo sube de 15 a 30 MB. Si aun así un PDF escaneado se pasa del límite, el aviso explica cómo resolverlo. Ya se puede adjuntar la documentación de cualquier ficha sin que el programa la rechace.",
+  },
+  {
+    fecha: "2026-10-29",
+    tipo: "mejora",
+    titulo: "Importar factura con IA: renovar un suministro ya existente",
+    detalle:
+      "Al importar una factura de luz o gas con la IA, si el CUPS ya estaba dado de alta el programa bloqueaba la continuación. Ahora ofrece la elección: «Renovar o cambiar de compañía» —actualiza el suministro existente con la comercializadora, tarifa, potencias y consumo leídos en la factura, y permite anotar la fecha de alta en la comercializadora para los avisos de renovación— o «Es otro suministro», que crea uno nuevo tras corregir el CUPS leído. Nunca se crean duplicados del mismo CUPS.",
+  },
+  {
     fecha: "2026-10-28",
     tipo: "nuevo",
     titulo: "Notas internas con avisos en el historial del vehículo",

@@ -7,6 +7,7 @@ import EnviarWhatsApp from "../components/EnviarWhatsApp.jsx";
 import { invalidarClientesLigeros } from "../lib/clientesLigeros.js";
 import { useCierreProtegido } from "../lib/cierreProtegido.js";
 import { urlApiConSesion } from "../lib/sesion.js";
+import { comprimirArchivos } from "../utils/comprimir-imagen.js";
 
 const VACIO = {
   codigo: "", fechaAlta: "", nombre: "", nif: "", grupo: "", telefono: "", telefono2: "", email: "",
@@ -174,17 +175,20 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
     const archivos = e.target.files;
     if (!archivos?.length) return;
     e.target.value = "";
-    // Alta de un cliente nuevo: aún no hay id, se guardan como pendientes y
-    // se suben justo después de guardar el cliente.
-    if (!editando) {
-      setDocsPend((d) => [...d, ...archivos]);
-      return;
-    }
     setSubiendoDocs(true);
     setError(null);
     try {
+      // Fotos y escaneos muy pesados se reducen aquí, antes de subirlos:
+      // evita el rechazo del servidor por tamaño.
+      const listos = await comprimirArchivos(archivos);
+      // Alta de un cliente nuevo: aún no hay id, se guardan como pendientes y
+      // se suben justo después de guardar el cliente.
+      if (!editando) {
+        setDocsPend((d) => [...d, ...listos]);
+        return;
+      }
       const cuerpo = new FormData();
-      for (const f of archivos) cuerpo.append("archivos", f);
+      for (const f of listos) cuerpo.append("archivos", f);
       const r = await fetch(`/api/clientes/${inicial._id}/documentos`, { method: "POST", body: cuerpo });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "Error al subir");
@@ -523,7 +527,7 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
               <div>
                 <h3 className="text-sm font-semibold text-slate-300">Documentación del cliente</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  NIF/CIF, escrituras, poderes, contratos… PDF o imágenes (máx. 15 MB por archivo).
+                  NIF/CIF, escrituras, poderes, contratos… PDF o imágenes (máx. 30 MB por archivo; las fotos pesadas se comprimen solas).
                   {editando
                     ? " Se guardan en el momento de subirlos: no hace falta pulsar Guardar."
                     : " Se adjuntarán al guardar el cliente."}

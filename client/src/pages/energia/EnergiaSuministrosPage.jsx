@@ -8,6 +8,7 @@ import ModalImportarEnergia from "./ModalImportarEnergia.jsx";
 import ModalConsumos from "./ModalConsumos.jsx";
 import { cargarClientesLigeros } from "../../lib/clientesLigeros.js";
 import { urlApiConSesion } from "../../lib/sesion.js";
+import { comprimirArchivos } from "../../utils/comprimir-imagen.js";
 
 const VACIO = {
   cups: "", tipo: "luz", clienteId: "", comercializadoraId: "", canalDistribucionId: "",
@@ -286,16 +287,19 @@ export default function EnergiaSuministrosPage() {
     const archivos = [...(e.target.files ?? [])];
     e.target.value = "";
     if (!archivos.length) return;
-    // Alta de un suministro nuevo: aún no hay id, se guardan como pendientes
-    // y se suben justo después de guardar el suministro.
-    if (!editando?._id) {
-      setDocsPend((d) => [...d, ...archivos]);
-      return;
-    }
-    const datos = new FormData();
-    archivos.forEach((a) => datos.append("archivos", a));
     setSubiendoDocs(true);
     try {
+      // Fotos y escaneos muy pesados se reducen aquí, antes de subirlos:
+      // evita el rechazo del servidor por tamaño.
+      const listos = await comprimirArchivos(archivos);
+      // Alta de un suministro nuevo: aún no hay id, se guardan como pendientes
+      // y se suben justo después de guardar el suministro.
+      if (!editando?._id) {
+        setDocsPend((d) => [...d, ...listos]);
+        return;
+      }
+      const datos = new FormData();
+      listos.forEach((a) => datos.append("archivos", a));
       const r = await fetch(`/api/energia/suministros/${editando._id}/documentos`, {
         method: "POST",
         body: datos,

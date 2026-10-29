@@ -185,7 +185,7 @@ app.use((err, req, res, next) => {
   if (err?.name === "MulterError") {
     const mensaje =
       err.code === "LIMIT_FILE_SIZE"
-        ? "El archivo es demasiado grande: el máximo por archivo es de 15 MB. Escanea el documento a menor calidad o súbelo en partes."
+        ? "El archivo es demasiado grande: el máximo por archivo es de 30 MB (las fotos pesadas se comprimen solas al subirlas). Si es un PDF escaneado muy pesado, súbelo a menor calidad o en partes."
         : err.code === "LIMIT_FILE_COUNT"
           ? "Demasiados archivos en una sola subida: el máximo es de 6."
           : "No se pudo recibir el archivo. Vuelve a intentarlo.";

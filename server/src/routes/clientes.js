@@ -223,11 +223,12 @@ router.delete("/:id", async (req, res, next) => {
 // --- Documentación del cliente ---
 //
 // NIF/CIF, escrituras, poderes, contratos… Igual que los adjuntos de los
-// suministros de energía: PDF o imágenes, máximo 6 archivos de 15 MB por
-// subida, y cada archivo queda dentro de la carpeta del tenant.
+// suministros de energía: PDF o imágenes, máximo 6 archivos de 30 MB por
+// subida (las fotos pesadas se comprimen en el navegador antes de llegar),
+// y cada archivo queda dentro de la carpeta del tenant.
 const subidaDocumentos = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 15 * 1024 * 1024, files: 6 },
+  limits: { fileSize: 30 * 1024 * 1024, files: 6 },
 });
 
 router.post(

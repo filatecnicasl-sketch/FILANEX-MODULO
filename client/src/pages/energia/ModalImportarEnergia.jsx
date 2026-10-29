@@ -27,6 +27,10 @@ export default function ModalImportarEnergia({ clientes, comercializadoras, onGu
   const [potenciaPunta, setPotenciaPunta] = useState("");
   const [potenciaValle, setPotenciaValle] = useState("");
   const [consumoAnual, setConsumoAnual] = useState("");
+  // Cuando la factura leída es de un CUPS ya dado de alta: renovar (actualizar
+  // el suministro existente) o crear uno nuevo si el CUPS leído es otro.
+  const [modoExiste, setModoExiste] = useState("actualizar");
+  const [fechaAlta, setFechaAlta] = useState("");
   const inputRef = useRef(null);
 
   async function leer(fichero) {
@@ -53,6 +57,8 @@ export default function ModalImportarEnergia({ clientes, comercializadoras, onGu
       setPotenciaPunta(e.potenciaPunta ?? "");
       setPotenciaValle(e.potenciaValle ?? "");
       setConsumoAnual(e.consumoAnual ?? "");
+      setModoExiste("actualizar");
+      setFechaAlta("");
       setResultado(datos);
       setPaso("revisar");
     } catch (err) {
@@ -79,21 +85,39 @@ export default function ModalImportarEnergia({ clientes, comercializadoras, onGu
         comId = datos._id;
       }
 
-      // 2. El suministro.
+      const cuerpo = {
+        cups,
+        tipo,
+        cliente: clienteId || null,
+        comercializadora: comId || null,
+        direccion: { calle, cp, ciudad },
+        tarifa,
+        potenciaPunta,
+        potenciaValle,
+        consumoAnual,
+      };
+
+      // 2. Renovación: la factura es de un CUPS ya dado de alta y el usuario
+      //    elige actualizarlo (misma compañía u otra nueva) en vez de crear
+      //    un duplicado. La fecha de alta solo se toca si la pone el usuario.
+      if (yaExiste && modoExiste === "actualizar") {
+        if (fechaAlta) cuerpo.fechaAlta = fechaAlta;
+        const r = await fetch(`/api/energia/suministros/${resultado.suministroExistente._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cuerpo),
+        });
+        const datos = await r.json();
+        if (!r.ok) throw new Error(datos.error || "No se pudo actualizar el suministro");
+        onGuardado?.(datos);
+        return;
+      }
+
+      // 3. Suministro nuevo.
       const r = await fetch("/api/energia/suministros", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cups,
-          tipo,
-          cliente: clienteId || null,
-          comercializadora: comId || null,
-          direccion: { calle, cp, ciudad },
-          tarifa,
-          potenciaPunta,
-          potenciaValle,
-          consumoAnual,
-        }),
+        body: JSON.stringify(cuerpo),
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo crear el suministro");
@@ -298,10 +322,53 @@ export default function ModalImportarEnergia({ clientes, comercializadoras, onGu
             )}
 
             {yaExiste && (
-              <p className="text-sm text-amber-300">
-                Este CUPS ya está dado de alta en la cartera. Corrige el CUPS si la lectura no es
-                exacta, o cierra y edita el suministro existente desde el listado.
-              </p>
+              <div className="rounded-xl border border-sky-400/30 bg-sky-400/5 px-4 py-3 space-y-2">
+                <p className="text-sm text-sky-200">
+                  El CUPS <b className="num">{resultado.suministroExistente.cups}</b> ya está dado de
+                  alta{resultado.suministroExistente.cliente ? ` (${resultado.suministroExistente.cliente})` : ""}.
+                  ¿Qué quieres hacer con los datos de esta factura?
+                </p>
+                <label className="flex items-start gap-2 text-sm text-slate-300 cursor-pointer">
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    checked={modoExiste === "actualizar"}
+                    onChange={() => setModoExiste("actualizar")}
+                  />
+                  <span>
+                    <b>Renovar o cambiar de compañía:</b> actualizar el suministro existente con la
+                    comercializadora, tarifa, potencias y consumo de esta factura.
+                  </span>
+                </label>
+                <label className="flex items-start gap-2 text-sm text-slate-300 cursor-pointer">
+                  <input
+                    type="radio"
+                    className="mt-1"
+                    checked={modoExiste === "nuevo"}
+                    onChange={() => setModoExiste("nuevo")}
+                  />
+                  <span>
+                    <b>Es otro suministro:</b> crear uno nuevo (corrige antes el CUPS leído, que
+                    debe ser distinto).
+                  </span>
+                </label>
+                {modoExiste === "actualizar" && (
+                  <label className="block text-sm text-slate-400 pt-1">
+                    Fecha de alta en la comercializadora (opcional, para los avisos de renovación)
+                    <input
+                      type="date"
+                      value={fechaAlta}
+                      onChange={(ev) => setFechaAlta(ev.target.value)}
+                      className="input"
+                    />
+                  </label>
+                )}
+                {modoExiste === "nuevo" && cups === resultado.suministroExistente.cups && (
+                  <p className="text-xs text-amber-300">
+                    Edita el CUPS: no pueden darse de alta dos suministros con el mismo número.
+                  </p>
+                )}
+              </div>
             )}
 
             {error && <p className="text-sm text-rose-400">{error}</p>}
@@ -310,8 +377,20 @@ export default function ModalImportarEnergia({ clientes, comercializadoras, onGu
               <button type="button" onClick={() => setPaso("subir")} className="btn-ghost">
                 Otra factura
               </button>
-              <button type="submit" disabled={ocupado || yaExiste || !cups} className="btn-primary">
-                {ocupado ? "Creando…" : "Crear suministro"}
+              <button
+                type="submit"
+                disabled={
+                  ocupado ||
+                  !cups ||
+                  (yaExiste && modoExiste === "nuevo" && cups === resultado.suministroExistente.cups)
+                }
+                className="btn-primary"
+              >
+                {ocupado
+                  ? "Guardando…"
+                  : yaExiste && modoExiste === "actualizar"
+                    ? "Actualizar suministro"
+                    : "Crear suministro"}
               </button>
             </div>
           </form>

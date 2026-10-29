@@ -5,9 +5,9 @@ import { slugActual } from "../models/tenant.js";
 
 export const uploadMemoria = multer({
   storage: multer.memoryStorage(),
-  // 20 MB: las fotos de los móviles actuales pasan a menudo de 10 MB.
-  // Las imágenes se comprimen después en prepararParaOcr antes de enviarlas a la IA.
-  limits: { fileSize: 20 * 1024 * 1024 },
+  // 30 MB: los escaneos y fotos de móvil actuales pesan mucho. Las imágenes
+  // se comprimen después en prepararParaOcr antes de enviarlas a la IA.
+  limits: { fileSize: 30 * 1024 * 1024 },
 });
 
 /**

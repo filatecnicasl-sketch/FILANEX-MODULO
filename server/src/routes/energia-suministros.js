@@ -181,8 +181,9 @@ router.delete("/:id", async (req, res, next) => {
 // --- Documentación del suministro ---
 //
 // Contratos, facturas, burofaxes de la distribuidora… Igual que los adjuntos
-// de las citas del taller: PDF o imágenes, máximo 6 archivos de 15 MB por
-// subida, y cada archivo queda dentro de la carpeta del tenant.
+// de las citas del taller: PDF o imágenes, máximo 6 archivos de 30 MB por
+// subida (las fotos pesadas se comprimen en el navegador antes de llegar),
+// y cada archivo queda dentro de la carpeta del tenant.
 const subidaDocumentos = uploadMemoria;
 
 router.post(
