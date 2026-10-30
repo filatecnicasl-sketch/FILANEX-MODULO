@@ -1540,6 +1540,18 @@ router.put("/citas/:id", async (req, res, next) => {
       cambios.matricula = normalizarMatricula(matricula) || undefined;
       if (cambios.matricula) {
         let v = await Vehiculo.findOne({ matricula: cambios.matricula }).lean();
+        // Alta exprés también al EDITAR una cita: si se guardó sin vehículo
+        // y al reabrirla se marca "Vehículo nuevo" con marca/modelo, se da
+        // de alta igual que al crearla (antes solo funcionaba en el alta).
+        if (!v && (req.body.marca || req.body.modelo)) {
+          v = await Vehiculo.create({
+            matricula: cambios.matricula,
+            marca: req.body.marca || undefined,
+            modelo: req.body.modelo || undefined,
+            cliente: req.body.cliente || undefined,
+            clienteNombre: req.body.clienteNombre || undefined,
+          });
+        }
         // Reasignar el vehículo si el usuario lo ha marcado.
         if (v && req.body.reasignarCliente && req.body.cliente) {
           await Vehiculo.findByIdAndUpdate(

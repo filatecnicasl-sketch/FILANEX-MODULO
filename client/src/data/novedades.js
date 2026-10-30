@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-30",
+    tipo: "correccion",
+    titulo: "Editar una cita ya guarda el vehículo nuevo",
+    detalle:
+      "Al reabrir una cita guardada sin vehículo y marcar «Vehículo nuevo» con su marca y modelo, ahora el coche se da de alta al guardar, igual que al crear la cita. Antes la marca y el modelo parecía que se guardaban pero el vehículo no llegaba a crearse.",
+  },
+  {
+    fecha: "2026-10-30",
     tipo: "mejora",
     titulo: "Buscar clientes por matrícula y fichas de operarios completas",
     detalle:
