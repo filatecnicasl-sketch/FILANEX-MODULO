@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-10-30",
+    tipo: "mejora",
+    titulo: "Las notas internas de las órdenes, a la vista en el historial",
+    detalle:
+      "La nota interna que se escribe al final de una orden de trabajo ahora también se ve en el historial del vehículo: en la pestaña «Notas internas» (con su orden, fecha y botón para abrirla completa) y en la ficha de cada orden de la lista, junto al resto de datos. Antes había que abrir la orden una a una para verla.",
+  },
+  {
+    fecha: "2026-10-30",
     tipo: "correccion",
     titulo: "Editar una cita ya guarda el vehículo nuevo",
     detalle:

@@ -395,6 +395,10 @@ function ModalHistorial({ vehiculo, onCerrar }) {
       .catch(() => setDatos(null));
   }, [vehiculo._id]);
 
+  // Notas internas escritas dentro de las órdenes de este vehículo: también
+  // cuentan para la pestaña de Notas internas (se ven sin abrir la orden).
+  const notasDeOrdenes = (datos?.ordenes ?? []).filter((o) => o.notasInternas?.trim());
+
   const PESTANAS = [
     { clave: "ordenes", nombre: "Órdenes", datos: datos?.ordenes ?? [] },
     { clave: "presupuestos", nombre: "Presupuestos", datos: datos?.presupuestos ?? [] },
@@ -403,7 +407,7 @@ function ModalHistorial({ vehiculo, onCerrar }) {
     { clave: "citas", nombre: "Citas", datos: datos?.citas ?? [] },
     { clave: "valoraciones", nombre: "Valoraciones", datos: datos?.valoraciones ?? [] },
     { clave: "cortesias", nombre: "Cortesías", datos: datos?.cortesias ?? [] },
-    { clave: "notas", nombre: "Notas internas", datos: datos?.notasInternas ?? [] },
+    { clave: "notas", nombre: "Notas internas", datos: [...(datos?.notasInternas ?? []), ...notasDeOrdenes] },
   ];
 
   const activa = PESTANAS.find((p) => p.clave === pestana);
@@ -480,11 +484,46 @@ function ModalHistorial({ vehiculo, onCerrar }) {
 
             {/* Contenido de la pestaña activa */}
             {pestana === "notas" ? (
-              <NotasInternasTab
-                vehiculoId={vehiculo._id}
-                notas={datos?.notasInternas ?? []}
-                onCambio={(notas) => setDatos((d) => ({ ...(d ?? {}), notasInternas: notas }))}
-              />
+              <div className="space-y-5">
+                <NotasInternasTab
+                  vehiculoId={vehiculo._id}
+                  notas={datos?.notasInternas ?? []}
+                  onCambio={(notas) => setDatos((d) => ({ ...(d ?? {}), notasInternas: notas }))}
+                />
+                {/* Notas internas escritas en las órdenes de este vehículo:
+                    se consultan aquí sin tener que abrir la orden una a una. */}
+                {notasDeOrdenes.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                      Notas de las órdenes de trabajo
+                    </p>
+                    <ul className="space-y-2">
+                      {notasDeOrdenes.map((o) => (
+                        <li key={o._id} className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-xs text-slate-500">
+                                Orden {o.serieNumero ?? o.numero ?? o.numeroOrden ?? "—"}
+                                {(o.fechaEntrada ?? o.createdAt) &&
+                                  ` · ${new Date(o.fechaEntrada ?? o.createdAt).toLocaleDateString("es-ES")}`}
+                                {o.estado ? ` · ${String(o.estado).replace(/_/g, " ")}` : ""}
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{o.notasInternas}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setDocumentoAbierto({ doc: o, tipo: "ordenes" })}
+                              className="btn-ghost text-xs px-3 py-1.5 shrink-0"
+                            >
+                              Ver orden
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             ) : activa.datos.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-8">
                 Sin {activa.nombre.toLowerCase()} para este vehículo.
@@ -813,6 +852,15 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
         >
           <span className="font-semibold">Nota:</span>{" "}
           {doc.notas.length > 140 ? `${doc.notas.slice(0, 140)}…` : doc.notas}
+        </p>
+      )}
+      {esOrden && doc.notasInternas && (
+        <p
+          className="mt-1.5 rounded-lg border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-700"
+          title={doc.notasInternas}
+        >
+          <span className="font-semibold">Nota interna:</span>{" "}
+          {doc.notasInternas.length > 140 ? `${doc.notasInternas.slice(0, 140)}…` : doc.notasInternas}
         </p>
       )}
       {doc.trabajos?.length > 0 && (
