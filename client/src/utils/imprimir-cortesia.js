@@ -52,6 +52,8 @@ function mapearFormData(p, emp, plantilla) {
     "vehiculo.matricula": p.matricula || "",
     "vehiculo.vin": p.vinCortesia || "",
     "vehiculo.forfaitDiaria": eur(p.participacionForfaitDiaria),
+    // La plantilla de Montiel usa esta variante de la clave; se dan las dos.
+    "vehiculo.forfaitDiario": eur(p.participacionForfaitDiaria),
     "vehiculo.observaciones": p.notas || "",
 
     "seguro.asegurador": p.aseguradora || "",
@@ -72,9 +74,11 @@ function mapearFormData(p, emp, plantilla) {
     "reparacion.entregaPrevista": fechaEs(p.fechaPrevista),
 
     // Bloque SALIDA / RETORNO con relojes de carburante (plantilla nueva).
-    "sr.fechaSalida": p.fechaSalida ? `${fechaEs(p.fechaSalida)} · ${horaEs(p.fechaSalida)}H` : "",
-    "sr.fechaPrevista": p.fechaPrevista ? `${fechaEs(p.fechaPrevista)} · ${horaEs(p.fechaPrevista)}H` : "",
-    "sr.kmSalida": n(p.kmSalida),
+    // Sin dato se imprime una línea en blanco para rellenar a mano, como la
+    // columna de retorno real y el impreso original.
+    "sr.fechaSalida": p.fechaSalida ? `${fechaEs(p.fechaSalida)} · ${horaEs(p.fechaSalida)}H` : "____/____/______  ____H",
+    "sr.fechaPrevista": p.fechaPrevista ? `${fechaEs(p.fechaPrevista)} · ${horaEs(p.fechaPrevista)}H` : "____/____/______  ____H",
+    "sr.kmSalida": n(p.kmSalida) || "________________",
   };
 
   // Tabla salida / retorno previsto / retorno real.
