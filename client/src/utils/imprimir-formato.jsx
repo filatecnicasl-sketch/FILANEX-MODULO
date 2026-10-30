@@ -1,18 +1,15 @@
 import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { PrintSheet } from "../editor/PrintSheet.jsx";
 import { urlApiConSesion } from "../lib/sesion.js";
 
 /**
  * Imprime una plantilla del editor de formatos (Sistema → Formatos) rellena
- * con datos reales. Monta la hoja a tamaño real en la propia página (oculta
- * en pantalla, visible al imprimir gracias a .print-sheet), esconde la app
- * con .no-print y lanza window.print() — sin ventanas emergentes, así no
- * hay bloqueos de popup. Al terminar o cancelar se desmonta todo.
+ * con datos reales. La monta en un iframe con un documento aislado para que
+ * el navegador imprima solo la plantilla, nunca la pantalla de la aplicación.
  */
 export async function imprimirFormato(template, formData, signatures = {}) {
-  // El elemento «Logo empresa» (src = {{empresa.logo}}) se resuelve aquí con
-  // el logo que la empresa tenga subido en Ajustes → Configuración. Si no hay
-  // logo, el hueco sale vacío (sin la caja gris de muestra del editor).
+  // Resolver el logo de empresa antes de montar la hoja imprimible.
   let paginas = Array.isArray(template) ? template : [template];
   const usaLogo = paginas.some((t) =>
     t.elements?.some((e) => e.type === "image" && e.src === "{{empresa.logo}}")
@@ -22,8 +19,6 @@ export async function imprimirFormato(template, formData, signatures = {}) {
       .then((r) => (r.ok ? r.json() : {}))
       .then((e) => e?.logoUrl ?? "")
       .catch(() => "");
-    // Los archivos subidos exigen sesión (?sesion=) desde el endurecimiento
-    // de seguridad: sin ella el <img> del logo devolvería 401 y saldría vacío.
     const logoSrc = logoUrl ? urlApiConSesion(logoUrl) : "";
     paginas = paginas.map((t) => ({
       ...t,
@@ -32,34 +27,59 @@ export async function imprimirFormato(template, formData, signatures = {}) {
       ),
     }));
   }
-  const cont = document.createElement("div");
-  document.body.appendChild(cont);
-  const root = createRoot(cont);
-  // Varias plantillas = varias copias (una hoja cada una, con salto de página).
-  root.render(<PrintSheet paginas={paginas} formData={formData} signatures={signatures} />);
 
-  const app = document.getElementById("root");
-  app?.classList.add("no-print");
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.tabIndex = -1;
+  iframe.style.cssText = "position:fixed;width:210mm;height:297mm;border:0;left:-10000px;top:0";
+  document.body.appendChild(iframe);
+
+  const printWindow = iframe.contentWindow;
+  const printDocument = iframe.contentDocument;
+  printDocument.open();
+  printDocument.write("<!doctype html><html><head><meta charset=\"utf-8\"></head><body></body></html>");
+  printDocument.close();
+
+  // Mantener tipografía y estilos de la aplicación dentro del documento
+  // aislado; los demás elementos del #root no se copian.
+  const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
+  const stylesheetLoads = [];
+  styles.forEach((source) => {
+    const clone = source.cloneNode(true);
+    if (clone.tagName === "LINK" && !clone.sheet) {
+      stylesheetLoads.push(new Promise((resolve) => {
+        clone.addEventListener("load", resolve, { once: true });
+        clone.addEventListener("error", resolve, { once: true });
+        setTimeout(resolve, 5000);
+      }));
+    }
+    printDocument.head.appendChild(clone);
+  });
+
+  const cont = printDocument.createElement("div");
+  printDocument.body.appendChild(cont);
+  const root = createRoot(cont);
+  flushSync(() => {
+    root.render(<PrintSheet paginas={paginas} formData={formData} signatures={signatures} />);
+  });
 
   let limpiado = false;
+  let timeoutId;
   const limpiar = () => {
     if (limpiado) return;
     limpiado = true;
-    app?.classList.remove("no-print");
+    clearTimeout(timeoutId);
+    printWindow.removeEventListener("afterprint", limpiar);
     window.removeEventListener("afterprint", limpiar);
-    setTimeout(() => {
-      root.unmount();
-      cont.remove();
-    }, 50);
+    root.unmount();
+    iframe.remove();
   };
+  printWindow.addEventListener("afterprint", limpiar);
   window.addEventListener("afterprint", limpiar);
 
-  // Espera a que todas las imágenes de la hoja (logo de la empresa, siluetas,
-  // fotos, rúbricas) terminen de cargar. Sin esto, el diálogo de impresión se
-  // abre con el logo todavía descargándose y sale en blanco.
   const esperarImagenes = () =>
     new Promise((resolver) => {
-      const pendientes = Array.from(cont.querySelectorAll("img")).filter((i) => !i.complete);
+      const pendientes = Array.from(printDocument.querySelectorAll("img")).filter((i) => !i.complete);
       if (pendientes.length === 0) return resolver();
       let restantes = pendientes.length;
       const listo = () => {
@@ -70,21 +90,15 @@ export async function imprimirFormato(template, formData, signatures = {}) {
         i.addEventListener("load", listo, { once: true });
         i.addEventListener("error", listo, { once: true });
       });
-      // Tope de seguridad: no retener la impresión más de 5 segundos.
       setTimeout(resolver, 5000);
     });
 
-  // Da tiempo a React a pintar la hoja antes de abrir la vista de impresión.
-  // Se espera además a la fuente y a las imágenes: si no, los textos se miden
-  // con la fuente de reserva y el auto-ajuste no reduce lo que hace falta,
-  // y el logo puede aparecer sin cargar.
-  const abrirImpresion = () => setTimeout(() => window.print(), 120);
-  const todoListo = new Promise((r) => setTimeout(r, 80)).then(esperarImagenes);
-  if (document.fonts?.ready) {
-    Promise.all([document.fonts.ready, todoListo]).then(abrirImpresion).catch(abrirImpresion);
-  } else {
-    todoListo.then(abrirImpresion).catch(abrirImpresion);
-  }
-  // Red de seguridad por si afterprint no dispara (cierres raros del diálogo).
-  setTimeout(limpiar, 120000);
+  await Promise.all([
+    printDocument.fonts?.ready ?? Promise.resolve(),
+    esperarImagenes(),
+    ...stylesheetLoads,
+  ]).catch(() => {});
+  printWindow.focus();
+  timeoutId = setTimeout(limpiar, 120000);
+  printWindow.print();
 }

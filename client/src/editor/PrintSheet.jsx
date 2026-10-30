@@ -27,11 +27,7 @@ export function PrintSheet({ template, paginas, formData, signatures }) {
             style={{
               position: "relative",
               width: `${w}mm`,
-              // 1px menos que la altura exacta: sin este margen, el redondeo
-              // de mm a píxeles desborda la hoja y el diálogo de impresión
-              // añade una página en blanco al final (ej. "3 hojas" en un
-              // contrato de dos copias).
-              height: `calc(${h}mm - 1px)`,
+              height: `${h}mm`,
               background: "#fff",
               overflow: "hidden",
               pageBreakAfter: i < lista.length - 1 ? "always" : "auto",
