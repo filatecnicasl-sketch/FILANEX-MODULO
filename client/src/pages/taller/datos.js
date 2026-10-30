@@ -15,10 +15,8 @@ export const ESTADOS_CITA = [
 ];
 
 export const ESTADOS_VALORACION = [
-  { clave: "pendiente", nombre: "Pendiente", tono: "amber" },
-  { clave: "valorado", nombre: "Valorado", tono: "cyan" },
-  { clave: "aprobado", nombre: "Aprobado", tono: "green" },
-  { clave: "rechazado", nombre: "Rechazado", tono: "red" },
+  { clave: "con_compromiso", nombre: "CON COMPROMISO", tono: "green" },
+  { clave: "sin_compromiso", nombre: "SIN COMPROMISO", tono: "amber" },
 ];
 
 export const nombreEstadoValoracion = (clave) =>

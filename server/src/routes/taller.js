@@ -434,7 +434,6 @@ router.post("/ordenes", async (req, res, next) => {
     const valoracionesPendientes = await Valoracion.find({
       matricula: mat,
       orden: null,
-      estado: { $ne: "rechazada" },
     }).sort({ createdAt: -1 });
     const valReciente = valoracionesPendientes[0];
 
@@ -462,7 +461,6 @@ router.post("/ordenes", async (req, res, next) => {
     for (const v of valoracionesPendientes) {
       v.orden = orden._id;
       v.numeroOrden = orden.numero;
-      if (v.estado === "pendiente") v.estado = "valorado";
       await v.save();
     }
 
@@ -1020,7 +1018,6 @@ router.post("/recepcion", async (req, res, next) => {
     const valoracionesPendientes = await Valoracion.find({
       matricula: mat,
       orden: null,
-      estado: { $ne: "rechazada" },
     }).sort({ createdAt: -1 });
     const valReciente = valoracionesPendientes[0];
 
@@ -1049,7 +1046,6 @@ router.post("/recepcion", async (req, res, next) => {
     for (const v of valoracionesPendientes) {
       v.orden = orden._id;
       v.numeroOrden = orden.numero;
-      if (v.estado === "pendiente") v.estado = "valorado";
       await v.save();
     }
 
@@ -1977,6 +1973,9 @@ router.post(
         aseguradora,
         numeroSiniestro: datos.numeroSiniestro || undefined,
         fechaSiniestro: datos.fechaSiniestro ? new Date(datos.fechaSiniestro) : undefined,
+        // El OCR detecta si el documento trae compromiso de reparación.
+        estado: datos.compromiso === true ? "con_compromiso" : "sin_compromiso",
+        compromiso: datos.compromiso === true,
         observaciones:
           [datos.poliza ? `Póliza ${datos.poliza}` : null, (datos.observaciones ?? "").trim() || null]
             .filter(Boolean)
@@ -2060,7 +2059,12 @@ router.post("/valoraciones", async (req, res, next) => {
       aseguradora,
       numeroSiniestro: req.body.numeroSiniestro || undefined,
       fechaSiniestro: req.body.fechaSiniestro ? new Date(req.body.fechaSiniestro) : undefined,
-      compromiso: !!req.body.compromiso,
+      // El estado ya solo es CON/SIN COMPROMISO; el booleano clásico se
+      // mantiene sincronizado para consultas e informes.
+      estado: ESTADOS_VALORACION.includes(req.body.estado) ? req.body.estado : undefined,
+      compromiso: ESTADOS_VALORACION.includes(req.body.estado)
+        ? req.body.estado === "con_compromiso"
+        : !!req.body.compromiso,
       lineas,
       total: sumarLineasValoracion(lineas),
       observaciones: req.body.observaciones || undefined,
@@ -2078,6 +2082,8 @@ router.put("/valoraciones/:id", async (req, res, next) => {
       return res.status(400).json({ error: `Estado no válido. Válidos: ${ESTADOS_VALORACION.join(", ")}` });
     }
     const cambios = { compania, numeroSiniestro, estado, observaciones };
+    // El booleano clásico de compromiso sigue sincronizado con el estado.
+    if (estado) cambios.compromiso = estado === "con_compromiso";
     if (req.body.compromiso !== undefined) cambios.compromiso = !!req.body.compromiso;
     if (req.body.aseguradora !== undefined) {
       if (req.body.aseguradora) {
@@ -2155,7 +2161,6 @@ router.post("/valoraciones/:id/crear-orden", async (req, res, next) => {
     });
     valoracion.orden = orden._id;
     valoracion.numeroOrden = orden.numero;
-    if (valoracion.estado === "pendiente") valoracion.estado = "valorado";
     await valoracion.save();
     res.status(201).json({ valoracion, orden });
   } catch (err) {

@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-30",
     tipo: "mejora",
+    titulo: "Valoraciones: solo CON COMPROMISO o SIN COMPROMISO",
+    detalle:
+      "Los cuatro estados antiguos de las valoraciones (pendiente, valorado, aprobado y rechazado) se simplifican en dos: CON COMPROMISO, cuando el taller se queda la reparación, y SIN COMPROMISO. Se elige al crear la valoración, se cambia en cualquier momento desde el desplegable de la lista y el OCR lo detecta solo al importar el PDF de la compañía. Las valoraciones ya guardadas se han trasladado al nuevo criterio automáticamente.",
+  },
+  {
+    fecha: "2026-10-30",
+    tipo: "mejora",
     titulo: "Las notas internas de las órdenes, a la vista en el historial",
     detalle:
       "La nota interna que se escribe al final de una orden de trabajo ahora también se ve en el historial del vehículo: en la pestaña «Notas internas» (con su orden, fecha y botón para abrirla completa) y en la ficha de cada orden de la lista, junto al resto de datos. Antes había que abrir la orden una a una para verla.",

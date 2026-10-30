@@ -809,6 +809,8 @@ function DocumentoItem({ doc, tipo, onFoto, onAbrir }) {
     pendiente: "bg-amber-100 text-amber-700",
     aprobada: "bg-emerald-100 text-emerald-700",
     rechazada: "bg-rose-100 text-rose-700",
+    con_compromiso: "bg-emerald-100 text-emerald-700",
+    sin_compromiso: "bg-amber-100 text-amber-700",
     facturado: "bg-emerald-100 text-emerald-700",
     cancelada: "bg-rose-100 text-rose-700",
     activo: "bg-emerald-100 text-emerald-700",
@@ -1031,7 +1033,6 @@ function VisualizadorDocumento({ doc, tipo, onCerrar, onFoto }) {
   } else if (tipo === "valoraciones") {
     push("Estado", String(doc.estado ?? "").replace(/_/g, " "));
     push("Aseguradora", doc.aseguradora?.nombre);
-    push("Compromiso de reparación", doc.compromiso ? "Sí" : "No");
     push("Total valoración", eur(doc.total));
   } else if (tipo === "cortesias") {
     push("Cortesía prestada", [doc.vehiculo?.matricula ?? doc.matricula, [doc.vehiculo?.marca, doc.vehiculo?.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" · "));

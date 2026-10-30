@@ -280,6 +280,7 @@ const esquemaValoracion = {
     poliza: { type: "STRING", description: "Número de póliza" },
     fechaSiniestro: { type: "STRING", description: "Fecha de ocurrencia del siniestro, formato YYYY-MM-DD" },
     compania: { type: "STRING", description: "Aseguradora que emite la valoración" },
+    compromiso: { type: "BOOLEAN", description: "true si el documento indica compromiso de reparación del taller (la aseguradora se compromete a que el taller realice la reparación)" },
     observaciones: { type: "STRING" },
     secciones: {
       type: "ARRAY",
@@ -316,6 +317,7 @@ Reglas:
 - bastidor: número de bastidor / VIN si aparece ("Nº BASTIDOR", "VIN", "CHASIS"); suele tener 17 caracteres alfanuméricos.
 - numeroSiniestro: la referencia del siniestro/expediente tal como aparece (p.ej. "896.945 / 2026 - AP").
 - compania: la aseguradora que emite el documento. Si el nombre comercial no aparece directamente, identifícala por el membrete, el pie de página (registro mercantil, NIF, dirección) o el formato del documento.
+- compromiso: true solo si el documento indica explícitamente compromiso de reparación (el taller se queda la reparación). Si no aparece o hay duda, omítelo.
 - fechaSiniestro: la fecha de ocurrencia ("FECHA SINIESTRO"), NO la fecha de emisión del documento ni la de apertura. Formato YYYY-MM-DD.
 - secciones[]: agrupa las operaciones por imputaciones/grupos de trabajo tal como vienen en el documento (p.ej. "Chapa aleta delantera derecha", "Pintura paragolpes trasero"). Si no hay agrupación clara, usa una única sección con el tipo de trabajo general.
 - operaciones[].tipo: "sustitucion" si se cambia una pieza/recambio; "reparacion" para mano de obra, pintura o reparaciones.

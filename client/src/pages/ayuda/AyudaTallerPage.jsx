@@ -163,8 +163,10 @@ export default function AyudaTallerPage() {
             compañía, el siniestro y las partidas de daños.
           </Paso>
           <Paso n={2}>
-            Cuando la compañía la apruebe, cambia el estado a <b>Aceptada</b> y pulsa <K>Crear OT</K>:
-            genera la orden de trabajo con las partidas ya cargadas.
+            Cada valoración tiene dos estados: <b>CON COMPROMISO</b> (el taller se queda la reparación)
+            o <b>SIN COMPROMISO</b>. Se elige al crearla, se cambia en cualquier momento desde la propia
+            lista y el OCR la detecta al importar el PDF de la compañía. Cuando te confirmen el trabajo,
+            pulsa <K>Crear OT</K>: genera la orden de trabajo con las partidas ya cargadas.
           </Paso>
         </Seccion>
 

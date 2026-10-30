@@ -18,7 +18,7 @@ const VACIO = {
   compania: "",
   numeroSiniestro: "",
   fechaSiniestro: "",
-  compromiso: false,
+  estado: "sin_compromiso",
   observaciones: "",
 };
 
@@ -187,7 +187,7 @@ export default function TallerValoracionesPage() {
       compania: v.compania ?? "",
       numeroSiniestro: v.numeroSiniestro ?? "",
       fechaSiniestro: v.fechaSiniestro ? aFechaInput(v.fechaSiniestro) : "",
-      compromiso: !!v.compromiso,
+      estado: v.estado ?? (v.compromiso ? "con_compromiso" : "sin_compromiso"),
       observaciones: v.observaciones ?? "",
     });
     setLineas(v.lineas?.length > 0 ? v.lineas.map((l) => ({ ...l })) : [lineaVacia()]);
@@ -226,6 +226,7 @@ export default function TallerValoracionesPage() {
         fechaSiniestro: datos.fechaSiniestro ?? f.fechaSiniestro,
         aseguradora: aseg?._id ?? f.aseguradora,
         compania: aseg?.nombre ?? ((datos.compania ?? "").trim() || f.compania),
+        estado: datos.compromiso === true ? "con_compromiso" : f.estado,
         observaciones: datos.observaciones ?? f.observaciones,
       }));
 
@@ -379,14 +380,7 @@ export default function TallerValoracionesPage() {
                   <tr key={v._id}>
                     <td className="font-bold text-white whitespace-nowrap num">{v.numero}</td>
                     <td className="text-slate-300 num">{v.matricula}</td>
-                    <td className="text-slate-300">
-                      {v.compania ?? "—"}
-                      {v.compromiso && (
-                        <span className="ml-1.5 inline-block align-middle rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-semibold">
-                          Compromiso
-                        </span>
-                      )}
-                    </td>
+                    <td className="text-slate-300">{v.compania ?? "—"}</td>
                     <td className="text-slate-400 num">{v.numeroSiniestro ?? "—"}</td>
                     <td>
                       <select
@@ -552,17 +546,18 @@ export default function TallerValoracionesPage() {
                     onChange={(e) => setForm({ ...form, fechaSiniestro: e.target.value })}
                   />
                 </div>
-                {form.aseguradora && (
-                  <label className="flex items-end gap-2 pb-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={form.compromiso}
-                      onChange={(e) => setForm({ ...form, compromiso: e.target.checked })}
-                      className="w-4 h-4 accent-[#0e7490]"
-                    />
-                    <span className="text-sm text-slate-300">Compromiso de reparación</span>
-                  </label>
-                )}
+                <div>
+                  <label className="text-sm text-slate-400 block mb-1">Estado</label>
+                  <select
+                    value={form.estado}
+                    onChange={(e) => setForm({ ...form, estado: e.target.value })}
+                    className={campo}
+                  >
+                    {ESTADOS_VALORACION.map((e2) => (
+                      <option key={e2.clave} value={e2.clave}>{e2.nombre}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

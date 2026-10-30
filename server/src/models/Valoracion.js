@@ -2,7 +2,7 @@ import { Schema } from "mongoose";
 import { modeloTenant } from "./tenant.js";
 import { normalizarMatricula } from "../services/validacion.js";
 
-export const ESTADOS_VALORACION = ["pendiente", "valorado", "aprobado", "rechazado"];
+export const ESTADOS_VALORACION = ["con_compromiso", "sin_compromiso"];
 
 // Cada partida es un concepto de la peritación con su importe. Las de mano
 // de obra pueden llevar tipo (chapa/pintura/mecanica) y horas; el importe se
@@ -29,10 +29,10 @@ const valoracionSchema = new Schema(
     aseguradora: { type: Schema.Types.ObjectId, ref: "Aseguradora" }, // ficha con condiciones
     numeroSiniestro: String,
     fechaSiniestro: Date,
-    compromiso: { type: Boolean, default: false }, // compromiso de reparación de la compañía
+    compromiso: { type: Boolean, default: false }, // compromiso de reparación de la compañía (sincronizado con estado)
     lineas: { type: [lineaValoracionSchema], default: [] },
     total: { type: Number, default: 0 }, // suma de líneas (valoración)
-    estado: { type: String, enum: ESTADOS_VALORACION, default: "pendiente" },
+    estado: { type: String, enum: ESTADOS_VALORACION, default: "sin_compromiso" },
     observaciones: String,
     orden: { type: Schema.Types.ObjectId, ref: "OrdenTrabajo" }, // OT generada
     numeroOrden: String,

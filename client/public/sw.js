@@ -10,7 +10,7 @@
      offline; el SW no las intercepta.
 */
 
-const VERSION = "filanex-v32";
+const VERSION = "filanex-v33";
 const SHELL = `${VERSION}-shell`;
 const ESTATICOS = `${VERSION}-estaticos`;
 const DATOS = `${VERSION}-datos`;
