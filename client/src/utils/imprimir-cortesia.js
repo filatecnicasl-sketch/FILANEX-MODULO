@@ -144,16 +144,23 @@ export async function imprimirContratoCortesia(p, { copias = 1 } = {}) {
     gaugeSalida.src = gaugeCarburanteConNivel(nivel);
   }
 
-  plantilla = sustituirMarcadores(plantilla, formData);
   // El contrato de cortesía se firma por duplicado: una copia para el cliente
-  // y otra para el taller. Ambas salen en el mismo diálogo de impresión como
-  // páginas consecutivas (se pueden imprimir juntas o por separado).
-  for (let i = 0; i < copias; i += 1) {
-    const pagina = copias > 1 ? `${i + 1} de ${copias}` : "";
-    await imprimirFormato(
-      plantilla,
-      pagina ? { ...formData, "copia.indicador": `Copia ${pagina}` } : formData,
-      {},
-    );
+  // y otra para el taller. Se pasan como páginas de un MISMO documento para
+  // que salgan en un único diálogo de impresión: dos llamadas seguidas a
+  // print() no funcionan porque el navegador bloquea la segunda al haberse
+  // perdido la acción del usuario tras el primer diálogo.
+  const paginas = [];
+  for (let i = 0; i < Math.max(1, copias); i += 1) {
+    const pagina = { ...plantilla, id: `${plantilla.id ?? "contrato"}-copia-${i + 1}` };
+    if (copias > 1) {
+      const etiqueta = `Copia ${i + 1} de ${copias}`;
+      pagina.elements = pagina.elements.map((el) =>
+        el.type === "text" && String(el.text ?? "").includes("{{copia.indicador}}")
+          ? { ...el, text: String(el.text).replace(/\{\{\s*copia\.indicador\s*\}\}/g, etiqueta) }
+          : el
+      );
+    }
+    paginas.push(sustituirMarcadores(pagina, formData));
   }
+  await imprimirFormato(paginas, formData, {});
 }
