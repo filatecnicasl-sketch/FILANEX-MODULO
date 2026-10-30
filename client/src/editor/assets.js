@@ -68,11 +68,61 @@ const COCHE_TRASERA = svg(
   104, 96
 );
 
+// ---------- Indicadores de carburante (contrato de cortesía) ----------
+// Reloj tipo cuadro de instrumentos del modelo en papel: semicírculo con
+// marcas 0, 1/4, 1/2, 3/4 y P (lleno). Con nivel (0-8) se dibuja además la
+// aguja en la posición correspondiente.
+const MARCAS_GAUGE = [
+  [0, "0"],
+  [0.25, "1/4"],
+  [0.5, "1/2"],
+  [0.75, "3/4"],
+  [1, "P"],
+];
+
+export function gaugeCarburanteSvg(etiqueta, nivel = null) {
+  const cx = 230;
+  const cy = 170;
+  const r = 118;
+  const punto = (f, rad) => [
+    (cx + rad * Math.cos(Math.PI * (1 - f))).toFixed(1),
+    (cy - rad * Math.sin(Math.PI * (1 - f))).toFixed(1),
+  ];
+  const [x0, y0] = punto(0, r);
+  const [x1, y1] = punto(1, r);
+  let g = `<path d="M ${x0} ${y0} A ${r} ${r} 0 0 1 ${x1} ${y1}" fill="none" stroke="#000" stroke-width="5"/>`;
+  for (const [f, texto] of MARCAS_GAUGE) {
+    const [xa, ya] = punto(f, r - 18);
+    const [xb, yb] = punto(f, r + 3);
+    const [xt, yt] = punto(f, r + 34);
+    g += `<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" stroke="#000" stroke-width="5"/>`;
+    g += `<text x="${xt}" y="${yt}" font-size="30" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif">${texto}</text>`;
+  }
+  if (nivel != null) {
+    const f = Math.max(0, Math.min(8, Number(nivel) || 0)) / 8;
+    const [xn, yn] = punto(f, r - 24);
+    g += `<line x1="${cx}" y1="${cy}" x2="${xn}" y2="${yn}" stroke="#000" stroke-width="9" stroke-linecap="round"/>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="7" fill="#000"/>`;
+  }
+  g += `<text x="${cx}" y="${cy + 28}" font-size="32" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="Arial, sans-serif">${etiqueta}</text>`;
+  return `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 230">${g}</svg>`
+  )}`;
+}
+
+export const GAUGE_CARBURANTE = gaugeCarburanteSvg("CARBURANTE");
+export const GAUGE_GPL = gaugeCarburanteSvg("GPL");
+export function gaugeCarburanteConNivel(nivel) {
+  return gaugeCarburanteSvg("CARBURANTE", nivel);
+}
+
 export const BUILTIN_IMAGES = {
   "coche-lateral": COCHE_LATERAL,
   "coche-superior": COCHE_SUPERIOR,
   "coche-frontal": COCHE_FRONTAL,
   "coche-trasera": COCHE_TRASERA,
+  "gauge-carburante": GAUGE_CARBURANTE,
+  "gauge-gpl": GAUGE_GPL,
 };
 
 export const BUILTIN_IMAGE_NAMES = {
@@ -80,6 +130,8 @@ export const BUILTIN_IMAGE_NAMES = {
   "coche-superior": "Coche - vista superior",
   "coche-frontal": "Coche - vista frontal",
   "coche-trasera": "Coche - vista trasera",
+  "gauge-carburante": "Indicador de carburante",
+  "gauge-gpl": "Indicador de GPL",
 };
 
 export function resolveImageSrc(src) {

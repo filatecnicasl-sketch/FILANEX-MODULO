@@ -1,5 +1,6 @@
 import { imprimirFormato } from "./imprimir-formato.jsx";
 import { buildContratoCortesia } from "../editor/builtinTemplates.js";
+import { gaugeCarburanteConNivel } from "../editor/assets.js";
 
 const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
 const horaEs = (f) =>
@@ -30,6 +31,7 @@ function mapearFormData(p, emp, plantilla) {
     "empresa.nombre": emp.nombre || "",
     "empresa.direccion": dirTexto(emp.direccion),
     "empresa.telefono": emp.telefono || "",
+    "empresa.email": emp.email || "",
     "prestamo.numero": p.numeroOrden ? `OT ${p.numeroOrden}` : String(p._id || "").slice(-6).toUpperCase(),
 
     "cliente.apellidos": apellidos,
@@ -68,6 +70,11 @@ function mapearFormData(p, emp, plantilla) {
     "reparacion.vin": p.vehiculoReparacionVIN || "",
     "reparacion.numeroOrden": p.numeroOrden || "",
     "reparacion.entregaPrevista": fechaEs(p.fechaPrevista),
+
+    // Bloque SALIDA / RETORNO con relojes de carburante (plantilla nueva).
+    "sr.fechaSalida": p.fechaSalida ? `${fechaEs(p.fechaSalida)} · ${horaEs(p.fechaSalida)}H` : "",
+    "sr.fechaPrevista": p.fechaPrevista ? `${fechaEs(p.fechaPrevista)} · ${horaEs(p.fechaPrevista)}H` : "",
+    "sr.kmSalida": n(p.kmSalida),
   };
 
   // Tabla salida / retorno previsto / retorno real.
@@ -95,6 +102,20 @@ function mapearFormData(p, emp, plantilla) {
   return formData;
 }
 
+// La impresión rápida renderiza los textos tal cual están en la plantilla:
+// los marcadores {{clave}} se sustituyen aquí con los datos, igual que hace
+// el servidor en formatoToHtml para los PDF.
+function sustituirMarcadores(plantilla, formData) {
+  const reemplazo = (texto) =>
+    String(texto ?? "").replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, clave) => formData[clave] ?? "");
+  return {
+    ...plantilla,
+    elements: (plantilla.elements ?? []).map((el) =>
+      el.type === "text" ? { ...el, text: reemplazo(el.text) } : el
+    ),
+  };
+}
+
 export async function imprimirContratoCortesia(p, { copias = 1 } = {}) {
   const emp = await fetch("/api/empresa").then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
   let plantilla = await cargarPlantilla();
@@ -102,6 +123,24 @@ export async function imprimirContratoCortesia(p, { copias = 1 } = {}) {
     plantilla = buildContratoCortesia();
   }
   const formData = mapearFormData(p, emp, plantilla);
+
+  // Reloj de carburante de la salida: la aguja marca el nivel guardado (0-8).
+  // Sin nivel válido queda el reloj en blanco, para marcar a mano como en el
+  // impreso original.
+  const nivel = Number(p.combustibleSalida);
+  const gaugeSalida = plantilla.elements?.find((e) => e.id === "sr-g1");
+  if (
+    gaugeSalida &&
+    p.combustibleSalida != null &&
+    p.combustibleSalida !== "" &&
+    Number.isInteger(nivel) &&
+    nivel >= 0 &&
+    nivel <= 8
+  ) {
+    gaugeSalida.src = gaugeCarburanteConNivel(nivel);
+  }
+
+  plantilla = sustituirMarcadores(plantilla, formData);
   // El contrato de cortesía se firma por duplicado: una copia para el cliente
   // y otra para el taller. Ambas salen en el mismo diálogo de impresión como
   // páginas consecutivas (se pueden imprimir juntas o por separado).
