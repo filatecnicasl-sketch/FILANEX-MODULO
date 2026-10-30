@@ -7,6 +7,13 @@ export const CAMBIOS = [
   {
     fecha: "2026-10-30",
     tipo: "mejora",
+    titulo: "Contrato de cortesía renovado, como el impreso de siempre",
+    detalle:
+      "El contrato de cortesía se ha rediseñado siguiendo el modelo en papel: cabecera con el logo del taller y sus datos centrados (la cabecera antigua que estorbaba se ha eliminado), bloque SALIDA / RETORNO PREVISTO / RETORNO REAL con indicadores de carburante tipo cuadro de mandos —la aguja de salida marca el nivel guardado en el préstamo— y las tres vistas del vehículo para señalar golpes. Además, la impresión está aislada de la pantalla del programa y las dos copias (cliente y taller) salen juntas en un único diálogo, como dos hojas del mismo documento.",
+  },
+  {
+    fecha: "2026-10-30",
+    tipo: "mejora",
     titulo: "Valoraciones: solo CON COMPROMISO o SIN COMPROMISO",
     detalle:
       "Los cuatro estados antiguos de las valoraciones (pendiente, valorado, aprobado y rechazado) se simplifican en dos: CON COMPROMISO, cuando el taller se queda la reparación, y SIN COMPROMISO. Se elige al crear la valoración, se cambia en cualquier momento desde el desplegable de la lista y el OCR lo detecta solo al importar el PDF de la compañía. Las valoraciones ya guardadas se han trasladado al nuevo criterio automáticamente.",
