@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-11-02",
+    tipo: "correccion",
+    titulo: "La documentación de clientes vuelve a subir correctamente",
+    detalle:
+      "Al seleccionar documentos en la ficha de un cliente, el programa vaciaba el selector antes de guardar la lista de archivos; la selección quedaba vacía y no se subía nada. Ahora conserva los archivos elegidos antes de limpiar el control, y permite adjuntarlos tanto a un cliente existente como durante el alta de uno nuevo.",
+  },
+  {
     fecha: "2026-10-30",
     tipo: "mejora",
     titulo: "Contrato de cortesía renovado, como el impreso de siempre",

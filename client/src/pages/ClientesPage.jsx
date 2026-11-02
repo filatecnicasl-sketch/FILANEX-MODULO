@@ -172,8 +172,8 @@ function FormCliente({ inicial, onGuardado, onCerrar, modulos = [], grupos = [] 
   }
 
   async function subirDocumentos(e) {
-    const archivos = e.target.files;
-    if (!archivos?.length) return;
+    const archivos = [...(e.target.files ?? [])];
+    if (!archivos.length) return;
     e.target.value = "";
     setSubiendoDocs(true);
     setError(null);
