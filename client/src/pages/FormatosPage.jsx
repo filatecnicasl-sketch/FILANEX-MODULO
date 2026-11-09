@@ -65,6 +65,9 @@ export default function FormatosPage() {
           onCreateBuiltin={ed.createBuiltinTemplate}
           onResetToBuiltin={ed.resetToBuiltin}
         />
+        <div role={ed.error ? "alert" : "status"} className={`px-4 py-1 text-xs ${ed.error ? "bg-red-50 text-red-700" : "bg-slate-50 text-slate-600"}`}>
+          {ed.error ?? (ed.loading ? "Cargando formatos…" : ed.saving ? "Guardando cambios en el servidor… No cierres esta pantalla." : "Sin cambios pendientes de guardar.")}
+        </div>
         <div className="flex min-h-0 flex-1">
           {design && <Palette onAdd={addElement} disabled={!design} />}
           <div ref={wrapRef} className="min-w-0 flex-1">

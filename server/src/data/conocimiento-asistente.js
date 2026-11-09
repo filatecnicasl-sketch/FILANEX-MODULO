@@ -438,7 +438,12 @@ editor en Ajustes → Formatos. Cada formato es una plantilla visual:
   cliente, líneas, totales…), imágenes (logo) y tablas.
 - Cada documento tiene un formato asignado; se puede duplicar un formato para
   hacer variantes (ej. "factura con sello", "albarán sin precios").
-- Los cambios se guardan y afectan a partir de la siguiente impresión.
+- Los cambios se guardan automáticamente y la barra muestra si están guardando
+  o si ha fallado el guardado. Una copia local NO equivale a guardar en el servidor:
+  ante un error, conservar la pestaña y exportar la plantilla antes de recargar.
+- Cada empresa tiene sus propios formatos. Los guardados del editor se envían
+  en orden; si otra sesión cambia el mismo formato, se avisa del conflicto para
+  no sobrescribir sus cambios silenciosamente.
 - Si un documento "sale en blanco" o con un diseño viejo, casi siempre es el
   formato asignado: revisar Ajustes → Formatos.
 - Consejo: para el contrato de cortesía y documentos especiales se crea un

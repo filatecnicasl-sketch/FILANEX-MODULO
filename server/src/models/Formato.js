@@ -6,7 +6,7 @@ const elementSchema = new Schema(
     id: { type: String, required: true },
     type: {
       type: String,
-      enum: ["text", "field", "textarea", "checkbox", "image", "rect", "signature", "table"],
+      enum: ["text", "field", "textarea", "checkbox", "image", "line", "rect", "signature", "table"],
       required: true,
     },
     x: Number,

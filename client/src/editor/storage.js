@@ -2,6 +2,8 @@ import { BUILTIN_TEMPLATES } from "./builtinTemplates.js";
 
 const LS_KEY = "nexospro-formatos-v1";
 const LS_MIGRATED = "nexospro-formatos-migrated";
+const colasGuardado = new Map();
+const versiones = new Map();
 
 const BUILTIN_MAP = Object.fromEntries(
   BUILTIN_TEMPLATES.map((builder) => {
@@ -75,8 +77,10 @@ export async function loadTemplates() {
     if (docs.length === 0) {
       docs = await seedServer();
     }
+    for (const doc of docs) versiones.set(doc._id, doc.__v ?? 0);
     return docs.map((d) => ({
       id: d._id,
+      version: d.__v ?? 0,
       tipoDocumento: d.tipoDocumento,
       name: d.nombre,
       porDefecto: d.porDefecto,
@@ -97,6 +101,18 @@ export async function loadTemplates() {
 }
 
 export async function saveTemplate(template) {
+  const clave = template.id || "nuevo";
+  const anterior = colasGuardado.get(clave) ?? Promise.resolve();
+  const siguiente = anterior.catch(() => {}).then(() => guardarTemplate(template));
+  colasGuardado.set(clave, siguiente);
+  try {
+    return await siguiente;
+  } finally {
+    if (colasGuardado.get(clave) === siguiente) colasGuardado.delete(clave);
+  }
+}
+
+async function guardarTemplate(template) {
   try {
     if (!template.id) {
       const created = await fetchJson("/api/formatos", {
@@ -109,46 +125,41 @@ export async function saveTemplate(template) {
           cssExtra: template.cssExtra,
         }),
       });
-      return { ...template, id: created._id };
+      versiones.set(created._id, created.__v ?? 0);
+      return { ...template, id: created._id, version: created.__v ?? 0, updatedAt: created.updatedAt };
     }
-    await fetchJson(`/api/formatos/${template.id}`, {
+    const saved = await fetchJson(`/api/formatos/${template.id}`, {
       method: "PUT",
       body: JSON.stringify({
         nombre: template.name,
+        tipoDocumento: template.tipoDocumento,
+        version: versiones.get(template.id) ?? template.version,
         page: template.page,
         elements: template.elements,
         cssExtra: template.cssExtra,
       }),
     });
-    return template;
+    versiones.set(template.id, saved.__v ?? 0);
+    return { ...template, version: saved.__v ?? 0, updatedAt: saved.updatedAt };
   } catch (err) {
     console.error("[formatos] Guardado fallido:", err.message);
-    // Si hay conexión y aun así no se ha podido guardar en el servidor (por
-    // ejemplo, plantilla demasiado grande), hay que avisar: guardar en
-    // silencio solo en este navegador sería perder el trabajo sin saberlo.
-    if (typeof navigator !== "undefined" && navigator.onLine) {
-      alert(
-        "No se pudo guardar el formato en el servidor (" + err.message + "). " +
-        "Los cambios solo quedan en este navegador. Si has añadido una imagen muy grande, " +
-        "prueba con una más pequeña."
-      );
-    }
-    // Fallback offline.
-    const all = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-    const idx = all.findIndex((t) => t.id === template.id);
-    if (idx >= 0) all[idx] = template;
-    else all.push(template);
-    localStorage.setItem(LS_KEY, JSON.stringify(all));
-    return template;
+    let copiaLocal = false;
+    try {
+      const all = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+      const idx = all.findIndex((t) => t.id === template.id);
+      if (idx >= 0) all[idx] = template;
+      else all.push(template);
+      localStorage.setItem(LS_KEY, JSON.stringify(all));
+      copiaLocal = true;
+    } catch {}
+    throw new Error(`No guardado en el servidor: ${err.message}. ${copiaLocal ? "Se conserva una copia en este navegador; no está publicada." : "Tampoco se pudo guardar una copia local. No cierres esta pantalla y exporta el formato."}`);
   }
 }
 
 export async function deleteTemplateRemote(id) {
-  try {
-    await fetchJson(`/api/formatos/${id}`, { method: "DELETE" });
-  } catch (err) {
-    console.error("[formatos] Borrado remoto fallido:", err.message);
-  }
+  await colasGuardado.get(id)?.catch(() => {});
+  await fetchJson(`/api/formatos/${id}`, { method: "DELETE" });
+  versiones.delete(id);
 }
 
 export async function duplicateTemplateRemote(id) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   loadTemplates,
   saveTemplate,
@@ -24,6 +24,9 @@ export function useEditorState() {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const pendientes = useRef(0);
+  const templateActual = useRef(null);
   const [currentId, setCurrentId] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [mode, setMode] = useState("design");
@@ -56,28 +59,53 @@ export function useEditorState() {
     [templates, currentId]
   );
 
+  templateActual.current = template;
+
+  useEffect(() => {
+    const antesDeCerrar = (event) => {
+      if (!pendientes.current && !error) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", antesDeCerrar);
+    return () => window.removeEventListener("beforeunload", antesDeCerrar);
+  }, [error]);
+
   const persistOne = useCallback(async (nextTemplate) => {
-    const saved = await saveTemplate(nextTemplate);
-    setTemplates((prev) => {
-      const idx = prev.findIndex((t) => t.id === nextTemplate.id || t.id === saved.id);
-      if (idx >= 0) {
-        const arr = [...prev];
-        arr[idx] = saved;
-        return arr;
-      }
-      return [...prev, saved];
-    });
-    if (!currentId && saved.id) setCurrentId(saved.id);
-    return saved;
+    pendientes.current += 1;
+    setSaving(true);
+    try {
+      const saved = await saveTemplate(nextTemplate);
+      setTemplates((prev) => {
+        const idx = prev.findIndex((t) => t.id === nextTemplate.id || t.id === saved.id);
+        if (idx >= 0) {
+          if (prev[idx] !== nextTemplate) return prev;
+          const arr = [...prev];
+          arr[idx] = saved;
+          return arr;
+        }
+        return [...prev, saved];
+      });
+      if (!currentId && saved.id) setCurrentId(saved.id);
+      setError(null);
+      return saved;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    } finally {
+      pendientes.current -= 1;
+      setSaving(pendientes.current > 0);
+    }
   }, [currentId]);
 
   const updateTemplate = useCallback(
     (updater) => {
-      const next = updater(template);
+      const next = updater(templateActual.current);
+      templateActual.current = next;
       setTemplates((prev) => prev.map((t) => (t.id === next.id ? next : t)));
       persistOne(next);
     },
-    [template, persistOne]
+    [persistOne]
   );
 
   const updateElement = useCallback(
@@ -149,7 +177,7 @@ export function useEditorState() {
         elements: [],
       };
       const saved = await persistOne(t);
-      selectTemplate(saved.id);
+      if (saved) selectTemplate(saved.id);
     },
     [persistOne, selectTemplate]
   );
@@ -174,10 +202,15 @@ export function useEditorState() {
   const deleteTemplate = useCallback(async () => {
     if (!template.id) return;
     if (templates.length <= 1) return;
-    await deleteTemplateRemote(template.id);
-    const next = templates.filter((t) => t.id !== template.id);
-    setTemplates(next);
-    selectTemplate(next[0]?.id ?? "");
+    try {
+      await deleteTemplateRemote(template.id);
+      const next = templates.filter((t) => t.id !== template.id);
+      setTemplates(next);
+      selectTemplate(next[0]?.id ?? "");
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
   }, [template, templates, selectTemplate]);
 
   const setAsDefault = useCallback(async () => {
@@ -233,6 +266,7 @@ export function useEditorState() {
     templates,
     template,
     loading,
+    saving,
     error,
     selectedId,
     setSelectedId,

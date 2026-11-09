@@ -85,16 +85,27 @@ router.post("/", async (req, res, next) => {
 
 router.put("/:id", async (req, res, next) => {
   try {
-    const doc = await Formato.findById(req.params.id);
-    if (!doc) return res.status(404).json({ error: "Formato no encontrado" });
-    const { nombre, page, elements, cssExtra } = req.body;
-    if (nombre !== undefined) doc.nombre = nombre;
-    if (page !== undefined) doc.page = page;
-    if (elements !== undefined) doc.elements = elements;
-    if (cssExtra !== undefined) doc.cssExtra = cssExtra;
-    await doc.save();
+    const { nombre, page, elements, cssExtra, tipoDocumento, version } = req.body;
+    const cambios = Object.fromEntries(Object.entries({ nombre, page, elements, cssExtra, tipoDocumento }).filter(([, valor]) => valor !== undefined));
+    const filtro = { _id: req.params.id };
+    if (version !== undefined) {
+      if (!Number.isSafeInteger(version) || version < 0) return res.status(400).json({ error: "Versión de formato no válida" });
+      if (version === 0) filtro.$or = [{ __v: 0 }, { __v: { $exists: false } }];
+      else filtro.__v = version;
+    }
+    const doc = await Formato.findOneAndUpdate(filtro, { $set: cambios, $inc: { __v: 1 } }, { new: true, runValidators: true });
+    if (!doc) {
+      if (await Formato.exists({ _id: req.params.id })) {
+        return res.status(409).json({ error: "El formato ha cambiado en otra sesión. Tus cambios no se han sobrescrito: conserva tu copia y vuelve a cargar el formato antes de continuar." });
+      }
+      return res.status(404).json({ error: "Formato no encontrado" });
+    }
     res.json(doc);
   } catch (err) {
+    if (err.name === "ValidationError" || err.name === "CastError") {
+      return res.status(400).json({ error: "Formato no válido: " + err.message });
+    }
+    console.error("[formatos] Error al guardar", req.params.id, err.name, err.message);
     next(err);
   }
 });

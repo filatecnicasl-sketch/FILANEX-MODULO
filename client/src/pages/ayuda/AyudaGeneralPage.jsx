@@ -161,7 +161,7 @@ export default function AyudaGeneralPage() {
             Los documentos se imprimen desde el icono de impresora de cada fila o desde su ficha.
           </Paso>
           <Paso n={2}>
-            En <K>Ajustes → Formatos</K> puedes personalizar el diseño de documentos con el editor visual: logotipo, colores, textos fijos, campos y firma.
+            En <K>Ajustes → Formatos</K> puedes personalizar el diseño de documentos con el editor visual: logotipo, colores, textos fijos, campos y firma. Cada empresa tiene sus propios formatos. La barra de estado indica si se está guardando o hay un error: una copia local no significa que el formato esté publicado. Si hay un fallo, no cierres la pantalla; reintenta o exporta el formato. Si otra sesión lo modificó, recarga antes de continuar para no sobrescribir sus cambios.
           </Paso>
           <Paso n={3}>
             También puedes descargar la factura en XML (VeriFactu) o PDF para enviarla por email o WhatsApp.

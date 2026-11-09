@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-11-09",
+    tipo: "correccion",
+    titulo: "Formatos: guardado ordenado y errores visibles al colocar el logotipo",
+    detalle:
+      "Los cambios rápidos del editor se guardan en orden para evitar errores por peticiones simultáneas al colocar o mover imágenes. La barra indica si se está guardando o si ha fallado: una copia local no equivale a estar guardado en el servidor. Si dos sesiones modifican el mismo formato, el programa avisa del conflicto en lugar de sobrescribir los cambios sin advertirlo. Cada empresa conserva sus propios formatos.",
+  },
+  {
     fecha: "2026-11-02",
     tipo: "correccion",
     titulo: "La documentación de clientes vuelve a subir correctamente",
