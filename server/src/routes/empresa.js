@@ -2,7 +2,7 @@ import { Router } from "express";
 import Empresa from "../models/Empresa.js";
 import Tenant from "../models/plataforma/Tenant.js";
 import { MODULOS, MODULOS_ACTIVABLES } from "../config/modulos.js";
-import { asegurarSeries } from "../services/numeracion.js";
+import { asegurarSeries, consultarSeriesNumeracion } from "../services/numeracion.js";
 import { METODOS_PAGO_DEFECTO } from "../services/metodos-pago.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 import { requiereRol } from "../middleware/auth.js";
@@ -43,6 +43,18 @@ router.get("/", async (req, res, next) => {
       obj.demo = false;
     }
     res.json(obj);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/series", async (req, res, next) => {
+  try {
+    const empresa = await Empresa.findOne();
+    if (!empresa) return res.status(404).json({ error: "No hay empresa configurada" });
+    const obj = empresa.toObject();
+    asegurarMetodosPago(obj);
+    res.json({ ...await consultarSeriesNumeracion(obj), metodosPago: obj.metodosPago });
   } catch (err) {
     next(err);
   }
@@ -107,8 +119,7 @@ router.put("/series", requiereRol("admin"), async (req, res, next) => {
     }
     await empresa.save();
     res.json({
-      seriesVenta: empresa.seriesVenta,
-      seriesCompra: empresa.seriesCompra,
+      ...await consultarSeriesNumeracion(empresa),
       metodosPago: empresa.metodosPago,
     });
   } catch (err) {

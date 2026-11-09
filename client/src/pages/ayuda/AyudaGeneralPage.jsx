@@ -26,7 +26,7 @@ export default function AyudaGeneralPage() {
             Revisa los datos de la empresa en <K>Ajustes → Configuración</K>: nombre, NIF, dirección, teléfono y logo. Estos datos salen en documentos impresos, emails y tickets.
           </Paso>
           <Paso n={2}>
-            Configura las <K>Series</K> de facturación y los contadores de presupuestos, albaranes y facturas en <K>Ajustes → Series</K>.
+            Configura las <K>Series</K> de facturación en <K>Ajustes → Series</K>. Los próximos números de presupuestos, albaranes y facturas se consultan del contador real: son automáticos y no se editan a mano. En facturas se muestra el ejercicio actual; una factura con fecha de otro ejercicio usa su propia numeración. Consultar no reserva el número y, si se emiten documentos en otra pestaña, hay que volver a entrar para actualizarlo.
           </Paso>
           <Paso n={3}>
             Sube el certificado digital en <K>Ajustes → Certificado</K> para enviar facturas a Hacienda (VeriFactu).

@@ -103,6 +103,12 @@ Presupuesto → Pedido (opcional) → Albarán (opcional) → Factura.
 - Series y numeración: Ajustes → Series. Cada tipo de documento puede tener
   varias series (ej. A, B, F2 para tickets). La F2 se usa para las facturas
   simplificadas (tickets).
+- En Ajustes → Series los próximos números se leen del contador real, no de
+  los campos antiguos de configuración. Son automáticos y no editables.
+  Facturas muestra el ejercicio actual; si se emite con fecha de otro
+  ejercicio, se usa su contador. Consultar no reserva ni consume números.
+  Si otra pestaña emite documentos, volver a entrar actualiza la consulta.
+  Guardar series o métodos de pago no reinicia los contadores de emisión.
 
 ### Compras y gastos
 - Facturas de compra y albaranes de compra se pueden dar de alta a mano o con

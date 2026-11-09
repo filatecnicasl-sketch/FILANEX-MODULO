@@ -95,7 +95,9 @@ function TarjetaSeries({ titulo, subtitulo, campos, series, onCambio }) {
                 min="1"
                 className="input text-right num"
                 value={s[clave] ?? 1}
-                onChange={(e) => poner(i, clave, e.target.value)}
+                readOnly
+                title="Próximo número automático al consultar. No se modifica manualmente."
+                aria-label={`${clave} de la serie ${s.nombre || "nueva"}`}
               />
             ))}
             <button
@@ -230,12 +232,18 @@ export default function SeriesPage() {
   const [metodos, setMetodos] = useState([]);
   const [aviso, setAviso] = useState(null);
   const [error, setError] = useState(null);
+  const [ejercicio, setEjercicio] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    fetch("/api/empresa")
-      .then((r) => r.json())
+    fetch("/api/empresa/series")
+      .then(async (r) => {
+        const datos = await r.json();
+        if (!r.ok) throw new Error(datos.error || "No se pudieron consultar las series.");
+        return datos;
+      })
       .then((e) => {
+        setEjercicio(e.ejercicio);
         setVenta(e.seriesVenta?.length ? e.seriesVenta : [nuevaVenta(true)]);
         setCompra(e.seriesCompra?.length ? e.seriesCompra : [nuevaCompra(true)]);
         setMetodos(
@@ -265,6 +273,7 @@ export default function SeriesPage() {
       });
       const datos = await r.json();
       if (!r.ok) throw new Error(datos.error || "No se pudo guardar");
+      setEjercicio(datos.ejercicio);
       setVenta(datos.seriesVenta);
       setCompra(datos.seriesCompra);
       setMetodos(datos.metodosPago);
@@ -294,6 +303,12 @@ export default function SeriesPage() {
 
       {!venta ? null : (
         <>
+          <p className="text-sm text-slate-500 mb-4 max-w-3xl">
+            Los próximos números se consultan del contador real y son automáticos, no editables.
+            Facturas: ejercicio {ejercicio}. Si se emiten documentos en otra pestaña,
+            vuelve a entrar para actualizar la consulta. Una emisión simultánea puede tomar ese número antes.
+            Las series nuevas se comprueban al guardar.
+          </p>
           <TarjetaSeries
             titulo="Series de venta"
             subtitulo="Numeración de presupuestos, albaranes y facturas emitidas"

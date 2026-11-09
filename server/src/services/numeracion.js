@@ -155,6 +155,30 @@ export async function tomarNumeroFacturaVentaAtomico(empresa, { serieNombre, ano
   return { serie: nombreEfectivo, numero, serieNumero: `${nombreEfectivo}-${numero}` };
 }
 
+export async function consultarSeriesNumeracion(empresa, { ano = new Date().getFullYear() } = {}) {
+  const datos = empresa.toObject ? empresa.toObject() : structuredClone(empresa);
+  asegurarSeries(datos);
+  const contadores = await Contador.find({}).select("clave valor").lean();
+  const valores = new Map(contadores.map(contador => [contador.clave, contador.valor]));
+  await Promise.all(Object.entries(CAMPOS).flatMap(([tipo, config]) =>
+    datos[config.lista].map(async serie => {
+      const esFactura = tipo === "facturaVenta";
+      const nombre = esFactura && datos.renumerarAnual !== false ? `${serie.nombre}-${ano}` : serie.nombre;
+      const clave = `${tipo}:${nombre}`;
+      let ultimo = valores.get(clave);
+      if (ultimo === undefined) {
+        const def = esFactura ? { modelo: "FacturaVenta", campo: "serieNumero" } : MODELOS_NUMERACION[tipo];
+        const { default: Modelo } = await import(`../models/${def.modelo}.js`);
+        ultimo = await maximoNumero(Modelo, def.campo, {
+          [def.campo]: new RegExp(`^${nombre.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-`),
+        });
+      }
+      serie[config.campo] = ultimo + 1;
+    })
+  ));
+  return { seriesVenta: datos.seriesVenta, seriesCompra: datos.seriesCompra, ejercicio: ano };
+}
+
 // Contador atómico para órdenes de trabajo. Desacoplado del documento Empresa.
 export async function tomarNumeroOrdenTrabajoAtomico() {
   const { default: OrdenTrabajo } = await import("../models/OrdenTrabajo.js");
@@ -171,7 +195,7 @@ export async function tomarNumeroOrdenTrabajoAtomico() {
 // Modelo y campo donde se guarda la numeración de cada tipo: sirven para
 // inicializar el contador atómico al máximo ya usado la primera vez.
 const MODELOS_NUMERACION = {
-  presupuestoVenta: { modelo: "PresupuestoVenta", campo: "serieNumero" },
+  presupuestoVenta: { modelo: "Presupuesto", campo: "serieNumero" },
   albaranVenta: { modelo: "AlbaranVenta", campo: "serieNumero" },
   presupuestoCompra: { modelo: "PresupuestoCompra", campo: "serieNumero" },
   pedidoCompra: { modelo: "PedidoCompra", campo: "serieNumero" },
