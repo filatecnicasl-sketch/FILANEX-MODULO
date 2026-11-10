@@ -6,6 +6,13 @@
 export const CAMBIOS = [
   {
     fecha: "2026-11-10",
+    tipo: "correccion",
+    titulo: "Menú lateral: Compatible VeriFactu",
+    detalle:
+      "El menú lateral muestra «Compatible VeriFactu», igual que la cabecera, también al plegarlo. Esta indicación de compatibilidad no significa que el envío a la AEAT esté activo; no se ha cambiado la configuración fiscal ni el funcionamiento de los envíos.",
+  },
+  {
+    fecha: "2026-11-10",
     tipo: "mejora",
     titulo: "Facturas: cuenta de cobro de cada empresa",
     detalle:

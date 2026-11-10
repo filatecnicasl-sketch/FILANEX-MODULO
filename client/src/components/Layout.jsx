@@ -518,7 +518,7 @@ export default function Layout() {
         {plegado && (
           <div
             className="hidden lg:flex py-4 border-t border-white/[0.06] justify-center"
-            title={`${nombreEmpresa} · VeriFactu activo`}
+            title={`${nombreEmpresa} · Compatible VeriFactu`}
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
           </div>
@@ -530,7 +530,7 @@ export default function Layout() {
           <p className="text-[0.6875rem] text-slate-500 mt-0.5 truncate">{detalleEmpresa}</p>
           <p className="flex items-center gap-1.5 text-[0.6875rem] font-medium mt-2 text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            VeriFactu activo
+            Compatible VeriFactu
           </p>
         </div>
       </aside>
