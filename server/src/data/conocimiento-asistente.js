@@ -84,6 +84,11 @@ Menú: Clientes, Proveedores, Artículos, Ventas, Compras, Tesorería, Informes.
 - Los albaranes facturados no se pueden editar ni borrar; hay que rectificar
   la factura si es necesario.
 
+### Cuenta bancaria en las facturas
+- La factura de venta toma el IBAN de la empresa activa, campo IBAN de los datos de empresa en Ajustes → Configuración. Nunca usa la cuenta del cliente ni la de otra empresa.
+- En impresión y PDF se muestra C/C seguido del IBAN debajo de la forma de pago. Si no hay IBAN configurado no se añade una cuenta vacía. Cambiar el IBAN en configuración actualiza las siguientes impresiones, sin alterar números, importes ni registros fiscales.
+- No hay que fijar una cuenta en el formato. Los campos dinámicos disponibles son {{empresa.iban}}, {{pago.iban}} y {{pago.cuenta}}; este último incluye el prefijo C/C. Los formatos que ya tienen un campo bancario conservan su posición y no lo duplican. Un formato personalizado sin campo pago.metodo necesita ese campo para poder colocar automáticamente la cuenta debajo.
+
 ### Ciclo de venta
 Presupuesto → Pedido (opcional) → Albarán (opcional) → Factura.
 - Se puede convertir un documento en el siguiente con un clic (botón de

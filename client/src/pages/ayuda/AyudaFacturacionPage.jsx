@@ -48,6 +48,17 @@ export default function AyudaFacturacionPage() {
             indicador «Compatible VeriFactu»). Desde la lista puedes imprimir, descargar el XML, ver el
             estado del envío y anularla si procede (la anulación genera registro de anulación, no borra).
           </p>
+          <Sub>Cuenta bancaria en la factura</Sub>
+          <p>
+            Las facturas toman el IBAN de tu empresa en <K>Ajustes → Configuración</K>,
+            en el campo <b>IBAN</b> de los datos de empresa. Debajo de la forma de pago aparece <b>C/C</b> seguido
+            del IBAN, tanto al imprimir como en el PDF. Cada empresa utiliza solo su propia cuenta;
+            si no tiene IBAN configurado no se imprime una cuenta vacía. Al cambiarlo en configuración,
+            las siguientes impresiones utilizan el dato actualizado. No hace falta escribirlo como
+            texto fijo en el formato. Los formatos personalizados que ya tienen un campo IBAN
+            conservan su ubicación; si no tienen campo de forma de pago, añádelo en el editor para
+            que el programa pueda colocar la cuenta debajo.
+          </p>
           <Sub>Autofacturas (Ventas → Autofacturas)</Sub>
           <p>
             La mayoría de las <b>comisiones de energía y de las compañías de móvil</b> se liquidan

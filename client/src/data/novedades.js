@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-11-10",
+    tipo: "mejora",
+    titulo: "Facturas: cuenta de cobro de cada empresa",
+    detalle:
+      "La impresión y el PDF de las facturas toman el IBAN configurado en los datos bancarios de cada empresa y lo muestran como C/C debajo de la forma de pago. No se comparte ninguna cuenta entre empresas ni es necesario escribirla como texto fijo. Si no hay IBAN no se añade una cuenta vacía. Los formatos con campo bancario propio conservan su posición; los personalizados necesitan un campo de forma de pago para colocar automáticamente la cuenta debajo. No se modifican facturas emitidas, numeración ni registros fiscales.",
+  },
+  {
     fecha: "2026-11-09",
     tipo: "correccion",
     titulo: "Series: próximos números del contador real",

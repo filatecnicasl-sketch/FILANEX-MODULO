@@ -5,6 +5,7 @@ import AlbaranVenta from "../models/AlbaranVenta.js";
 import OrdenTrabajo from "../models/OrdenTrabajo.js";
 import OrdenServicio from "../models/OrdenServicio.js";
 import Empresa from "../models/Empresa.js";
+import { formatearIban } from "./cuentaFactura.js";
 
 const euros = (n) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(Number(n) || 0);
 const fechaEs = (f) => (f ? new Date(f).toLocaleDateString("es-ES") : "");
@@ -105,6 +106,7 @@ async function datosEmpresa() {
     telefono: e?.telefono ?? "",
     email: e?.email ?? "",
     logoUrl: e?.logoUrl ?? "",
+    iban: formatearIban(e?.sepa?.iban),
   };
 }
 
@@ -182,6 +184,9 @@ async function datosFacturaVenta(id) {
     "totales.descuento": descuentoTotal > 0 ? `− ${euros(descuentoTotal)}` : "",
     "totales.descuentoLabel": descuentoTotal > 0 ? "Descuento" : "",
     "pago.metodo": f.metodoPago ?? "",
+    "empresa.iban": emp.iban,
+    "pago.iban": emp.iban,
+    "pago.cuenta": emp.iban ? `C/C ${emp.iban}` : "",
     "pago.vencimiento": fechaEs(f.vencimiento),
     "notas": f.descripcion ?? "",
   };

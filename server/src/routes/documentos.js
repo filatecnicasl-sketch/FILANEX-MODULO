@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import Formato from "../models/Formato.js";
 import { datosParaPdf } from "../services/documentoPdfData.js";
+import { prepararCuentaFactura } from "../services/cuentaFactura.js";
 import { formatoToHtml, expandirLineasEnCeldas, resolverPlantillaParaImpresion, pageDimensions } from "../services/formatoToHtml.js";
 import { renderPdf } from "../services/pdfRenderer.js";
 import { generarPdfFactura } from "../services/factura-pdf.js";
@@ -149,7 +150,8 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
     if (!plantilla) return res.status(404).json({ error: "No hay plantilla de impresión para este documento" });
 
     const { formData, logoUrl, firma, qrContenido } = await datosParaPdf(tipo, id);
-    const plantillaConFirma = asegurarElementoFirma(plantilla, firma);
+    const plantillaFactura = tipo === "factura-venta" ? prepararCuentaFactura(plantilla, formData) : plantilla;
+    const plantillaConFirma = asegurarElementoFirma(plantillaFactura, firma);
     const signatures = signaturesParaPlantilla(plantillaConFirma, firma);
 
     // Sello PAGADA: si la factura está totalmente cobrada, se añade la
@@ -157,9 +159,9 @@ router.get("/:tipo/:id/pdf", async (req, res, next) => {
     if (tipo === "factura-venta") {
       const factura = await FacturaVenta.findById(id).lean();
       const sello = elementosSelloPagada(factura);
-      if (sello) plantilla.elements = [...(plantilla.elements ?? []), ...sello];
+      if (sello) plantillaConFirma.elements = [...(plantillaConFirma.elements ?? []), ...sello];
       const borrador = elementosBorrador(factura);
-      if (borrador) plantilla.elements = [...(plantilla.elements ?? []), ...borrador];
+      if (borrador) plantillaConFirma.elements = [...(plantillaConFirma.elements ?? []), ...borrador];
     }
 
     let { html, css, pageSize, pageOrientation } = formatoToHtml(plantillaConFirma, formData, signatures, {
@@ -189,7 +191,8 @@ router.get("/:tipo/:id/formato", async (req, res, next) => {
     if (!plantilla) return res.status(404).json({ error: "No hay plantilla de impresión para este documento" });
 
     const { formData, logoUrl, firma, qrContenido } = await datosParaPdf(tipo, id);
-    const plantillaConFirma = asegurarElementoFirma(plantilla, firma);
+    const plantillaFactura = tipo === "factura-venta" ? prepararCuentaFactura(plantilla, formData) : plantilla;
+    const plantillaConFirma = asegurarElementoFirma(plantillaFactura, firma);
     const datos = expandirLineasEnCeldas(plantillaConFirma, formData);
     delete datos.lineas;
 

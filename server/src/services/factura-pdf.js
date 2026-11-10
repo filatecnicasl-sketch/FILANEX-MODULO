@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import { fechaDDMMYYYY } from "./verifactu.js";
 import { textoSelloPagada, imagenSello } from "./selloPagada.js";
+import { formatearIban } from "./cuentaFactura.js";
 
 // PDF de factura de venta. Si la factura está emitida incluye el QR
 // tributario VeriFactu (obligatorio en la factura impresa/entregada).
@@ -85,6 +86,10 @@ export async function generarPdfFactura({ empresa, factura, cliente }) {
   y += 16;
   doc.font("Helvetica-Bold").fontSize(11).text("TOTAL", 380, y, { width: 105, align: "right" });
   doc.text(`${(factura.total ?? 0).toFixed(2)} EUR`, 460, y, { width: 85, align: "right" });
+
+  doc.font("Helvetica").fontSize(9).text(`Forma de pago: ${factura.metodoPago ?? ""}`, 50, y - 30, { width: 280 });
+  const iban = formatearIban(empresa.sepa?.iban);
+  if (iban) doc.text(`C/C ${iban}`, 50, y - 16, { width: 280 });
 
   // QR tributario (solo facturas emitidas con registro VeriFactu)
   if (!esBorrador && factura.verifactu?.qrContenido) {
