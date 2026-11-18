@@ -180,6 +180,18 @@ export default function AyudaGeneralPage() {
           </Paso>
         </Seccion>
 
+        <Seccion titulo="Propuestas e incidencias con adjuntos">
+          <Paso n={1}>
+            En <K>Ayuda → Novedades → Propuestas</K>, explica qué estabas haciendo, qué esperabas y qué ocurrió. Indica el número de orden o la matrícula cuando corresponda.
+          </Paso>
+          <Paso n={2}>
+            Puedes <b>pegar una captura directamente con Ctrl+V</b> en el cuadro de texto, sin guardarla antes. También puedes usar <K>Adjuntar imágenes o PDF</K>: hasta 4 archivos de 10 MB cada uno, en PNG, JPG, WEBP, GIF o PDF.
+          </Paso>
+          <Paso n={3}>
+            Revisa los adjuntos antes de enviar. Las imágenes se muestran en miniatura y los PDF como documentos. Tras el envío, puedes volver a abrir los adjuntos desde la propuesta. Si falla el envío, el texto y los archivos permanecen en la pantalla para reintentarlo; no cierres ni recargues esa pantalla.
+          </Paso>
+        </Seccion>
+
         <Seccion titulo="Seguridad y sesiones">
           <Paso n={1}>
             Cada pestaña del navegador tiene su propia sesión. Puedes tener una pestaña con un usuario administrador y otra con un usuario normal sin que se mezclen.

@@ -7,16 +7,40 @@ import Propuesta from "../models/Propuesta.js";
 import Tenant from "../models/plataforma/Tenant.js";
 import { contextoTrasSubida } from "../middleware/empresa.js";
 import { requiereSuperAdmin } from "../middleware/auth.js";
-import { guardarArchivo, urlPublica } from "../services/storage.js";
+import { guardarArchivo, borrarArchivo, urlPublica } from "../services/storage.js";
+import { randomUUID } from "node:crypto";
 import { slugActual, conexionTenant } from "../models/tenant.js";
 
 const router = Router();
 
-// Capturas de pantalla adjuntas a la propuesta (máx. 4 imágenes de 10 MB).
 const subidaCapturas = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024, files: 4 },
-});
+}).array("capturas", 4);
+
+function recibirAdjuntos(req, res, next) {
+  subidaCapturas(req, res, (error) => {
+    if (error) {
+      if (error.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ error: "Cada adjunto puede ocupar como máximo 10 MB." });
+      }
+      if (["LIMIT_FILE_COUNT", "LIMIT_UNEXPECTED_FILE"].includes(error.code)) {
+        return res.status(400).json({ error: "Puedes adjuntar hasta 4 archivos en el campo de adjuntos." });
+      }
+      return res.status(400).json({ error: "No se pudieron recibir los adjuntos. Revisa los archivos e inténtalo de nuevo." });
+    }
+    contextoTrasSubida(req, res, next);
+  });
+}
+
+function tipoAdjunto(buffer) {
+  if (buffer.subarray(0, 5).toString() === "%PDF-") return { ext: ".pdf", mime: "application/pdf" };
+  if (buffer.subarray(0, 8).equals(Buffer.from("89504e470d0a1a0a", "hex"))) return { ext: ".png", mime: "image/png" };
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return { ext: ".jpg", mime: "image/jpeg" };
+  if (["GIF87a", "GIF89a"].includes(buffer.subarray(0, 6).toString())) return { ext: ".gif", mime: "image/gif" };
+  if (buffer.subarray(0, 4).toString() === "RIFF" && buffer.subarray(8, 12).toString() === "WEBP") return { ext: ".webp", mime: "image/webp" };
+  return null;
+}
 
 // Buzón global del superadministrador: propuestas de TODAS las empresas,
 // etiquetadas con la empresa de la que viene cada una.
@@ -132,19 +156,26 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.post("/", [subidaCapturas.array("capturas", 4), contextoTrasSubida], async (req, res, next) => {
+router.post("/", recibirAdjuntos, async (req, res, next) => {
+  const guardados = [];
   try {
+    if (!req.contextoEmpresa?.slug || !req.contextoEmpresa?.dbName || slugActual() !== req.contextoEmpresa.slug) {
+      return res.status(401).json({ error: "No se pudo comprobar la empresa de la propuesta. Inicia sesión de nuevo." });
+    }
     const texto = String(req.body?.texto ?? "").trim();
     if (!texto) return res.status(400).json({ error: "Escribe la propuesta antes de enviarla" });
+    const archivos = (req.files ?? []).map((archivo) => ({ archivo, tipo: tipoAdjunto(archivo.buffer) }));
+    if (archivos.some(({ tipo }) => !tipo)) {
+      return res.status(400).json({ error: "Adjunta imágenes PNG, JPG, WEBP o GIF, o documentos PDF. Hay un archivo vacío, no válido o de un formato no admitido. No se ha enviado la propuesta." });
+    }
 
     const adjuntos = [];
-    for (const f of req.files ?? []) {
-      if (!f.mimetype.startsWith("image/")) continue;
-      const ext = f.mimetype === "image/png" ? ".png" : f.mimetype === "image/webp" ? ".webp" : ".jpg";
-      const archivo = `propuesta-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    for (const { archivo: fichero, tipo } of archivos) {
+      const archivo = `propuesta-${randomUUID()}${tipo.ext}`;
       const remoto = `uploads/${slugActual()}/propuestas/${archivo}`;
-      await guardarArchivo(remoto, f.buffer, f.mimetype);
-      adjuntos.push({ url: urlPublica(remoto), nombre: f.originalname || archivo });
+      guardados.push(remoto);
+      await guardarArchivo(remoto, fichero.buffer, tipo.mime);
+      adjuntos.push({ url: urlPublica(remoto), nombre: fichero.originalname || archivo });
     }
 
     const creada = await Propuesta.create({
@@ -155,6 +186,7 @@ router.post("/", [subidaCapturas.array("capturas", 4), contextoTrasSubida], asyn
     });
     res.status(201).json(creada);
   } catch (err) {
+    await Promise.allSettled(guardados.map(borrarArchivo));
     next(err);
   }
 });

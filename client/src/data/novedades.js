@@ -5,6 +5,13 @@
 
 export const CAMBIOS = [
   {
+    fecha: "2026-11-18",
+    tipo: "mejora",
+    titulo: "Propuestas: pegar capturas y adjuntar PDF",
+    detalle:
+      "En Ayuda → Novedades → Propuestas puedes pegar una captura con Ctrl+V dentro del cuadro de texto, sin tener que guardarla previamente, y adjuntar imágenes PNG, JPG, WEBP, GIF o documentos PDF. Se admiten hasta 4 archivos de 10 MB cada uno, con aviso si no se pueden aceptar. Revisa los adjuntos antes de enviar e indica la orden o matrícula y los pasos de la incidencia. Si falla el envío, el texto y los archivos permanecen mientras no cierres ni recargues la pantalla. Los adjuntos se pueden abrir desde la propuesta y se mantienen separados por empresa.",
+  },
+  {
     fecha: "2026-11-10",
     tipo: "correccion",
     titulo: "Menú lateral: Compatible VeriFactu",

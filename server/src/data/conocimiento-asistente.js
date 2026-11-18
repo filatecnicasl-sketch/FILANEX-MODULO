@@ -42,8 +42,12 @@ por secciones y, arriba, unas fichas con las pantallas de la sección activa.
   para que el texto se vea entero mientras se teclea. En los impresos, el
   texto largo se imprime completo: primero se reduce la letra para encajar
   y, si no basta, el cuadro crece hacia abajo en el papel.
-- Ayuda → Novedades: registro de cambios del programa y buzón de propuestas
-  (los usuarios pueden proponer mejoras con capturas de pantalla).
+- Ayuda → Novedades: registro de cambios del programa y buzón de propuestas.
+  Se pueden pegar capturas directamente con Ctrl+V en el cuadro de texto, sin
+  guardarlas antes, o adjuntar PNG, JPG, WEBP, GIF y PDF: hasta 4 archivos de
+  10 MB cada uno. Indicar orden o matrícula, pasos, resultado esperado y real.
+  Si falla el envío, conservar la pantalla abierta y reintentar: el texto y
+  los archivos siguen seleccionados, pero no se conservan al recargar.
 
 ## 2. Facturación (núcleo, siempre activo)
 

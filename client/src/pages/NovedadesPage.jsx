@@ -38,7 +38,14 @@ export default function NovedadesPage() {
   const [filtroEstado, setFiltroEstado] = useState("pendiente");
   const [archivando, setArchivando] = useState(null);
   const [texto, setTexto] = useState("");
-  const [capturas, setCapturas] = useState([]); // File[] con su URL de vista previa
+  const [capturas, setCapturas] = useState([]);
+  const capturasActuales = useRef([]);
+  capturasActuales.current = capturas;
+  useEffect(() => () => {
+    capturasActuales.current.forEach((captura) => {
+      if (captura.vista) URL.revokeObjectURL(captura.vista);
+    });
+  }, []);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState(null);
   const [error, setError] = useState(null);
@@ -97,19 +104,53 @@ export default function NovedadesPage() {
     : (propuestas ?? []);
 
   function anadirCapturas(e) {
-    const nuevas = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
+    const nuevas = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!nuevas.length) return;
-    setCapturas((cs) =>
-      [...cs, ...nuevas.map((archivo) => ({ archivo, vista: URL.createObjectURL(archivo) }))].slice(0, 4)
-    );
+    anadirArchivos(nuevas);
+  }
+
+  function pegarCaptura(e) {
+    if (enviando) return;
+    const imagenes = Array.from(e.clipboardData?.items ?? [])
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+    if (!imagenes.length) return;
+    e.preventDefault();
+    const archivos = imagenes.map((archivo, indice) => {
+      const extension = ({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" })[archivo.type];
+      if (!extension) return archivo;
+      return new File([archivo], `captura-${Date.now()}-${indice + 1}.${extension}`, { type: archivo.type });
+    });
+    anadirArchivos(archivos);
+  }
+
+  function anadirArchivos(nuevas) {
+    if (enviando || !nuevas.length) return;
+    setAviso(null);
+    if (capturas.length + nuevas.length > 4) {
+      setError("Puedes adjuntar hasta 4 archivos. Quita alguno antes de añadir más.");
+      return;
+    }
+    if (nuevas.some((archivo) => !/\.(png|jpe?g|webp|gif|pdf)$/i.test(archivo.name))) {
+      setError("Adjunta imágenes PNG, JPG, WEBP o GIF, o documentos PDF.");
+      return;
+    }
+    if (nuevas.some((archivo) => !archivo.size || archivo.size > 10 * 1024 * 1024)) {
+      setError("Cada adjunto debe contener datos y ocupar como máximo 10 MB.");
+      return;
+    }
+    setError(null);
+    const adjuntos = nuevas.map((archivo) => ({
+      archivo,
+      vista: /\.pdf$/i.test(archivo.name) ? null : URL.createObjectURL(archivo),
+    }));
+    setCapturas((actuales) => [...actuales, ...adjuntos]);
   }
 
   function quitarCaptura(i) {
-    setCapturas((cs) => {
-      URL.revokeObjectURL(cs[i]?.vista);
-      return cs.filter((_, j) => j !== i);
-    });
+    if (capturas[i]?.vista) URL.revokeObjectURL(capturas[i].vista);
+    setCapturas((actuales) => actuales.filter((_, indice) => indice !== i));
   }
 
   async function enviar(e) {
@@ -127,7 +168,7 @@ export default function NovedadesPage() {
       const creada = await r.json();
       setPropuestas((ps) => [creada, ...(ps ?? [])]);
       setTexto("");
-      capturas.forEach((c) => URL.revokeObjectURL(c.vista));
+      capturas.forEach((c) => { if (c.vista) URL.revokeObjectURL(c.vista); });
       setCapturas([]);
       setAviso("Propuesta enviada. Gracias por ayudarnos a mejorar.");
     } catch (e2) {
@@ -184,7 +225,7 @@ export default function NovedadesPage() {
 
         {vista === "propuestas" && (
           <div className="space-y-4">
-            <form onSubmit={enviar} className="panel p-4 space-y-3">
+            <form onSubmit={enviar} onPaste={pegarCaptura} className="panel p-4 space-y-3">
               <div>
                 <h3 className="font-semibold text-slate-800">¿Qué te gustaría que hiciera el programa?</h3>
                 <p className="text-sm text-slate-500 mt-0.5">
@@ -202,7 +243,9 @@ export default function NovedadesPage() {
               <input
                 ref={inputCapturasRef}
                 type="file"
-                accept="image/*"
+                accept=".png,.jpg,.jpeg,.webp,.gif,.pdf,image/png,image/jpeg,image/webp,image/gif,application/pdf"
+                aria-label="Adjuntar imágenes o PDF"
+                disabled={enviando}
                 multiple
                 className="hidden"
                 onChange={anadirCapturas}
@@ -210,17 +253,24 @@ export default function NovedadesPage() {
               {capturas.length > 0 && (
                 <div className="flex gap-2 flex-wrap">
                   {capturas.map((c, i) => (
-                    <span key={c.vista} className="relative inline-block">
-                      <img
-                        src={c.vista}
-                        alt={`Captura ${i + 1}`}
-                        className="h-16 w-16 object-cover rounded-lg border border-slate-200"
-                      />
+                    <span key={`${c.archivo.name}-${i}`} className="relative inline-flex max-w-40 flex-col gap-1" title={c.archivo.name}>
+                      {c.vista ? (
+                        <img
+                          src={c.vista}
+                          alt={`Captura ${i + 1}`}
+                          className="h-16 w-16 object-cover rounded-lg border border-slate-200"
+                        />
+                      ) : (
+                        <span className="h-16 w-16 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-600">PDF</span>
+                      )}
+                      <span className="text-xs text-slate-600 break-all">{c.archivo.name}</span>
                       <button
                         type="button"
+                        disabled={enviando}
                         onClick={() => quitarCaptura(i)}
                         className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-700 text-white text-xs leading-none hover:bg-red-500"
-                        title="Quitar captura"
+                        title="Quitar adjunto"
+                        aria-label={`Quitar ${c.archivo.name}`}
                       >
                         ×
                       </button>
@@ -228,12 +278,13 @@ export default function NovedadesPage() {
                   ))}
                 </div>
               )}
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              <p className="text-xs text-slate-500">Puedes pegar una captura con Ctrl+V en el cuadro de texto, sin guardarla antes. Hasta 4 archivos de 10 MB cada uno: capturas o imágenes PNG, JPG, WEBP y GIF, y documentos PDF. Para una incidencia, indica la orden o matrícula, los pasos y qué resultado esperabas.</p>
+              {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
               {aviso && <p className="text-sm text-emerald-600">{aviso}</p>}
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={() => inputCapturasRef.current?.click()} className="btn-ghost !py-1.5 text-sm">
-                    Adjuntar captura{capturas.length > 0 ? ` (${capturas.length}/4)` : ""}
+                  <button type="button" disabled={enviando} onClick={() => inputCapturasRef.current?.click()} className="btn-ghost !py-1.5 text-sm">
+                    Adjuntar imágenes o PDF{capturas.length > 0 ? ` (${capturas.length}/4)` : ""}
                   </button>
                   <p className="text-xs text-slate-500">
                     Se envía como <span className="font-semibold text-slate-600">{usuario || "usuario actual"}</span>
@@ -314,12 +365,17 @@ export default function NovedadesPage() {
                   {p.adjuntos?.length > 0 && (
                     <div className="flex gap-2 flex-wrap mt-2">
                       {p.adjuntos.map((a, j) => (
-                        <a key={a.url} href={urlApiConSesion(a.url)} target="_blank" rel="noreferrer" title={a.nombre || "Ver captura"}>
-                          <img
-                            src={urlApiConSesion(a.url)}
-                            alt={a.nombre || `Captura ${j + 1}`}
-                            className="h-16 w-16 object-cover rounded-lg border border-slate-200 hover:border-accent hover:opacity-80 transition-all"
-                          />
+                        <a key={a.url} href={urlApiConSesion(a.url)} target="_blank" rel="noreferrer" title={a.nombre || "Ver adjunto"} className="inline-flex max-w-48 flex-col gap-1 text-sm text-sky-700">
+                          {/\.pdf(?:[?#]|$)/i.test(a.url) ? (
+                            <span className="h-16 w-16 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 font-semibold">PDF</span>
+                          ) : (
+                            <img
+                              src={urlApiConSesion(a.url)}
+                              alt={a.nombre || `Captura ${j + 1}`}
+                              className="h-16 w-16 object-cover rounded-lg border border-slate-200 hover:border-accent hover:opacity-80 transition-all"
+                            />
+                          )}
+                          <span className="text-xs break-all">{a.nombre || `Adjunto ${j + 1}`}</span>
                         </a>
                       ))}
                     </div>
